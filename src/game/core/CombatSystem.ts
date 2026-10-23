@@ -1,5 +1,6 @@
 import type { GameCore } from "./GameCore";
 import type { Enemy, HitOptions, PlayerHitOptions } from "./types";
+import { hasteCap } from "../data/talents";
 export function hurtEnemy(
   this: GameCore,
   e: Enemy,
@@ -68,7 +69,7 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   const p = this.player;
   // 击杀狂热
   if (p.hasteLv) {
-    p.haste = Math.min(3, p.haste + 1);
+    p.haste = Math.min(hasteCap(p.hasteLv), p.haste + 1);
     p.hasteT = 2 + p.hasteLv;
   }
   // 掉落 (自爆虫自毁不掉落)
