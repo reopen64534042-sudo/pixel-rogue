@@ -45,6 +45,8 @@
 - npm run build：类型检查与 dist 构建。
 - npm run test:browser：先构建；自动占用 5174/4173，默认系统 Chrome。无 Chrome 时安装 Playwright Chromium 并设置 PLAYWRIGHT_CHANNEL=chromium。
 - npm run preview：127.0.0.1:4173 生产预览。
+- npm run palette:export：从 src/game/data/palette.ts 导出 assets/palette.gpl（美术产线，改动色板后必跑）。
+- node scripts/pixelize.mjs <png> --key <assetKey>：贴图后处理（规格见 docs/art-assets.md 第 7 节）。
 通常只运行变更相关的现有检查；除非明确请求测试，不主动新增/扩展测试。本次迁移已明确授权测试。
 
 ## 验收

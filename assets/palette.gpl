@@ -1,0 +1,30 @@
+GIMP Palette
+Name: Pixel Rogue
+Columns: 8
+#
+ 26  10  42	ink0 最深描边
+ 34  34  58	ink1 次级描边、眼窝
+ 58  26  10	ink2 暖色系暗部
+255 255 255	white 高光、受击反馈
+232 232 240	bone 金属/骨白
+255 217 160	sand 肤色
+244 169  64	pGold 头盔
+ 61 109 224	pBlue 披风
+ 30  58 138	pBlueDk 披风暗部
+ 90  58  32	pBrown 靴
+157 255 157	slimeLite 高光
+ 77 212  77	slimeMid 主体
+ 10  61  10	slimeDark 暗部/眼
+176  92 255	psiPurple 主体
+138  92 255	psiViolet 蝙蝠主体
+125 255  90	psiLime 荧光眼
+255 225  74	fireYellow 引信
+255 140  58	fireOrange 主体
+194  65  12	fireDeep 暗部
+192  80  80	stoneRed 主体
+ 58  13  13	stoneDark 暗部
+255 210  74	gold 眼/纹样
+ 87 230 255	iceCyan 冰、护盾
+ 26 159 212	iceDeep 宝石主体
+255  91  91	danger 敌方血条、危险标记
+255  77 109	hpPink 药水
