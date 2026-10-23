@@ -1,0 +1,220 @@
+import { WORLD, clamp } from "../data/constants";
+import { ETYPES } from "../data/enemies";
+import type { GameCore } from "./GameCore";
+import type { Enemy } from "./types";
+export function spawnEnemy(
+  this: GameCore,
+  forceType?: string | null,
+  elite = false,
+) {
+  let type = forceType;
+  if (!type) {
+    // 按波次解锁 + 权重抽取
+    const unlocked = Object.keys(ETYPES).filter(
+      (k) => this.waveN >= ETYPES[k].w0,
+    );
+    let total = 0;
+    for (const k of unlocked) total += ETYPES[k].wt;
+    let roll = Math.random() * total;
+    for (const k of unlocked) {
+      roll -= ETYPES[k].wt;
+      if (roll <= 0) {
+        type = k;
+        break;
+      }
+    }
+    if (!type) type = "slime";
+  }
+  const T = ETYPES[type];
+  // 在世界内、远离玩家的位置生成
+  let sx = this.player.x,
+    sy = this.player.y;
+  for (let tries = 0; tries < 5; tries++) {
+    const a = Math.random() * Math.PI * 2;
+    sx = clamp(this.player.x + Math.cos(a) * 300, 30, WORLD.w - 30);
+    sy = clamp(this.player.y + Math.sin(a) * 300, 30, WORLD.h - 30);
+    if (Math.hypot(sx - this.player.x, sy - this.player.y) > 150) break;
+  }
+  const hpScale = 1 + (this.waveN - 1) * 0.18;
+  const dmgScale = 1 + (this.waveN - 1) * 0.05;
+  const lvlPow = Math.pow(1.03, Math.floor(this.player.lvl / 5)); // 玩家每5级，怪物全属性+3%
+  this.enemies.push({
+    type,
+    spr: T.spr,
+    x: sx,
+    y: sy,
+    hp: T.hp * hpScale * lvlPow * (elite ? 8 : 1),
+    maxhp: T.hp * hpScale * lvlPow * (elite ? 8 : 1),
+    speed: T.speed * (elite ? 0.8 : 1) * (0.9 + Math.random() * 0.2),
+    dmg: T.dmg * dmgScale * (elite ? 1.5 : 1),
+    r: T.r * (elite ? 1.8 : 1),
+    xp: elite ? 25 : T.xp,
+    elite: !!elite,
+    flash: 0,
+    orbCd: 0,
+    slowT: 0,
+    slowF: 0,
+    burnT: 0,
+    burnDps: 0,
+    seed: Math.random() * 10,
+    shootCd: 1 + Math.random() * 1.5,
+    fuse: 0,
+    noDrop: false,
+  });
+}
+
+export function nearestEnemy(
+  this: GameCore,
+  x: number,
+  y: number,
+  maxD: number,
+  exclude?: Enemy,
+) {
+  let best = null,
+    bd = maxD * maxD;
+  for (const e of this.enemies) {
+    if (e.dead || e === exclude) continue;
+    const dx = e.x - x,
+      dy = e.y - y,
+      d = dx * dx + dy * dy;
+    if (d < bd) {
+      bd = d;
+      best = e;
+    }
+  }
+  return best;
+}
+
+export function updateEnemies(this: GameCore, dt: number) {
+  const p = this.player;
+  // ---- 敌人 AI ----
+  for (let i = this.enemies.length - 1; i >= 0; i--) {
+    const e = this.enemies[i];
+    if (e.dead) {
+      this.enemies.splice(i, 1);
+      continue;
+    }
+    e.flash -= dt;
+    e.orbCd -= dt;
+    e.slowT -= dt;
+    // 灼烧
+    if (e.burnT > 0) {
+      e.burnT -= dt;
+      e.hp -= e.burnDps * dt;
+      this.dmgBy.burn += e.burnDps * dt;
+      if (Math.random() < dt * 8)
+        this.parts.push({
+          x: e.x,
+          y: e.y,
+          vx: (Math.random() - 0.5) * 20,
+          vy: -30,
+          life: 0.3,
+          c: "#ff9a3d",
+        });
+      if (e.hp <= 0) {
+        this.killEnemy(e);
+        continue;
+      }
+    }
+    let a = Math.atan2(p.y - e.y, p.x - e.x);
+    if (e.type === "bat") a += Math.sin(this.time * 6 + e.seed) * 0.5;
+    const spd = e.speed * (e.slowT > 0 ? 1 - e.slowF : 1);
+    if (e.type === "shooter") {
+      // 远程: 远则靠近、近则后撤、中距离横向游走并射击
+      const d = Math.hypot(p.x - e.x, p.y - e.y);
+      let mvx = 0,
+        mvy = 0;
+      if (d > 150) {
+        mvx = Math.cos(a);
+        mvy = Math.sin(a);
+      } else if (d < 90) {
+        mvx = -Math.cos(a);
+        mvy = -Math.sin(a);
+      } else {
+        mvx = -Math.sin(a) * Math.sin(this.time * 1.5 + e.seed) * 0.7;
+        mvy = Math.cos(a) * Math.sin(this.time * 1.5 + e.seed) * 0.7;
+      }
+      e.x += mvx * spd * dt;
+      e.y += mvy * spd * dt;
+      e.shootCd -= dt;
+      if (e.shootCd <= 0 && d < 210) {
+        e.shootCd = 2.2;
+        this.ebullets.push({
+          x: e.x,
+          y: e.y,
+          vx: Math.cos(a) * 95,
+          vy: Math.sin(a) * 95,
+          dmg: e.dmg,
+          r: 2,
+          life: 4,
+        });
+        this.audio.beep(340, 0.08, "square", 0.03, -60);
+      }
+    } else if (e.type === "bomber") {
+      // 特殊: 高速逼近 → 引爆 (0.5s 预警闪烁)
+      if (!e.fuse) {
+        e.x += Math.cos(a) * spd * dt;
+        e.y += Math.sin(a) * spd * dt;
+        if (Math.hypot(p.x - e.x, p.y - e.y) < 26) {
+          e.fuse = 0.5;
+          this.audio.beep(220, 0.2, "sawtooth", 0.05, 200);
+        }
+      } else {
+        e.fuse -= dt;
+        if (e.fuse <= 0) {
+          const d2p = Math.hypot(p.x - e.x, p.y - e.y);
+          if (d2p < 38 + p.r && p.hurtCd <= 0 && p.dashT <= 0)
+            this.damagePlayer(e.dmg, {});
+          for (let j = 0; j < 12; j++) {
+            const an = Math.random() * Math.PI * 2;
+            this.parts.push({
+              x: e.x,
+              y: e.y,
+              vx: Math.cos(an) * 130,
+              vy: Math.sin(an) * 130,
+              life: 0.4,
+              c: "#ff9a3d",
+            });
+          }
+          this.shake = Math.min(this.shake + 3, 6);
+          this.audio.beep(80, 0.3, "sawtooth", 0.08, -30);
+          e.noDrop = true;
+          e.hp = 0;
+          this.killEnemy(e);
+          continue;
+        }
+      }
+    } else {
+      e.x += Math.cos(a) * spd * dt;
+      e.y += Math.sin(a) * spd * dt;
+    }
+    e.x = clamp(e.x, 20, WORLD.w - 20);
+    e.y = clamp(e.y, 20, WORLD.h - 20);
+    // 接触伤害
+    const dx = p.x - e.x,
+      dy = p.y - e.y,
+      rr = e.r + p.r;
+    if (dx * dx + dy * dy < rr * rr && p.hurtCd <= 0 && p.dashT <= 0) {
+      if (this.damagePlayer(e.dmg, { melee: true, src: e })) return true;
+    }
+  }
+  // 敌人分离
+  for (let i = 0; i < this.enemies.length; i++) {
+    for (let j = i + 1; j < this.enemies.length; j++) {
+      const a = this.enemies[i],
+        b = this.enemies[j];
+      const dx = b.x - a.x,
+        dy = b.y - a.y;
+      const rr = a.r + b.r,
+        d2 = dx * dx + dy * dy;
+      if (d2 > 0.01 && d2 < rr * rr) {
+        const d = Math.sqrt(d2),
+          push = ((rr - d) / d) * 0.3;
+        a.x -= dx * push;
+        a.y -= dy * push;
+        b.x += dx * push;
+        b.y += dy * push;
+      }
+    }
+  }
+}

@@ -1,2 +1,9 @@
 # WorkBuddy 项目数据（本地记忆/模拟器等，不入库）
 .workbuddy/
+
+node_modules/
+dist/
+.playwright-cli/
+output/
+test-results/
+playwright-report/
