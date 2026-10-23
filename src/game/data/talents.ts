@@ -1,4 +1,10 @@
 import type { Talent } from "../core/types";
+
+/** 击杀狂热叠层上限：随天赋等级提高（Lv1→4 层，Lv2→5 层，Lv3→6 层） */
+export function hasteCap(hasteLv: number) {
+  return 3 + hasteLv;
+}
+
 export const UPGRADES: Talent[] = [
   {
     n: "强化弹丸",
@@ -267,11 +273,11 @@ export const UPGRADES: Talent[] = [
     ico: "🩸",
     t: 3,
     cat: "攻击",
-    d: "击杀叠加攻速(最多+30%)，受伤时扣除 2 层",
+    d: "击杀叠加攻速(每层+10%，上限随等级提升)，受伤时扣除 2 层",
     max: 3,
     mech: 1,
     pv: (p) =>
-      `持续 ${(2 + p.hasteLv).toFixed(0)}s → ${(3 + p.hasteLv).toFixed(0)}s`,
+      `上限 ${hasteCap(p.hasteLv)}→${hasteCap(p.hasteLv + 1)} 层 · 持续 ${(2 + p.hasteLv).toFixed(0)}→${(3 + p.hasteLv).toFixed(0)}s`,
     f: (p) => {
       p.hasteLv++;
       if (p.hasteLv === 1) {

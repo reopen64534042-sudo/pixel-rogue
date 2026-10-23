@@ -1,9 +1,20 @@
 import { readFileSync } from "node:fs";
 import { createContext, runInContext } from "node:vm";
 import { it, expect, vi, afterEach } from "vitest";
-import { fresh, seeded } from "./helpers";
+import { fresh, seeded, learn, enemy } from "./helpers";
 import { UPGRADES } from "../src/game/data/talents";
 afterEach(() => vi.restoreAllMocks());
+/**
+ * 基线更新依据：Issue #1（用户已批准的平衡变更）。
+ * 击杀狂热的叠层上限改为 3 + hasteLv（Lv1=4 / Lv2=5 / Lv3=6），不再固定 3 层。
+ * 该天赋因此不参与「与 v8 逐字段相等」的战斗对照（攻速分叉会必然扩散到所有弹道字段），
+ * 改由本文件末尾的显式公式断言做回归保护；其余天赋仍全部参与严格对照，
+ * 任何其他天赋出现与 v8 的差异都按 bug 处理。
+ */
+const D01_EXCLUDED = ["击杀狂热"] as const;
+const parityTalents = UPGRADES.filter(
+  (u) => !D01_EXCLUDED.includes(u.n as (typeof D01_EXCLUDED)[number]),
+);
 /** Run actual preserved source, never a rewritten expectation of the same algorithm. */
 function original() {
   const node = {
@@ -100,11 +111,12 @@ it.each([1, 4, 5, 8, 16])(
 );
 
 it.each([4, 8, 16])(
-  "all 34 talents in combat retain original simulation at wave %i",
+  "all talents except D-01 in combat retain original simulation at wave %i",
   (wave) => {
     const baseline = original();
+    const excluded = JSON.stringify([...D01_EXCLUDED]);
     runInContext(
-      `resetGame();waveN=${wave};quota=waveQuota(waveN);for(const u of UPGRADES){u.f(player);player.upCounts[u.n]=1;player.picks.push(u.n);}keys.s=true;keys[' ']=true;`,
+      `resetGame();waveN=${wave};quota=waveQuota(waveN);for(const u of UPGRADES.filter(x=>!${excluded}.includes(x.n))){u.f(player);player.upCounts[u.n]=1;player.picks.push(u.n);}keys.s=true;keys[' ']=true;`,
       baseline,
     );
     baseline.Math.random = seeded(400 + wave);
@@ -118,7 +130,7 @@ it.each([4, 8, 16])(
     const g = fresh();
     g.waveN = wave;
     g.quota = g.waveQuota(wave);
-    for (const u of UPGRADES) g.learnTalent(u);
+    for (const u of parityTalents) g.learnTalent(u);
     g.keys.s = true;
     g.keys[" "] = true;
     for (let i = 0; i < 1200; i++) g.update(1 / 60);
@@ -128,3 +140,39 @@ it.each([4, 8, 16])(
     expect(JSON.parse(JSON.stringify(actual))).toEqual(expected);
   },
 );
+
+/**
+ * 基线更新依据：Issue #1（用户已批准的平衡变更）。
+ * 原基线为「击杀狂热叠层上限恒等于 v8 的 3 层」，现改为显式断言新公式，
+ * 保留回归能力：任何偏离 3 + hasteLv 的实现都会让本条失败。
+ */
+it("D-01 击杀狂热叠层上限 = 3 + hasteLv（Lv1=4 / Lv2=5 / Lv3=6）", () => {
+  const cases = [
+    { lv: 1, cap: 4 },
+    { lv: 2, cap: 5 },
+    { lv: 3, cap: 6 },
+  ] as const;
+  for (const { lv, cap } of cases) {
+    const g = fresh();
+    learn(g, "击杀狂热", lv);
+    expect(g.player.hasteLv).toBe(lv);
+    expect(3 + g.player.hasteLv).toBe(cap);
+    // 叠加次数远超上限，验证封顶而非线性累加
+    for (let i = 0; i < cap + 4; i++) {
+      const e = enemy(g);
+      e.hp = 0;
+      g.killEnemy(e);
+    }
+    expect(g.player.haste).toBe(cap);
+    expect(g.player.hasteT).toBe(2 + lv);
+  }
+});
+
+it("D-01 未学习击杀狂热时不产生叠层（与 v8 一致）", () => {
+  const g = fresh();
+  const e = enemy(g);
+  e.hp = 0;
+  g.killEnemy(e);
+  expect(g.player.hasteLv).toBe(0);
+  expect(g.player.haste).toBe(0);
+});
