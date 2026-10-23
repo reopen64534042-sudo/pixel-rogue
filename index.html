@@ -33,16 +33,23 @@
         <div id="bp-report"></div>
       </div>
       <div id="bp-swap" class="hidden">
-        <div class="swap-header">
-          <span class="key" id="sw-hint">置换: 先选目标稀有度（每波限 1 次 · 1级=1张卡）</span>
+        <div id="sw-form">
+          <div class="swap-header">
+            <span class="key" id="sw-hint">置换: 先选目标稀有度（每波限 1 次 · 1级=1张卡）</span>
+          </div>
+          <div class="swap-targets">
+            <button class="btn swb" id="sw-r1">→ 稀有 (2×普通)</button>
+            <button class="btn swb" id="sw-r2">→ 史诗 (2×稀有)</button>
+            <button class="btn swb" id="sw-r3">→ 传奇 (2×史诗)</button>
+          </div>
+          <div id="sw-inv"></div>
+          <button class="btn swb" id="sw-melt">🔥 熔 炼 (0/2)</button>
         </div>
-        <div class="swap-targets">
-          <button class="btn swb" id="sw-r1">→ 稀有 (2×普通)</button>
-          <button class="btn swb" id="sw-r2">→ 史诗 (2×稀有)</button>
-          <button class="btn swb" id="sw-r3">→ 传奇 (2×史诗)</button>
+        <div id="sw-result" class="hidden">
+          <div class="sw-result-title">🔥 熔 炼 成 功 ！</div>
+          <div id="sw-result-card" class="sw-card"></div>
+          <button class="btn swb" id="sw-confirm">✔ 确认收下</button>
         </div>
-        <div id="sw-inv"></div>
-        <button class="btn swb" id="sw-melt">🔥 熔 炼 (0/2)</button>
       </div>
     </div>
     <div class="bp-actions">

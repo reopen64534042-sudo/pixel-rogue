@@ -108,6 +108,11 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
   expect(
     await page.evaluate(() => window.__PIXEL_ROGUE__!.core.player.picks.length),
   ).toBe(countBefore - 1);
+  await expect(page.locator("#sw-result")).toBeVisible();
+  await expect(page.locator("#sw-result-card .sw-name")).toBeVisible();
+  await page.screenshot({ path: "output/playwright/bottombar-swap-result.png" });
+  await page.locator("#sw-confirm").click();
+  await expect(page.locator("#bp-swap")).toBeHidden();
   await expect(page.locator("#bp-swapbtn")).toBeHidden();
   await page.locator("#bp-next").click();
   expect(await page.evaluate(() => window.__PIXEL_ROGUE__!.core.waveN)).toBe(2);

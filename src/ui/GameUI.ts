@@ -60,6 +60,8 @@ export class GameUI {
     element("bp-swapbtn").onclick = () => {
       if (!this.core.openSwap()) return;
       element("sw-hint").textContent = "置换: 先选目标稀有度（每波限 1 次）";
+      element("sw-form").classList.remove("hidden");
+      element("sw-result").classList.add("hidden");
       element("bp-swap").classList.remove("hidden");
       this.renderSwInv();
     };
@@ -68,14 +70,34 @@ export class GameUI {
     element("sw-r3").onclick = () => this.setSwTarget(3);
     element("sw-melt").onclick = () => {
       const output = this.core.melt();
-      if (output)
-        element("sw-hint").textContent =
-          "🔥 熔出: " + output.ico + " " + output.n;
+      if (output) {
+        element("bp-swap").classList.remove("hidden");
+        element("sw-form").classList.add("hidden");
+        const resEl = element("sw-result");
+        resEl.classList.remove("hidden");
+        const p = this.core.player;
+        const lv = p.upCounts[output.n] || 1;
+        const curDesc = output.cur ? output.cur(p) : output.d;
+        element("sw-result-card").className = `sw-card t${output.t}`;
+        element("sw-result-card").innerHTML = `
+          <div class="sw-tier">${TIERS[output.t]} · ${output.cat}</div>
+          <div class="sw-ico">${output.ico}</div>
+          <div class="sw-name">${output.n} Lv.${lv}</div>
+          <div class="sw-desc">${output.d}</div>
+          <div class="sw-cur">${curDesc}</div>
+        `;
+      }
+    };
+    element("sw-confirm").onclick = () => {
+      element("bp-swap").classList.add("hidden");
+      element("sw-result").classList.add("hidden");
+      element("sw-form").classList.remove("hidden");
     };
     element("bp-next").onclick = () => {
       if (!this.core.startNextWave()) return;
       element("bottom-bar").classList.add("hidden");
       element("bp-rest").classList.add("hidden");
+      element("bp-swap").classList.add("hidden");
     };
     (element("btn-start") as HTMLButtonElement).disabled = false;
     element("btn-start").removeAttribute("aria-busy");
