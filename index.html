@@ -13,17 +13,30 @@
   <button id="btn-pause">⏸ 暂停 (P)</button>
 
   <!-- 底部非打断面板: 升级 / 休整统计 / 置换 (游戏不暂停) -->
-  <div id="bottom-bar" class="hidden">
-    <div id="bp-level" class="hidden">
-      <div class="bp-title">⬆ 升级！选择强化（不暂停 · 按 1/2/3 快选 · 卡片右上角 🔄 单独刷新）</div>
-      <div id="bp-cards"></div>
+  <!-- 升级选择面板 (独立组件，专注升级选卡，居于中下方) -->
+  <div id="bp-level" class="level-panel hidden">
+    <div class="level-header">
+      <div class="bp-title">⬆ 等级提升！选择一项天赋强化</div>
+      <div class="level-subhint">模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片右上角 🔄 单独刷新</div>
     </div>
-    <div id="bp-rest" class="hidden">
-      <div class="bp-title">☠ 敌潮已清空 · 本波伤害统计</div>
-      <div id="bp-report"></div>
+    <div id="bp-cards"></div>
+  </div>
+
+  <!-- 休整结算面板 (独立组件，专注波次结算、伤害统计与置换) -->
+  <div id="bp-rest" class="rest-panel hidden">
+    <div class="rest-header">
+      <div class="rest-title">☠ 敌潮清空 · 波次结算</div>
+    </div>
+    <div class="rest-body">
+      <div class="rest-report-wrap">
+        <div class="rest-section-title">本波伤害统计</div>
+        <div id="bp-report"></div>
+      </div>
       <div id="bp-swap" class="hidden">
-        <div class="keys">
+        <div class="swap-header">
           <span class="key" id="sw-hint">置换: 先选目标稀有度（每波限 1 次 · 1级=1张卡）</span>
+        </div>
+        <div class="swap-targets">
           <button class="btn swb" id="sw-r1">→ 稀有 (2×普通)</button>
           <button class="btn swb" id="sw-r2">→ 史诗 (2×稀有)</button>
           <button class="btn swb" id="sw-r3">→ 传奇 (2×史诗)</button>
@@ -31,12 +44,15 @@
         <div id="sw-inv"></div>
         <button class="btn swb" id="sw-melt">🔥 熔 炼 (0/2)</button>
       </div>
-      <div class="bp-actions">
-        <button class="btn" id="bp-swapbtn">⚗ 打开置换</button>
-        <button class="btn" id="bp-next">▶ 开始下一波</button>
-      </div>
+    </div>
+    <div class="bp-actions">
+      <button class="btn" id="bp-swapbtn">⚗ 打开置换</button>
+      <button class="btn btn-primary" id="bp-next">▶ 开始下一波</button>
     </div>
   </div>
+
+  <!-- 兼容隐藏节点 -->
+  <div id="bottom-bar" class="hidden" style="display:none"></div>
 
   <!-- 开始界面 -->
   <div id="ov-start" class="overlay">
@@ -57,11 +73,23 @@
 
   <!-- 属性面板 -->
   <div id="ov-stats" class="overlay hidden">
-    <h2>角色属性</h2>
-    <div id="stat-grid"></div>
-    <h2 style="font-size:1.8vmin">已学天赋</h2>
-    <div id="talent-list"></div>
-    <div id="talent-desc">点击上方天赋可查看详细说明</div>
+    <h2>角色属性与天赋</h2>
+    <div class="stats-container">
+      <div id="stat-grid" class="stats-col stats-col-left">
+        <div class="stats-group-title">核心战斗</div>
+        <div id="stat-combat" class="stat-group-grid"></div>
+        <div class="stats-group-title">生存防御</div>
+        <div id="stat-defense" class="stat-group-grid"></div>
+      </div>
+      <div class="stats-col stats-col-right">
+        <div class="stats-group-title">已学天赋</div>
+        <div id="talent-list" class="talent-groups-wrap"></div>
+
+      </div>
+    </div>
+
+
+
     <button class="btn" id="btn-statclose">返回战斗 (C)</button>
   </div>
 
@@ -78,6 +106,9 @@
     <p id="over-stats"></p>
     <button class="btn" id="btn-retry">再 来 一 局 (R)</button>
   </div>
+  <!-- 天赋悬浮详情窗口 -->
+  <div id="talent-tooltip" class="talent-tooltip hidden"></div>
+
 </div>
 
 <script type="module" src="/src/main.ts"></script>

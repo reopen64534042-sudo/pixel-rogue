@@ -39,6 +39,7 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
     g.gems.push({ x: g.player.x + 1, y: g.player.y, vx: 0, vy: 0, v: 18 });
   });
   await expect(page.locator("#bp-level")).toBeVisible();
+  await page.screenshot({ path: "output/playwright/bottombar-levelup.png" });
   const first = page.locator("#bp-cards .card").first();
   await first.locator(".refr").click();
   await expect(page.locator("#bp-cards .refr")).toHaveCount(2);
@@ -61,12 +62,36 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
       g.hurtEnemy(e, 100000, 0, 0, { noCrit: true, src: "bullet" });
     g.spawnedThisWave = g.quota;
   });
+  // Stats panel inspection with split layout and current-value talent details
+  await page.keyboard.press("c");
+  await expect(page.locator("#ov-stats")).toBeVisible();
+  await expect(page.locator("#stat-combat")).toBeVisible();
+  await expect(page.locator("#stat-defense")).toBeVisible();
+  const bladeTag = page.locator('#talent-list span[data-n="磨刃"]');
+  await expect(bladeTag).toBeVisible();
+  await expect(bladeTag).not.toHaveAttribute("title");
+  await bladeTag.hover();
+  const tooltip = page.locator("#talent-tooltip");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip.locator(".tt-name")).toHaveText("磨刃");
+  await expect(tooltip.locator(".tt-lvl")).toContainText("Lv.");
+  await expect(tooltip.locator(".tt-desc")).toHaveText("伤害 +10%");
+  await expect(tooltip.locator(".tt-cur-val")).toContainText("当前伤害");
+  await page.screenshot({ path: "output/playwright/stats-panel-large.png" });
+  await page.mouse.move(10, 10);
+  await expect(tooltip).toBeHidden();
+  await bladeTag.click();
+  await expect(tooltip).toBeVisible();
+  await page.keyboard.press("c");
+  await expect(page.locator("#ov-stats")).toBeHidden();
+  await expect(tooltip).toBeHidden();
   // Automatic collection may open more genuine level selections.
   await expect(async () => {
     if (await page.locator("#bp-level").isVisible())
       await page.keyboard.press("1");
     await expect(page.locator("#bp-rest")).toBeVisible({ timeout: 500 });
   }).toPass({ timeout: 15000 });
+  await page.screenshot({ path: "output/playwright/bottombar-rest.png" });
   await page.getByRole("button", { name: "⚗ 打开置换" }).click();
   await page
     .getByRole("button", { name: "→ 稀有 (2×普通)", exact: true })
@@ -75,6 +100,7 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
   await material.click();
   await material.click();
   await expect(page.locator("#sw-melt")).toHaveText("🔥 熔 炼 (2/2)");
+  await page.screenshot({ path: "output/playwright/bottombar-swap.png" });
   const countBefore = await page.evaluate(
     () => window.__PIXEL_ROGUE__!.core.player.picks.length,
   );
@@ -131,5 +157,7 @@ test("small viewport stays within screen and controls remain reachable", async (
   await page.locator("#btn-start").click();
   await page.keyboard.press("c");
   await expect(page.locator("#btn-statclose")).toBeInViewport();
-  await page.screenshot({ path: "output/playwright/small-viewport.png" });
+  await page.screenshot({ path: "output/playwright/stats-panel-small.png" });
+  await page.locator("#btn-statclose").click();
+  await expect(page.locator("#ov-stats")).toBeHidden();
 });
