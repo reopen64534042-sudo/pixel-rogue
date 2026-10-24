@@ -37,7 +37,13 @@ const BASELINE_EXCLUDED = [
 ] as const;
 // Issue #55 批次新增的天赋（v8 无对应条目）：灼热易伤/烈焰蔓延/天眼制导/焦土燃烧
 // v8 原版无 boltDmgMul 字段：对照前向原版 player 注入默认值 1，仅对齐结构，值语义不变。
-const NOT_IN_V8 = ["灼热易伤", "烈焰蔓延", "天眼制导", "焦土燃烧"] as const;
+const NOT_IN_V8 = [
+  "灼热易伤",
+  "烈焰蔓延",
+  "天眼制导",
+  "焦土燃烧",
+  "魔刃回旋",
+] as const;
 const parityTalents = UPGRADES.filter(
   (u) =>
     !BASELINE_EXCLUDED.includes(u.n as (typeof BASELINE_EXCLUDED)[number]) &&
@@ -212,12 +218,12 @@ function original() {
   );
   // 基线随 Issue #38-#45 批次补齐玩家新字段（结构对齐，值语义不变）
   runInContext(
-    "const _rg = resetGame; resetGame = function () { _rg(); Object.assign(player, { boltDmgMul: 1, frostLv: 0, scorchVuln: 0, burnSpread: 0, meteorGuided: 0, burnGround: 0 }); Object.assign(dmgBy, { shock: 0 }); };",
+    "const _rg = resetGame; resetGame = function () { _rg(); Object.assign(player, { boltDmgMul: 1, frostLv: 0, scorchVuln: 0, burnSpread: 0, meteorGuided: 0, burnGround: 0, bladeReflect: 0 }); Object.assign(dmgBy, { shock: 0, reflect: 0 }); };",
     context,
   );
   // 基线随 Issue #55 批次注入 4 张新卡桩（卡池组成对齐；__stub 标记，行为对照跳过）
   runInContext(
-    'UPGRADES.push({ n: "灼热易伤", ico: "🌡️", t: 2, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["烈焰印记"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "烈焰蔓延", ico: "🌋", t: 3, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["灼热易伤"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "天眼制导", ico: "👁️", t: 2, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "焦土燃烧", ico: "🏜️", t: 3, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 });',
+    'UPGRADES.push({ n: "灼热易伤", ico: "🌡️", t: 2, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["烈焰印记"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "烈焰蔓延", ico: "🌋", t: 3, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["灼热易伤"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "天眼制导", ico: "👁️", t: 2, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "焦土燃烧", ico: "🏜️", t: 3, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "魔刃回旋", ico: "🪞", t: 1, cat: "防御", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["守护之刃"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 });',
     context,
   );
   runInContext(

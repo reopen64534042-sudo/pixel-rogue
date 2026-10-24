@@ -62,6 +62,52 @@ export function updateProjectiles(this: GameCore, dt: number) {
       this.ebullets.splice(i, 1);
       continue;
     }
+    // Issue #49：环绕飞刃反弹敌方弹幕（碰到即反弹，伤害不衰减，无冷却）
+    if (p.bladeReflect && !b.reflected && p.orbit > 0) {
+      const hitR = b.r + 5;
+      for (let i = 0; i < p.orbit; i++) {
+        const ba = p.orbA + (i * Math.PI * 2) / p.orbit;
+        const bx = p.x + Math.cos(ba) * 26;
+        const by = p.y + Math.sin(ba) * 26;
+        const rdx = b.x - bx,
+          rdy = b.y - by;
+        if (rdx * rdx + rdy * rdy < hitR * hitR) {
+          b.vx = -b.vx;
+          b.vy = -b.vy;
+          b.reflected = true;
+          b.life = Math.max(b.life, 3);
+          this.addText(b.x, b.y - 6, "反弹", "#9fe1ff");
+          this.audio.beep(1200, 0.05, "square", 0.03, 250);
+          break;
+        }
+      }
+    }
+    // 反弹后的弹幕对敌人结算（不衰减；不再伤害玩家）
+    if (b.reflected) {
+      let hit = false;
+      for (const e of this.enemies) {
+        if (e.dead) continue;
+        const edx = e.x - b.x,
+          edy = e.y - b.y;
+        const err = e.r + b.r;
+        if (edx * edx + edy * edy < err * err) {
+          const kx = (b.vx / 200) * 4,
+            ky = (b.vy / 200) * 4;
+          this.hurtEnemy(e, b.dmg, kx, ky, {
+            src: "reflect",
+            type: "physical",
+            form: "ranged",
+          });
+          hit = true;
+          break;
+        }
+      }
+      if (hit) {
+        this.ebullets.splice(i, 1);
+        continue;
+      }
+      continue;
+    }
     const dx = p.x - b.x,
       dy = p.y - b.y,
       rr = p.r + b.r;

@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v13",
+    date: "2026-10-25",
+    title: "飞刃反弹机制（#49）",
+    items: [
+      "新增魔刃回旋（稀有/前置守护之刃）：环绕飞刃可反弹敌方弹幕",
+      "反弹弹幕沿原轨迹飞回伤害敌人，伤害不衰减；反弹无冷却，碰到即反弹",
+      "反弹后的弹幕青色标识，伤害报告新增「🌀飞刃反弹」来源",
+    ],
+  },
+  {
     version: "v12",
     date: "2026-10-25",
     title: "UI 精修批次",

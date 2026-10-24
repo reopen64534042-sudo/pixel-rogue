@@ -101,6 +101,7 @@ export class GameCore {
     burn: 0,
     shock: 0,
     melee: 0,
+    reflect: 0,
   };
   private waveStartDamage: DamageTotals = {
     bullet: 0,
@@ -112,6 +113,7 @@ export class GameCore {
     burn: 0,
     shock: 0,
     melee: 0,
+    reflect: 0,
   };
   beginWaveReport() {
     this.waveStartDamage = { ...this.dmgBy };
@@ -216,6 +218,7 @@ export class GameCore {
       meteor: 0,
       explode: 0,
       shock: 0,
+      reflect: 0,
       thorns: 0,
       burn: 0,
       melee: 0,
