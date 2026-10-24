@@ -1,10 +1,10 @@
 # Pixel Rogue · Combat Foundation v1 技术设计规范
 
-> 状态：**设计已确认，尚未实施**  
+> 状态：**设计已确认；S1 已实施（记录见 docs/migration.md「D-05」），S2–S4 尚未实施**  
 > 日期：2026-10-24  
 > 项目：Pixel Rogue（像素秘境）  
-> 目标开发仓库：[`reopen64534042-sudo/pixel-rogue`](https://github.com/reopen64534042-sudo/pixel-rogue)  
-> 建议入库路径：`docs/combat-foundation-v1.md`（须通过功能分支和 PR，不直接写 `main`）
+> 目标开发仓库：[`yunluoxincheng/pixel-rogue`](https://github.com/yunluoxincheng/pixel-rogue)（S1 实施所在仓库；规范初稿来自上游 `reopen64534042-sudo/pixel-rogue`）  
+> 实际入库路径：`docs/pixel-rogue-combat-foundation-v1.md`（须通过功能分支和 PR，不直接写 `main`）  
 
 ## 1. 背景与目标
 
@@ -87,8 +87,8 @@ true: M_generalMitigation = 1
 
 ### 3.3 取整、最低伤害和 DoT
 
-- **命中（hit）**：默认对合法的正伤害，在增伤、暴击、减伤之后一次取整；在现有规则要求时维持最少 1 点命中伤害。零/非法输入要明确处理，不能把 `NaN`、负值意外转换成 1 点伤害。
-- **持续伤害（dot）**：按 `DPS × dt` 保留浮点精度，不逐帧取整，不逐帧最少 1 点，不触发普通命中的暴击、吸血、连锁和再灼烧；如未来需特殊例外，应由规则显式允许。
+- **命中（hit）**：结算精度由请求显式声明（`DamagePrecision`），与 hit/dot 正交——现有规则对敌方命中与玩家受击本就不同：`round-min-one` 对合法正伤害在增伤、暴击、减伤之后一次取整并维持最少 1 点命中伤害（对齐 `hurtEnemy` 现行规则）；`preserve-float` 保留浮点（对齐 `damagePlayer` 的浮点 HP 扣除习惯，UI 取整仅用于显示）。零/非法输入要明确处理，不能把 `NaN`、负值意外转换成 1 点伤害。
+- **持续伤害（dot）**：按 `DPS × dt` 保留浮点精度，不逐帧取整，不逐帧最少 1 点，不触发普通命中的暴击、吸血、连锁和再灼烧；dot 请求固定 `preserve-float` 且不得置 `isCritical`，非法组合由 DamageSystem 运行时拒绝。如未来需特殊例外，应由规则显式允许。
 - **玩家受击**：S1/S2 保留当前浮点 HP 扣除习惯及 UI 取整显示方式，不为了“统一”改成整点扣血。
 - **弹丸快照**：保留攻击发射时的原始伤害快照与 0.85 穿透/弹射衰减；陨星当前命中时取属性的行为亦暂时保留。不要引入隐式重算。
 
@@ -121,6 +121,7 @@ true: M_generalMitigation = 1
 type DamageTypeId = keyof typeof DAMAGE_TYPES;
 type AttackForm = "melee" | "ranged" | "other";
 type DamageKind = "hit" | "dot";
+type DamagePrecision = "round-min-one" | "preserve-float";
 
 type ResistanceMap = Partial<Record<DamageTypeId, number>>;
 
@@ -144,6 +145,7 @@ interface DamageRequest {
   form: AttackForm;
   origin: string; // 适配旧 DamageSource；实际运行应使用有约束的 ID
   kind: DamageKind;
+  precision: DamagePrecision; // §3.3 结算精度：hit 两种可选；dot 固定 preserve-float 且不得暴击
   skillId?: string;
   tags?: readonly string[];
   attackerStats: Readonly<CombatStatsSnapshot>;
@@ -211,11 +213,11 @@ BaseStats（基础属性配置）
 **交付**：`DamageTypeRegistry`（或等效静态配置）、`DamageSystem` 纯函数、`CombatStatsSnapshot`、请求/计算结果类型、`combatBalance.ts`、新数值的单元测试。游戏运行入口暂不接新结果。
 
 **验收**：
-- [ ] 新增 `frost` 示例类型（只在单测/扩展样例中）无需修改 DamageSystem 的类型分支即可注册与计算；未知类型和非法输入有显式处理。
-- [ ] 同乘区加算、跨乘区乘算；示例 `100×1.2×1.3×1.4=218.4`。
-- [ ] 物理防御 20（K=50）单独减伤系数为 `50/70`；元素抗性 0/上限、真实伤害绕过减伤验证通过。
-- [ ] 纯计算不读取 `GameCore`、不调用 `Math.random()`、不执行扣血/掉落/UI。
-- [ ] 默认增伤 0、DEF=0、RES=0 时计算不改变现有合法离散命中结果；S1 不修改既有战斗调用方。
+- [x] 新增 `frost` 示例类型（只在单测/扩展样例中）无需修改 DamageSystem 的类型分支即可注册与计算；未知类型和非法输入有显式处理。
+- [x] 同乘区加算、跨乘区乘算；示例 `100×1.2×1.3×1.4=218.4`。
+- [x] 物理防御 20（K=50）单独减伤系数为 `50/70`；元素抗性 0/上限、真实伤害绕过减伤验证通过。
+- [x] 纯计算不读取 `GameCore`、不调用 `Math.random()`、不执行扣血/掉落/UI。
+- [x] 默认增伤 0、DEF=0、RES=0 时计算不改变现有合法离散命中结果；S1 不修改既有战斗调用方。
 
 ### S2：现有所有伤害路径接入（P0）
 
