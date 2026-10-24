@@ -172,9 +172,14 @@ export class GameUI {
     const p = this.core.player;
     const combatRows: [string, string | number][] = [
       ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
-      ["🌊 当前波次", `${this.core.waveN} (配额 ${this.core.quota})`],
-      ["📘 下级经验", p.xpNext],
-      ["⚔️ 伤害", p.damage.toFixed(1)],
+      ["📘 下级所需经验", p.xpNext],
+      ["🌊 当前波次", this.core.waveN + "（配额 " + this.core.quota + "）"],
+      ["⚔️ 全局伤害", p.damage.toFixed(1)],
+      [
+        "🔥 魔弹伤害",
+        (p.damage * p.boltDmgMul).toFixed(1) +
+          (p.boltDmgMul > 1 ? ` ×${p.boltDmgMul.toFixed(2)}` : ""),
+      ],
       [
         "⚡ 攻速",
         (p.fireRate * (1 + p.haste * 0.1)).toFixed(2) +

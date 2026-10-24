@@ -11,11 +11,11 @@ export const UPGRADES: Talent[] = [
     ico: "🔥",
     t: 0,
     cat: "攻击",
-    d: "伤害 +25%",
-    max: 99,
-    pv: (p) => `伤害 ${p.damage.toFixed(1)} → ${(p.damage * 1.25).toFixed(1)}`,
-    f: (p) => (p.damage *= 1.25),
-    cur: (p) => `当前伤害 ${p.damage.toFixed(1)}`,
+    d: "魔弹伤害 +25%（仅魔弹）",
+    max: 30,
+    pv: (p) =>
+      `魔弹伤害 ${(p.damage * p.boltDmgMul).toFixed(1)} → ${(p.damage * p.boltDmgMul * 1.25).toFixed(1)}`,
+    f: (p) => (p.boltDmgMul *= 1.25),
   },
   {
     n: "急速施法",
