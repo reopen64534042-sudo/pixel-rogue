@@ -20,7 +20,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "陨星伤害 ×3、新增天眼制导（智能落点）与焦土燃烧（燃烧地带）——不屈暂时隐藏",
       "伤害计算集中化：DamageMath + combatBalance（对齐 combat foundation 规范）",
     ],
-  },,
+  },
   {
     version: "v10",
     date: "2026-10-24",
