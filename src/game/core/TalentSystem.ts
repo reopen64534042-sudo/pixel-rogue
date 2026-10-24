@@ -24,7 +24,9 @@ export function availTalents(this: GameCore, t: number) {
 
 export function canOffer(this: GameCore, u: Talent) {
   return (
-    (this.player.upCounts[u.n] || 0) < u.max && (!u.req || u.req(this.player))
+    !u.hidden &&
+    (this.player.upCounts[u.n] || 0) < u.max &&
+    (!u.req || u.req(this.player))
   );
 }
 
@@ -40,7 +42,8 @@ export function recompute(this: GameCore) {
 }
 
 export function learnTalent(this: GameCore, u: Talent) {
-  if (!this.canOffer(u)) return false;
+  // max 校验保留；hidden 只影响卡池投放，不影响直接学习（测试/宝箱链路）
+  if ((this.player.upCounts[u.n] || 0) >= u.max) return false;
   u.f(this.player);
   this.player.upCounts[u.n] = (this.player.upCounts[u.n] || 0) + 1;
   this.player.picks.push(u.n);

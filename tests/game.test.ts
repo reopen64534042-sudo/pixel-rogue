@@ -139,8 +139,8 @@ describe("game flow and state", () => {
 
 describe("34 talents, card pools and combat", () => {
   it("retains all 34 unique names, tier ramp and prerequisite", () => {
-    expect(UPGRADES).toHaveLength(34);
-    expect(new Set(UPGRADES.map((u) => u.n)).size).toBe(34);
+    expect(UPGRADES).toHaveLength(38);
+    expect(new Set(UPGRADES.map((u) => u.n)).size).toBe(38);
     const g = fresh();
     for (const r of RAMP) {
       g.player.lvl = r.min;
@@ -371,7 +371,7 @@ describe("furnace economics and regressions", () => {
   it("all 34 talents provide cur(p) returning current effective value descriptions", () => {
     const g = fresh();
     const talents = UPGRADES;
-    expect(talents).toHaveLength(34);
+    expect(talents).toHaveLength(38);
     for (const t of talents) {
       expect(typeof t.cur).toBe("function");
       const desc = t.cur!(g.player);

@@ -1,4 +1,10 @@
 import type { GameCore } from "./GameCore";
+import {
+  boltDamage,
+  meteorDamage,
+  multishotSpread,
+  burnGroundDps,
+} from "./DamageMath";
 
 export function updateAttacks(this: GameCore, dt: number) {
   const p = this.player;
@@ -18,14 +24,14 @@ export function updateAttacks(this: GameCore, dt: number) {
             (e.x - tgt.x) ** 2 + (e.y - tgt.y) ** 2 < 110 * 110 ? n + 1 : n,
           0,
         );
-        const spread = 0.04 + 0.12 * Math.min(1, (near - 1) / 4);
-        const a = base + (i - (p.multishot - 1) / 2) * spread;
+        const a =
+          base + (i - (p.multishot - 1) / 2) * multishotSpread(near);
         this.bullets.push({
           x: p.x,
           y: p.y - 3,
           vx: Math.cos(a) * p.projSpeed,
           vy: Math.sin(a) * p.projSpeed,
-          dmg: p.damage * p.boltDmgMul,
+          dmg: boltDamage(p),
           pierce: p.pierce,
           life: 1.4,
           size: 2 * p.area,
@@ -64,6 +70,27 @@ export function updateAttacks(this: GameCore, dt: number) {
     }
   }
 
+  // ---- 焦土燃烧地带（Issue #45） ----
+  for (let i = this.burnZones.length - 1; i >= 0; i--) {
+    const z = this.burnZones[i];
+    z.t -= dt;
+    if (z.t <= 0) {
+      this.burnZones.splice(i, 1);
+      continue;
+    }
+    for (const e of this.enemies) {
+      if (e.dead) continue;
+      const dx = e.x - z.x,
+        dy = e.y - z.y;
+      if (dx * dx + dy * dy < z.R * z.R) {
+        const d = burnGroundDps(p) * dt;
+        e.hp -= d;
+        this.dmgBy.burn += d;
+        if (e.hp <= 0) this.killEnemy(e);
+      }
+    }
+  }
+
   // ---- 陨星 ----
   if (p.meteor > 0) {
     p.meteorT -= dt;
@@ -71,7 +98,20 @@ export function updateAttacks(this: GameCore, dt: number) {
       p.meteorT = Math.max(2.2, 4.6 - p.meteor * 0.4);
       const tgt = this.enemies.filter((e) => !e.dead);
       if (tgt.length) {
-        const t = tgt[Math.floor(Math.random() * tgt.length)];
+        let t = tgt[Math.floor(Math.random() * tgt.length)];
+        // Issue #45 天眼制导：砸向敌人最密集处
+        if (p.meteorGuided) {
+          let best = -1;
+          for (const c of tgt) {
+            const n = tgt.filter(
+              (o) => (o.x - c.x) ** 2 + (o.y - c.y) ** 2 < 90 * 90,
+            ).length;
+            if (n > best) {
+              best = n;
+              t = c;
+            }
+          }
+        }
         this.meteors.push({ x: t.x, y: t.y, t: 0.8, R: 34 * p.area });
       }
     }
@@ -87,12 +127,15 @@ export function updateAttacks(this: GameCore, dt: number) {
         const dx = e.x - m.x,
           dy = e.y - m.y;
         if (dx * dx + dy * dy < R * R)
-          this.hurtEnemy(e, p.damage * 2 + p.meteor * 5, 0, 0, {
+          this.hurtEnemy(e, meteorDamage(p), 0, 0, {
             noChain: true,
             fromExplode: true,
             src: "meteor",
           });
       }
+      // Issue #45 焦土燃烧：陨星落点燃烧地带
+      if (p.burnGround)
+        this.burnZones.push({ x: m.x, y: m.y, R: m.R, t: 5 });
       for (let j = 0; j < 14; j++) {
         const a = Math.random() * Math.PI * 2;
         this.parts.push({

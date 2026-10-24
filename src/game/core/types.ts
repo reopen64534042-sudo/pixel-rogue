@@ -4,6 +4,7 @@ export type GameState = Mode | "levelup" | "report" | "swap";
 export type WavePhase = "fight" | "collect" | "rest";
 export type DamageSource =
   | "bullet"
+  | "shock"
   | "orbit"
   | "chain"
   | "meteor"
@@ -30,6 +31,11 @@ export interface Player extends Point {
   projSpeed: number;
   damage: number;
     boltDmgMul: number;
+    frostLv: number;
+    scorchVuln: number;
+    burnSpread: number;
+    meteorGuided: number;
+    burnGround: number;
   fireRate: number;
   multishot: number;
   pierce: number;
@@ -78,6 +84,7 @@ export interface Player extends Point {
   chainDmg: number;
 }
 export interface Talent {
+  hidden?: number;
   n: string;
   ico: string;
   t: number;
@@ -106,6 +113,10 @@ export interface Enemy extends Point {
   slowF: number;
   burnT: number;
   burnDps: number;
+  burnStacks: number;
+  frostStacks: number;
+  frozenT: number;
+  frostImmuneT: number;
   seed: number;
   shootCd: number;
   fuse: number;
@@ -154,6 +165,10 @@ export interface Gem extends Point {
   auto?: boolean;
 }
 /** 宝箱（#15）：掉落在地等待拾取，波次结束时统一吸附加收，休整期开启 */
+export interface BurnZone extends Point {
+  R: number;
+  t: number;
+}
 export interface Box extends Point {
   /** 波次结束后自动飞向玩家 */
   auto?: boolean;

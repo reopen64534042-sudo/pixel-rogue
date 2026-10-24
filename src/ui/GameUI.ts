@@ -17,6 +17,7 @@ const DMG_NAMES: Record<string, string> = {
   explode: "💣爆炸",
   thorns: "🌵荆棘",
   burn: "♨️灼烧",
+  shock: "💥反震",
 };
 const show = (id: string) => element(id).classList.remove("hidden");
 const hide = (id: string) => element(id).classList.add("hidden");
