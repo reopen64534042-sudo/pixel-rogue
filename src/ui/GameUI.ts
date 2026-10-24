@@ -31,7 +31,10 @@ export class GameUI {
         if (open) {
           this.buildStats();
           show("ov-stats");
-        } else hide("ov-stats");
+        } else {
+          hide("ov-stats");
+          document.getElementById("talent-tooltip")?.classList.add("hidden");
+        }
       },
       level: () => this.openLevelPanel(),
       rest: () => this.showRestBar(),
@@ -57,6 +60,8 @@ export class GameUI {
     element("bp-swapbtn").onclick = () => {
       if (!this.core.openSwap()) return;
       element("sw-hint").textContent = "置换: 先选目标稀有度（每波限 1 次）";
+      element("sw-form").classList.remove("hidden");
+      element("sw-result").classList.add("hidden");
       element("bp-swap").classList.remove("hidden");
       this.renderSwInv();
     };
@@ -65,13 +70,34 @@ export class GameUI {
     element("sw-r3").onclick = () => this.setSwTarget(3);
     element("sw-melt").onclick = () => {
       const output = this.core.melt();
-      if (output)
-        element("sw-hint").textContent =
-          "🔥 熔出: " + output.ico + " " + output.n;
+      if (output) {
+        element("bp-swap").classList.remove("hidden");
+        element("sw-form").classList.add("hidden");
+        const resEl = element("sw-result");
+        resEl.classList.remove("hidden");
+        const p = this.core.player;
+        const lv = p.upCounts[output.n] || 1;
+        const curDesc = output.cur ? output.cur(p) : output.d;
+        element("sw-result-card").className = `sw-card t${output.t}`;
+        element("sw-result-card").innerHTML = `
+          <div class="sw-tier">${TIERS[output.t]} · ${output.cat}</div>
+          <div class="sw-ico">${output.ico}</div>
+          <div class="sw-name">${output.n} Lv.${lv}</div>
+          <div class="sw-desc">${output.d}</div>
+          <div class="sw-cur">${curDesc}</div>
+        `;
+      }
+    };
+    element("sw-confirm").onclick = () => {
+      element("bp-swap").classList.add("hidden");
+      element("sw-result").classList.add("hidden");
+      element("sw-form").classList.remove("hidden");
     };
     element("bp-next").onclick = () => {
       if (!this.core.startNextWave()) return;
       element("bottom-bar").classList.add("hidden");
+      element("bp-rest").classList.add("hidden");
+      element("bp-swap").classList.add("hidden");
     };
     (element("btn-start") as HTMLButtonElement).disabled = false;
     element("btn-start").removeAttribute("aria-busy");
@@ -94,8 +120,12 @@ export class GameUI {
     };
     for (const node of document.querySelectorAll<HTMLElement>(
       "#stage button, #bp-cards .card, #sw-inv span, #talent-list",
-    ))
+    )) {
       node.onclick = null;
+      node.onmouseover = null;
+      node.onmousemove = null;
+      node.onmouseleave = null;
+    }
   }
   drawCards() {
     const box = element("bp-cards");
@@ -140,10 +170,10 @@ export class GameUI {
   }
   buildStats() {
     const p = this.core.player;
-    const rows = [
+    const combatRows: [string, string | number][] = [
       ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
-      ["📘 下级所需经验", p.xpNext],
-      ["🌊 当前波次", this.core.waveN + "（配额 " + this.core.quota + "）"],
+      ["🌊 当前波次", `${this.core.waveN} (配额 ${this.core.quota})`],
+      ["📘 下级经验", p.xpNext],
       ["⚔️ 伤害", p.damage.toFixed(1)],
       [
         "⚡ 攻速",
@@ -152,18 +182,14 @@ export class GameUI {
           (p.haste ? ` (狂热 +${p.haste * 10}%)` : ""),
       ],
       [
-        "💥 暴击率 / 暴伤",
+        "💥 暴击/暴伤",
         (p.crit * 100).toFixed(0) + "% / ×" + p.critMul.toFixed(1),
       ],
-      ["🔱 弹道数 / 穿透", `${p.multishot} / ${p.pierce}`],
+      ["🔱 弹道/穿透", `${p.multishot} / ${p.pierce}`],
       ["🌐 施法范围", "×" + p.area.toFixed(2)],
-      ["🪃 弹射次数", p.ricochet || "—"],
+      ["🪃 弹射次数", p.ricochet ? `${p.ricochet} 次` : "—"],
       ["👟 移动速度", Math.round(p.speed)],
       ["🧲 拾取范围", Math.round(p.magnet)],
-      ["✨ 生命回复", p.regen ? p.regen.toFixed(1) + " /秒" : "—"],
-      ["🦷 吸血", p.lifesteal ? (p.lifesteal * 100).toFixed(1) + "%" : "—"],
-      ["🌵 荆棘反伤", p.thorns || "—"],
-      ["🛡️ 护盾", p.shieldMax ? `${p.shield} / ${p.shieldMax}` : "—"],
       ["❄️ 冰冻减速", p.slow ? (p.slow * 100).toFixed(0) + "%" : "—"],
       ["♨️ 灼烧", p.burn ? "Lv." + p.burn : "—"],
       ["🌩️ 闪电链", p.chain ? "Lv." + p.chain : "—"],
@@ -174,48 +200,186 @@ export class GameUI {
           : "—",
       ],
       ["💣 击杀爆炸", p.explode ? "Lv." + p.explode : "—"],
-      [
-        "💨 冲刺",
-        p.dashLv
-          ? `充能 ${p.dashCharges}/${1 + p.dashChargeLv} · 冷却 ${p.dashMax.toFixed(1)}s (空格)`
-          : "未学习",
-      ],
+      ["🍀 幸运", p.luck ? "Lv." + p.luck : "—"],
+    ];
+    const defenseRows: [string, string | number][] = [
+      ["🛡️ 护盾", p.shieldMax ? `${p.shield} / ${p.shieldMax}` : "—"],
+      ["🧱 壁垒", p.barrierLv ? "每波 " + p.barrierLv + " 层临时盾" : "—"],
       ["🌀 闪避", p.dodge ? (p.dodge * 100).toFixed(0) + "%" : "—"],
       [
         "🥋 减伤",
         p.tough ? (Math.min(0.6, p.tough) * 100).toFixed(0) + "%" : "—",
       ],
-      ["😡 战意", p.rageLv ? "受伤后攻速 +" + p.rageLv * 20 + "% (3秒)" : "—"],
-      ["🧱 壁垒", p.barrierLv ? "每波 " + p.barrierLv + " 层临时护盾" : "—"],
-      ["🏅 不屈", p.nd ? "每波一次免死" : "—"],
-      ["🍀 幸运", p.luck ? "Lv." + p.luck : "—"],
+      ["✨ 生命回复", p.regen ? p.regen.toFixed(1) + " /秒" : "—"],
+      ["🦷 吸血", p.lifesteal ? (p.lifesteal * 100).toFixed(1) + "%" : "—"],
+      ["🌵 荆棘反伤", p.thorns ? `${p.thorns}` : "—"],
+      [
+        "💨 冲刺",
+        p.dashLv
+          ? `充能 ${p.dashCharges}/${1 + p.dashChargeLv} · 冷却 ${p.dashMax.toFixed(1)}s`
+          : "—",
+      ],
+      ["😡 战意", p.rageLv ? "受伤攻速 +" + p.rageLv * 20 + "% (3秒)" : "—"],
+      ["🏅 不屈", p.nd ? (p.ndUsed ? "免死(本波已触发)" : "每波一次免死") : "—"],
     ];
-    element("stat-grid").innerHTML = rows
-      .map(
-        (r) =>
-          `<div class="row"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`,
-      )
-      .join("");
+
+    const renderRows = (items: [string, string | number][]) =>
+      items
+        .map(([k, v]) => {
+          const isDim = v === "—" || v === "未学习";
+          return `<div class="row${isDim ? " dim" : ""}"><span class="k">${k}</span><span class="v${isDim ? " dim" : ""}">${v}</span></div>`;
+        })
+        .join("");
+
+    const combatEl = document.getElementById("stat-combat");
+    const defenseEl = document.getElementById("stat-defense");
+    if (combatEl) combatEl.innerHTML = renderRows(combatRows);
+    if (defenseEl) defenseEl.innerHTML = renderRows(defenseRows);
+
     const tl = element("talent-list");
-    const learned = Object.entries(p.upCounts);
-    tl.innerHTML = learned.length
-      ? learned
-          .map(([n, lv]) => {
-            const u = UPGRADES.find((u) => u.n === n)!;
-            return `<span data-n="${n}" style="cursor:pointer">${u.ico} [${u.cat}] ${n} Lv.${lv}</span>`;
-          })
-          .join("")
-      : "<span>还没学任何天赋</span>";
+    const learned = Object.entries(p.upCounts).filter(([, lv]) => lv > 0);
+    if (!learned.length) {
+      tl.innerHTML = '<div class="talent-empty">暂未习得任何天赋</div>';
+    } else {
+      const CAT_ORDER = ["攻击", "增幅", "技能", "防御"];
+      let html = "";
+      for (const cat of CAT_ORDER) {
+        const inCat = learned.filter(([n]) => {
+          const u = UPGRADES.find((item) => item.n === n);
+          return u && u.cat === cat;
+        });
+        if (!inCat.length) continue;
+        const catIco = CAT_ICO[cat] || "";
+        const catColor = CAT_COLOR[cat] || "#e8fbff";
+        html += `<div class="talent-cat-group">`;
+        html += `<div class="talent-cat-header" style="color:${catColor}">${catIco} ${cat} (${inCat.length})</div>`;
+        html += `<div class="talent-cat-tags">`;
+        for (const [n, lv] of inCat) {
+          const u = UPGRADES.find((item) => item.n === n)!;
+
+          html += `<span class="talent-tag t${u.t}" data-n="${n}">${u.ico} ${n} Lv.${lv}</span>`;
+        }
+        html += `</div></div>`;
+      }
+      tl.innerHTML = html;
+    }
+
+    const tooltip = document.getElementById("talent-tooltip");
+    const stage = document.getElementById("stage");
+
+    const updateTooltipPosition = (e: MouseEvent) => {
+      if (!tooltip || !stage) return;
+      const stageRect = stage.getBoundingClientRect();
+      const ttWidth = tooltip.offsetWidth || 260;
+      const ttHeight = tooltip.offsetHeight || 180;
+
+      let x = e.clientX - stageRect.left + 16;
+      let y = e.clientY - stageRect.top + 16;
+
+      if (x + ttWidth > stageRect.width - 8) {
+        x = e.clientX - stageRect.left - ttWidth - 16;
+      }
+      if (y + ttHeight > stageRect.height - 8) {
+        y = e.clientY - stageRect.top - ttHeight - 16;
+      }
+      if (x < 8) x = 8;
+      if (y < 8) y = 8;
+
+      tooltip.style.left = `${x}px`;
+      tooltip.style.top = `${y}px`;
+    };
+
+    const renderTooltip = (tag: HTMLElement) => {
+      if (!tooltip) return;
+      const u = UPGRADES.find((item) => item.n === tag.dataset.n)!;
+      const lv = p.upCounts[u.n] || 0;
+      const curDesc = u.cur ? u.cur(p) : u.d;
+      const catColor = CAT_COLOR[u.cat] || "#57e6ff";
+
+      tooltip.className = `talent-tooltip tt-t${u.t}`;
+      tooltip.innerHTML = `
+        <div class="tt-header">
+          <span class="tt-ico">${u.ico}</span>
+          <div class="tt-title-wrap">
+            <div class="tt-name t${u.t}">${u.n}</div>
+            <div class="tt-sub">
+              <span class="tt-tier t${u.t}">${TIERS[u.t]}</span>
+              <span class="tt-cat" style="color:${catColor}">[${u.cat}]</span>
+              <span class="tt-lvl">Lv.${lv}${u.max ? " / " + u.max : ""}</span>
+            </div>
+          </div>
+        </div>
+        <div class="tt-divider"></div>
+        <div class="tt-section">
+          <div class="tt-label">天赋机制说明</div>
+          <div class="tt-desc">${u.d}</div>
+        </div>
+        <div class="tt-cur-box">
+          <div class="tt-label">当前等级生效效果 (Lv.${lv})</div>
+          <div class="tt-cur-val">${curDesc}</div>
+        </div>
+        ${
+          lv < u.max
+            ? `<div class="tt-next-box">
+                 <div class="tt-label">下级提升预览</div>
+                 <div class="tt-next-val">${u.pv(p)}</div>
+               </div>`
+            : `<div class="tt-maxed">★ 已达最高等级 ★</div>`
+        }
+      `;
+      tooltip.classList.remove("hidden");
+    };
+
+    const hideTooltip = () => {
+      if (tooltip) tooltip.classList.add("hidden");
+    };
+
+    tl.onmouseover = (e) => {
+      const sp =
+        e.target instanceof Element
+          ? e.target.closest<HTMLElement>("span[data-n]")
+          : null;
+      if (!sp) {
+        hideTooltip();
+        return;
+      }
+      tl.querySelectorAll(".talent-tag.active").forEach((el) =>
+        el.classList.remove("active"),
+      );
+      sp.classList.add("active");
+      renderTooltip(sp);
+      updateTooltipPosition(e);
+    };
+
+    tl.onmousemove = (e) => {
+      const sp =
+        e.target instanceof Element
+          ? e.target.closest<HTMLElement>("span[data-n]")
+          : null;
+      if (sp && tooltip && !tooltip.classList.contains("hidden")) {
+        updateTooltipPosition(e);
+      }
+    };
+
+    tl.onmouseleave = () => {
+      tl.querySelectorAll(".talent-tag.active").forEach((el) =>
+        el.classList.remove("active"),
+      );
+      hideTooltip();
+    };
+
     tl.onclick = (e) => {
       const sp =
         e.target instanceof Element
           ? e.target.closest<HTMLElement>("span[data-n]")
           : null;
       if (!sp) return;
-      const u = UPGRADES.find((u) => u.n === sp.dataset.n)!;
-      const lv = p.upCounts[u.n];
-      element("talent-desc").textContent =
-        `${u.ico} ${u.n} Lv.${lv}：${u.d}${lv > 0 ? "（每级: " + u.pv(p) + "）" : ""}`;
+      tl.querySelectorAll(".talent-tag.active").forEach((el) =>
+        el.classList.remove("active"),
+      );
+      sp.classList.add("active");
+      renderTooltip(sp);
+      updateTooltipPosition(e);
     };
   }
   openLevelPanel() {
@@ -231,8 +395,11 @@ export class GameUI {
   closeLevelPanelIfDone() {
     if (this.core.pendingLevels > 0) return;
     element("bp-level").classList.add("hidden");
-    if (this.core.wavePhase !== "rest")
+    if (this.core.wavePhase === "rest") {
+      this.showRestBar();
+    } else {
       element("bottom-bar").classList.add("hidden");
+    }
   }
   showRestBar() {
     // 伤害统计: 合计突出 + 按占比降序

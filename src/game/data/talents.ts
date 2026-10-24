@@ -15,6 +15,7 @@ export const UPGRADES: Talent[] = [
     max: 99,
     pv: (p) => `伤害 ${p.damage.toFixed(1)} → ${(p.damage * 1.25).toFixed(1)}`,
     f: (p) => (p.damage *= 1.25),
+    cur: (p) => `当前伤害 ${p.damage.toFixed(1)}`,
   },
   {
     n: "急速施法",
@@ -26,6 +27,7 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `攻速 ${p.fireRate.toFixed(2)} → ${(p.fireRate * 1.18).toFixed(2)}/秒`,
     f: (p) => (p.fireRate *= 1.18),
+    cur: (p) => `当前攻速 ${p.fireRate.toFixed(2)}/秒`,
   },
   {
     n: "疾风之靴",
@@ -36,6 +38,7 @@ export const UPGRADES: Talent[] = [
     max: 6,
     pv: (p) => `移速 ${Math.round(p.speed)} → ${Math.round(p.speed * 1.1)}`,
     f: (p) => (p.speed *= 1.1),
+    cur: (p) => `当前移速 ${Math.round(p.speed)}`,
   },
   {
     n: "生命之泉",
@@ -49,6 +52,7 @@ export const UPGRADES: Talent[] = [
       p.maxhp += 20;
       p.hp = p.maxhp;
     },
+    cur: (p) => `当前生命上限 ${p.maxhp}`,
   },
   {
     n: "分裂射击",
@@ -59,6 +63,7 @@ export const UPGRADES: Talent[] = [
     max: 4,
     pv: (p) => `弹道 ${p.multishot} → ${p.multishot + 1}`,
     f: (p) => p.multishot++,
+    cur: (p) => `当前弹道数 ${p.multishot}`,
   },
   {
     n: "穿透之矢",
@@ -69,6 +74,7 @@ export const UPGRADES: Talent[] = [
     max: 4,
     pv: (p) => `穿透 ${p.pierce} → ${p.pierce + 1}`,
     f: (p) => p.pierce++,
+    cur: (p) => `当前穿透次数 ${p.pierce}`,
   },
   {
     n: "磁力护符",
@@ -79,6 +85,7 @@ export const UPGRADES: Talent[] = [
     max: 5,
     pv: (p) => `拾取 ${Math.round(p.magnet)} → ${Math.round(p.magnet * 1.4)}`,
     f: (p) => (p.magnet *= 1.4),
+    cur: (p) => `当前拾取范围 ${Math.round(p.magnet)}`,
   },
   {
     n: "致命一击",
@@ -90,6 +97,7 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `暴击 ${(p.crit * 100).toFixed(0)}% → ${((p.crit + 0.1) * 100).toFixed(0)}%`,
     f: (p) => (p.crit += 0.1),
+    cur: (p) => `当前暴击率 ${(p.crit * 100).toFixed(0)}%`,
   },
   {
     n: "守护之刃",
@@ -100,6 +108,7 @@ export const UPGRADES: Talent[] = [
     max: 4,
     pv: (p) => `飞刃 ${p.orbit} → ${p.orbit + 1}`,
     f: (p) => p.orbit++,
+    cur: (p) => `当前飞刃 ${p.orbit} 把`,
   },
   {
     n: "修复微光",
@@ -110,6 +119,7 @@ export const UPGRADES: Talent[] = [
     max: 4,
     pv: (p) => `回复 ${p.regen.toFixed(1)} → ${(p.regen + 0.6).toFixed(1)}/秒`,
     f: (p) => (p.regen += 0.6),
+    cur: (p) => `每秒生命回复 ${p.regen.toFixed(1)}`,
   },
   // ---- 机制型天赋 ----
   {
@@ -122,6 +132,7 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) => `范围 ×${p.area.toFixed(2)} → ×${(p.area * 1.2).toFixed(2)}`,
     f: (p) => (p.area *= 1.2),
+    cur: (p) => `施法范围加成 ×${p.area.toFixed(2)}`,
   },
   {
     n: "会心深渊",
@@ -134,6 +145,7 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `暴伤 ×${p.critMul.toFixed(1)} → ×${(p.critMul + 0.5).toFixed(1)}`,
     f: (p) => (p.critMul += 0.5),
+    cur: (p) => `暴击伤害倍率 ×${p.critMul.toFixed(1)}`,
   },
   {
     n: "弹射魔符",
@@ -145,6 +157,7 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) => `弹射 ${p.ricochet} → ${p.ricochet + 1} 次`,
     f: (p) => p.ricochet++,
+    cur: (p) => `当前弹射次数 ${p.ricochet} 次`,
   },
   {
     n: "烈焰印记",
@@ -157,6 +170,8 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `灼烧 DPS ${Math.round(p.damage * 0.3 * p.burn)} → ${Math.round(p.damage * 0.3 * (p.burn + 1))}`,
     f: (p) => p.burn++,
+    cur: (p) =>
+      `灼烧 ${p.burn} 层 · 当前 DPS ${Math.round(p.damage * 0.3 * p.burn)}`,
   },
   {
     n: "冰霜之力",
@@ -169,6 +184,7 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `减速 ${(p.slow * 100).toFixed(0)}% → ${((p.slow + 0.15) * 100).toFixed(0)}%`,
     f: (p) => (p.slow += 0.15),
+    cur: (p) => `命中减速 ${(p.slow * 100).toFixed(0)}%`,
   },
   {
     n: "雷霆连锁",
@@ -183,6 +199,8 @@ export const UPGRADES: Talent[] = [
       p.chain++;
       p.chainDmg += 0.15;
     },
+    cur: (p) =>
+      `闪电跳跃 ${p.chain} 次 · 伤害加成 +${Math.round(p.chainDmg * 100)}%`,
   },
   {
     n: "星辰坠落",
@@ -195,6 +213,8 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `间隔 ${Math.max(2.2, 4.6 - p.meteor * 0.4).toFixed(1)}s → ${Math.max(2.2, 4.6 - (p.meteor + 1) * 0.4).toFixed(1)}s`,
     f: (p) => p.meteor++,
+    cur: (p) =>
+      `轰炸间隔 ${Math.max(2.2, 4.6 - p.meteor * 0.4).toFixed(1)}s`,
   },
   {
     n: "吸血獠牙",
@@ -207,6 +227,7 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `吸血 ${(p.lifesteal * 100).toFixed(1)}% → ${((p.lifesteal + 0.004) * 100).toFixed(1)}%`,
     f: (p) => (p.lifesteal += 0.004),
+    cur: (p) => `伤害吸血 ${(p.lifesteal * 100).toFixed(1)}%`,
   },
   {
     n: "荆棘护甲",
@@ -218,6 +239,7 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) => `反伤 ${p.thorns} → ${p.thorns + 6}`,
     f: (p) => (p.thorns += 6),
+    cur: (p) => `反伤 ${p.thorns} 点`,
   },
   {
     n: "能量护盾",
@@ -232,6 +254,7 @@ export const UPGRADES: Talent[] = [
       p.shieldMax++;
       p.shield++;
     },
+    cur: (p) => `护盾上限 ${p.shieldMax} 层 · 当前 ${p.shield} 层`,
   },
   {
     n: "疾影步",
@@ -252,6 +275,8 @@ export const UPGRADES: Talent[] = [
         p.dashMax -= 0.4;
       }
     },
+    cur: (p) =>
+      `冲刺冷却 ${p.dashMax.toFixed(1)}s · 充能上限 ${1 + p.dashChargeLv} 次`,
   },
   {
     n: "屠戮之欲",
@@ -267,6 +292,8 @@ export const UPGRADES: Talent[] = [
       p.explode++;
       p.explodeDmg += 0.5;
     },
+    cur: (p) =>
+      `爆炸半径 ${Math.round(26 + p.explode * 6)} · 伤害加成 +${Math.round(p.explodeDmg * 100)}%`,
   },
   {
     n: "击杀狂热",
@@ -285,6 +312,8 @@ export const UPGRADES: Talent[] = [
         p.hasteT = 3;
       }
     },
+    cur: (p) =>
+      `上限 3 层(+30% 攻速) · 持续 ${(2 + p.hasteLv).toFixed(0)}s`,
   },
   {
     n: "幸运之星",
@@ -297,6 +326,8 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `药水掉率 ${(2 + p.luck).toFixed(0)}% → ${(3 + p.luck).toFixed(0)}%`,
     f: (p) => p.luck++,
+    cur: (p) =>
+      `药水掉率 ${(2 + p.luck).toFixed(0)}% · 双倍宝石 ${(p.luck * 7).toFixed(0)}%`,
   },
   // ---- 伤害成长线 (拓宽加伤渠道) ----
   {
@@ -308,6 +339,7 @@ export const UPGRADES: Talent[] = [
     max: 99,
     pv: (p) => `伤害 ${p.damage.toFixed(1)} → ${(p.damage * 1.1).toFixed(1)}`,
     f: (p) => (p.damage *= 1.1),
+    cur: (p) => `当前伤害 ${p.damage.toFixed(1)}`,
   },
   {
     n: "狂怒",
@@ -318,6 +350,7 @@ export const UPGRADES: Talent[] = [
     max: 5,
     pv: (p) => `伤害 ${p.damage.toFixed(1)} → ${(p.damage * 1.2).toFixed(1)}`,
     f: (p) => (p.damage *= 1.2),
+    cur: (p) => `当前伤害 ${p.damage.toFixed(1)}`,
   },
   {
     n: "毁灭本能",
@@ -328,6 +361,7 @@ export const UPGRADES: Talent[] = [
     max: 3,
     pv: (p) => `伤害 ${p.damage.toFixed(1)} → ${(p.damage * 1.3).toFixed(1)}`,
     f: (p) => (p.damage *= 1.3),
+    cur: (p) => `当前伤害 ${p.damage.toFixed(1)}`,
   },
   // ---- 防御/生存扩展 ----
   {
@@ -341,6 +375,7 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `闪避 ${(p.dodge * 100).toFixed(0)}% → ${((p.dodge + 0.08) * 100).toFixed(0)}%`,
     f: (p) => (p.dodge += 0.08),
+    cur: (p) => `闪避率 ${(p.dodge * 100).toFixed(0)}%`,
   },
   {
     n: "铁布衫",
@@ -353,6 +388,8 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `减伤 ${(p.tough * 100).toFixed(0)}% → ${((p.tough + 0.1) * 100).toFixed(0)}%`,
     f: (p) => (p.tough += 0.1),
+    cur: (p) =>
+      `减伤 ${(Math.min(0.6, p.tough) * 100).toFixed(0)}%${p.tough >= 0.6 ? " (已达上限)" : ""}`,
   },
   {
     n: "巨人血脉",
@@ -366,6 +403,7 @@ export const UPGRADES: Talent[] = [
       p.maxhp += 30;
       p.hp += 30;
     },
+    cur: (p) => `当前生命上限 ${p.maxhp}`,
   },
   {
     n: "战意沸腾",
@@ -377,6 +415,7 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) => `攻速加成 ${p.rageLv * 20}% → ${(p.rageLv + 1) * 20}%`,
     f: (p) => p.rageLv++,
+    cur: (p) => `受伤后攻速 +${p.rageLv * 20}% (持续 3 秒)`,
   },
   {
     n: "壁垒",
@@ -388,6 +427,7 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) => `每波护盾 ${p.barrierLv} → ${p.barrierLv + 1} 层`,
     f: (p) => p.barrierLv++,
+    cur: (p) => `每波临时护盾 ${p.barrierLv} 层`,
   },
   {
     n: "二段冲刺",
@@ -400,6 +440,7 @@ export const UPGRADES: Talent[] = [
     req: (p) => p.dashLv > 0,
     pv: (p) => `充能 ${1 + p.dashChargeLv} → ${2 + p.dashChargeLv} 段`,
     f: (p) => p.dashChargeLv++,
+    cur: (p) => `冲刺充能上限 ${1 + p.dashChargeLv} 段`,
   },
   {
     n: "不屈",
@@ -411,6 +452,7 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) => (p.nd ? "已解锁" : "解锁: 每波一次免死"),
     f: (p) => (p.nd = 1),
+    cur: (p) => `每波一次致命免死 · ${p.ndUsed ? "本波已触发" : "本波可用"}`,
   },
 ];
 export const TIERS = ["普通", "稀有", "史诗", "传奇"];

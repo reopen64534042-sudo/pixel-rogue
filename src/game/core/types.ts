@@ -80,6 +80,7 @@ export interface Talent {
   req?: (p: Player) => boolean;
   pv: (p: Player) => string;
   f: (p: Player) => void;
+  cur?: (p: Player) => string;
 }
 export interface Enemy extends Point {
   type: string;
