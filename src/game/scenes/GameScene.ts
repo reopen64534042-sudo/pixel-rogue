@@ -5,6 +5,7 @@ import { GameUI } from "../../ui/GameUI";
 import { PixelPainter } from "../rendering/PixelPainter";
 import { draw } from "../rendering/draw";
 import { SPR } from "../rendering/sprites";
+import { registerSprite } from "../rendering/assetRegistry";
 import { W, H, WORLD } from "../data/constants";
 import { UPGRADES } from "../data/talents";
 import type { Talent } from "../core/types";
@@ -18,6 +19,18 @@ declare global {
       counts: () => { graphics: number; images: number; text: number };
     };
   }
+}
+
+/** 外部贴图清单：由 scripts/pixelize.mjs 在入库时维护，缺失即表示全部使用程序化贴图。 */
+const SPRITE_MANIFEST = "assets/sprites/manifest.json";
+
+function loadImageElement(url: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`贴图解码失败: ${url}`));
+    image.src = url;
+  });
 }
 
 export class GameScene extends Phaser.Scene {
@@ -37,8 +50,7 @@ export class GameScene extends Phaser.Scene {
   create() {
     for (const [key, canvas] of Object.entries(SPR))
       this.textures.addCanvas(key, canvas);
-    this.painter = new PixelPainter(this);
-    this.ui = new GameUI(this.core);
+    this.painter = new PixelPainter(this);    this.ui = new GameUI(this.core);
     this.cameras.main.setBounds(0, 0, WORLD.w, WORLD.h).setRoundPixels(true);
     const down = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
@@ -99,6 +111,41 @@ export class GameScene extends Phaser.Scene {
         talents: UPGRADES,
         counts: () => this.painter.counts,
       };
+    void this.loadSpriteOverrides();
+  }
+
+  /**
+   * 加载外部像素贴图，覆盖程序化 Canvas 贴图。
+   *
+   * 设计取舍：
+   * - 用 fetch + Image 而不是 Phaser Loader：清单本身决定要加载哪些文件，走 Loader 需要两阶段加载；
+   * - 异步且失败不影响启动：清单缺失（当前常态）或单张失败时保持程序化贴图；
+   * - 换纹理只影响绘制，不影响任何规则状态。
+   */
+  private async loadSpriteOverrides() {
+    let files: Record<string, string>;
+    try {
+      const response = await fetch(SPRITE_MANIFEST, { cache: "no-cache" });
+      if (!response.ok) return;
+      const data = (await response.json()) as { sprites?: Record<string, string> };
+      files = data.sprites ?? {};
+    } catch {
+      // 清单不存在是正常状态（尚未产出任何位图贴图），静默回退到程序化贴图。
+      return;
+    }
+    await Promise.all(
+      Object.entries(files).map(async ([key, file]) => {
+        try {
+          const image = await loadImageElement(`assets/sprites/${file}`);
+          const tex = registerSprite(key, image);
+          if (this.textures.exists(tex)) this.textures.remove(tex);
+          this.textures.addImage(tex, image);
+        } catch (error) {
+          if (import.meta.env.DEV)
+            console.warn(`[assets] 贴图覆盖失败，保留程序化版本: ${key}`, error);
+        }
+      }),
+    );
   }
   update(_now: number, delta: number) {
     if (!this.painter) return;

@@ -24,6 +24,8 @@ import { loadPalette, hexToRgb, REPO_ROOT } from "./lib/palette.mjs";
 const PLAN_PATH = join(REPO_ROOT, "assets", "plan.json");
 const MANIFEST_PATH = join(REPO_ROOT, "assets", "manifest.json");
 const DEFAULT_OUT = join(REPO_ROOT, "public", "assets", "sprites");
+/** 游戏运行时读取的贴图清单：决定哪些逻辑贴图名用位图覆盖程序化贴图。 */
+const SPRITE_MANIFEST_PATH = join(REPO_ROOT, "public", "assets", "sprites", "manifest.json");
 
 const ALPHA_ON = 255;
 const ALPHA_OFF = 0;
@@ -333,6 +335,16 @@ function main() {
     provenance: { model: opts.model, seed: opts.seed, prompt: opts.prompt },
   });
   writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  // 同步游戏运行时的贴图清单，否则产出的 PNG 不会被加载
+  if (resolve(opts.out) === resolve(DEFAULT_OUT)) {
+    const spriteManifest = existsSync(SPRITE_MANIFEST_PATH)
+      ? JSON.parse(readFileSync(SPRITE_MANIFEST_PATH, "utf8"))
+      : { sprites: {} };
+    spriteManifest.sprites = { ...(spriteManifest.sprites ?? {}), [key]: `${key}.png` };
+    mkdirSync(dirname(SPRITE_MANIFEST_PATH), { recursive: true });
+    writeFileSync(SPRITE_MANIFEST_PATH, `${JSON.stringify(spriteManifest, null, 2)}\n`);
+  }
 
   console.log(
     `✓ ${key}  ${source.width}x${source.height} → ${target[0]}x${target[1]}  ` +
