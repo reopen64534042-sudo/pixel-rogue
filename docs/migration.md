@@ -799,3 +799,9 @@ Player/Enemy、41 张天赋、敌人配置、波次/RNG、DamageSystem、CombatS
 2. resistances 与 global/type/form/skillDamageBonus 映射进入白名单的方式（独立 StatId 还是结构化来源组）。
 3. 模型负值/上限夹紧的接入点选择（须与现有实际生效点一致，不提前统一）。
 4. sidecar（若需）生命周期与清理策略；首选无持久缓存的纯函数派生。
+
+### 上游 PR #77 评审修订（P2 溢出守卫 + P3 负区因子政策）
+
+- **P2**：输入逐项有限不代表聚合结果有限——flat/percent 求和、base+flat、各阶段乘积都可能在全合法输入下溢出为 ±Infinity（NaN 同样被守卫覆盖）。修复：`resolveStats` 在 flat 聚合/flat 阶段/percent 聚合/percent 阶段/final 阶段五处校验结果有限性，溢出抛 **RangeError**（区别于输入非法的 TypeError），不静默返回非有限数。新增 4 组回归：两 flat 求和溢出、base+flat 溢出（评审原始样例 MAX_VALUE+MAX_VALUE）、两 percent 求和溢出、base×final 乘积溢出。变异验证：移除溢出守卫 → 4 用例红；还原 26/26。
+- **P3（不改变行为）**：多项合法负 percent 合计可 < -1，产生负区因子。任务书仅明确允许因子为 0。按评审建议本批**不裁剪**，在契约 JSDoc 明示「负区因子当前允许，政策须在 S4-B 正式读取前明确」，并新增钉住现状的回归（-0.6×2 → 负因子，与实现同序表达式逐位相等），防止后续被静默更改。
+- 测试 26 项（+5）；`npm test` **149/149**（parity 26 原样）；build/typecheck 通过；架构与运行时边界零改动。

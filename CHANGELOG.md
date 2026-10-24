@@ -9,7 +9,7 @@
 
 ## v17 · 2026-10-25 · 战斗基础 S4-A：纯属性模型（StatModel）
 
-- 新增纯计算模块 `core/StatModel.ts`：`(base + Σflat) × (1 + Σpercent) × Πfinal`，同 percent 区加算、final 连乘，来源（sourceId）可追踪，全量输入校验
+- 新增纯计算模块 `core/StatModel.ts`：`(base + Σflat) × (1 + Σpercent) × Πfinal`，同 percent 区加算、final 连乘，来源（sourceId）可追踪，全量输入校验与聚合溢出守卫（合法输入溢出抛 RangeError）
 - 契约冻结：历史卡逐次乘算映射为 final（×1.1² ≠ +20%）；模型不做上下限裁剪，夹紧留在接入点
 - 本批为纯基建：不接入 Player/Enemy/天赋/伤害管线，零行为变化，parity 对照原样通过
 

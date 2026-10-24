@@ -131,6 +131,22 @@ describe("StatModel 通式与乘区语义（契约冻结）", () => {
     ).toBe(0);
   });
 
+  it("负区因子现状钉住：多项合法负 percent 合计 < -1 允许负因子（政策留 S4-B 读取前明确，防静默更改）", () => {
+    const r = resolveStats(
+      sheet(
+        { attack: 100 },
+        [
+          mod("d1", "attack", "percent", -0.6),
+          mod("d2", "attack", "percent", -0.6),
+        ],
+      ),
+    );
+    // percentSum = -1.2（逐位），区因子 1-1.2 = -0.19999999999999996（Sterbenz 精确），
+    // 与实现同序表达式逐位相等；是否允许负因子由 S4-B 批准后统一（本测试钉住现状）
+    expect(r.attack).toBe(100 * (1 + (-0.6 + -0.6)));
+    expect(r.attack).toBeLessThan(0);
+  });
+
   it("负 flat 合法且模型不裁剪（夹紧属接入点决策，S4-B 不得静默更改）", () => {
     expect(
       resolveStats(sheet({ attack: 5 }, [mod("破甲", "attack", "flat", -8)]))
@@ -171,6 +187,52 @@ describe("StatModel 输入校验（禁止 NaN 传播与非法值域）", () => {
 
   it("base 为负抛 RangeError", () => {
     expect(() => resolveStats(sheet({ attack: -1 }, []))).toThrow(RangeError);
+  });
+
+  it("溢出守卫：两个有限 flat 相加溢出（flat 聚合 Infinity → RangeError）", () => {
+    expect(() =>
+      resolveStats(
+        sheet(
+          { attack: 0 },
+          [
+            mod("a", "attack", "flat", 1e308),
+            mod("b", "attack", "flat", 1e308),
+          ],
+        ),
+      ),
+    ).toThrow(RangeError);
+  });
+
+  it("溢出守卫：base 与 flat 各自合法但相加溢出（评审原始样例）", () => {
+    expect(() =>
+      resolveStats(
+        sheet({ attack: Number.MAX_VALUE }, [
+          mod("test", "attack", "flat", Number.MAX_VALUE),
+        ]),
+      ),
+    ).toThrow(RangeError);
+  });
+
+  it("溢出守卫：两个有限 percent 相加溢出（percent 聚合 Infinity → RangeError）", () => {
+    expect(() =>
+      resolveStats(
+        sheet(
+          { attack: 1 },
+          [
+            mod("a", "attack", "percent", 1e308),
+            mod("b", "attack", "percent", 1e308),
+          ],
+        ),
+      ),
+    ).toThrow(RangeError);
+  });
+
+  it("溢出守卫：base 与 final 倍率均合法但乘积溢出（final 阶段 Infinity → RangeError）", () => {
+    expect(() =>
+      resolveStats(
+        sheet({ attack: 1e308 }, [mod("a", "attack", "final", 1e308)]),
+      ),
+    ).toThrow(RangeError);
   });
 
   it("percent ≤ -1 抛 RangeError（单一来源不可削减 ≥100%）", () => {

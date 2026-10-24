@@ -9,10 +9,16 @@
  *
  * 契约（冻结，后续阶段不得静默更改）：
  * - 全部数值必须有限（NaN/±Infinity 抛 TypeError），禁止 NaN 传播。
+ * - 溢出守卫（PR #77 评审 P2）：合法输入聚合后仍可能溢出——flat/percent
+ *   求和、base+flat、各阶段乘积都可能在输入全部有限时产生 ±Infinity 或
+ *   NaN（如 Inf-Inf）。聚合中间值与每个阶段的计算结果必须有限，否则抛
+ *   RangeError（无法表示），不静默返回非有限数。
  * - base 必须 ≥ 0，缺省视为 0；flat 允许任意有限值（负增益合法，有效值
  *   可能为负——在哪里夹紧属接入点决策，模型不做裁剪）。
  * - percent 每项必须 > -1（单一来源不可削减 ≥100%）；区因子 (1+Σpercent)
- *   允许为 0（全免）。
+ *   允许为 0（全免）。多项合法负 percent 的合计可以 < -1，负区因子当前
+ *   **允许**（模型不裁剪）——该政策须在 S4-B 正式读取前明确，此处钉住
+ *   现状防静默更改（见测试「负区因子」）。
  * - final 的 value 是倍率本身（如 1.1）而不是「+10%」，必须 > 0。
  * - sourceId 必须为非空字符串；同一来源可贡献多条修饰符，不要求唯一；
  *   来源即追溯单位（见 modifierSources）。
@@ -61,6 +67,13 @@ const STAT_ID_SET: ReadonlySet<string> = new Set(STAT_IDS);
 function requireFinite(value: number, what: string): number {
   if (!Number.isFinite(value))
     throw new TypeError(`${what} 必须为有限数值，收到 ${value}`);
+  return value;
+}
+
+/** 聚合/计算阶段结果溢出（输入全合法但无法表示）→ RangeError */
+function requireFiniteResult(value: number, what: string): number {
+  if (!Number.isFinite(value))
+    throw new RangeError(`${what} 溢出为 ${value}（各输入均合法有限）`);
   return value;
 }
 
@@ -130,11 +143,24 @@ export function resolveStats(
   for (const stat of touched) {
     let v = sheet.base[stat] ?? 0;
     const flat = flatSum.get(stat);
-    if (flat !== undefined) v = v + flat;
+    if (flat !== undefined) {
+      requireFiniteResult(flat, `flat 聚合 ${stat}`);
+      v = v + flat;
+      requireFiniteResult(v, `flat 阶段 ${stat}`);
+    }
     const percent = percentSum.get(stat);
-    if (percent !== undefined) v = v * (1 + percent);
+    if (percent !== undefined) {
+      requireFiniteResult(percent, `percent 聚合 ${stat}`);
+      v = v * (1 + percent);
+      requireFiniteResult(v, `percent 阶段 ${stat}`);
+    }
     const list = finals.get(stat);
-    if (list) for (const k of list) v = v * k;
+    if (list) {
+      for (const k of list) {
+        v = v * k;
+        requireFiniteResult(v, `final 阶段 ${stat}`);
+      }
+    }
     result[stat] = v;
   }
   return result;
