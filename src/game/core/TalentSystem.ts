@@ -53,6 +53,7 @@ export function openLevelPanel(this: GameCore) {
   this.view.level();
 }
 export function refreshSlot(this: GameCore, index: number) {
+  this.ensurePlay(); // Issue #34
   const slot = this.slots[index];
   if (this.state !== "play" || this.bpMode !== "level" || !slot || slot.used)
     return false;
@@ -101,6 +102,7 @@ export function openBoxPanel(this: GameCore) {
   this.view.level();
 }
 export function chooseSlot(this: GameCore, index: number) {
+  this.ensurePlay(); // Issue #34
   const slot = this.slots[index];
   if (this.state !== "play" || !slot) return false;
 

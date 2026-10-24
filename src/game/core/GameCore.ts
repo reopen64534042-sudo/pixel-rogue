@@ -232,6 +232,11 @@ export class GameCore {
       this.view.paused(false);
     }
   }
+  /** Issue #34：底部面板(Z:11/12)会压住属性面板(Z:10)——
+   *  面板命令入口先自动关闭属性面板，保证底部面板按钮始终可用。 */
+  ensurePlay() {
+    if (this.state === "stats") this.toggleStats();
+  }
   toggleStats() {
     if (this.state === "play") {
       this.state = "stats";

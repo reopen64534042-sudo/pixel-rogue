@@ -5,6 +5,7 @@ export function waveQuota(this: GameCore, n: number) {
 }
 
 export function startNextWave(this: GameCore) {
+  this.ensurePlay(); // Issue #34
   if (
     this.state !== "play" ||
     this.wavePhase !== "rest" ||
