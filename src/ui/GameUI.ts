@@ -134,7 +134,10 @@ export class GameUI {
       const u = s.u;
       const lv = this.core.player.upCounts[u.n] || 0;
       const el = document.createElement("div");
-      el.className = "card r" + u.t + (u.mech && lv === 0 ? " new" : "");
+      // Issue #35：本局首次选卡时全部标 NEW，之后仅机制型 Lv.0 标记
+      const firstPick = this.core.player.picks.length === 0;
+      el.className =
+        "card r" + u.t + (lv === 0 && (u.mech || firstPick) ? " new" : "");
       el.tabIndex = 0;
       el.setAttribute("role", "button");
       el.setAttribute("aria-label", `${u.n}，${TIERS[u.t]}，${u.d}`);
