@@ -15,6 +15,20 @@ const D01_EXCLUDED = ["击杀狂热"] as const;
 const parityTalents = UPGRADES.filter(
   (u) => !D01_EXCLUDED.includes(u.n as (typeof D01_EXCLUDED)[number]),
 );
+/**
+ * 基线更新依据：Issue #13（用户已批准的近战基础设施建设）。
+ * DamageSource 新增 "melee" 分项，而 v8 快照没有该键。对照时把它从两侧摘出单独断言，
+ * 其余分项与其余字段仍逐字段严格相等 —— 保留回归能力：
+ * 任何原有分项出现偏差，或近战伤害意外渗入，本对照都会失败。
+ */
+function takeMelee(snapshot: unknown) {
+  const snap = snapshot as { dmgBy: Record<string, number> } & Record<
+    string,
+    unknown
+  >;
+  const { melee, ...rest } = snap.dmgBy;
+  return { rest: { ...snap, dmgBy: rest }, melee };
+}
 /** Run actual preserved source, never a rewritten expectation of the same algorithm. */
 function original() {
   const node = {
@@ -106,7 +120,11 @@ it.each([1, 4, 5, 8, 16])(
       bpMode: g.bpMode,
       slotNames: g.slots.map((s) => ({ name: s.u.n, used: s.used })),
     };
-    expect(JSON.parse(JSON.stringify(actual))).toEqual(expected);
+    const actualSnap = takeMelee(JSON.parse(JSON.stringify(actual)));
+    const expectedSnap = takeMelee(expected);
+    expect(expectedSnap.melee).toBeUndefined();
+    expect(actualSnap.melee).toBe(0);
+    expect(actualSnap.rest).toEqual(expectedSnap.rest);
   },
 );
 
@@ -137,7 +155,11 @@ it.each([4, 8, 16])(
     const actual = Object.fromEntries(
       fields.split(",").map((key) => [key, g[key as keyof typeof g]]),
     );
-    expect(JSON.parse(JSON.stringify(actual))).toEqual(expected);
+    const actualSnap = takeMelee(JSON.parse(JSON.stringify(actual)));
+    const expectedSnap = takeMelee(expected);
+    expect(expectedSnap.melee).toBeUndefined();
+    expect(actualSnap.melee).toBe(0);
+    expect(actualSnap.rest).toEqual(expectedSnap.rest);
   },
 );
 
