@@ -1,5 +1,6 @@
 import { WORLD, clamp } from "../data/constants";
 import { ETYPES } from "../data/enemies";
+import { enemyCombatStats } from "./CombatSystem";
 import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
 import type { Enemy } from "./types";
@@ -132,11 +133,10 @@ export function updateEnemies(this: GameCore, dt: number) {
         c: "#ff8a2b",
       });
     }
-    // 灼烧
+    // 灼烧：数值经 applyBurnDot（fire/dot/preserve-float）结算，表现与死亡判定留在本处
     if (e.burnT > 0) {
       e.burnT -= dt;
-      e.hp -= e.burnDps * dt;
-      this.dmgBy.burn += e.burnDps * dt;
+      this.applyBurnDot(e, dt);
       if (Math.random() < dt * 8)
         this.parts.push({
           x: e.x,
@@ -190,6 +190,8 @@ export function updateEnemies(this: GameCore, dt: number) {
           dmg: e.dmg,
           r: 2,
           life: 4,
+          // 发射时攻击者快照：发射者可能在命中前死亡/移除，不依赖存活引用
+          stats: enemyCombatStats(e),
         });
         this.audio.beep(340, 0.08, "square", 0.03, -60);
       }
@@ -207,7 +209,11 @@ export function updateEnemies(this: GameCore, dt: number) {
         if (e.fuse <= 0) {
           const d2p = Math.hypot(p.x - e.x, p.y - e.y);
           if (d2p < 38 + p.r && p.hurtCd <= 0 && p.dashT <= 0)
-            this.damagePlayer(e.dmg, {});
+            this.damagePlayer(e.dmg, {
+              type: "fire",
+              form: "other",
+              attackerStats: enemyCombatStats(e),
+            });
           for (let j = 0; j < 12; j++) {
             const an = Math.random() * Math.PI * 2;
             this.parts.push({
@@ -238,7 +244,13 @@ export function updateEnemies(this: GameCore, dt: number) {
       dy = p.y - e.y,
       rr = e.r + p.r;
     if (dx * dx + dy * dy < rr * rr && p.hurtCd <= 0 && p.dashT <= 0) {
-      if (this.damagePlayer(e.dmg, { melee: true, src: e })) return true;
+      const hit = this.damagePlayer(e.dmg, {
+        melee: true,
+        src: e,
+        type: "physical",
+        form: "melee",
+      });
+      if (hit.killed) return true;
     }
   }
   // 敌人分离

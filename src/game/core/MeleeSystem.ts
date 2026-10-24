@@ -37,10 +37,7 @@ function angleDiff(target: number, center: number) {
  * 执行一次近战挥砍：范围内命中判定 + 刀光 + 命中反馈。
  * 返回被命中的敌人列表（已结算伤害）。所有近战天赋都通过它出手。
  */
-export function meleeSwing(
-  this: GameCore,
-  opts: MeleeSwingOptions,
-): Enemy[] {
+export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
   const p = this.player;
   const spread = Math.min(opts.spread ?? Math.PI / 2, FULL);
   const full = spread >= FULL - EPS;
@@ -76,7 +73,11 @@ export function meleeSwing(
       e.kx = (d > 0.01 ? dx / d : Math.cos(angle)) * opts.knock;
       e.ky = (d > 0.01 ? dy / d : Math.sin(angle)) * opts.knock;
     }
-    this.hurtEnemy(e, opts.dmg, 0, 0, { src: "melee" });
+    this.hurtEnemy(e, opts.dmg, 0, 0, {
+      src: "melee",
+      type: "physical",
+      form: "melee",
+    });
   }
 
   this.slashes.push({

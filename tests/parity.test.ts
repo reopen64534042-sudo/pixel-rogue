@@ -89,6 +89,23 @@ function flattenEliteXp(snapshot: unknown) {
   return snapshot;
 }
 /**
+ * 基线更新依据：Combat Foundation S2 · PR #2 评审 P2-3。
+ * 敌方弹丸在发射时携带攻击者快照（stats），v8 无此字段。对照前把该字段
+ * 从当前实现摘出，并显式断言 S2 不变量：所有发射时快照的增伤/护甲/抗性/
+ * 韧性全为默认零值、attack 与弹丸伤害快照同源——即该字段在 S2 不改变
+ * 任何数值（S3 引入精英增伤等非零来源时须同步更新本断言）。
+ * 弹速/伤害/位置/寿命等其余字段仍与 v8 逐字段严格相等。
+ */
+function takeEbulletStats(snapshot: unknown) {
+  const snap = snapshot as { ebullets?: { dmg: number; stats?: unknown }[] };
+  const pairs: { dmg: number; stats: unknown }[] = [];
+  for (const b of snap.ebullets ?? []) {
+    pairs.push({ dmg: b.dmg, stats: b.stats });
+    delete b.stats;
+  }
+  return { rest: snapshot, pairs };
+}
+/**
  * 逐字段对照，同时按三条已批准的基线规则做显式断言：
  * - Issue #13：dmgBy.melee 是新增分项，v8 无此键，当前实现必须恒为 0；
  * - Issue #12：hp/maxhp 的增量必须在 [0, POTION_GROW_CAP] 内且同步增长；
@@ -112,7 +129,32 @@ function expectParity(actual: unknown, expected: unknown, wave: number) {
   const e = takeMelee(e0.rest);
   expect(e.melee).toBeUndefined();
   expect(a.melee).toBe(0);
-  expect(a.rest).toEqual(e.rest);
+
+  // Combat Foundation S2：弹丸发射时快照摘出 + S2 零值断言（见上方依据）
+  const aEb = takeEbulletStats(a.rest);
+  const eEb = takeEbulletStats(e.rest);
+  expect(eEb.pairs.every(({ stats }) => stats === undefined)).toBe(true);
+  for (const { dmg, stats } of aEb.pairs) {
+    const st = stats as {
+      attack: number;
+      defense: number;
+      critChance: number;
+      tough: number;
+      resistances: Record<string, number>;
+      globalDamageBonus: number;
+      typeDamageBonus: Record<string, number>;
+      formDamageBonus: Record<string, number>;
+    };
+    expect(st.defense).toBe(0);
+    expect(st.critChance).toBe(0);
+    expect(st.tough).toBe(0);
+    expect(st.resistances).toEqual({});
+    expect(st.globalDamageBonus).toBe(0);
+    expect(st.typeDamageBonus).toEqual({});
+    expect(st.formDamageBonus).toEqual({});
+    expect(st.attack).toBe(dmg);
+  }
+  expect(aEb.rest).toEqual(eEb.rest);
 }
 /** Run actual preserved source, never a rewritten expectation of the same algorithm. */
 function original() {
@@ -425,7 +467,9 @@ it("D-05 动态散布：孤立目标收拢 0.04，密集目标展开 0.16", () =
   g.player.fireCd = 0;
   g.update(1 / 60);
   expect(g.bullets.length).toBe(3);
-  const tight = [1, 2].map((i) => angle(g.bullets[i]) - angle(g.bullets[i - 1]));
+  const tight = [1, 2].map(
+    (i) => angle(g.bullets[i]) - angle(g.bullets[i - 1]),
+  );
   for (const d of tight) expect(d).toBeCloseTo(0.04, 1);
   // 密集目标 → 展开
   const g2 = fresh();
@@ -437,6 +481,8 @@ it("D-05 动态散布：孤立目标收拢 0.04，密集目标展开 0.16", () =
   g2.player.fireCd = 0;
   g2.update(1 / 60);
   expect(g2.bullets.length).toBe(3);
-  const wide = [1, 2].map((i) => angle(g2.bullets[i]) - angle(g2.bullets[i - 1]));
+  const wide = [1, 2].map(
+    (i) => angle(g2.bullets[i]) - angle(g2.bullets[i - 1]),
+  );
   for (const d of wide) expect(d).toBeCloseTo(0.16, 1);
 });
