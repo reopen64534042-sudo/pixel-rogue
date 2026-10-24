@@ -1,3 +1,4 @@
+import type { DamageTypeId } from "../data/damageTypes";
 export type Mode = "start" | "play" | "stats" | "pause" | "over";
 export type Panel = "level" | "rest" | "box" | null;
 export type GameState = Mode | "levelup" | "report" | "swap";
@@ -12,6 +13,73 @@ export type DamageSource =
   | "burn"
   | "melee";
 export type DamageTotals = Record<DamageSource, number>;
+/* ---------- Combat Foundation v1（S1 契约，未接入运行时战斗） ---------- */
+/** 攻击方式：决定近战/远程增伤乘区适用范围；由技能显式指定，不按距离推断 */
+export type AttackForm = "melee" | "ranged" | "other";
+/** 结算方式：hit=离散命中（末尾一次取整、正伤害保底 1 点）；dot=持续伤害（不逐帧取整） */
+export type DamageKind = "hit" | "dot";
+/** 按伤害属性索引的抗性映射，未声明视为 0；T 支持扩展注册表（如 frost） */
+export type ResistanceMap<T extends string = DamageTypeId> = Partial<
+  Record<T, number>
+>;
+/** 只读战斗属性快照：由 Player/Enemy 经适配器构造，不是另一个可变实体对象 */
+export interface CombatStatsSnapshot<T extends string = DamageTypeId> {
+  /** 统一攻击力。S1 计算不消费：rawAmount 已含技能系数，禁止再叠 ATK */
+  attack: number;
+  /** 物理护甲（physical 减伤策略使用） */
+  defense: number;
+  /** 暴击率与暴伤倍率由编排层判定使用；纯计算只按 isCritical 应用 critMultiplier */
+  critChance: number;
+  critMultiplier: number;
+  /** 通用减伤（韧性）：physical/fire/lightning 生效，true 无视 */
+  tough: number;
+  resistances: ResistanceMap<T>;
+  /** 增伤乘区（§3.1 同乘区加算、跨乘区乘算）：适配器先把同区来源聚合为单一数值，默认 0 */
+  globalDamageBonus: number;
+  typeDamageBonus: Partial<Record<T, number>>;
+  formDamageBonus: Partial<Record<AttackForm, number>>;
+  /** 技能额外增伤（不是技能自身系数），按 skillId 查找 */
+  skillDamageBonus?: Readonly<Record<string, number>>;
+}
+/**
+ * 伤害计算请求。泛型 T 绑定到所用注册表的属性 ID，扩展注册表（如 frost）
+ * 天然获得编译期约束；运行时仍校验注册表成员关系。
+ */
+export interface DamageRequest<T extends string = DamageTypeId> {
+  /** 技能已算好的原始伤害（含 player.damage 与天赋效果）；计算器禁止再乘攻击力 */
+  rawAmount: number;
+  type: T;
+  form: AttackForm;
+  /** 适配旧 DamageSource，用于伤害报告与专属增强；v1 为自由字符串 */
+  origin: string;
+  kind: DamageKind;
+  skillId?: string;
+  /** 机制元数据标签（area/projectile/dot 等），只表达事实，不自动参与乘伤 */
+  tags?: readonly string[];
+  attackerStats: Readonly<CombatStatsSnapshot<T>>;
+  defenderStats: Readonly<CombatStatsSnapshot<T>>;
+  /** 暴击已由编排层判定完成；纯计算不掷随机数 */
+  isCritical: boolean;
+}
+export interface DamageCalculation {
+  rawDamage: number;
+  beforeMitigation: number;
+  settledDamage: number;
+  isCritical: boolean;
+}
+/**
+ * S2 编排层在 DamageCalculation 上追加的应用结果。
+ * dodged/shieldUsed/killed/preventedDeath 依赖护盾/免死等运行状态，
+ * 不能由纯 DamageSystem 推断（§3.5）。
+ */
+export interface DamageResult extends DamageCalculation {
+  /** 实际生命损失 = min(受击前 HP, max(0, settledDamage))；被次数盾抵挡时为 0 */
+  effectiveHpLoss: number;
+  dodged: boolean;
+  shieldUsed: "none" | "temporary" | "normal";
+  killed: boolean;
+  preventedDeath: boolean;
+}
 export interface Point {
   x: number;
   y: number;
@@ -29,7 +97,7 @@ export interface Player extends Point {
   speed: number;
   projSpeed: number;
   damage: number;
-    boltDmgMul: number;
+  boltDmgMul: number;
   fireRate: number;
   multishot: number;
   pierce: number;

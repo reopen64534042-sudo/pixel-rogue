@@ -388,3 +388,58 @@ Vite base='./'；dist 包含 HTML、JS/CSS、字体及许可证。生产无 lega
 - `core/TalentSystem.ts`：`rollBoxPicks()`、`openBoxPanel()`；`chooseSlot()` 支持双模式
 - `game/rendering/sprites.ts`：`SPR.box`（12×10 木箱）
 - `tests/chest.test.ts`：9 条
+
+## 基础设施 D-05：Combat Foundation S1 统一伤害纯计算器（2026-10-24）
+
+**基线更新依据：docs/pixel-rogue-combat-foundation-v1.md（设计已确认的 P0 基础设施，本次实施 S1）。** S1 契约明确「游戏运行入口暂不接新结果」，未修改任何既有战斗调用方，对运行时行为零影响，parity 对照全部保持。
+
+### 交付物
+
+| 文件 | 内容 |
+|---|---|
+| `src/game/data/damageTypes.ts` | 减伤策略 `MitigationStrategy`、`DamageTypeInfo`、注册表约束 `DamageTypeRegistry`、正式注册表 `DAMAGE_TYPES`（physical/fire/lightning/true） |
+| `src/game/data/combatBalance.ts` | `CombatBalance`（armorK=50、resistanceCap=0.75、toughCap=0.6），v1 试验基准集中存放 |
+| `src/game/core/types.ts` | `AttackForm`/`DamageKind`/`ResistanceMap`/`CombatStatsSnapshot`/`DamageRequest`/`DamageCalculation`/`DamageResult` 契约 |
+| `src/game/core/DamageSystem.ts` | `calculateDamage` 纯函数与 `typeMitigationFactor`/`generalMitigationFactor` |
+| `tests/damage.test.ts` | 13 项 S1 验收测试 |
+
+### 关键实施选择（规范文本之外的具体化）
+
+1. **注册表是 `calculateDamage` 的显式首参**：泛型 `R` 把请求的 `type` 绑定到该注册表的键上，frost 之类的扩展类型只需在测试里新建一个 `as const satisfies DamageTypeRegistry` 常量，计算器本身没有任何具体属性分支——减伤差异只体现在注册表条目的策略上（armor/resistance/none 三分支）。
+2. **快照与请求以泛型 `T` 默认 `DamageTypeId`**：游戏代码按规范草案原样使用默认形；扩展注册表天然获得编译期键约束，运行时仍校验成员关系，未注册属性显式抛错。
+3. **取整与保底对齐既有规则**：`kind=hit` 末尾一次 `Math.round` 并对正伤害保底 1 点，与 `hurtEnemy` 现行 `Math.max(1, Math.round(dmg))` 语义一致；`rawAmount=0` 是合法零伤害保持 0；NaN/负数/Infinity 及「增伤低于 -100% 使结算为负」一律抛 `RangeError`，不会静默复活成 1 点。
+4. **暴击归编排层**：`isCritical` 由调用方判定（契约上 dot 不置位），计算器只在减伤前机械应用 `critMultiplier`；`DamageResult`（闪避/护盾/免死等应用结果）只声明类型，S2 由 CombatSystem 产生。
+
+### S1 验收对照
+
+| 验收项 | 结果 |
+|---|---|
+| frost 扩展类型不改计算器分支即可注册并计算；未知类型显式处理 | 通过（扩展注册表计算 + 未注册属性运行时报错两用例） |
+| 同乘区加算、跨乘区乘算 `100×1.2×1.3×1.4=218.4` | 通过（beforeMitigation 218.4，hit 取整 218） |
+| 物理防御 20（K=50）减伤系数 50/70；元素抗性 0/上限；真实伤害绕过减伤 | 三组系数断言与端到端用例通过 |
+| 纯计算不读 GameCore、不调 Math.random、不执行扣血/掉落/UI | 静态检查无相关引用（仅注释文字提及）；模块无运行时调用方 |
+| 默认零增伤/零护甲/零抗性不改变现有离散命中结果；不修改既有调用方 | `max(1, round(raw))` 等价断言通过；除 types.ts 追加契约外未触碰任何既有系统文件 |
+
+### 变异验证
+
+| 变异 | 实测 |
+|---|---|
+| 跨乘区乘算改为加算 | FAIL「跨乘区相乘 218.4」用例 |
+| 去掉正伤害保底 1 点（`Math.max` 移除） | FAIL「与既有离散结算一致」用例（0.4 取整为 0 ≠ 1） |
+| 真实伤害也应用通用减伤（去掉策略短路） | FAIL「真实伤害绕过减伤」用例 |
+
+### 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `npm run typecheck` | 通过 |
+| `npm test` | **85 项通过**（原 72 + 新增 13），parity 20 项全绿 |
+| `npm run build` | 通过（JS 1431.59 kB / gzip 379.80 kB；DamageSystem 无运行时引用，未进入构建产物） |
+| `npx prettier@3.9.10 --check`（变更文件） | 通过 |
+| 核心模块静态检查 | 无 any、无 Math.random/DOM/Window 引用 |
+
+### 已知边界
+
+- S1 只交付契约与纯计算，游戏内无任何调用方，行为与画面与改动前完全一致；只能通过单测验证，玩法接入在 S2。
+- armorK=50 与抗性 75% 上限是试验基准，S3 启用真实数值前须平衡复核。
+- `DamageRequest.tags`、快照的 `attack`/`critChance` 字段为 S2+ 预留，S1 计算不消费。

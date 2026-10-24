@@ -1,0 +1,150 @@
+import { COMBAT_BALANCE } from "../data/combatBalance";
+import type { CombatBalance } from "../data/combatBalance";
+import type { DamageTypeInfo, DamageTypeRegistry } from "../data/damageTypes";
+import type {
+  CombatStatsSnapshot,
+  DamageCalculation,
+  DamageRequest,
+} from "./types";
+
+/**
+ * Combat Foundation v1 · S1 纯数值计算器。
+ * 契约：docs/pixel-rogue-combat-foundation-v1.md §3。
+ * 约束：不读 GameCore、不调 Math.random、不改任何 HP/掉落/UI；增伤与减伤
+ * 全部来自请求参数、属性快照与注册表配置，不含任何具体伤害属性分支
+ * （物理/火焰/雷电/真实的差异只体现在注册表的减伤策略上）。
+ */
+
+function requireRegistryEntry(
+  registry: DamageTypeRegistry,
+  type: string,
+): DamageTypeInfo {
+  const info = registry[type];
+  if (!info) {
+    throw new Error(
+      `DamageSystem: 未注册的伤害属性 ${JSON.stringify(type)}（可用: ${Object.keys(registry).join(", ")}）`,
+    );
+  }
+  return info;
+}
+
+function requireFinite(value: number, field: string): void {
+  if (!Number.isFinite(value)) {
+    throw new RangeError(
+      `DamageSystem: ${field} 必须是有限数字，得到 ${value}`,
+    );
+  }
+}
+
+const clampMin0 = (v: number, max: number) => Math.max(0, Math.min(max, v));
+
+/** §3.2 属性减伤系数：armor=K/(K+max(0,DEF))；resistance=1-clamp(res,0,上限)；none=1 */
+export function typeMitigationFactor(
+  registry: DamageTypeRegistry,
+  type: string,
+  defender: Readonly<CombatStatsSnapshot<string>>,
+  balance: CombatBalance = COMBAT_BALANCE,
+): number {
+  const info = requireRegistryEntry(registry, type);
+  switch (info.mitigation) {
+    case "armor": {
+      requireFinite(defender.defense, "defenderStats.defense");
+      return balance.armorK / (balance.armorK + Math.max(0, defender.defense));
+    }
+    case "resistance": {
+      const res = defender.resistances[type] ?? 0;
+      requireFinite(res, `defenderStats.resistances[${type}]`);
+      return 1 - clampMin0(res, balance.resistanceCap);
+    }
+    case "none":
+      return 1;
+  }
+}
+
+/** §3.2 通用减伤系数：非真实属性应用 1-clamp(tough,0,上限)；真实伤害无视 */
+export function generalMitigationFactor(
+  registry: DamageTypeRegistry,
+  type: string,
+  defender: Readonly<CombatStatsSnapshot<string>>,
+  balance: CombatBalance = COMBAT_BALANCE,
+): number {
+  const info = requireRegistryEntry(registry, type);
+  if (info.mitigation === "none") return 1;
+  requireFinite(defender.tough, "defenderStats.tough");
+  return 1 - clampMin0(defender.tough, balance.toughCap);
+}
+
+/**
+ * §3.1 伤害计算：
+ *   D = rawAmount × M_global × M_type × M_form × M_skill × M_crit
+ *       × 属性减伤 × 通用减伤
+ * 同乘区的多个来源由适配器先行加算，跨乘区相乘；暴击在减伤前应用。
+ * kind=hit 在末尾一次取整并对正伤害保底 1 点（对应既有 hurtEnemy 的
+ * Math.max(1, Math.round)）；kind=dot 不取整、不保底。rawAmount=0 是合法
+ * 零伤害，保持为 0；NaN/负数等非法输入显式抛错，绝不静默变成 1 点。
+ * 暴击判定（含 dot 不暴击的契约）由编排层负责，计算器只机械应用倍率。
+ */
+export function calculateDamage<R extends DamageTypeRegistry>(
+  registry: R,
+  request: DamageRequest<Extract<keyof R, string>>,
+  balance: CombatBalance = COMBAT_BALANCE,
+): DamageCalculation {
+  const type = request.type;
+  requireRegistryEntry(registry, type);
+  if (!Number.isFinite(request.rawAmount) || request.rawAmount < 0) {
+    throw new RangeError(
+      `DamageSystem: rawAmount 必须是 ≥0 的有限数字，得到 ${request.rawAmount}`,
+    );
+  }
+
+  const a = request.attackerStats;
+  requireFinite(a.globalDamageBonus, "attackerStats.globalDamageBonus");
+  const typeBonus = a.typeDamageBonus[type] ?? 0;
+  requireFinite(typeBonus, `attackerStats.typeDamageBonus[${type}]`);
+  const formBonus = a.formDamageBonus[request.form] ?? 0;
+  requireFinite(formBonus, `attackerStats.formDamageBonus[${request.form}]`);
+  let skillBonus = 0;
+  if (request.skillId !== undefined) {
+    skillBonus = a.skillDamageBonus?.[request.skillId] ?? 0;
+    requireFinite(
+      skillBonus,
+      `attackerStats.skillDamageBonus[${request.skillId}]`,
+    );
+  }
+
+  const beforeCrit =
+    request.rawAmount *
+    (1 + a.globalDamageBonus) *
+    (1 + typeBonus) *
+    (1 + formBonus) *
+    (1 + skillBonus);
+  const critMultiplier = request.isCritical ? a.critMultiplier : 1;
+  if (request.isCritical) {
+    requireFinite(critMultiplier, "attackerStats.critMultiplier");
+  }
+  const beforeMitigation = beforeCrit * critMultiplier;
+
+  const settled =
+    beforeMitigation *
+    typeMitigationFactor(registry, type, request.defenderStats, balance) *
+    generalMitigationFactor(registry, type, request.defenderStats, balance);
+  requireFinite(settled, "settledDamage");
+  if (settled < 0) {
+    throw new RangeError(
+      `DamageSystem: 增伤配置使伤害为负（${settled}），请检查乘区数值`,
+    );
+  }
+
+  const settledDamage =
+    request.kind === "dot"
+      ? settled
+      : request.rawAmount > 0
+        ? Math.max(1, Math.round(settled))
+        : 0;
+  return {
+    rawDamage: request.rawAmount,
+    beforeMitigation,
+    settledDamage,
+    isCritical: request.isCritical,
+  };
+}
