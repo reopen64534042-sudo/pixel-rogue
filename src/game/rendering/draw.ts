@@ -97,6 +97,17 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
+  // Issue #45：焦土燃烧地带
+  for (const z of this.burnZones) {
+    ctx.globalAlpha = 0.22 + Math.sin(this.time * 6) * 0.08;
+    ctx.fillStyle = "#ff6a2b";
+    ctx.beginPath();
+    ctx.arc(Math.round(z.x), Math.round(z.y), z.R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillRect(Math.round(z.x - 3), Math.round(z.y - 3), 6, 6);
+    ctx.globalAlpha = 1;
+  }
+
   // 陨星预告
   for (const m of this.meteors) {
     const x = Math.round(m.x),
@@ -138,6 +149,13 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     if (e.slowT > 0) {
       ctx.globalAlpha = 0.35;
       ctx.fillStyle = "#57e6ff";
+      ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+    }
+    // Issue #38：冰冻泛蓝
+    if (e.frozenT > 0) {
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = "#9fe1ff";
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
     }

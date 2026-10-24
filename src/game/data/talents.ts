@@ -1,4 +1,5 @@
 import type { Talent } from "../core/types";
+import { frostFreezeDuration, burnStackDps, critMultiplier } from "../core/DamageMath";
 
 /** 击杀狂热叠层上限：随天赋等级提高（Lv1→4 层，Lv2→5 层，Lv3→6 层） */
 export function hasteCap(hasteLv: number) {
@@ -94,12 +95,15 @@ export const UPGRADES: Talent[] = [
     ico: "💥",
     t: 1,
     cat: "攻击",
-    d: "暴击率 +10%",
-    max: 5,
+    d: "暴击率 +10%（叠满 8 层觉醒：暴击伤害 +40%）",
+    max: 8,
     pv: (p) =>
-      `暴击 ${(p.crit * 100).toFixed(0)}% → ${((p.crit + 0.1) * 100).toFixed(0)}%`,
+      `暴击 ${(p.crit * 100).toFixed(0)}% → ${((p.crit + 0.1) * 100).toFixed(0)}%${p.crit + 0.1 >= 0.8 ? "（觉醒!）" : ""}`,
     f: (p) => (p.crit += 0.1),
-    cur: (p) => `当前暴击率 ${(p.crit * 100).toFixed(0)}%`,
+    cur: (p) =>
+      `当前暴击率 ${(p.crit * 100).toFixed(0)}% · 爆伤 ×${critMultiplier(p).toFixed(1)}${
+        (p.upCounts["致命一击"] || 0) >= 8 ? "（觉醒）" : ""
+      }`,
   },
   {
     n: "守护之刃",
@@ -154,7 +158,7 @@ export const UPGRADES: Talent[] = [
     ico: "🪃",
     t: 2,
     cat: "技能",
-    d: "子弹命中后弹向下一个敌人",
+    d: "子弹命中后弹向未命中的敌人（每跳 ×0.85）",
     max: 3,
     mech: 1,
     pv: (p) => `弹射 ${p.ricochet} → ${p.ricochet + 1} 次`,
@@ -164,29 +168,28 @@ export const UPGRADES: Talent[] = [
   {
     n: "烈焰印记",
     ico: "♨️",
-    t: 2,
+    t: 1,
     cat: "技能",
-    d: "命中点燃敌人，持续灼烧",
-    max: 3,
+    d: "命中叠加灼烧，最多 4 层，每层 10% 伤害/秒",
+    max: 1,
     mech: 1,
-    pv: (p) =>
-      `灼烧 DPS ${Math.round(p.damage * 0.3 * p.burn)} → ${Math.round(p.damage * 0.3 * (p.burn + 1))}`,
+    pv: (p) => `每层 DPS ${Math.round(burnStackDps(p, 1))}（上限 4 层）`,
     f: (p) => p.burn++,
     cur: (p) =>
-      `灼烧 ${p.burn} 层 · 当前 DPS ${Math.round(p.damage * 0.3 * p.burn)}`,
+      `灼烧叠层制 · 每层 ${Math.round(burnStackDps(p, 1))} DPS（上限 4 层）`,
   },
   {
     n: "冰霜之力",
     ico: "❄️",
     t: 1,
     cat: "技能",
-    d: "命中使敌人减速 15%",
+    d: "命中叠加冰霜，3 层触发冰冻（定身）",
     max: 3,
     mech: 1,
     pv: (p) =>
-      `减速 ${(p.slow * 100).toFixed(0)}% → ${((p.slow + 0.15) * 100).toFixed(0)}%`,
-    f: (p) => (p.slow += 0.15),
-    cur: (p) => `命中减速 ${(p.slow * 100).toFixed(0)}%`,
+      `冰冻 ${frostFreezeDuration(p).toFixed(1)}s → ${frostFreezeDuration({ ...p, frostLv: p.frostLv + 1 }).toFixed(1)}s`,
+    f: (p) => p.frostLv++,
+    cur: (p) => `冰冻时长 ${frostFreezeDuration(p).toFixed(1)}s（3 层触发）`,
   },
   {
     n: "雷霆连锁",
@@ -209,7 +212,7 @@ export const UPGRADES: Talent[] = [
     ico: "☄️",
     t: 3,
     cat: "技能",
-    d: "周期性召唤陨星轰炸",
+    d: "周期性召唤陨星轰炸（伤害 ×3 全局伤害）",
     max: 3,
     mech: 1,
     pv: (p) =>
@@ -223,12 +226,12 @@ export const UPGRADES: Talent[] = [
     ico: "🦷",
     t: 1,
     cat: "增幅",
-    d: "造成伤害的 0.4% 转为生命",
+    d: "造成伤害的 0.8% 转为生命",
     max: 4,
     mech: 1,
     pv: (p) =>
-      `吸血 ${(p.lifesteal * 100).toFixed(1)}% → ${((p.lifesteal + 0.004) * 100).toFixed(1)}%`,
-    f: (p) => (p.lifesteal += 0.004),
+      `吸血 ${(p.lifesteal * 100).toFixed(1)}% → ${((p.lifesteal + 0.008) * 100).toFixed(1)}%`,
+    f: (p) => (p.lifesteal += 0.008),
     cur: (p) => `伤害吸血 ${(p.lifesteal * 100).toFixed(1)}%`,
   },
   {
@@ -248,15 +251,15 @@ export const UPGRADES: Talent[] = [
     ico: "🛡️",
     t: 2,
     cat: "防御",
-    d: "+1 层护盾，抵挡一次伤害",
+    d: "+1 层护盾；破碎时反震 80px 内敌人（200% 伤害 + 击退）",
     max: 3,
     mech: 1,
-    pv: (p) => `护盾 ${p.shieldMax} → ${p.shieldMax + 1} 层`,
+    pv: (p) => `护盾 ${p.shieldMax} → ${p.shieldMax + 1} 层 · 破碎反震`,
     f: (p) => {
       p.shieldMax++;
       p.shield++;
     },
-    cur: (p) => `护盾上限 ${p.shieldMax} 层 · 当前 ${p.shield} 层`,
+    cur: (p) => `护盾 ${p.shield}/${p.shieldMax} 层 · 破碎反震 200%`,
   },
   {
     n: "疾影步",
@@ -452,9 +455,63 @@ export const UPGRADES: Talent[] = [
     d: "受到致命伤害时以 1 点 HP 存活（每波一次）",
     max: 1,
     mech: 1,
+    hidden: 1,
     pv: (p) => (p.nd ? "已解锁" : "解锁: 每波一次免死"),
     f: (p) => (p.nd = 1),
     cur: (p) => `每波一次致命免死 · ${p.ndUsed ? "本波已触发" : "本波可用"}`,
+  },
+  {
+    n: "灼热易伤",
+    ico: "🌡️",
+    t: 2,
+    cat: "技能",
+    d: "灼烧中的敌人受到的所有伤害 +10%/级",
+    max: 2,
+    mech: 1,
+    req: (p) => (p.upCounts["烈焰印记"] || 0) > 0,
+    pv: (p) =>
+      `易伤 +${(p.scorchVuln * 100).toFixed(0)}% → +${((p.scorchVuln + 0.1) * 100).toFixed(0)}%`,
+    f: (p) => (p.scorchVuln += 0.1),
+    cur: (p) => `灼烧目标易伤 +${(p.scorchVuln * 100).toFixed(0)}%`,
+  },
+  {
+    n: "烈焰蔓延",
+    ico: "🌋",
+    t: 3,
+    cat: "技能",
+    d: "灼烧中的敌人死亡时，向附近敌人蔓延剩余灼烧层数",
+    max: 2,
+    mech: 1,
+    req: (p) => (p.upCounts["灼热易伤"] || 0) > 0,
+    pv: (p) => `蔓延 ${1 + p.burnSpread} → ${2 + p.burnSpread} 个目标`,
+    f: (p) => p.burnSpread++,
+    cur: (p) => `死亡蔓延至 ${1 + p.burnSpread} 个目标`,
+  },
+  {
+    n: "天眼制导",
+    ico: "👁️",
+    t: 2,
+    cat: "技能",
+    d: "陨星砸向敌人最密集处",
+    max: 1,
+    mech: 1,
+    req: (p) => (p.upCounts["星辰坠落"] || 0) > 0,
+    pv: (p) => (p.meteorGuided ? "已解锁" : "落点: 随机 → 敌方密集处"),
+    f: (p) => (p.meteorGuided = 1),
+    cur: (p) => (p.meteorGuided ? "智能落点已解锁" : "未解锁"),
+  },
+  {
+    n: "焦土燃烧",
+    ico: "🏜️",
+    t: 3,
+    cat: "技能",
+    d: "陨星落点留下燃烧地带 5 秒",
+    max: 1,
+    mech: 1,
+    req: (p) => (p.upCounts["天眼制导"] || 0) > 0,
+    pv: (p) => (p.burnGround ? "已解锁" : "解锁: 燃烧地带"),
+    f: (p) => (p.burnGround = 1),
+    cur: (p) => (p.burnGround ? "燃烧地带已解锁" : "未解锁"),
   },
 ];
 export const TIERS = ["普通", "稀有", "史诗", "传奇"];
