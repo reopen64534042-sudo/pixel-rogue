@@ -245,7 +245,8 @@ describe("combat foundation s2 pipeline", () => {
     expect(r?.rawDamage).toBe(1000);
     expect(r?.settledDamage).toBe(1000);
     expect(r?.effectiveHpLoss).toBe(hp0); // 溢出部分不计入实际损失
-    expect(r?.killed).toBe(true);
+    expect(r?.lethal).toBe(true);
+    expect(r?.killed).toBe(true); // killEnemy 已在入口内同步执行
     expect(r?.dodged).toBe(false);
     expect(r?.shieldUsed).toBe("none");
     expect(r?.preventedDeath).toBe(false);
@@ -259,6 +260,7 @@ describe("combat foundation s2 pipeline", () => {
     });
     expect(r2?.settledDamage).toBe(24);
     expect(r2?.effectiveHpLoss).toBe(24);
+    expect(r2?.lethal).toBe(false);
     expect(r2?.killed).toBe(false);
     // 非战斗状态早退返回 undefined
     g.state = "pause";
@@ -312,14 +314,16 @@ describe("combat foundation s2 pipeline", () => {
       form: "melee",
     });
     expect(nd.preventedDeath).toBe(true);
+    expect(nd.lethal).toBe(true); // 达到致死阈值（不屈把 HP 拉回 1 前捕获）
     expect(nd.killed).toBe(false);
     expect(nd.effectiveHpLoss).toBe(5);
     expect(g2.player.hp).toBe(1);
-    // 致命一击（无不屈）：killed = true 并触发结算
+    // 致命一击（无不屈）：lethal 与 killed 同真并触发结算
     const g3 = fresh();
     g3.player.hurtCd = 0;
     g3.player.hp = 5;
     const dead = g3.damagePlayer(20, { type: "physical", form: "ranged" });
+    expect(dead.lethal).toBe(true);
     expect(dead.killed).toBe(true);
     expect(dead.effectiveHpLoss).toBe(5);
     expect(g3.state).toBe("over");
@@ -334,9 +338,29 @@ describe("combat foundation s2 pipeline", () => {
     const r = g.applyBurnDot(e, 1 / 60);
     expect(r.settledDamage).toBeCloseTo(1.5, 10);
     expect(r.effectiveHpLoss).toBe(1); // 溢出的 0.5 不计入
-    expect(r.killed).toBe(true); // 死亡应用仍由 EnemySystem 按原顺序执行
+    expect(r.lethal).toBe(true); // 达到致死阈值
+    expect(r.killed).toBe(false); // 死亡结算尚未执行（由 EnemySystem 完成）
     expect(e.dead).toBeFalsy();
     expect(g.dmgBy.burn).toBeCloseTo(1.5, 10);
+  });
+
+  it("灼烧致死三态：lethal 阈值 → killed=false 未结算 → 调用侧 killEnemy 完成（PR #2 三审）", () => {
+    const g = fresh();
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const e = enemy(g);
+    e.hp = 1;
+    e.burnT = 1;
+    e.burnDps = 90; // 每帧 1.5 > 1 HP
+    // 状态一/二：伤害达致死阈值，但死亡结算尚未执行
+    const r = g.applyBurnDot(e, 1 / 60);
+    expect(r.lethal).toBe(true);
+    expect(r.killed).toBe(false);
+    expect(e.hp).toBeLessThanOrEqual(0);
+    expect(e.dead).toBeFalsy(); // dead 为可选字段：未执行结算时不存在
+    // 状态三：EnemySystem 按原顺序完成死亡结算
+    g.killEnemy(e);
+    expect(e.dead).toBe(true);
+    expect(g.kills).toBe(1);
   });
 
   it("敌方弹丸携带发射时快照，命中读取 attackerStats（PR #2 评审 P2-3）", () => {

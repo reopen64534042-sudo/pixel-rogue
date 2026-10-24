@@ -539,3 +539,15 @@ parity 新增**第四条归一化**（D-02 先例）：弹丸 `stats` 从对照�
 | `npm test` | **100 项通过**（parity 20 项全绿，含新归一化） |
 | `npm run build` | 通过 |
 | `npm run test:browser` | **6 项通过**；性能本次采样 p50=0.3 / p95=0.5ms（160 敌+120 弹，处于历史波动区间 0.2–0.5 内，无阈值违规） |
+
+### PR #2 三审修订：lethal/killed 语义分离与 CHANGELOG 补录（2026-10-24）
+
+三审结论：原 3×P2 全部通过，新发现 1×P2（killed 在灼烧路径表示「尚未执行的死亡」）+ 2×P3，处理如下：
+
+| 项 | 内容 |
+|---|---|
+| P2 | `DamageResult` 新增 `lethal`（HP ≤ 0 致死阈值）；`killed` 收紧为「死亡结算已执行」——hurtEnemy/damagePlayer 同步完成故两者同真，applyBurnDot 的死亡结算由 EnemySystem 随后按原顺序执行（粒子/击杀/随机数顺序不变），返回时恒为 false。玩家路径的 lethal 在不屈把 HP 拉回 1 **之前**捕获 |
+| P3-1 | `effectiveHpLoss` 口径澄清：按伤害封顶的实际损失量，不是不屈/治疗等保命效果结算后的 HP 净变化（例：5 HP 受 20 伤触发不屈最终 HP=1，字段为 5 而非 4）；types 注释与规范 §3.5/§4 同步 |
+| P3-2 | 按 Issue #55 约定补录 **v10** 更新日志（`CHANGELOG.md` + `src/game/data/changelog.ts`，主题「战斗基础：统一伤害管线（S1+S2）」，注明无对外数值变化）；PR 描述同步为最新验证数据 |
+
+新增灼烧致死三态测试（阈值 lethal=true → killed=false/e.dead 不存在 → 调用侧 killEnemy 完成 e.dead=true/kills=1）。变异验证：applyBurnDot 的 killed 改回 `e.hp <= 0` 被两个灼烧用例同时咬住。验证：typecheck 通过；`npm test` **101 项通过**（parity 20 项全绿）；build 通过。

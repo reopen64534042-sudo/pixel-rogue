@@ -83,10 +83,21 @@ export interface DamageCalculation {
  * 不能由纯 DamageSystem 推断（§3.5）。
  */
 export interface DamageResult extends DamageCalculation {
-  /** 实际生命损失 = min(受击前 HP, max(0, settledDamage))；被次数盾抵挡时为 0 */
+  /**
+   * 按伤害封顶的实际损失量 = min(受击前 HP, max(0, settledDamage))；被闪避/
+   * 次数盾抵挡时为 0。注意这是封顶后的伤害口径，不是不屈、治疗等保命/回复
+   * 效果结算后的 HP 净变化（例：5 HP 受 20 伤触发不屈最终 HP=1，本字段为 5）。
+   */
   effectiveHpLoss: number;
   dodged: boolean;
   shieldUsed: "none" | "temporary" | "normal";
+  /** 伤害使目标 HP 降至 ≤ 0（达到致死阈值）；与死亡结算是否已执行无关 */
+  lethal: boolean;
+  /**
+   * 死亡结算已执行：hurtEnemy/damagePlayer 内同步完成（与 lethal 同真）；
+   * applyBurnDot 的死亡结算由调用侧（EnemySystem）随后按原顺序执行，
+   * 因此其返回值恒为 false——到达阈值请读 lethal。
+   */
   killed: boolean;
   preventedDeath: boolean;
 }

@@ -65,6 +65,7 @@ function blockedHit(
     settledDamage: 0,
     isCritical: false,
     effectiveHpLoss: 0,
+    lethal: false,
     killed: false,
     preventedDeath: false,
     ...blocked,
@@ -147,12 +148,13 @@ export function hurtEnemy(
   this.audio.beep(200 + Math.random() * 80, 0.04, "square", 0.025, -80);
   if (e.hp <= 0) this.killEnemy(e, opts.fromExplode);
   // §3.5：结算伤害与实际生命损失分开，溢出部分不计入 effectiveHpLoss；
-  // 击杀爆炸/掉落等副作用已在上方按原顺序执行
+  // 击杀爆炸/掉落等副作用已在上方按原顺序执行，killed 与 lethal 同真
   return {
     ...calc,
     effectiveHpLoss: Math.min(hpBefore, dmg),
     dodged: false,
     shieldUsed: "none",
+    lethal: e.hp <= 0,
     killed: e.hp <= 0,
     preventedDeath: false,
   };
@@ -310,16 +312,19 @@ export function damagePlayer(
   });
   dmg = calc.settledDamage;
   const hpBefore = p.hp;
+  p.hurtCd = 0.6;
+  p.hp -= dmg;
+  // 不屈会在下方把 HP 拉回 1，致死阈值必须先于该重置捕获（§3.5：lethal 与死亡结算解耦）
+  const lethal = p.hp <= 0;
   const applied = (killed: boolean, preventedDeath = false): DamageResult => ({
     ...calc,
     effectiveHpLoss: Math.min(hpBefore, dmg),
     dodged: false,
     shieldUsed: "none",
+    lethal,
     killed,
     preventedDeath,
   });
-  p.hurtCd = 0.6;
-  p.hp -= dmg;
   if (opts.melee && p.thorns && opts.src) {
     const dx = p.x - opts.src.x,
       dy = p.y - opts.src.y,
@@ -380,12 +385,15 @@ export function applyBurnDot(
   const hpBefore = e.hp;
   e.hp -= calc.settledDamage;
   this.dmgBy.burn += calc.settledDamage;
+  // PR #2 三审：死亡结算由 EnemySystem 按原顺序随后执行（粒子/击杀/随机数顺序
+  // 不变），返回时尚未完成——lethal 表示已达致死阈值，killed 恒为 false
   return {
     ...calc,
     effectiveHpLoss: Math.min(hpBefore, calc.settledDamage),
     dodged: false,
     shieldUsed: "none",
-    killed: e.hp <= 0,
+    lethal: e.hp <= 0,
+    killed: false,
     preventedDeath: false,
   };
 }
