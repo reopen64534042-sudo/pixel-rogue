@@ -11,6 +11,10 @@ import type { CombatStatsSnapshot, Enemy, Player } from "./types";
  *
  * 依赖方向（§4）：实体 → 本适配层 → DamageRequest → DamageSystem（纯计算）
  * → CombatSystem（应用）。本模块不依赖 GameCore/DOM/Phaser、不掷随机数。
+ *
+ * 快照隔离（PR #3 评审 P2）：嵌套映射（resistances/三个增伤乘区/skill）一律
+ * 复制一层，与实体对象解除引用共享——否则发射时固化的弹丸快照会随后续
+ * 原地修改联动，破坏 S2「按发射时属性结算」的契约。
  */
 export function getPlayerCombatStats(p: Player): CombatStatsSnapshot {
   return {
@@ -21,11 +25,13 @@ export function getPlayerCombatStats(p: Player): CombatStatsSnapshot {
     // 经 DamageMath 取有效值：含 #41 致命一击满层觉醒
     critMultiplier: critMultiplier(p),
     tough: p.tough,
-    resistances: p.resistances ?? {},
+    resistances: { ...p.resistances },
     globalDamageBonus: p.globalDamageBonus ?? 0,
-    typeDamageBonus: p.typeDamageBonus ?? {},
-    formDamageBonus: p.formDamageBonus ?? {},
-    skillDamageBonus: p.skillDamageBonus,
+    typeDamageBonus: { ...p.typeDamageBonus },
+    formDamageBonus: { ...p.formDamageBonus },
+    skillDamageBonus: p.skillDamageBonus
+      ? { ...p.skillDamageBonus }
+      : undefined,
   };
 }
 
@@ -37,10 +43,12 @@ export function getEnemyCombatStats(e?: Enemy): CombatStatsSnapshot {
     critChance: 0,
     critMultiplier: 1,
     tough: e?.tough ?? 0,
-    resistances: e?.resistances ?? {},
+    resistances: { ...e?.resistances },
     globalDamageBonus: e?.globalDamageBonus ?? 0,
-    typeDamageBonus: e?.typeDamageBonus ?? {},
-    formDamageBonus: e?.formDamageBonus ?? {},
-    skillDamageBonus: e?.skillDamageBonus,
+    typeDamageBonus: { ...e?.typeDamageBonus },
+    formDamageBonus: { ...e?.formDamageBonus },
+    skillDamageBonus: e?.skillDamageBonus
+      ? { ...e.skillDamageBonus }
+      : undefined,
   };
 }

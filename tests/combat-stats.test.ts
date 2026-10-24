@@ -171,7 +171,7 @@ describe("combat foundation s3-a attribute wiring", () => {
     expect(g.player.hp).toBeCloseTo(100 - 8.4 * 0.7, 10);
   });
 
-  it("弹丸按发射时快照结算：发射后修改/移除敌人不改变原弹丸属性", () => {
+  it("弹丸按发射时快照结算：发射后修改（含原地改映射）/移除敌人不改变原弹丸属性", () => {
     const g = fresh();
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     g.spawnEnemy("shooter");
@@ -180,12 +180,18 @@ describe("combat foundation s3-a attribute wiring", () => {
     s.y = g.player.y;
     s.shootCd = 0;
     s.speed = 0;
-    s.globalDamageBonus = 0.5; // S3-B 才会有正式来源，此处程序化赋值验证接线
+    // S3-B 才会有正式来源，此处程序化赋值验证接线
+    s.globalDamageBonus = 0.5;
+    s.typeDamageBonus = { physical: 0.2 };
     g.update(1 / 60);
     expect(g.ebullets).toHaveLength(1);
     expect(g.ebullets[0].stats!.globalDamageBonus).toBe(0.5);
-    // 发射后：改掉敌人增伤并标记死亡/移除——弹丸仍按发射时快照结算
+    expect(g.ebullets[0].stats!.typeDamageBonus).toEqual({ physical: 0.2 });
+    // 发射后：顶层改值 + 原地修改嵌套映射（PR #3 评审 P2 场景）+ 标记死亡/移除
+    // ——弹丸仍按发射时快照结算，嵌套映射不得与敌人共享引用
     s.globalDamageBonus = 0;
+    s.typeDamageBonus.physical = 0.8;
+    expect(g.ebullets[0].stats!.typeDamageBonus).toEqual({ physical: 0.2 });
     s.dead = true;
     g.enemies.length = 0;
     const b = g.ebullets[0];
@@ -195,8 +201,24 @@ describe("combat foundation s3-a attribute wiring", () => {
     b.vy = 0;
     g.player.hurtCd = 0;
     g.update(1 / 60);
-    // 弹丸伤害快照 = 发射时 e.dmg，× 发射时增伤 (1+0.5)
-    expect(g.player.hp).toBeCloseTo(100 - s.dmg * 1.5, 10);
+    // 弹丸伤害快照 = 发射时 e.dmg × (1+0.5)全局 × (1+0.2)物理；原地改映射不渗入
+    expect(g.player.hp).toBeCloseTo(100 - s.dmg * 1.5 * 1.2, 10);
+  });
+
+  it("适配器快照与实体解除嵌套引用共享（PR #3 评审 P2 直测）", () => {
+    const g = fresh();
+    g.player.typeDamageBonus = { physical: 0.2 };
+    g.player.resistances = { fire: 0.3 };
+    const ps = getPlayerCombatStats(g.player);
+    g.player.typeDamageBonus.physical = 0.8; // 原地修改实体映射
+    g.player.resistances.fire = 0.9;
+    expect(ps.typeDamageBonus).toEqual({ physical: 0.2 });
+    expect(ps.resistances).toEqual({ fire: 0.3 });
+    const e = enemy(g);
+    e.formDamageBonus = { melee: 0.4 };
+    const es = getEnemyCombatStats(e);
+    e.formDamageBonus.melee = 0.6;
+    expect(es.formDamageBonus).toEqual({ melee: 0.4 });
   });
 
   it("EnemyConfig → spawnEnemy → Enemy 传递链：存在时拷贝、缺失不产生键", () => {

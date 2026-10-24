@@ -1,6 +1,6 @@
 # Pixel Rogue · Combat Foundation S3 实施任务书 v1
 
-> 状态：**S3 规划与工程拆分已完成，尚未修改仓库代码，也未批准任何正式平衡数值**  
+> 状态：**S3-A 已实施（见 docs/migration.md D-07 及 PR #3 评审修订）；S3-B 正式平衡数值待批准；S3-C 尚未实施**  
 > 基准：`reopen64534042-sudo/pixel-rogue` `main` @ `5d85c46e612e138deab4c4c97256295c0157559b`（PR #63 合并）  
 > 总任务：[上游 Issue #32](https://github.com/reopen64534042-sudo/pixel-rogue/issues/32)  
 > 既有规范：`docs/pixel-rogue-combat-foundation-v1.md`  
