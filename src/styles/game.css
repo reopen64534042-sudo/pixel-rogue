@@ -1201,3 +1201,10 @@ p {
   font-size: 1.4vmin;
   line-height: 1.8;
 }
+/* Issue #68：暂停界面置顶所有 UI；Issue #70：属性面板高于选择面板 */
+#ov-pause {
+  z-index: 60;
+}
+#ov-stats {
+  z-index: 30;
+}

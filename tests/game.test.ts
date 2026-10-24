@@ -37,22 +37,25 @@ describe("game flow and state", () => {
     expect(far.hp).toBe(14);
     expect(g.gems.length + g.player.xp).toBeGreaterThan(0);
   });
-  it("XP levels, maintains choices on more XP, chooses and resumes without pausing", () => {
+  it("XP levels and defers talent selection to the rest phase (Issue #67)", () => {
     const g = fresh();
     g.gems.push({ x: g.player.x, y: g.player.y, vx: 0, vy: 0, v: 8 });
     ticks(g, 1);
     expect(g.player.lvl).toBe(2);
     expect(g.player.xpNext).toBe(7);
+    expect(g.pendingLevels).toBe(1);
+    expect(g.phase).toBe("play"); // 升级不再立即弹面板
+    g.openLevelPanel();
     expect(g.phase).toBe("levelup");
     const slots = g.slots;
     g.openLevelPanel();
     expect(g.slots).toBe(slots);
     const time = g.time;
     ticks(g, 1);
-    expect(g.time).toBeGreaterThan(time);
+    expect(g.time).toBeGreaterThan(time); // 模拟仍不暂停
     expect(g.chooseSlot(0)).toBe(true);
     expect(g.player.picks).toHaveLength(1);
-    expect(g.phase).toBe("play");
+    expect(g.pendingLevels).toBe(0);
     expect(g.chooseSlot(0)).toBe(false);
   });
   it("P and C freeze time, cooldowns, movement and enemies; resume works", () => {
@@ -71,7 +74,7 @@ describe("game flow and state", () => {
     ticks(g, 1);
     expect(g.time).toBeGreaterThan(0);
   });
-  it("fight → collect XP → level selection → report → swap → next wave is guarded", () => {
+  it("fight → collect → rest cascades level picks → report/swap → next wave is guarded (Issue #67)", () => {
     const g = fresh();
     expect(g.startNextWave()).toBe(false);
     g.spawnedThisWave = g.quota;
@@ -79,11 +82,12 @@ describe("game flow and state", () => {
     ticks(g, 1);
     expect(g.wavePhase).toBe("collect");
     expect(g.pendingLevels).toBe(1);
-    ticks(g, 1);
-    expect(g.wavePhase).toBe("collect");
+    ticks(g, 2);
+    expect(g.wavePhase).toBe("rest"); // 收齐即进休整，级联先选天赋
+    expect(g.bpMode).toBe("level");
     g.chooseSlot(0);
-    ticks(g, 1);
-    expect(g.phase).toBe("report");
+    expect(g.pendingLevels).toBe(0);
+    expect(g.phase).toBe("report"); // 无宝箱可开 → 直接报告/置换
     expect(g.openSwap()).toBe(true);
     expect(g.phase).toBe("swap");
     g.player.barrierLv = 2;

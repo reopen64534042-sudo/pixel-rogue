@@ -209,6 +209,13 @@ function original() {
     .replace(
       "p.damage * 2 + p.meteor * 5",
       "p.damage * 3 + p.meteor * 8",
+    )
+    // 基线随 Issue #67 对齐：升级延迟到休整（移除立即开面板/collect 门/enterRest 级联）
+    .replace("if (pendingLevels > 0) openLevelPanel();", "")
+    .replace("gems.length === 0 && pendingLevels === 0", "gems.length === 0")
+    .replace(
+      "function enterRest() {\r\n  wavePhase = 'rest';\r\n  swapUsedThisRest = false;\r\n  showRestBar();\r\n}",
+      "function enterRest() {\r\n  wavePhase = 'rest';\r\n  swapUsedThisRest = false;\r\n  if (pendingLevels > 0) { bpMode = null; openLevelPanel(); return; }\r\n  if (boxPicks > 0) { bpMode = null; openBoxPanel(); return; }\r\n  showRestBar();\r\n}",
     );
   runInContext(script, context);
   // Issue #55 批次：canOffer 对齐 hidden 语义（不屈移出基线卡池）

@@ -75,15 +75,13 @@ export class GameUI {
     };
     element("bp-swapbtn").onclick = () => {
       if (!this.core.openSwap()) return;
-      element("sw-hint").textContent = "置换: 先选目标稀有度（每波限 1 次）";
+      // Issue #69：两步式——先选材料，目标稀有度自动推导
+      element("sw-hint").textContent = "置换: 点击下方库存，选择要失去的天赋（2 个等级）";
       element("sw-form").classList.remove("hidden");
       element("sw-result").classList.add("hidden");
       element("bp-swap").classList.remove("hidden");
       this.renderSwInv();
     };
-    element("sw-r1").onclick = () => this.setSwTarget(1);
-    element("sw-r2").onclick = () => this.setSwTarget(2);
-    element("sw-r3").onclick = () => this.setSwTarget(3);
     element("sw-melt").onclick = () => {
       const output = this.core.melt();
       if (output) {
@@ -108,6 +106,13 @@ export class GameUI {
       element("bp-swap").classList.add("hidden");
       element("sw-result").classList.add("hidden");
       element("sw-form").classList.remove("hidden");
+    };
+    element("bp-boxskip").onclick = () => {
+      this.core.drainBoxPicks();
+      this.core.bpMode = null;
+      this.core.slots = [];
+      if (this.core.wavePhase === "rest") this.showRestBar();
+      else this.openLevelPanel();
     };
     element("bp-next").onclick = () => {
       if (!this.core.startNextWave()) return;
@@ -416,6 +421,8 @@ export class GameUI {
       this.closeLevelPanelIfDone();
       return;
     }
+    // Issue #71：跳过按钮仅宝箱模式显示
+    element("bp-boxskip").classList.toggle("hidden", mode !== "box");
     // 升级面板与宝箱面板共用同一套卡片，只换标题文案
     const box = mode === "box";
     const title = document.querySelector<HTMLElement>("#bp-level .bp-title");
@@ -434,8 +441,13 @@ export class GameUI {
     element("bottom-bar").classList.remove("hidden");
   }
   closeLevelPanelIfDone() {
-    if (this.core.pendingLevels > 0 || this.core.boxPicks > 0) return;
+    if (this.core.pendingLevels > 0) return;
     element("bp-level").classList.add("hidden");
+    // Issue #71：升级选完后若仍有宝箱点数 → 依次开箱
+    if (this.core.boxPicks > 0) {
+      this.core.openBoxPanel();
+      return;
+    }
     if (this.core.wavePhase === "rest") {
       this.showRestBar();
     } else {
@@ -501,27 +513,33 @@ export class GameUI {
     [...inv.querySelectorAll<HTMLElement>("span[data-n]")].forEach((sp) => {
       sp.onclick = () => {
         const n = sp.dataset.n!;
-        const u = UPGRADES.find((x) => x.n === n)!;
-        if (!this.core.swTarget) {
-          element("sw-hint").textContent = "先选择目标稀有度！";
-          return;
-        }
-        if (u.t !== this.core.swTarget - 1) {
-          element("sw-hint").textContent =
-            `只能投入 ${TIERS[this.core.swTarget - 1]}卡！`;
-          return;
-        }
         this.core.selectMaterial(n);
+        this.updateSwapHint();
         this.renderSwInv();
       };
     });
+    this.updateSwapHint();
+  }
+  /** Issue #69：根据已选材料更新提示与熔炼按钮状态 */
+  updateSwapHint() {
+    const count = this.swSelCount();
+    const hint = element("sw-hint");
     const mb = element("sw-melt") as HTMLButtonElement;
-    mb.textContent = `🔥 熔 炼 (${this.swSelCount()}/2)`;
-    mb.disabled = !(
-      this.core.swTarget &&
-      this.swSelCount() === 2 &&
-      this.core.availTalents(this.core.swTarget).length
-    );
+    mb.textContent = `🔥 熔 炼 (${count}/2)`;
+    if (count < 2) {
+      hint.textContent = `再选 ${2 - count} 个等级的材料（可重复点同一张）`;
+      mb.disabled = true;
+      mb.style.opacity = "0.4";
+      return;
+    }
+    if (!this.core.swTarget) {
+      hint.textContent = "两块材料稀有度不同，无法置换——请换选同稀有度的材料";
+      mb.disabled = true;
+      mb.style.opacity = "0.4";
+      return;
+    }
+    hint.textContent = `可随机熔出 1 张${TIERS[this.core.swTarget]}天赋 · 点击熔炼确认`;
+    mb.disabled = !this.core.availTalents(this.core.swTarget).length;
     mb.style.opacity = mb.disabled ? "0.4" : "1";
   }
 }

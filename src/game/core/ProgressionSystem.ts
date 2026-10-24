@@ -32,7 +32,6 @@ export function updateProgression(this: GameCore, dt: number) {
         p.xpNext = Math.ceil(p.xpNext * 1.13);
         this.pendingLevels++;
       }
-      if (this.pendingLevels > 0) this.openLevelPanel();
     }
   }
   // 满血也吸附：满血拾取会转化为最大生命，不再是废品
