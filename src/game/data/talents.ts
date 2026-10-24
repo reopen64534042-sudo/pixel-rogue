@@ -16,6 +16,8 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `魔弹伤害 ${(p.damage * p.boltDmgMul).toFixed(1)} → ${(p.damage * p.boltDmgMul * 1.25).toFixed(1)}`,
     f: (p) => (p.boltDmgMul *= 1.25),
+    cur: (p) =>
+      `魔弹伤害 ${(p.damage * p.boltDmgMul).toFixed(1)}（仅魔弹，全局伤害 ${p.damage.toFixed(1)}）`,
   },
   {
     n: "急速施法",
