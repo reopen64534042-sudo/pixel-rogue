@@ -388,3 +388,176 @@ Vite base='./'；dist 包含 HTML、JS/CSS、字体及许可证。生产无 lega
 - `core/TalentSystem.ts`：`rollBoxPicks()`、`openBoxPanel()`；`chooseSlot()` 支持双模式
 - `game/rendering/sprites.ts`：`SPR.box`（12×10 木箱）
 - `tests/chest.test.ts`：9 条
+
+## 基础设施 D-05：Combat Foundation S1 统一伤害纯计算器（2026-10-24）
+
+**基线更新依据：docs/pixel-rogue-combat-foundation-v1.md（设计已确认的 P0 基础设施，本次实施 S1）。** S1 契约明确「游戏运行入口暂不接新结果」，未修改任何既有战斗调用方，对运行时行为零影响，parity 对照全部保持。
+
+### 交付物
+
+| 文件 | 内容 |
+|---|---|
+| `src/game/data/damageTypes.ts` | 减伤策略 `MitigationStrategy`、`DamageTypeInfo`、注册表约束 `DamageTypeRegistry`、正式注册表 `DAMAGE_TYPES`（physical/fire/lightning/true） |
+| `src/game/data/combatBalance.ts` | `CombatBalance`（armorK=50、resistanceCap=0.75、toughCap=0.6），v1 试验基准集中存放 |
+| `src/game/core/types.ts` | `AttackForm`/`DamageKind`/`ResistanceMap`/`CombatStatsSnapshot`/`DamageRequest`/`DamageCalculation`/`DamageResult` 契约 |
+| `src/game/core/DamageSystem.ts` | `calculateDamage` 纯函数与 `typeMitigationFactor`/`generalMitigationFactor` |
+| `tests/damage.test.ts` | 13 项 S1 验收测试 |
+
+### 关键实施选择（规范文本之外的具体化）
+
+1. **注册表是 `calculateDamage` 的显式首参**：泛型 `R` 把请求的 `type` 绑定到该注册表的键上，frost 之类的扩展类型只需在测试里新建一个 `as const satisfies DamageTypeRegistry` 常量，计算器本身没有任何具体属性分支——减伤差异只体现在注册表条目的策略上（armor/resistance/none 三分支）。
+2. **快照与请求以泛型 `T` 默认 `DamageTypeId`**：游戏代码按规范草案原样使用默认形；扩展注册表天然获得编译期键约束，运行时仍校验成员关系，未注册属性显式抛错。
+3. **取整与保底对齐既有规则**：`kind=hit` 末尾一次 `Math.round` 并对正伤害保底 1 点，与 `hurtEnemy` 现行 `Math.max(1, Math.round(dmg))` 语义一致；`rawAmount=0` 是合法零伤害保持 0；NaN/负数/Infinity 及「增伤低于 -100% 使结算为负」一律抛 `RangeError`，不会静默复活成 1 点。
+4. **暴击归编排层**：`isCritical` 由调用方判定（契约上 dot 不置位），计算器只在减伤前机械应用 `critMultiplier`；`DamageResult`（闪避/护盾/免死等应用结果）只声明类型，S2 由 CombatSystem 产生。
+
+### S1 验收对照
+
+| 验收项 | 结果 |
+|---|---|
+| frost 扩展类型不改计算器分支即可注册并计算；未知类型显式处理 | 通过（扩展注册表计算 + 未注册属性运行时报错两用例） |
+| 同乘区加算、跨乘区乘算 `100×1.2×1.3×1.4=218.4` | 通过（beforeMitigation 218.4，hit 取整 218） |
+| 物理防御 20（K=50）减伤系数 50/70；元素抗性 0/上限；真实伤害绕过减伤 | 三组系数断言与端到端用例通过 |
+| 纯计算不读 GameCore、不调 Math.random、不执行扣血/掉落/UI | 静态检查无相关引用（仅注释文字提及）；模块无运行时调用方 |
+| 默认零增伤/零护甲/零抗性不改变现有离散命中结果；不修改既有调用方 | `max(1, round(raw))` 等价断言通过；除 types.ts 追加契约外未触碰任何既有系统文件 |
+
+### 变异验证
+
+| 变异 | 实测 |
+|---|---|
+| 跨乘区乘算改为加算 | FAIL「跨乘区相乘 218.4」用例 |
+| 去掉正伤害保底 1 点（`Math.max` 移除） | FAIL「与既有离散结算一致」用例（0.4 取整为 0 ≠ 1） |
+| 真实伤害也应用通用减伤（去掉策略短路） | FAIL「真实伤害绕过减伤」用例 |
+
+### 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `npm run typecheck` | 通过 |
+| `npm test` | **85 项通过**（原 72 + 新增 13），parity 20 项全绿 |
+| `npm run build` | 通过（JS 1431.59 kB / gzip 379.80 kB；DamageSystem 无运行时引用，未进入构建产物） |
+| `npx prettier@3.9.10 --check`（变更文件） | 通过 |
+| 核心模块静态检查 | 无 any、无 Math.random/DOM/Window 引用 |
+
+### 已知边界
+
+- S1 只交付契约与纯计算，游戏内无任何调用方，行为与画面与改动前完全一致；只能通过单测验证，玩法接入在 S2。
+- armorK=50 与抗性 75% 上限是试验基准，S3 启用真实数值前须平衡复核。
+- `DamageRequest.tags`、快照的 `attack`/`critChance` 字段为 S2+ 预留，S1 计算不消费。
+
+### PR #1 评审修订（2026-10-24）
+
+评审结论 Request Changes（1×P1、3×P2、1×P3），全部于本分支第二轮修复：
+
+| 级别 | 问题 | 修复 |
+|---|---|---|
+| P1 | hit 统一取整破坏玩家受伤浮点语义：`damagePlayer` 不取整，第二波史莱姆 8×1.05=8.4 会被算成 8 | 结算精度与 kind 解耦：`DamageRequest` 新增**必填** `precision`（`round-min-one` 对齐 hurtEnemy 敌方命中 / `preserve-float` 对齐 damagePlayer 玩家受击）。必填且无默认正是为防 S2 接入时静默选错 |
+| P2 | 两个低于 -100% 的乘区相乘互相抵消为正值，绕过终值校验 | `requireZone` 逐乘区校验「有限数字且 ≥ -1」；恰为 -100% 合法（倍率 0 → 结算 0 不保底）。暴击倍率同样校验非负 |
+| P2 | `registry["__proto__"]` 等原型链成员为真值，未注册类型可混过检查 | 改用 `Object.hasOwn` 校验自有键（tsconfig lib ES2022 支持），`__proto__`/`toString`/`constructor` 显式拒绝 |
+| P2 | dot + `isCritical` 组合未约束，为 S2 留下易误用接口 | 运行时显式拒绝两类非法组合：dot 暴击、dot 使用非 preserve-float 精度 |
+| P3 | 设计文档指向其他仓库（`reopen64534042-sudo`）与旧建议路径 | 改指本仓库与实际入库路径；§3.3/§4 草案同步 precision 契约与 dot 组合约束 |
+
+测试由 13 项增至 **16 项**：新增玩家浮点受伤（8×1.05 保留浮点、tough 减伤浮点、小数不保底）、双负乘区抵消（含 -100% 边界）、原型链非法键三组，并把负暴击倍率并入非法输入用例、原型链键并入未注册用例。
+
+新守卫变异验证（4 组均被咬住后恢复）：
+
+| 变异 | 实测 |
+|---|---|
+| `Object.hasOwn` 回退真值判断 | FAIL「未注册的伤害属性（含原型链成员）」 |
+| `requireZone` 置为空操作 | FAIL「单个乘区低于 -100% 即非法」 |
+| 去掉 dot 禁暴击守卫 | FAIL「dot 禁止暴击与取整精度」 |
+| 忽略 precision 恒按 round-min-one 取整 | FAIL 3 项（含 P1 回归「preserve-float 保留玩家受伤浮点语义」） |
+
+修复后整体验证：`npm run typecheck` 通过；`npm test` **88 项通过**；`npm run build` 通过；Prettier 通过。
+
+## 基础设施 D-06：Combat Foundation S2 全伤害路径接入统一管线（2026-10-24）
+
+**基线更新依据：docs/pixel-rogue-combat-foundation-v1.md S2（设计已确认的 P0）。** S1 交付的 DamageSystem 纯计算器接入全部 11 条现有伤害路径；「默认零增伤/零护甲/零抗性时与原状态完全一致」由 parity 逐字段对照保证（20 项全绿，未删任何既有测试）。
+
+### 交付物与路径映射（§5）
+
+| 路径 | type / form / kind / precision | 调用位置 |
+|---|---|---|
+| 普通弹（保留发射快照与 0.85 衰减） | physical / ranged / hit / round-min-one | ProjectileSystem |
+| 环绕飞刃 | physical / other / hit / round-min-one | AttackSystem |
+| 陨星 | fire / other / hit / round-min-one | AttackSystem |
+| 近战 | physical / melee / hit / round-min-one | MeleeSystem |
+| 雷霆连锁 | lightning / other / hit / round-min-one | CombatSystem.hurtEnemy |
+| 荆棘反伤 | physical / other / hit / round-min-one | CombatSystem.damagePlayer |
+| 击杀爆炸 | fire / other / hit / round-min-one | CombatSystem.killEnemy |
+| 敌人接触 | physical / melee / hit / preserve-float | EnemySystem |
+| 敌方弹幕 | physical / ranged / hit / preserve-float | ProjectileSystem |
+| 自爆虫引爆 | fire / other / hit / preserve-float | EnemySystem |
+| 灼烧 DoT | fire / other / dot / preserve-float | CombatSystem.applyBurnDot（EnemySystem 每帧调用） |
+
+### 编排语义保持（§3.4）
+
+- **暴击判定留在编排层**：掷骰条件（!noCrit 才掷）与顺序（先判定、结算后音效）不变；单测断言掷骰次数（普通 2 次 / noCrit 1 次 / dodge=0 全程 0 次），parity 随机序列一致证实。
+- **敌方命中走 round-min-one**，与旧 `Math.max(1, Math.round(dmg × critMul))` 逐位一致（零乘区下 ×1 乘法不影响 IEEE754 结果）。
+- **玩家受击走 preserve-float**：浮点扣血、UI 取整仅显示；闪避 → 壁垒 → 护盾顺序与 RNG 短路条件保持；反伤仍只发生在真实扣血后并复用管线。
+- **雷霆连锁继承上一击结算值** × (0.7 + chainDmg)，noCrit/noChain 防递归不变。
+- **applyBurnDot 为无副作用 DoT 入口**：不取整/不保底/不暴击/不触发吸血飘字连锁；燃烧粒子与死亡判定留在 EnemySystem 原位置。
+- 非伤害 HP 路径不在管线内（此即其说明）：自爆虫自毁 hp=0 触发死亡、治疗（药水/再生/吸血回血）、不屈保命 hp=1。
+- 适配器为 CombatSystem 内 playerCombatStats / enemyCombatStats 只读快照（玩家带 crit/critMul/tough，敌人全 0）；S2 无任何非零增伤/抗性来源，S3 引入。DamageSystem 纯函数零改动。
+
+### 变异验证（3 组均被咬住后恢复）
+
+| 变异 | 实测 |
+|---|---|
+| hurtEnemy 改 preserve-float | FAIL 2 项（旧公式一致、连锁继承） |
+| damagePlayer 改 round-min-one | FAIL 1 项（玩家浮点） |
+| applyBurnDot 扣血取整 | FAIL 1 项（DoT 60Hz 累计） |
+
+### 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `npm run typecheck` | 通过 |
+| `npm test` | **96 项通过**（原 88 + 新增 tests/combat.test.ts 8 项），parity 20 项全绿 |
+| `npm run build` | 通过 |
+| `npm run test:browser` | **6 项通过**；纯模拟性能 p50=0.2ms / p95=0.4ms（160 敌+120 弹，与 S2 前基线一致，逐次快照分配无回归）；生产自然首波+真实升级选择通过 |
+| `npx prettier@3.9.10 --check`（变更文件） | 通过 |
+
+环境备注：浏览器测试前 4173 端口被当日 20:08 遗留的本仓库 vite preview 占用（其他会话残留，PID 55784），已终止该进程后按标准命令验证；需要时可用 `npm run preview` 重启。
+
+### PR #2 评审修订（2026-10-24）
+
+评审结论 3×P2（无 P0/P1），全部于本分支第二轮修复：
+
+| 级别 | 问题 | 修复 |
+|---|---|---|
+| P2 | 零倍率复活成 1 点：-100% 乘区或合法 0 暴击倍率下结算为 0，却被最低伤害恢复成 1 | 保底条件从 `rawAmount>0` 改为 `settled>0`：结算为 0 的命中保持 0；-100% 乘区（round-min-one）与 0 暴击倍率两个边界用例入库 |
+| P2 | `DamageResult` 契约已声明但未产出 | `hurtEnemy`/`damagePlayer`/`applyBurnDot` 全路径产出 §3.5 完整结果：`effectiveHpLoss = min(受击前 HP, 结算值)`（溢出封顶）、`dodged`/`shieldUsed`（none/temporary/normal）/`killed`/`preventedDeath`；被闪避/护盾抵挡的命中未进入数值计算，结算与损失记 0；`damagePlayer` 返回值由 boolean 改为 `DamageResult`（两处调用方改读 `.killed`，已核验无外部调用依赖旧返回值；hurtEnemy 早退返回 undefined） |
+| P2 | 敌方远程攻击缺少攻击者上下文 | `EnemyBullet` 新增可选 `stats`（**发射时快照**，发射者可能在命中前死亡/移除，不依赖存活引用）；射手发射时经 `enemyCombatStats(e)` 快照，命中时经 `opts.attackerStats` 进入管线；自爆改为引爆时快照；接触伤害保留 `src`（反伤需要引用且即时结算） |
+
+parity 新增**第四条归一化**（D-02 先例）：弹丸 `stats` 从对照两侧摘出，并断言全部对照场景下快照为零值默认、`attack` 与伤害快照同源——证明该字段在 S2 数值零影响；S3 引入非零来源时须同步更新该断言。
+
+新增测试 4 项（combat 8→12 项，damage 边界并入既有用例），全套 **100 项**。变异验证 3 组均被咬住后恢复：保底条件回退 `rawAmount>0`、`damagePlayer` 忽略 `opts.attackerStats`、`effectiveHpLoss` 不封顶。
+
+| 项 | 结果 |
+|---|---|
+| `npm run typecheck` | 通过 |
+| `npm test` | **100 项通过**（parity 20 项全绿，含新归一化） |
+| `npm run build` | 通过 |
+| `npm run test:browser` | **6 项通过**；性能本次采样 p50=0.3 / p95=0.5ms（160 敌+120 弹，处于历史波动区间 0.2–0.5 内，无阈值违规） |
+
+### PR #2 三审修订：lethal/killed 语义分离与 CHANGELOG 补录（2026-10-24）
+
+三审结论：原 3×P2 全部通过，新发现 1×P2（killed 在灼烧路径表示「尚未执行的死亡」）+ 2×P3，处理如下：
+
+| 项 | 内容 |
+|---|---|
+| P2 | `DamageResult` 新增 `lethal`（HP ≤ 0 致死阈值）；`killed` 收紧为「死亡结算已执行」——hurtEnemy/damagePlayer 同步完成故两者同真，applyBurnDot 的死亡结算由 EnemySystem 随后按原顺序执行（粒子/击杀/随机数顺序不变），返回时恒为 false。玩家路径的 lethal 在不屈把 HP 拉回 1 **之前**捕获 |
+| P3-1 | `effectiveHpLoss` 口径澄清：按伤害封顶的实际损失量，不是不屈/治疗等保命效果结算后的 HP 净变化（例：5 HP 受 20 伤触发不屈最终 HP=1，字段为 5 而非 4）；types 注释与规范 §3.5/§4 同步 |
+| P3-2 | 按 Issue #55 约定补录 **v10** 更新日志（`CHANGELOG.md` + `src/game/data/changelog.ts`，主题「战斗基础：统一伤害管线（S1+S2）」，注明无对外数值变化）；PR 描述同步为最新验证数据 |
+
+新增灼烧致死三态测试（阈值 lethal=true → killed=false/e.dead 不存在 → 调侧 killEnemy 完成 e.dead=true/kills=1）。变异验证：applyBurnDot 的 killed 改回 `e.hp <= 0` 被两个灼烧用例同时咬住。验证：typecheck 通过；`npm test` **101 项通过**（parity 20 项全绿）；build 通过。
+
+### PR #2 四审：分支同步上游 main（2026-10-24）
+
+四审代码 Approved，唯一阻塞为合并冲突（上游 #37 更名批次先行合入 main 并占用 v10 版本号）。按评审方案在功能分支内合并 `origin/main`（`de28b75`），未触碰主分支、无强推：
+
+- 保留上游「急速施法」→「疾速扳机」更名（talents/game.test/parity 基线字符串替换）
+- 保留本分支 parity 第四条归一化（弹丸 stats 摘出 + S2 零值断言），与基线字符串替换自动共存
+- CHANGELOG 双文件：上游 v10「命名修订与流程批次」保留，本分支条目升为 **v11** 置顶，版本顺序唯一
+
+整合后整体验证：typecheck 通过；`npm test` **101 项通过**（含更名后的 parity 20 项全绿）；build 通过；`npm run test:browser` **6 项通过**，性能采样 p50=0.3 / p95=0.5ms（与既有波动区间一致）。

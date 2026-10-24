@@ -2,7 +2,13 @@ import { AudioService } from "../../services/AudioService";
 import { StorageService } from "../../services/StorageService";
 import { WORLD } from "../data/constants";
 import { statBase } from "../data/stats";
-import { addText, damagePlayer, hurtEnemy, killEnemy } from "./CombatSystem";
+import {
+  addText,
+  applyBurnDot,
+  damagePlayer,
+  hurtEnemy,
+  killEnemy,
+} from "./CombatSystem";
 import { nearestEnemy, spawnEnemy } from "./EnemySystem";
 import { meleeSwing } from "./MeleeSystem";
 import { update } from "./Simulation";
@@ -148,6 +154,7 @@ export class GameCore {
   nearestEnemy = nearestEnemy.bind(this);
   hurtEnemy = hurtEnemy.bind(this);
   killEnemy = killEnemy.bind(this);
+  applyBurnDot = applyBurnDot.bind(this);
   meleeSwing = meleeSwing.bind(this);
   addText = addText.bind(this);
   damagePlayer = damagePlayer.bind(this);

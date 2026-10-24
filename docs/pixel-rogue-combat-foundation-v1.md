@@ -1,10 +1,10 @@
 # Pixel Rogue · Combat Foundation v1 技术设计规范
 
-> 状态：**设计已确认，尚未实施**  
+> 状态：**设计已确认；S1/S2 已实施（记录见 docs/migration.md「D-05/D-06」），S3–S4 尚未实施**  
 > 日期：2026-10-24  
 > 项目：Pixel Rogue（像素秘境）  
-> 目标开发仓库：[`reopen64534042-sudo/pixel-rogue`](https://github.com/reopen64534042-sudo/pixel-rogue)  
-> 建议入库路径：`docs/combat-foundation-v1.md`（须通过功能分支和 PR，不直接写 `main`）
+> 目标开发仓库：[`yunluoxincheng/pixel-rogue`](https://github.com/yunluoxincheng/pixel-rogue)（S1 实施所在仓库；规范初稿来自上游 `reopen64534042-sudo/pixel-rogue`）  
+> 实际入库路径：`docs/pixel-rogue-combat-foundation-v1.md`（须通过功能分支和 PR，不直接写 `main`）
 
 ## 1. 背景与目标
 
@@ -27,25 +27,25 @@
 
 ## 2. 术语与类型边界
 
-| 概念 | 职责 | 当前默认值/示例 |
-| --- | --- | --- |
-| DamageTypeId | **伤害属性**，决定防御策略 | `physical` / `fire` / `lightning` / `true` |
-| AttackForm | **攻击方式**，决定近战/远程增伤适用范围 | `melee` / `ranged` / `other` |
-| DamageSource（legacy）/ Origin | 伤害**来源**，用于伤害报告与专属增强 | `bullet`、`melee`、`orbit`、`burn`、`chain`、`meteor`、`explode`、`thorns` |
-| DamageKind | 结算方式 | `hit`（离散命中）/ `dot`（持续伤害） |
-| DamageTag | 机制元数据；用于未来明确声明的条件规则 | `area`、`projectile`、`dot`（标签自身不自动乘伤） |
-| `attack` | 战斗属性快照中的统一攻击力 | 当前玩家适配自 `player.damage=11`，敌方 `e.dmg` **不能无条件等价**为所有攻击的攻击力 |
-| `defense` | 物理护甲 | 初期玩家/敌人均为 0 |
-| `resistances` | 按伤害属性索引的抗性映射 | 未声明时为 0 |
+| 概念                           | 职责                                    | 当前默认值/示例                                                                      |
+| ------------------------------ | --------------------------------------- | ------------------------------------------------------------------------------------ |
+| DamageTypeId                   | **伤害属性**，决定防御策略              | `physical` / `fire` / `lightning` / `true`                                           |
+| AttackForm                     | **攻击方式**，决定近战/远程增伤适用范围 | `melee` / `ranged` / `other`                                                         |
+| DamageSource（legacy）/ Origin | 伤害**来源**，用于伤害报告与专属增强    | `bullet`、`melee`、`orbit`、`burn`、`chain`、`meteor`、`explode`、`thorns`           |
+| DamageKind                     | 结算方式                                | `hit`（离散命中）/ `dot`（持续伤害）                                                 |
+| DamageTag                      | 机制元数据；用于未来明确声明的条件规则  | `area`、`projectile`、`dot`（标签自身不自动乘伤）                                    |
+| `attack`                       | 战斗属性快照中的统一攻击力              | 当前玩家适配自 `player.damage=11`，敌方 `e.dmg` **不能无条件等价**为所有攻击的攻击力 |
+| `defense`                      | 物理护甲                                | 初期玩家/敌人均为 0                                                                  |
+| `resistances`                  | 按伤害属性索引的抗性映射                | 未声明时为 0                                                                         |
 
 四种初始属性与策略：
 
-| 属性 ID | 减伤策略 | 备注 |
-| --- | --- | --- |
-| `physical` | `armor` | 使用 DEF 非线性护甲，受现有通用减伤影响 |
-| `fire` | `resistance` | 使用火焰抗性，受现有通用减伤影响 |
-| `lightning` | `resistance` | 使用雷电抗性，受现有通用减伤影响 |
-| `true` | `none` | 忽略 DEF、元素抗性和常规通用减伤；**不默认**穿透闪避、次数盾、无敌帧或不屈 |
+| 属性 ID     | 减伤策略     | 备注                                                                       |
+| ----------- | ------------ | -------------------------------------------------------------------------- |
+| `physical`  | `armor`      | 使用 DEF 非线性护甲，受现有通用减伤影响                                    |
+| `fire`      | `resistance` | 使用火焰抗性，受现有通用减伤影响                                           |
+| `lightning` | `resistance` | 使用雷电抗性，受现有通用减伤影响                                           |
+| `true`      | `none`       | 忽略 DEF、元素抗性和常规通用减伤；**不默认**穿透闪避、次数盾、无敌帧或不屈 |
 
 第一版注册表是带类型约束的静态 TypeScript 配置；`keyof typeof registry` 推导合法类型 ID。抗性推荐 `Partial<Record<DamageTypeId, number>>` 或等效映射，新元素无需给每个敌人增加一个独立字段。注册表保存减伤策略及展示元信息，**不执行扣血、随机判定或复杂技能副作用**。新增类型必须补充对应校验和回归测试。
 
@@ -87,8 +87,8 @@ true: M_generalMitigation = 1
 
 ### 3.3 取整、最低伤害和 DoT
 
-- **命中（hit）**：默认对合法的正伤害，在增伤、暴击、减伤之后一次取整；在现有规则要求时维持最少 1 点命中伤害。零/非法输入要明确处理，不能把 `NaN`、负值意外转换成 1 点伤害。
-- **持续伤害（dot）**：按 `DPS × dt` 保留浮点精度，不逐帧取整，不逐帧最少 1 点，不触发普通命中的暴击、吸血、连锁和再灼烧；如未来需特殊例外，应由规则显式允许。
+- **命中（hit）**：结算精度由请求显式声明（`DamagePrecision`），与 hit/dot 正交——现有规则对敌方命中与玩家受击本就不同：`round-min-one` 对合法正伤害在增伤、暴击、减伤之后一次取整并维持最少 1 点命中伤害（对齐 `hurtEnemy` 现行规则；保底仅适用于结算为正的命中，零倍率或零伤害保持 0）；`preserve-float` 保留浮点（对齐 `damagePlayer` 的浮点 HP 扣除习惯，UI 取整仅用于显示）。零/非法输入要明确处理，不能把 `NaN`、负值意外转换成 1 点伤害。
+- **持续伤害（dot）**：按 `DPS × dt` 保留浮点精度，不逐帧取整，不逐帧最少 1 点，不触发普通命中的暴击、吸血、连锁和再灼烧；dot 请求固定 `preserve-float` 且不得置 `isCritical`，非法组合由 DamageSystem 运行时拒绝。如未来需特殊例外，应由规则显式允许。
 - **玩家受击**：S1/S2 保留当前浮点 HP 扣除习惯及 UI 取整显示方式，不为了“统一”改成整点扣血。
 - **弹丸快照**：保留攻击发射时的原始伤害快照与 0.85 穿透/弹射衰减；陨星当前命中时取属性的行为亦暂时保留。不要引入隐式重算。
 
@@ -109,8 +109,8 @@ true: M_generalMitigation = 1
 ### 3.5 统计与吸血
 
 - `settledDamage`：此次伤害经过倍率/减伤后的**结算数值**；沿用现有 `dmgBy` 统计和吸血语义，保持历史对照，允许包含超出敌人剩余 HP 的溢出部分。
-- `effectiveHpLoss = min(targetHpBefore, max(0, settledDamage))`：实际减少生命值；仅作为新结果字段/未来统计依据。被次数盾抵挡时为 0。
-- `killed`、`preventedDeath` 和 `shieldUsed` 是应用结果，**不能由纯 DamageSystem 推断**。
+- `effectiveHpLoss = min(targetHpBefore, max(0, settledDamage))`：**按伤害封顶的实际损失量**；被闪避/次数盾抵挡时为 0。注意这是封顶后的伤害口径，不是不屈、治疗等保命/回复效果结算后的 HP 净变化（例：5 HP 受 20 伤触发不屈最终 HP=1，本字段为 5）。
+- `lethal` 表示伤害使目标 HP 降至 ≤ 0（达到致死阈值）；`killed` 表示**死亡结算已执行**——`hurtEnemy`/`damagePlayer` 同步完成（与 lethal 同真），灼烧 DoT 入口的死亡结算由调用侧随后按原顺序执行，返回时为 false。`preventedDeath` 和 `shieldUsed` 同为应用结果。以上均**不能由纯 DamageSystem 推断**。
 - 不修改 `pixelrogue_records` 键、最近 50 场历史记录以及已存 `dmg` 结构。若未来更换报告口径，应加版本转换/独立统计，不直接重写历史数据。
 
 ## 4. 只读属性快照与接口草案
@@ -121,6 +121,7 @@ true: M_generalMitigation = 1
 type DamageTypeId = keyof typeof DAMAGE_TYPES;
 type AttackForm = "melee" | "ranged" | "other";
 type DamageKind = "hit" | "dot";
+type DamagePrecision = "round-min-one" | "preserve-float";
 
 type ResistanceMap = Partial<Record<DamageTypeId, number>>;
 
@@ -144,6 +145,7 @@ interface DamageRequest {
   form: AttackForm;
   origin: string; // 适配旧 DamageSource；实际运行应使用有约束的 ID
   kind: DamageKind;
+  precision: DamagePrecision; // §3.3 结算精度：hit 两种可选；dot 固定 preserve-float 且不得暴击
   skillId?: string;
   tags?: readonly string[];
   attackerStats: Readonly<CombatStatsSnapshot>;
@@ -163,6 +165,7 @@ interface DamageResult extends DamageCalculation {
   effectiveHpLoss: number;
   dodged: boolean;
   shieldUsed: "none" | "temporary" | "normal";
+  lethal: boolean; // 致死阈值（HP ≤ 0）；killed 才表示死亡结算已执行
   killed: boolean;
   preventedDeath: boolean;
 }
@@ -174,19 +177,19 @@ interface DamageResult extends DamageCalculation {
 
 ## 5. 现有攻击的默认映射
 
-| 当前来源 | DamageType | AttackForm / Kind | 特别约束 |
-| --- | --- | --- | --- |
-| `bullet` 普通/魔弹 | `physical` | `ranged` / `hit` | 保留发射快照、魔弹 `boltDmgMul`、0.85 衰减 |
-| `melee` | `physical` | `melee` / `hit` | 近战框架保持命中和击退语义 |
-| `orbit` | `physical` | `other` / `hit` | 不仅凭攻击距离划为近战 |
-| `thorns` | `physical` | `other` / `hit` | 反伤不强行叠加 ATK、禁止意外反伤循环 |
-| `chain` | `lightning` | `other` / `hit` | 保留继承上次已结算伤害及 `noCrit/noChain` |
-| `burn` | `fire` | `other` / `dot` | 无逐帧取整，无普通攻击命中触发链 |
-| `meteor` | `fire` | `other` / `hit` | 按现有时序读取攻击值 |
-| `explode` | `fire`（暂定） | `other` / `hit` | 保留 `fromExplode` 防递归 |
-| 敌人接触/射弹/自爆 | 物理 / 物理 / 火焰（暂定） | `melee` / `ranged` / `other` | 维持原有命中判定和玩家受击逻辑 |
+| 当前来源           | DamageType                 | AttackForm / Kind            | 特别约束                                   |
+| ------------------ | -------------------------- | ---------------------------- | ------------------------------------------ |
+| `bullet` 普通/魔弹 | `physical`                 | `ranged` / `hit`             | 保留发射快照、魔弹 `boltDmgMul`、0.85 衰减 |
+| `melee`            | `physical`                 | `melee` / `hit`              | 近战框架保持命中和击退语义                 |
+| `orbit`            | `physical`                 | `other` / `hit`              | 不仅凭攻击距离划为近战                     |
+| `thorns`           | `physical`                 | `other` / `hit`              | 反伤不强行叠加 ATK、禁止意外反伤循环       |
+| `chain`            | `lightning`                | `other` / `hit`              | 保留继承上次已结算伤害及 `noCrit/noChain`  |
+| `burn`             | `fire`                     | `other` / `dot`              | 无逐帧取整，无普通攻击命中触发链           |
+| `meteor`           | `fire`                     | `other` / `hit`              | 按现有时序读取攻击值                       |
+| `explode`          | `fire`（暂定）             | `other` / `hit`              | 保留 `fromExplode` 防递归                  |
+| 敌人接触/射弹/自爆 | 物理 / 物理 / 火焰（暂定） | `melee` / `ranged` / `other` | 维持原有命中判定和玩家受击逻辑             |
 
-火焰不等于自动灼烧，雷电不等于自动连锁。异常状态与伤害属性独立；以后可有火焰近战、雷电弹丸、冰霜投射物等组合。所有暂定分类可在 S3 做平衡审查后确定。
+火焰不等于自动灼烧，雷电不等于自动连锁。异常状态与伤害属性独立；以后可有火焰近战、雷电弹丸、冰霜投射物等组合。所有暂定分类可在 S3 做平衡审查后确定。敌方弹丸在发射时携带攻击者 `CombatStatsSnapshot` 快照（发射者可能在命中前死亡/移除，不依赖存活的敌人引用）；S2 快照为默认零值，S3 起承载精英增伤等非零来源。
 
 ## 6. 属性来源和实体数值的渐进式迁移
 
@@ -211,28 +214,31 @@ BaseStats（基础属性配置）
 **交付**：`DamageTypeRegistry`（或等效静态配置）、`DamageSystem` 纯函数、`CombatStatsSnapshot`、请求/计算结果类型、`combatBalance.ts`、新数值的单元测试。游戏运行入口暂不接新结果。
 
 **验收**：
-- [ ] 新增 `frost` 示例类型（只在单测/扩展样例中）无需修改 DamageSystem 的类型分支即可注册与计算；未知类型和非法输入有显式处理。
-- [ ] 同乘区加算、跨乘区乘算；示例 `100×1.2×1.3×1.4=218.4`。
-- [ ] 物理防御 20（K=50）单独减伤系数为 `50/70`；元素抗性 0/上限、真实伤害绕过减伤验证通过。
-- [ ] 纯计算不读取 `GameCore`、不调用 `Math.random()`、不执行扣血/掉落/UI。
-- [ ] 默认增伤 0、DEF=0、RES=0 时计算不改变现有合法离散命中结果；S1 不修改既有战斗调用方。
+
+- [x] 新增 `frost` 示例类型（只在单测/扩展样例中）无需修改 DamageSystem 的类型分支即可注册与计算；未知类型和非法输入有显式处理。
+- [x] 同乘区加算、跨乘区乘算；示例 `100×1.2×1.3×1.4=218.4`。
+- [x] 物理防御 20（K=50）单独减伤系数为 `50/70`；元素抗性 0/上限、真实伤害绕过减伤验证通过。
+- [x] 纯计算不读取 `GameCore`、不调用 `Math.random()`、不执行扣血/掉落/UI。
+- [x] 默认增伤 0、DEF=0、RES=0 时计算不改变现有合法离散命中结果；S1 不修改既有战斗调用方。
 
 ### S2：现有所有伤害路径接入（P0）
 
 **交付**：通过适配器统一当前攻击请求、数值计算和伤害应用；`hurtEnemy` / `damagePlayer` 保持兼容入口；灼烧从直接改 `e.hp` 迁移到无副作用触发链的 DoT 入口。
 
 **验收**：
-- [ ] 普通/魔弹、近战、环绕、连锁、陨星、爆炸、荆棘、灼烧及所有敌方伤害完整迁移，无遗留未说明的直接扣血路径。
-- [ ] RNG 调用次数与条件、技能触发顺序、连锁/爆炸防递归、盾/闪避顺序、吸血、0.85 衰减保持。
-- [ ] DoT 在 60Hz 下 DPS 正确；玩家受到伤害与敌人受击的取整语义不回退。
-- [ ] 默认所有新增伤为 0、护甲抗性为 0 时，原本可对照的游戏状态及伤害总量保持一致；允许对新增字段的结构差异做**明确断言**，不删原有回归测试。
-- [ ] `npm run typecheck`、`npm test`、`npm run build` 通过；涉及浏览器流程时运行 `npm run test:browser` 并注明验收环境。
+
+- [x] 普通/魔弹、近战、环绕、连锁、陨星、爆炸、荆棘、灼烧及所有敌方伤害完整迁移，无遗留未说明的直接扣血路径。
+- [x] RNG 调用次数与条件、技能触发顺序、连锁/爆炸防递归、盾/闪避顺序、吸血、0.85 衰减保持。
+- [x] DoT 在 60Hz 下 DPS 正确；玩家受到伤害与敌人受击的取整语义不回退。
+- [x] 默认所有新增伤为 0、护甲抗性为 0 时，原本可对照的游戏状态及伤害总量保持一致；允许对新增字段的结构差异做明确断言，不删原有回归测试。
+- [x] `npm run typecheck`、`npm test`、`npm run build` 通过；涉及浏览器流程时运行 `npm run test:browser` 并注明验收环境。
 
 ### S3：启用防御、抗性及属性/攻击方式增伤（P1）
 
 **交付**：玩家/敌人可配置 DEF/RES/增伤；属性面板展示有效值；少量明确的数值来源使新增机制真实可玩。具体新增天赋、怪物 DEF、元素抗性分布单独经过平衡批准。
 
 **验收**：
+
 - [ ] 不同类型、同一来源的伤害能按配置产生不同最终伤害；同类型不同 form 也能享受各自增伤。
 - [ ] 物理与元素抗性按选定公式生效；真实伤害遵循本规范的穿透定义；铁布衫叠乘生效。
 - [ ] UI 与战斗计算一致；明确记录相较上游 v8 的**预期平衡差异**。
@@ -243,6 +249,7 @@ BaseStats（基础属性配置）
 **交付**：逐步拆分 Base / Modifiers / Effective / RuntimeState；统一玩家/敌人只读战斗属性接口；天赋与装备、Buff 新需求出现时再接入。不得以 S4 完成为 S1–S3 前置条件。
 
 **验收**：
+
 - [ ] 增伤来源不重复生效；固定、百分比、最终倍率的叠加规则有明确测试。
 - [ ] 游戏当前 HP、次数盾、Buff 时序和天赋撤销不受重算破坏。
 - [ ] 用户可继续独立加入新伤害属性、攻击方式增伤和敌人战斗配置，无需复制整套公式。

@@ -57,7 +57,7 @@ export function updateAttacks(this: GameCore, dt: number) {
             p.orbitDmg + p.damage * 0.3,
             ((e.x - p.x) / kd) * 3,
             ((e.y - p.y) / kd) * 3,
-            { src: "orbit" },
+            { src: "orbit", type: "physical", form: "other" },
           );
         }
       }
@@ -91,6 +91,8 @@ export function updateAttacks(this: GameCore, dt: number) {
             noChain: true,
             fromExplode: true,
             src: "meteor",
+            type: "fire",
+            form: "other",
           });
       }
       for (let j = 0; j < 14; j++) {
