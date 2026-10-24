@@ -3,6 +3,7 @@ import { createContext, runInContext } from "node:vm";
 import { it, expect, vi, afterEach } from "vitest";
 import { fresh, seeded, learn, enemy } from "./helpers";
 import { UPGRADES } from "../src/game/data/talents";
+import { POTION_GROW_CAP } from "../src/game/data/constants";
 afterEach(() => vi.restoreAllMocks());
 /**
  * 基线更新依据：Issue #1（用户已批准的平衡变更）。
@@ -21,6 +22,55 @@ const BASELINE_EXCLUDED = ["击杀狂热", "强化弹丸"] as const;
 const parityTalents = UPGRADES.filter(
   (u) => !BASELINE_EXCLUDED.includes(u.n as (typeof BASELINE_EXCLUDED)[number]),
 );
+/**
+ * 基线更新依据：Issue #13（用户已批准的近战基础设施建设）。
+ * DamageSource 新增 "melee" 分项，而 v8 快照没有该键。对照时把它从两侧摘出单独断言，
+ * 其余分项与其余字段仍逐字段严格相等 —— 保留回归能力：
+ * 任何原有分项出现偏差，或近战伤害意外渗入，本对照都会失败。
+ */
+function takeMelee(snapshot: unknown) {
+  const snap = snapshot as { dmgBy: Record<string, number> } & Record<
+    string,
+    unknown
+  >;
+  const { melee, ...rest } = snap.dmgBy;
+  return { rest: { ...snap, dmgBy: rest }, melee };
+}
+/**
+ * 基线更新依据：Issue #12（用户已批准的血包转化机制）。
+ * 满血拾取血包会永久提升 maxhp（每波上限 10 点），v8 无此机制，
+ * 因此把 hp/maxhp 从玩家对比中摘出单独断言：增长量落在 [0, POTION_GROW_CAP]，
+ * 且当前血与上限同步增长；其余玩家属性与其余所有字段仍与 v8 逐字段严格相等。
+ * 保留回归能力：任何非 hp/maxhp 字段的偏差，或增长量越界、不同步，都会失败。
+ */
+function splitPlayerHealth(snapshot: unknown) {
+  const snap = snapshot as { player: Record<string, number> } & Record<
+    string,
+    unknown
+  >;
+  const { hp, maxhp, ...rest } = snap.player;
+  return { rest: { ...snap, player: rest }, hp, maxhp };
+}
+/**
+ * 逐字段对照，同时按两条已批准的基线规则做显式断言：
+ * - Issue #13：dmgBy.melee 是新增分项，v8 无此键，当前实现必须恒为 0；
+ * - Issue #12：hp/maxhp 的增量必须在 [0, POTION_GROW_CAP] 内且同步增长。
+ * 其余全部字段（含其余伤害分项）仍与 v8 严格相等。
+ */
+function expectParity(actual: unknown, expected: unknown) {
+  const a0 = splitPlayerHealth(JSON.parse(JSON.stringify(actual)));
+  const e0 = splitPlayerHealth(JSON.parse(JSON.stringify(expected)));
+  const grow = a0.maxhp - e0.maxhp;
+  expect(grow).toBeGreaterThanOrEqual(0);
+  expect(grow).toBeLessThanOrEqual(POTION_GROW_CAP);
+  expect(a0.hp - e0.hp).toBe(grow);
+
+  const a = takeMelee(a0.rest);
+  const e = takeMelee(e0.rest);
+  expect(e.melee).toBeUndefined();
+  expect(a.melee).toBe(0);
+  expect(a.rest).toEqual(e.rest);
+}
 /** Run actual preserved source, never a rewritten expectation of the same algorithm. */
 function original() {
   const node = {
@@ -124,7 +174,7 @@ it.each([1, 4, 5, 8, 16])(
       bpMode: g.bpMode,
       slotNames: g.slots.map((s) => ({ name: s.u.n, used: s.used })),
     };
-    expect(JSON.parse(JSON.stringify(actual))).toEqual(expected);
+    expectParity(actual, expected);
   },
 );
 
@@ -155,7 +205,7 @@ it.each([4, 8, 16])(
     const actual = Object.fromEntries(
       fields.split(",").map((key) => [key, g[key as keyof typeof g]]),
     );
-    expect(JSON.parse(JSON.stringify(actual))).toEqual(expected);
+    expectParity(actual, expected);
   },
 );
 

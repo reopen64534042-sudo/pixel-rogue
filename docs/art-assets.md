@@ -20,11 +20,11 @@
 | 贴图来源 | 手写 ASCII 像素矩阵 → Canvas | `src/game/rendering/sprites.ts` |
 | 注册方式 | `textures.addCanvas(key, canvas)` | `src/game/scenes/GameScene.ts:38` |
 | 玩家尺寸 | 8×10，绘制偏移 `(x-4, y-5)` | `src/game/rendering/draw.ts:148` |
-| 敌人尺寸 | 史莱姆 8×6、蝙蝠 8×6、远程 8×5、自爆 8×7、石魔 10×12 | `sprites.ts` |
-| 精英表现 | 无独立贴图，按 ×1.8 缩放 | `draw.ts:111-113` |
+| 敌人尺寸 | 史莱姆 8×6、蝙蝠 8×6、远程 8×5、火囊虫 10×9、重装 10×12、精英岩石巨兽 16×14 | `sprites.ts` |
+| 精英表现 | **专属贴图 `brute_elite`（16×14）**，绘制时 ×1.8；无专属贴图时回落到本体贴图 | `draw.ts` |
 | 拾取物 | 宝石 5×5、经验宝石 5×5、药水 5×5 | `sprites.ts` |
 | 天赋图标 | emoji 字符串 `ico` 字段，34 个 | `src/game/data/talents.ts` |
-| 着色方式 | 叠加半透明矩形（冰冻青、受击白、引信闪） | `draw.ts:116-140` |
+| 着色方式 | 叠加半透明矩形（冰冻青、受击白）；火囊虫引爆时胀大 1.35 倍、泛白高频交替并绘制地面范围圈 | `draw.ts` |
 
 关键结论：**当前没有一个 PNG 资产文件**，`public/assets` 下只有字体。引入位图资产等于改造加载链路，不是替换几个文件。
 
@@ -63,15 +63,20 @@
 | 史莱姆 | `slimeLite` | `#9dff9d` | 新增 | 高光 |
 | 史莱姆 | `slimeMid` | `#4dd44d` | 沿用 | 主体 |
 | 史莱姆 | `slimeDark` | `#0a3d0a` | 沿用 | 暗部/眼 |
-| 远程 | `psiPurple` | `#b05cff` | 沿用 | 主体 |
-| 远程 | `psiViolet` | `#8a5cff` | 沿用 | 蝙蝠主体 |
+| 远程 | `psiMagenta` | `#e04fd0` | 改值 | 射手主体（原 `#b05cff`，与蝙蝠撞色） |
+| 远程 | `psiIndigo` | `#5c4dff` | 改值 | 蝙蝠主体（原 `#8a5cff`） |
 | 远程 | `psiLime` | `#7dff5a` | 沿用 | 荧光眼 |
-| 自爆 | `fireYellow` | `#ffe14a` | 沿用 | 引信 |
-| 自爆 | `fireOrange` | `#ff8c3a` | 沿用 | 主体 |
-| 自爆 | `fireDeep` | `#c2410c` | 新增 | 暗部 |
-| 石魔 | `stoneRed` | `#c05050` | 沿用 | 主体 |
-| 石魔 | `stoneDark` | `#3a0d0d` | 沿用 | 暗部 |
-| 石魔 | `gold` | `#ffd24a` | 沿用 | 眼/纹样 |
+| 火囊虫 | `emberRed` | `#b8332b` | 改值 | 主体（原 `#ff8c3a` 橙） |
+| 火囊虫 | `emberCrack` | `#ff8a2b` | 新增 | 背部三道裂纹 |
+| 火囊虫 | `emberHot` | `#ffd24a` | 沿用 | 引爆时裂纹提亮 |
+| 火囊虫 | `emberPale` | `#ffb3ab` | 新增 | 引爆时本体泛白 |
+| 重装 | `bruteGreen` | `#4dd44d` | 改值 | 主体（原 `#c05050` 暗红，改绿与史莱姆同族） |
+| 重装 | `gold` | `#ffe14a` | 沿用 | 眼/纹样 |
+| 精英 | `rockBody` | `#4a2a2a` | 新增 | 岩石巨兽主体 |
+| 精英 | `rockDark` | `#2a1616` | 新增 | 岩石暗部与腿脚 |
+| 精英 | `lavaCore` | `#ff6a2b` | 新增 | 熔岩裂缝与熔岩流 |
+| 精英 | `lavaBright` | `#ffdd66` | 新增 | 熔岩芯 |
+| 精英 | `lavaCool` | `#b83a12` | 新增 | 熔岩冷却边缘 |
 | 能量 | `iceCyan` | `#57e6ff` | 沿用 | 冰、护盾 |
 | 能量 | `iceDeep` | `#1a9fd4` | 沿用 | 宝石主体 |
 | 危险 | `danger` | `#ff5b5b` | 沿用 | 敌方血条、危险标记 |

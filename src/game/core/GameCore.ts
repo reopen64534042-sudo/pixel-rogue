@@ -4,6 +4,7 @@ import { WORLD } from "../data/constants";
 import { statBase } from "../data/stats";
 import { addText, damagePlayer, hurtEnemy, killEnemy } from "./CombatSystem";
 import { nearestEnemy, spawnEnemy } from "./EnemySystem";
+import { meleeSwing } from "./MeleeSystem";
 import { update } from "./Simulation";
 import {
   melt,
@@ -41,6 +42,7 @@ import type {
   Particle,
   Player,
   Point,
+  Slash,
   Slot,
   WavePhase,
 } from "./types";
@@ -58,6 +60,7 @@ export class GameCore {
   texts: FloatingText[] = [];
   meteors: Meteor[] = [];
   bolts: Bolt[] = [];
+  slashes: Slash[] = [];
   cam = { x: 0, y: 0 };
   time = 0;
   kills = 0;
@@ -70,6 +73,8 @@ export class GameCore {
   waveN = 1;
   quota = 20;
   spawnedThisWave = 0;
+  /** 本波已由满血血包转化的最大生命点数（换波清零，加成本身永久保留） */
+  potionGrow = 0;
   dmgBy: DamageTotals = {
     bullet: 0,
     orbit: 0,
@@ -78,6 +83,7 @@ export class GameCore {
     explode: 0,
     thorns: 0,
     burn: 0,
+    melee: 0,
   };
   private waveStartDamage: DamageTotals = {
     bullet: 0,
@@ -87,6 +93,7 @@ export class GameCore {
     explode: 0,
     thorns: 0,
     burn: 0,
+    melee: 0,
   };
   beginWaveReport() {
     this.waveStartDamage = { ...this.dmgBy };
@@ -131,6 +138,7 @@ export class GameCore {
   nearestEnemy = nearestEnemy.bind(this);
   hurtEnemy = hurtEnemy.bind(this);
   killEnemy = killEnemy.bind(this);
+  meleeSwing = meleeSwing.bind(this);
   addText = addText.bind(this);
   damagePlayer = damagePlayer.bind(this);
   update = update.bind(this);
@@ -161,6 +169,7 @@ export class GameCore {
     this.texts = [];
     this.meteors = [];
     this.bolts = [];
+    this.slashes = [];
     this.ebullets = [];
     this.cam = { x: 0, y: 0 };
     this.time = 0;
@@ -174,6 +183,7 @@ export class GameCore {
     this.waveN = 1;
     this.quota = this.waveQuota(1);
     this.spawnedThisWave = 0;
+    this.potionGrow = 0;
     this.dmgBy = {
       bullet: 0,
       orbit: 0,
@@ -182,6 +192,7 @@ export class GameCore {
       explode: 0,
       thorns: 0,
       burn: 0,
+      melee: 0,
     };
     this.beginWaveReport();
     this.bpMode = null;

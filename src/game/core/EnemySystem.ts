@@ -1,6 +1,7 @@
 import { WORLD, clamp } from "../data/constants";
 import { ETYPES } from "../data/enemies";
 import type { GameCore } from "./GameCore";
+import { applyKnockback } from "./MeleeSystem";
 import type { Enemy } from "./types";
 export function spawnEnemy(
   this: GameCore,
@@ -97,6 +98,34 @@ export function updateEnemies(this: GameCore, dt: number) {
     e.flash -= dt;
     e.orbCd -= dt;
     e.slowT -= dt;
+    // 击退位移（近战模块写入，先于 AI 移动结算）
+    applyKnockback(e, dt);
+    // 表现层：精英滴熔岩、火囊虫奔袭掉火星。
+    // 刻意用确定性相位而非 Math.random —— 后者会错开随机序列，破坏 parity 对照。
+    if (e.elite && Math.sin(this.time * 7 + e.seed * 13) > 0.97) {
+      this.parts.push({
+        x: e.x + Math.sin(e.seed * 31) * 5,
+        y: e.y + 4,
+        vx: 0,
+        vy: 42,
+        life: 0.7,
+        c: "#ff6a2b",
+      });
+    }
+    if (
+      e.type === "bomber" &&
+      !e.fuse &&
+      Math.sin(this.time * 23 + e.seed * 11) > 0.93
+    ) {
+      this.parts.push({
+        x: e.x,
+        y: e.y + 2,
+        vx: 0,
+        vy: -18,
+        life: 0.25,
+        c: "#ff8a2b",
+      });
+    }
     // 灼烧
     if (e.burnT > 0) {
       e.burnT -= dt;

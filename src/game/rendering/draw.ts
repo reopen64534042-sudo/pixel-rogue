@@ -108,14 +108,19 @@ export function draw(this: GameCore, ctx: PixelPainter) {
 
   // 敌人
   for (const e of this.enemies) {
-    const spr = SPR[e.spr];
-    const w = Math.round(spr.width * (e.elite ? 1.8 : 1)),
-      h = Math.round(spr.height * (e.elite ? 1.8 : 1));
+    // 精英优先使用专属贴图，未提供时回落到本体贴图
+    const eliteKey = e.spr + "_elite";
+    const key = e.elite && SPR[eliteKey] ? eliteKey : e.spr;
+    const spr = SPR[key];
+    // 火囊虫引爆时胀大，是「要炸了」的第一重信号
+    const puff = e.type === "bomber" && e.fuse > 0 ? 1.35 : 1;
+    const w = Math.round(spr.width * (e.elite ? 1.8 : 1) * puff),
+      h = Math.round(spr.height * (e.elite ? 1.8 : 1) * puff);
     const x = Math.round(e.x - w / 2),
       y = Math.round(e.y - h / 2);
     // 冰冻染色
     if (e.slowT > 0) ctx.globalAlpha = 0.9;
-    ctx.sprite(e.spr, x, y, w, h);
+    ctx.sprite(key, x, y, w, h);
     if (e.slowT > 0) {
       ctx.globalAlpha = 0.35;
       ctx.fillStyle = "#57e6ff";
@@ -128,11 +133,28 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
     }
-    // 自爆虫引信闪烁预警
-    if (e.type === "bomber" && e.fuse > 0 && Math.sin(this.time * 40) > 0) {
-      ctx.globalAlpha = 0.75;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(x, y, w, h);
+    // 火囊虫引爆预警：本体泛白高频交替（约 10Hz）+ 地面红色范围圈
+    if (e.type === "bomber" && e.fuse > 0) {
+      if (Math.sin(this.time * 62) > 0) {
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = "#ffb3ab";
+        ctx.fillRect(x, y, w, h);
+        ctx.globalAlpha = 1;
+      }
+      // 圈半径从 0 扩张到真实爆炸半径（与结算判定 38 + player.r 一致）
+      const blast = 38 + this.player.r;
+      const grow = 1 - Math.max(0, e.fuse) / 0.5;
+      ctx.globalAlpha = 0.4 + Math.sin(this.time * 30) * 0.2;
+      ctx.strokeStyle = "#ff3b30";
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(e.x),
+        Math.round(e.y),
+        Math.max(2, blast * grow),
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
       ctx.globalAlpha = 1;
     }
     if (e.elite) {
@@ -181,6 +203,25 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
+
+  // 近战刀光（三层同心弧：外缘最亮，向内渐淡）
+  for (const s of this.slashes) {
+    const k = Math.max(0, s.life / s.max);
+    const grow = 1 + (1 - k) * 0.18;
+    const sx = Math.round(s.x),
+      sy = Math.round(s.y);
+    const half = s.arc / 2;
+    for (let i = 0; i < 3; i++) {
+      const r = (s.r - i * 4) * grow;
+      if (r <= 2) continue;
+      ctx.globalAlpha = k * (i === 0 ? 0.9 : i === 1 ? 0.5 : 0.28);
+      ctx.strokeStyle = i === 0 ? "#ffffff" : s.c;
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, s.a - half, s.a + half);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
 
   // 环绕飞刃
   if (this.player.orbit > 0) {

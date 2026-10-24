@@ -368,4 +368,18 @@ describe("furnace economics and regressions", () => {
     expect(g.player.damage).toBe(11);
     expect(g.player.hp).toBe(40);
   });
+  it("all 34 talents provide cur(p) returning current effective value descriptions", () => {
+    const g = fresh();
+    const talents = UPGRADES;
+    expect(talents).toHaveLength(34);
+    for (const t of talents) {
+      expect(typeof t.cur).toBe("function");
+      const desc = t.cur!(g.player);
+      expect(desc).toBeTruthy();
+      expect(typeof desc).toBe("string");
+    }
+    learn(g, "疾影步");
+    const dash = talents.find((u) => u.n === "疾影步")!;
+    expect(dash.cur!(g.player)).toContain("2.0s");
+  });
 });
