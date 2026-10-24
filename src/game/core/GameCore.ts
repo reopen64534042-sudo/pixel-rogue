@@ -73,6 +73,8 @@ export class GameCore {
   waveN = 1;
   quota = 20;
   spawnedThisWave = 0;
+  /** 本波已由满血血包转化的最大生命点数（换波清零，加成本身永久保留） */
+  potionGrow = 0;
   dmgBy: DamageTotals = {
     bullet: 0,
     orbit: 0,
@@ -181,6 +183,7 @@ export class GameCore {
     this.waveN = 1;
     this.quota = this.waveQuota(1);
     this.spawnedThisWave = 0;
+    this.potionGrow = 0;
     this.dmgBy = {
       bullet: 0,
       orbit: 0,

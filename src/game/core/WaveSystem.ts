@@ -19,6 +19,7 @@ export function startNextWave(this: GameCore) {
   this.beginWaveReport();
   this.quota = this.waveQuota(this.waveN);
   this.spawnedThisWave = 0;
+  this.potionGrow = 0; // 血包转化计数每波重置，已获得的生命上限永久保留
   this.spawnCd = 1.2;
   this.wavePhase = "fight";
   this.state = "play";
