@@ -550,4 +550,14 @@ parity 新增**第四条归一化**（D-02 先例）：弹丸 `stats` 从对照�
 | P3-1 | `effectiveHpLoss` 口径澄清：按伤害封顶的实际损失量，不是不屈/治疗等保命效果结算后的 HP 净变化（例：5 HP 受 20 伤触发不屈最终 HP=1，字段为 5 而非 4）；types 注释与规范 §3.5/§4 同步 |
 | P3-2 | 按 Issue #55 约定补录 **v10** 更新日志（`CHANGELOG.md` + `src/game/data/changelog.ts`，主题「战斗基础：统一伤害管线（S1+S2）」，注明无对外数值变化）；PR 描述同步为最新验证数据 |
 
-新增灼烧致死三态测试（阈值 lethal=true → killed=false/e.dead 不存在 → 调用侧 killEnemy 完成 e.dead=true/kills=1）。变异验证：applyBurnDot 的 killed 改回 `e.hp <= 0` 被两个灼烧用例同时咬住。验证：typecheck 通过；`npm test` **101 项通过**（parity 20 项全绿）；build 通过。
+新增灼烧致死三态测试（阈值 lethal=true → killed=false/e.dead 不存在 → 调侧 killEnemy 完成 e.dead=true/kills=1）。变异验证：applyBurnDot 的 killed 改回 `e.hp <= 0` 被两个灼烧用例同时咬住。验证：typecheck 通过；`npm test` **101 项通过**（parity 20 项全绿）；build 通过。
+
+### PR #2 四审：分支同步上游 main（2026-10-24）
+
+四审代码 Approved，唯一阻塞为合并冲突（上游 #37 更名批次先行合入 main 并占用 v10 版本号）。按评审方案在功能分支内合并 `origin/main`（`de28b75`），未触碰主分支、无强推：
+
+- 保留上游「急速施法」→「疾速扳机」更名（talents/game.test/parity 基线字符串替换）
+- 保留本分支 parity 第四条归一化（弹丸 stats 摘出 + S2 零值断言），与基线字符串替换自动共存
+- CHANGELOG 双文件：上游 v10「命名修订与流程批次」保留，本分支条目升为 **v11** 置顶，版本顺序唯一
+
+整合后整体验证：typecheck 通过；`npm test` **101 项通过**（含更名后的 parity 20 项全绿）；build 通过；`npm run test:browser` **6 项通过**，性能采样 p50=0.3 / p95=0.5ms（与既有波动区间一致）。
