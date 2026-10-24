@@ -182,6 +182,25 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.globalAlpha = 1;
   }
 
+  // 近战刀光（三层同心弧：外缘最亮，向内渐淡）
+  for (const s of this.slashes) {
+    const k = Math.max(0, s.life / s.max);
+    const grow = 1 + (1 - k) * 0.18;
+    const sx = Math.round(s.x),
+      sy = Math.round(s.y);
+    const half = s.arc / 2;
+    for (let i = 0; i < 3; i++) {
+      const r = (s.r - i * 4) * grow;
+      if (r <= 2) continue;
+      ctx.globalAlpha = k * (i === 0 ? 0.9 : i === 1 ? 0.5 : 0.28);
+      ctx.strokeStyle = i === 0 ? "#ffffff" : s.c;
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, s.a - half, s.a + half);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
   // 环绕飞刃
   if (this.player.orbit > 0) {
     for (let i = 0; i < this.player.orbit; i++) {

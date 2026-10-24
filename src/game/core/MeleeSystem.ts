@@ -1,0 +1,134 @@
+import type { GameCore } from "./GameCore";
+import type { Enemy } from "./types";
+
+const FULL = Math.PI * 2;
+/** 角度比较容差，避免 2π 与 0 的浮点误差 */
+const EPS = 1e-6;
+/** 击退速度衰减系数（每秒），位移总量约等于初速 / 12 */
+const KNOCK_DAMP = 12;
+
+export interface MeleeSwingOptions {
+  /**
+   * 中心方向（弧度）。省略时自动朝最近敌人；
+   * 全向（spread >= 2π）时省略则视为 0。
+   */
+  angle?: number;
+  /** 张角（弧度）。默认 π/2（90° 扇形）；>= 2π 视为全向 */
+  spread?: number;
+  /** 有效半径，命中判定会额外加上敌人自身半径 */
+  radius: number;
+  /** 单次伤害绝对值（调用方负责乘倍率） */
+  dmg: number;
+  /** 击退初速度 (px/s)，省略或 0 表示不击退 */
+  knock?: number;
+  /** 刀光颜色 */
+  color?: string;
+  /** 震屏增量 */
+  shake?: number;
+  /** 刀光寿命（秒），默认 0.16 */
+  life?: number;
+}
+
+function angleDiff(target: number, center: number) {
+  return Math.atan2(Math.sin(target - center), Math.cos(target - center));
+}
+
+/**
+ * 执行一次近战挥砍：范围内命中判定 + 刀光 + 命中反馈。
+ * 返回被命中的敌人列表（已结算伤害）。所有近战天赋都通过它出手。
+ */
+export function meleeSwing(
+  this: GameCore,
+  opts: MeleeSwingOptions,
+): Enemy[] {
+  const p = this.player;
+  const spread = Math.min(opts.spread ?? Math.PI / 2, FULL);
+  const full = spread >= FULL - EPS;
+  const half = spread / 2;
+
+  let angle = opts.angle;
+  if (angle === undefined) {
+    if (full) angle = 0;
+    else {
+      const tgt = this.nearestEnemy(p.x, p.y, opts.radius + 40);
+      if (!tgt) return [];
+      angle = Math.atan2(tgt.y - p.y, tgt.x - p.x);
+    }
+  }
+
+  const hits: Enemy[] = [];
+  for (const e of this.enemies) {
+    if (e.dead) continue;
+    const dx = e.x - p.x,
+      dy = e.y - p.y;
+    const reach = opts.radius + e.r;
+    if (dx * dx + dy * dy > reach * reach) continue;
+    if (!full && Math.abs(angleDiff(Math.atan2(dy, dx), angle)) > half)
+      continue;
+    hits.push(e);
+  }
+
+  for (const e of hits) {
+    const dx = e.x - p.x,
+      dy = e.y - p.y;
+    const d = Math.hypot(dx, dy);
+    if (opts.knock) {
+      e.kx = (d > 0.01 ? dx / d : Math.cos(angle)) * opts.knock;
+      e.ky = (d > 0.01 ? dy / d : Math.sin(angle)) * opts.knock;
+    }
+    this.hurtEnemy(e, opts.dmg, 0, 0, { src: "melee" });
+  }
+
+  this.slashes.push({
+    x: p.x,
+    y: p.y,
+    a: angle,
+    arc: spread,
+    r: opts.radius,
+    life: opts.life ?? 0.16,
+    max: opts.life ?? 0.16,
+    c: opts.color ?? "#e8fbff",
+  });
+
+  if (hits.length) {
+    for (const e of hits) {
+      for (let i = 0; i < 3; i++) {
+        const a = Math.random() * FULL;
+        this.parts.push({
+          x: e.x,
+          y: e.y,
+          vx: Math.cos(a) * 60,
+          vy: Math.sin(a) * 60,
+          life: 0.22,
+          c: "#ffffff",
+        });
+      }
+    }
+    this.shake = Math.min(this.shake + (opts.shake ?? 2), 8);
+    this.audio.beep(300, 0.06, "square", 0.03, -120);
+  }
+  return hits;
+}
+
+/** 每帧推进：刀光衰减 + 敌人击退位移 */
+export function updateMelee(this: GameCore, dt: number) {
+  for (let i = this.slashes.length - 1; i >= 0; i--) {
+    const s = this.slashes[i];
+    s.life -= dt;
+    if (s.life <= 0) this.slashes.splice(i, 1);
+  }
+}
+
+/** 击退位移与衰减；由 EnemySystem 在每个敌人每帧调用 */
+export function applyKnockback(e: Enemy, dt: number) {
+  const kx = e.kx ?? 0,
+    ky = e.ky ?? 0;
+  if (!kx && !ky) return;
+  e.x += kx * dt;
+  e.y += ky * dt;
+  const damp = Math.max(0, 1 - KNOCK_DAMP * dt);
+  const nkx = kx * damp,
+    nky = ky * damp;
+  e.kx = Math.abs(nkx) < 1 ? 0 : nkx;
+  e.ky = Math.abs(nky) < 1 ? 0 : nky;
+}

@@ -1,6 +1,7 @@
 import { WORLD, clamp } from "../data/constants";
 import { ETYPES } from "../data/enemies";
 import type { GameCore } from "./GameCore";
+import { applyKnockback } from "./MeleeSystem";
 import type { Enemy } from "./types";
 export function spawnEnemy(
   this: GameCore,
@@ -97,6 +98,8 @@ export function updateEnemies(this: GameCore, dt: number) {
     e.flash -= dt;
     e.orbCd -= dt;
     e.slowT -= dt;
+    // 击退位移（近战模块写入，先于 AI 移动结算）
+    applyKnockback(e, dt);
     // 灼烧
     if (e.burnT > 0) {
       e.burnT -= dt;

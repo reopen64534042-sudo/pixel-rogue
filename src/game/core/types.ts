@@ -3,7 +3,14 @@ export type Panel = "level" | "rest" | null;
 export type GameState = Mode | "levelup" | "report" | "swap";
 export type WavePhase = "fight" | "collect" | "rest";
 export type DamageSource =
-  "bullet" | "orbit" | "chain" | "meteor" | "explode" | "thorns" | "burn";
+  | "bullet"
+  | "orbit"
+  | "chain"
+  | "meteor"
+  | "explode"
+  | "thorns"
+  | "burn"
+  | "melee";
 export type DamageTotals = Record<DamageSource, number>;
 export interface Point {
   x: number;
@@ -102,6 +109,13 @@ export interface Enemy extends Point {
   shootCd: number;
   fuse: number;
   noDrop: boolean;
+  /**
+   * 击退速度 (px/s)，由近战模块写入，每帧衰减。
+   * 必须是可选字段：未发生击退时对象上不存在该属性，
+   * 以保证敌人对象结构与 v8 逐字段对照一致。
+   */
+  kx?: number;
+  ky?: number;
   dead?: boolean;
 }
 export interface EnemyConfig {
@@ -161,6 +175,21 @@ export interface Bolt {
   x2: number;
   y2: number;
   life: number;
+}
+/** 近战刀光（纯表现，不参与判定） */
+export interface Slash extends Point {
+  /** 中心方向（弧度） */
+  a: number;
+  /** 张角（弧度），2π 表示全向 */
+  arc: number;
+  /** 半径 */
+  r: number;
+  /** 剩余寿命 */
+  life: number;
+  /** 初始寿命，用于插值 */
+  max: number;
+  /** 颜色 */
+  c: string;
 }
 export interface HitOptions {
   noCrit?: boolean;
