@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v17",
+    date: "2026-10-25",
+    title: "战斗基础 S4-A：纯属性模型（StatModel）",
+    items: [
+      "新增纯计算模块 core/StatModel.ts：(base + Σflat) × (1 + Σpercent) × Πfinal，同 percent 区加算、final 连乘，来源（sourceId）可追踪，全量输入校验",
+      "契约冻结：历史卡逐次乘算映射为 final（×1.1² ≠ +20%）；模型不做上下限裁剪，夹紧留在接入点",
+      "本批为纯基建：不接入 Player/Enemy/天赋/伤害管线，零行为变化，parity 对照原样通过",
+    ],
+  },
+  {
     version: "v16",
     date: "2026-10-25",
     title: "战斗基础 S3-B/C：元素克制与新卡（方案甲）",
