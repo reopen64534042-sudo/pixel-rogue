@@ -7,61 +7,20 @@ import {
 } from "../data/constants";
 import { DAMAGE_TYPES } from "../data/damageTypes";
 import { calculateDamage } from "./DamageSystem";
+import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import type {
-  CombatStatsSnapshot,
   DamageResult,
   Enemy,
   HitOptions,
-  Player,
   PlayerHitOptions,
 } from "./types";
 import { hasteCap } from "../data/talents";
 import {
-  critMultiplier,
   burnStackDps,
   scorchVulnMultiplier,
   frostFreezeDuration,
   shieldShockDamage,
 } from "./DamageMath";
-
-/**
- * Combat Foundation S2 只读适配器（§4）：实体 → CombatStatsSnapshot。
- * 快照不是另一个可变实体对象，每次结算按需构造；S2 增伤/护甲/抗性全为 0，
- * 数值上与旧直算路径逐位一致，S3 才引入非零来源。
- * critMultiplier 经 DamageMath（含 #41 致命一击满层觉醒 +0.4），
- * 使暴击倍率随天赋成长进入管线。
- */
-function playerCombatStats(p: Player): CombatStatsSnapshot {
-  return {
-    attack: p.damage,
-    defense: 0,
-    critChance: p.crit,
-    critMultiplier: critMultiplier(p),
-    tough: p.tough,
-    resistances: {},
-    globalDamageBonus: 0,
-    typeDamageBonus: {},
-    formDamageBonus: {},
-  };
-}
-
-/**
- * 敌人快照：S2 全为默认零值。导出供 EnemySystem 在敌人发射弹丸时做
- * 发射时快照（发射者可能在命中前死亡/移除，不依赖存活的敌人引用）。
- */
-export function enemyCombatStats(e?: Enemy): CombatStatsSnapshot {
-  return {
-    attack: e ? e.dmg : 0,
-    defense: 0,
-    critChance: 0,
-    critMultiplier: 1,
-    tough: 0,
-    resistances: {},
-    globalDamageBonus: 0,
-    typeDamageBonus: {},
-    formDamageBonus: {},
-  };
-}
 
 /** §3.5：被闪避/护盾完全抵挡的命中——未进入数值计算，结算与实际损失均为 0 */
 function blockedHit(
@@ -110,8 +69,8 @@ export function hurtEnemy(
     kind: "hit",
     precision: "round-min-one",
     isCritical: crit,
-    attackerStats: playerCombatStats(this.player),
-    defenderStats: enemyCombatStats(e),
+    attackerStats: getPlayerCombatStats(this.player),
+    defenderStats: getEnemyCombatStats(e),
   });
   dmg = calc.settledDamage;
   const hpBefore = e.hp;
@@ -363,8 +322,8 @@ export function damagePlayer(
     kind: "hit",
     precision: "preserve-float",
     isCritical: false,
-    attackerStats: opts.attackerStats ?? enemyCombatStats(opts.src),
-    defenderStats: playerCombatStats(p),
+    attackerStats: opts.attackerStats ?? getEnemyCombatStats(opts.src),
+    defenderStats: getPlayerCombatStats(p),
   });
   dmg = calc.settledDamage;
   const hpBefore = p.hp;
@@ -435,8 +394,8 @@ export function applyBurnDot(
     kind: "dot",
     precision: "preserve-float",
     isCritical: false,
-    attackerStats: playerCombatStats(this.player),
-    defenderStats: enemyCombatStats(e),
+    attackerStats: getPlayerCombatStats(this.player),
+    defenderStats: getEnemyCombatStats(e),
   });
   const hpBefore = e.hp;
   e.hp -= calc.settledDamage;

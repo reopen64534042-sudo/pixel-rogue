@@ -576,3 +576,43 @@ parity 新增**第四条归一化**（D-02 先例）：弹丸 `stats` 从对照�
 | 测试 | 「盾序」用例的敌人移出 80px 反震半径以隔离 #43 干扰；新增护盾反震管线整合用例（`dmgBy.shock` = 22 断言） |
 
 验证：typecheck 通过；`npm test` **102 项全绿**（上游重做断言 + parity 20 项 + 我方计算器/管线 31 项共存）；build 通过；`test:browser` 6 项通过，性能 p50=0.2 / p95=0.4ms 回到基线。
+
+## 基础设施 D-07：Combat Foundation S3-A 属性接线（2026-10-25）
+
+**基线更新依据：docs/pixel-rogue-S3-implementation-brief.md（S3-A 为首个独立 PR）。** 基线为上游 `5d85c46`（PR #63 合并）。仅接线、默认数值中性、无正式平衡变更；S3-B 具体数值与来源待批准后另行实施。
+
+### 交付
+
+- 新增 `core/CombatStats.ts` 实体战斗属性适配层：`getPlayerCombatStats` / `getEnemyCombatStats` 作为快照唯一出入口，CombatSystem 结算与 EnemySystem 发射时快照共用；玩家暴击倍率统一经 `DamageMath.critMultiplier`（含 #41 满层觉醒）。
+- `Player` / `Enemy` / `EnemyConfig` 增加可选战斗属性（defense / resistances / [tough 仅 Enemy] / globalDamageBonus / typeDamageBonus / formDamageBonus / skillDamageBonus），命名与 `CombatStatsSnapshot` 一致；**默认不写入** → 实体序列化形状与 v8/parity 逐字段对照一致（先例 Enemy.kx），parity 无需新增归一化即全绿。
+- `spawnEnemy` 以条件展开拷贝 `EnemyConfig` 可选属性（存在才产生键）；S3-A 按任务书默认 DEF/RES **不随波次/精英缩放**，成长规则待 S3-B 审议。
+- 明确不做（任务书边界）：不把 `p.damage` 转为 globalDamageBonus（天赋强化已含在 raw，禁止双加）；不新增天赋/卡池/难度/平衡值；不动 `TalentSystem.recompute()`（S4）。
+
+### 验收对照（任务书 §5/§7）
+
+| 场景 | 结果 |
+|---|---|
+| DEF=50、K=50 | 物理 100→50（真实 hurtEnemy，mock 非暴击） |
+| RES.fire=0.2 | 火 100→80；物理/雷电不受 fire 抗性影响 |
+| DEF=50 + tough=0.2 | 100→40（乘算） |
+| true | 无视 DEF/RES/tough，仍走普通命中管线 |
+| 增伤维度 | 100×1.2×1.3×1.4=218.4 → round 218；fire/ranged 独立乘区 100×1.25×1.2=150 |
+| 玩家受击 | preserve-float：护甲减伤 100→50.0 浮点扣血 |
+| 弹丸快照 | 发射后修改敌人增伤并标记死亡/移除，原弹丸仍按发射时快照结算（e.dmg×1.5） |
+| DoT | 吃火抗且逐帧浮点（DPS40、火抗 25% → 60 帧共 30），无命中副作用 |
+| Config 链路 | EnemyConfig 存在时拷贝、恢复后不产生键（形状不变断言） |
+| 中性默认 | 实体无新字段时快照全 0/空；S2 零变化 |
+
+### 变异验证
+
+| 变异 | 实测 |
+|---|---|
+| `getPlayerCombatStats` 忽略 `p.defense` | FAIL「玩家护甲 preserve-float」用例 |
+| `getEnemyCombatStats` 忽略 `resistances` | FAIL「火抗」+「DoT 火抗」两用例 |
+
+### 验证结果
+
+- `npm run typecheck` 通过。
+- `npm test` **113 项通过**（原 102 + 新增 `tests/combat-stats.test.ts` 11 项），parity 20 项在无新增归一化的情况下直接通过。
+- `npm run build` 通过；`npm run test:browser` **6 项通过**，性能采样 p50=0.3 / p95=0.5ms（历史波动区间内）。
+- 格式说明：本仓库 Prettier 检查不含 docs/，历史文档保持原格式，本节不做整文件重排。
