@@ -18,16 +18,19 @@ import {
   canOffer,
   chooseSlot,
   learnTalent,
+  openBoxPanel,
   openLevelPanel,
   pickTier,
   recompute,
   refreshSlot,
+  rollBoxPicks,
   rollOne,
   rollPicks,
   tierWeights,
 } from "./TalentSystem";
 import type {
   Bolt,
+  Box,
   Bullet,
   DamageTotals,
   Enemy,
@@ -56,6 +59,7 @@ export class GameCore {
   ebullets: EnemyBullet[] = [];
   gems: Gem[] = [];
   potions: Point[] = [];
+  boxes: Box[] = [];
   parts: Particle[] = [];
   texts: FloatingText[] = [];
   meteors: Meteor[] = [];
@@ -75,6 +79,10 @@ export class GameCore {
   spawnedThisWave = 0;
   /** 本波已由满血血包转化的最大生命点数（换波清零，加成本身永久保留） */
   potionGrow = 0;
+  /** 本波普通怪已掉落的宝箱数（精英宝箱不占此名额） */
+  boxDropsThisWave = 0;
+  /** 已拾取、待开启的宝箱数 */
+  boxPicks = 0;
   dmgBy: DamageTotals = {
     bullet: 0,
     orbit: 0,
@@ -124,9 +132,11 @@ export class GameCore {
   canOffer = canOffer.bind(this);
   recompute = recompute.bind(this);
   rollPicks = rollPicks.bind(this);
+  rollBoxPicks = rollBoxPicks.bind(this);
   rollOne = rollOne.bind(this);
   learnTalent = learnTalent.bind(this);
   openLevelPanel = openLevelPanel.bind(this);
+  openBoxPanel = openBoxPanel.bind(this);
   refreshSlot = refreshSlot.bind(this);
   chooseSlot = chooseSlot.bind(this);
   openSwap = openSwap.bind(this);
@@ -165,6 +175,7 @@ export class GameCore {
     this.bullets = [];
     this.gems = [];
     this.potions = [];
+    this.boxes = [];
     this.parts = [];
     this.texts = [];
     this.meteors = [];
@@ -184,6 +195,8 @@ export class GameCore {
     this.quota = this.waveQuota(1);
     this.spawnedThisWave = 0;
     this.potionGrow = 0;
+    this.boxDropsThisWave = 0;
+    this.boxPicks = 0;
     this.dmgBy = {
       bullet: 0,
       orbit: 0,

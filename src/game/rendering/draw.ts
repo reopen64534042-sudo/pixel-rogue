@@ -82,6 +82,11 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   }
   for (const o of this.potions)
     ctx.sprite("potion", Math.round(o.x - 2), Math.round(o.y - 2));
+  // 宝箱（波次结束后会自动飞向玩家）
+  for (const b of this.boxes) {
+    const bob = Math.sin(this.time * 4 + b.x) * 1.2;
+    ctx.sprite("box", Math.round(b.x - 6), Math.round(b.y - 5 + bob));
+  }
 
   // 陨星预告
   for (const m of this.meteors) {

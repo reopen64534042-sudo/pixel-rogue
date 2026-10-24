@@ -110,3 +110,19 @@ SPR.potion = makeSprite([".www.", "w...w", "wrrrw", "wrrrw", ".rrr."], {
   w: "#e8e8f0",
   r: "#ff4d6d",
 });
+/** 宝箱（#15）：木纹箱体 + 铁边 + 金色锁扣 */
+SPR.box = makeSprite(
+  [
+    "..iiiiiiii..",
+    ".iwwwwwwwwi.",
+    ".iwddddddwi.",
+    "iiwwwwwwwwii",
+    "iwwwwffwwwwi",
+    "iwwwwffwwwwi",
+    "iwwddddddwwi",
+    ".iwwwwwwwwi.",
+    "..iiiiiiii..",
+    "............",
+  ],
+  { i: "#c9cdd6", w: "#a8672f", d: "#6b3f19", f: "#ffc23d" },
+);

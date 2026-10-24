@@ -1,4 +1,10 @@
 import type { GameCore } from "./GameCore";
+import {
+  BOX_DROP_CAP,
+  BOX_DROP_RATE,
+  ELITE_XP_STEP,
+  hash01,
+} from "../data/constants";
 import type { Enemy, HitOptions, PlayerHitOptions } from "./types";
 import { hasteCap } from "../data/talents";
 export function hurtEnemy(
@@ -75,9 +81,13 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   // 掉落 (自爆虫自毁不掉落)
   if (!e.noDrop) {
     if (e.elite) {
-      this.gems.push({ x: e.x, y: e.y, vx: 0, vy: 0, v: 25, e: true });
+      // #17：精英经验随波次成长，避免后期相对升级阈值贬值
+      const eliteXp = 25 + (this.waveN - 1) * ELITE_XP_STEP;
+      this.gems.push({ x: e.x, y: e.y, vx: 0, vy: 0, v: eliteXp, e: true });
       this.potions.push({ x: e.x + 8, y: e.y });
       this.shake = Math.min(this.shake + 5, 8);
+      // #17：精英必掉宝箱，且不占用普通怪名额
+      this.boxes.push({ x: e.x - 8, y: e.y });
     } else {
       const v = e.xp * (Math.random() < p.luck * 0.07 ? 2 : 1);
       this.gems.push({
@@ -89,6 +99,16 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
       });
       if (Math.random() < 0.02 + p.luck * 0.01)
         this.potions.push({ x: e.x, y: e.y });
+      // #15：普通怪按确定性伪随机掉宝箱，每波上限 BOX_DROP_CAP。
+      // 这里必须用 hash01 而不是 Math.random —— 后者会推进随机序列，
+      // 让 parity 的确定性模拟在后续所有随机点分叉。
+      if (
+        this.boxDropsThisWave < BOX_DROP_CAP &&
+        hash01(e.seed, this.waveN) < BOX_DROP_RATE
+      ) {
+        this.boxDropsThisWave++;
+        this.boxes.push({ x: e.x, y: e.y });
+      }
     }
   }
   // 击杀爆炸
