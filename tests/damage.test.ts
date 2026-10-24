@@ -45,6 +45,7 @@ function req(o: Partial<DamageRequest> = {}): DamageRequest {
     form: "melee",
     origin: "test",
     kind: "hit",
+    precision: "round-min-one",
     isCritical: false,
     attackerStats: snap(),
     defenderStats: snap(),
@@ -123,7 +124,7 @@ describe("combat foundation s1 damage calculator", () => {
     expect(normal.settledDamage).toBe(50);
   });
 
-  it("默认零增伤/零护甲/零抗性时与既有离散结算一致：max(1, round(raw))", () => {
+  it("round-min-one 精度与既有敌方离散结算一致：max(1, round(raw))", () => {
     expect(
       calculateDamage(DAMAGE_TYPES, req({ rawAmount: 11 })).settledDamage,
     ).toBe(11);
@@ -138,6 +139,33 @@ describe("combat foundation s1 damage calculator", () => {
     expect(
       calculateDamage(DAMAGE_TYPES, req({ rawAmount: 0 })).settledDamage,
     ).toBe(0);
+  });
+
+  it("preserve-float 精度保留玩家受伤浮点语义（damagePlayer 不取整）", () => {
+    // 评审 P1 用例：第二波史莱姆 8 × 1.05 = 8.4，现有系统扣 8.4 HP，不得取整为 8
+    const slime = calculateDamage(
+      DAMAGE_TYPES,
+      req({ rawAmount: 8 * 1.05, precision: "preserve-float" }),
+    );
+    expect(slime.settledDamage).toBe(8 * 1.05);
+    // tough 通用减伤同样保留浮点：10 × (1 - 0.5) = 5
+    expect(
+      calculateDamage(
+        DAMAGE_TYPES,
+        req({
+          rawAmount: 10,
+          precision: "preserve-float",
+          defenderStats: snap({ tough: 0.5 }),
+        }),
+      ).settledDamage,
+    ).toBe(5);
+    // 小数伤害不取整、不保底（UI 取整仅用于显示，属 S2 表现层）
+    expect(
+      calculateDamage(
+        DAMAGE_TYPES,
+        req({ rawAmount: 0.3, precision: "preserve-float" }),
+      ).settledDamage,
+    ).toBe(0.3);
   });
 
   it("物理护甲 K/(K+max(0,DEF))：DEF 20 → 50/70；负护甲按 0 处理", () => {
@@ -215,6 +243,7 @@ describe("combat foundation s1 damage calculator", () => {
       form: "ranged",
       origin: "test",
       kind: "hit",
+      precision: "round-min-one",
       isCritical: false,
       attackerStats: snap(),
       defenderStats: snap<keyof typeof FROST_TYPES & string>({
@@ -229,6 +258,7 @@ describe("combat foundation s1 damage calculator", () => {
         form: "ranged",
         origin: "test",
         kind: "hit",
+        precision: "round-min-one",
         isCritical: false,
         attackerStats: snap(),
         defenderStats: snap<keyof typeof FROST_TYPES & string>(),
@@ -236,12 +266,18 @@ describe("combat foundation s1 damage calculator", () => {
     ).toBe(100);
   });
 
-  it("未注册的伤害属性运行时显式报错", () => {
+  it("未注册的伤害属性运行时显式报错（含原型链成员）", () => {
     expect(() => typeMitigationFactor(DAMAGE_TYPES, "frost", snap())).toThrow(
       /未注册/,
     );
-    // 模拟绕过编译期的非法调用，验证 calculateDamage 自身同样拒绝
-    const forged = { ...req(), type: "frost" } as unknown as DamageRequest;
+    // 原型链上的成员（对象/函数均为真值）不得通过真值判断混入注册表
+    for (const key of ["__proto__", "toString", "constructor"]) {
+      expect(() => typeMitigationFactor(DAMAGE_TYPES, key, snap())).toThrow(
+        /未注册/,
+      );
+    }
+    // 模拟绕过编译期的非法调用，验证 calculateDamage 主路径同样拒绝
+    const forged = { ...req(), type: "toString" } as unknown as DamageRequest;
     expect(() => calculateDamage(DAMAGE_TYPES, forged)).toThrow(/未注册/);
   });
 
@@ -278,30 +314,78 @@ describe("combat foundation s1 damage calculator", () => {
         }),
       ),
     ).toThrow(RangeError);
-    // 增伤低于 -100% 会使结算为负：报错而不是意外变成 1 点伤害
+    // 增伤低于 -100% 会使乘区倍率为负：报错而不是意外变成 1 点伤害
     expect(() =>
       calculateDamage(
         DAMAGE_TYPES,
         req({ attackerStats: snap({ globalDamageBonus: -2 }) }),
       ),
     ).toThrow(RangeError);
+    // 暴击倍率为负同样是非法配置
+    expect(() =>
+      calculateDamage(
+        DAMAGE_TYPES,
+        req({
+          isCritical: true,
+          attackerStats: snap({ critMultiplier: -1 }),
+        }),
+      ),
+    ).toThrow(RangeError);
+  });
+
+  it("单个乘区低于 -100% 即非法：双负乘区互相抵消也不例外", () => {
+    // -200% × -200% 的乘积为正，但每个乘区单独看都是非法配置，必须逐区拒绝
+    expect(() =>
+      calculateDamage(
+        DAMAGE_TYPES,
+        req({
+          attackerStats: snap({
+            globalDamageBonus: -2,
+            typeDamageBonus: { physical: -2 },
+          }),
+        }),
+      ),
+    ).toThrow(RangeError);
+    // 边界：恰为 -100% 的乘区合法（倍率为 0）→ 结算 0 而不是保底 1
+    expect(
+      calculateDamage(
+        DAMAGE_TYPES,
+        req({
+          precision: "preserve-float",
+          attackerStats: snap({ globalDamageBonus: -1 }),
+        }),
+      ).settledDamage,
+    ).toBe(0);
   });
 
   it("dot 保留浮点精度：不取整、不保底", () => {
     const plain = calculateDamage(
       DAMAGE_TYPES,
-      req({ kind: "dot", rawAmount: 10.5 }),
+      req({ kind: "dot", precision: "preserve-float", rawAmount: 10.5 }),
     );
     expect(plain.settledDamage).toBe(10.5);
     const resisted = calculateDamage(
       DAMAGE_TYPES,
       req({
         kind: "dot",
+        precision: "preserve-float",
         rawAmount: 10.5,
         type: "fire",
         defenderStats: snap({ resistances: { fire: 0.3 } }),
       }),
     );
     expect(resisted.settledDamage).toBeCloseTo(10.5 * 0.7, 10);
+  });
+
+  it("dot 禁止暴击与取整精度：非法组合显式报错", () => {
+    expect(() =>
+      calculateDamage(
+        DAMAGE_TYPES,
+        req({ kind: "dot", precision: "preserve-float", isCritical: true }),
+      ),
+    ).toThrow(/dot 不允许暴击/);
+    expect(() => calculateDamage(DAMAGE_TYPES, req({ kind: "dot" }))).toThrow(
+      /preserve-float/,
+    );
   });
 });

@@ -16,8 +16,16 @@ export type DamageTotals = Record<DamageSource, number>;
 /* ---------- Combat Foundation v1（S1 契约，未接入运行时战斗） ---------- */
 /** 攻击方式：决定近战/远程增伤乘区适用范围；由技能显式指定，不按距离推断 */
 export type AttackForm = "melee" | "ranged" | "other";
-/** 结算方式：hit=离散命中（末尾一次取整、正伤害保底 1 点）；dot=持续伤害（不逐帧取整） */
+/** 结算方式：hit=离散命中；dot=持续伤害（固定 preserve-float 且不得暴击，运行时校验） */
 export type DamageKind = "hit" | "dot";
+/**
+ * 结算精度（§3.3）。与 kind 正交：现有规则对敌方命中与玩家受击不同
+ * （hurtEnemy 取整保底 1 点，damagePlayer 保留浮点），必须由调用方显式声明，
+ * 不设默认值正是为了避免 S2 接入时静默选错语义。
+ * round-min-one：末尾一次取整且正伤害保底 1 点（对齐 hurtEnemy 现行规则）。
+ * preserve-float：保留浮点（玩家受击的浮点 HP 扣除习惯，UI 取整仅用于显示；dot 固定此值）。
+ */
+export type DamagePrecision = "round-min-one" | "preserve-float";
 /** 按伤害属性索引的抗性映射，未声明视为 0；T 支持扩展注册表（如 frost） */
 export type ResistanceMap<T extends string = DamageTypeId> = Partial<
   Record<T, number>
@@ -53,6 +61,8 @@ export interface DamageRequest<T extends string = DamageTypeId> {
   /** 适配旧 DamageSource，用于伤害报告与专属增强；v1 为自由字符串 */
   origin: string;
   kind: DamageKind;
+  /** 结算精度（§3.3）：hit 两种可选；dot 固定 preserve-float（运行时校验） */
+  precision: DamagePrecision;
   skillId?: string;
   /** 机制元数据标签（area/projectile/dot 等），只表达事实，不自动参与乘伤 */
   tags?: readonly string[];

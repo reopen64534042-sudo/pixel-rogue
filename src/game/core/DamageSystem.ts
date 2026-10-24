@@ -19,19 +19,30 @@ function requireRegistryEntry(
   registry: DamageTypeRegistry,
   type: string,
 ): DamageTypeInfo {
-  const info = registry[type];
-  if (!info) {
+  // 必须校验自有键：registry["__proto__"]/["toString"] 等原型链成员是对象/函数，
+  // 真值判断会让未注册类型通过并产生 NaN 或继承来的伪策略
+  if (!Object.hasOwn(registry, type)) {
     throw new Error(
       `DamageSystem: 未注册的伤害属性 ${JSON.stringify(type)}（可用: ${Object.keys(registry).join(", ")}）`,
     );
   }
-  return info;
+  return registry[type];
 }
 
 function requireFinite(value: number, field: string): void {
   if (!Number.isFinite(value)) {
     throw new RangeError(
       `DamageSystem: ${field} 必须是有限数字，得到 ${value}`,
+    );
+  }
+}
+
+/** 单个增伤乘区须为有限数字且 ≥ -100%（倍率非负）。逐区校验，防止两个
+ * 低于 -100% 的乘区相乘互相抵消后以正值结算绕过终值检查。 */
+function requireZone(field: string, bonus: number): void {
+  if (!Number.isFinite(bonus) || bonus < -1) {
+    throw new RangeError(
+      `DamageSystem: ${field} 非法（须为有限数字且 ≥ -1），得到 ${bonus}`,
     );
   }
 }
@@ -79,10 +90,12 @@ export function generalMitigationFactor(
  *   D = rawAmount × M_global × M_type × M_form × M_skill × M_crit
  *       × 属性减伤 × 通用减伤
  * 同乘区的多个来源由适配器先行加算，跨乘区相乘；暴击在减伤前应用。
- * kind=hit 在末尾一次取整并对正伤害保底 1 点（对应既有 hurtEnemy 的
- * Math.max(1, Math.round)）；kind=dot 不取整、不保底。rawAmount=0 是合法
- * 零伤害，保持为 0；NaN/负数等非法输入显式抛错，绝不静默变成 1 点。
- * 暴击判定（含 dot 不暴击的契约）由编排层负责，计算器只机械应用倍率。
+ * 结算精度由 request.precision 显式声明（§3.3）：round-min-one 在末尾一次
+ * 取整并对正伤害保底 1 点（对应既有 hurtEnemy 的 Math.max(1, Math.round)，
+ * 用于敌方离散命中）；preserve-float 保留浮点（对应既有 damagePlayer 的
+ * 玩家浮点扣血习惯，dot 固定此值）。rawAmount=0 是合法零伤害，保持为 0；
+ * NaN/负数等非法输入显式抛错，绝不静默变成 1 点。dot 禁止暴击与取整精度
+ * （§3.3），由本函数运行时拒绝非法组合；暴击判定本身由编排层负责。
  */
 export function calculateDamage<R extends DamageTypeRegistry>(
   registry: R,
@@ -96,19 +109,31 @@ export function calculateDamage<R extends DamageTypeRegistry>(
       `DamageSystem: rawAmount 必须是 ≥0 的有限数字，得到 ${request.rawAmount}`,
     );
   }
+  if (request.kind === "dot") {
+    if (request.isCritical) {
+      throw new Error(
+        "DamageSystem: dot 不允许暴击（§3.3：持续伤害不触发普通命中的暴击）",
+      );
+    }
+    if (request.precision !== "preserve-float") {
+      throw new Error(
+        "DamageSystem: dot 固定使用 preserve-float 精度（§3.3：不逐帧取整、不保底）",
+      );
+    }
+  }
 
   const a = request.attackerStats;
-  requireFinite(a.globalDamageBonus, "attackerStats.globalDamageBonus");
+  requireZone("attackerStats.globalDamageBonus", a.globalDamageBonus);
   const typeBonus = a.typeDamageBonus[type] ?? 0;
-  requireFinite(typeBonus, `attackerStats.typeDamageBonus[${type}]`);
+  requireZone(`attackerStats.typeDamageBonus[${type}]`, typeBonus);
   const formBonus = a.formDamageBonus[request.form] ?? 0;
-  requireFinite(formBonus, `attackerStats.formDamageBonus[${request.form}]`);
+  requireZone(`attackerStats.formDamageBonus[${request.form}]`, formBonus);
   let skillBonus = 0;
   if (request.skillId !== undefined) {
     skillBonus = a.skillDamageBonus?.[request.skillId] ?? 0;
-    requireFinite(
-      skillBonus,
+    requireZone(
       `attackerStats.skillDamageBonus[${request.skillId}]`,
+      skillBonus,
     );
   }
 
@@ -121,6 +146,11 @@ export function calculateDamage<R extends DamageTypeRegistry>(
   const critMultiplier = request.isCritical ? a.critMultiplier : 1;
   if (request.isCritical) {
     requireFinite(critMultiplier, "attackerStats.critMultiplier");
+    if (critMultiplier < 0) {
+      throw new RangeError(
+        `DamageSystem: attackerStats.critMultiplier 不得为负，得到 ${critMultiplier}`,
+      );
+    }
   }
   const beforeMitigation = beforeCrit * critMultiplier;
 
@@ -136,11 +166,9 @@ export function calculateDamage<R extends DamageTypeRegistry>(
   }
 
   const settledDamage =
-    request.kind === "dot"
-      ? settled
-      : request.rawAmount > 0
-        ? Math.max(1, Math.round(settled))
-        : 0;
+    request.precision === "round-min-one" && request.rawAmount > 0
+      ? Math.max(1, Math.round(settled))
+      : settled;
   return {
     rawDamage: request.rawAmount,
     beforeMitigation,
