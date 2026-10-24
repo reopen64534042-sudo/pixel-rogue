@@ -77,9 +77,16 @@ export function updateProgression(this: GameCore, dt: number) {
       b.y += (dy / d) * 300 * dt;
     }
     if (dx * dx + dy * dy < 64) {
-      this.boxPicks++;
+      // Issue #48：特殊宝箱 +2
+      const gain = b.special ? 2 : 1;
+      this.boxPicks += gain;
       this.boxes.splice(i, 1);
-      this.addText(p.x, p.y - 14, "宝箱 +1", "#ffc23d");
+      this.addText(
+        p.x,
+        p.y - 14,
+        b.special ? "特殊宝箱 +2" : "宝箱 +1",
+        b.special ? "#ffd24a" : "#ffc23d",
+      );
       this.audio.beep(1046, 0.1, "triangle", 0.05, 200);
     }
   }

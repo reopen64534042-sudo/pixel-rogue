@@ -86,6 +86,15 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   for (const b of this.boxes) {
     const bob = Math.sin(this.time * 4 + b.x) * 1.2;
     ctx.sprite("box", Math.round(b.x - 6), Math.round(b.y - 5 + bob));
+    // Issue #48：特殊宝箱金色皇冠标记
+    if (b.special) {
+      const gx = Math.round(b.x - 5);
+      const gy = Math.round(b.y - 12 + bob);
+      ctx.fillStyle = "#ffd24a";
+      ctx.fillRect(gx, gy, 10, 2);
+      ctx.fillRect(gx + 1, gy + 2, 2, 2);
+      ctx.fillRect(gx + 7, gy + 2, 2, 2);
+    }
   }
 
   // 陨星预告

@@ -14,7 +14,12 @@ afterEach(() => vi.restoreAllMocks());
  * 基线更新依据：Issue #25（用户已批准的平衡变更）。
  * 强化弹丸从「全局伤害 +25%（99 层）」改为「仅魔弹伤害 +25%（30 层）」，
  * 解决普通卡单级/总潜力双双碾压稀有卡的稀有度倒挂；同样不参与 v8 对照，
- * 由 D-02 显式公式断言保护。其余天赋仍全部参与严格对照，
+ * 由 D-02 显式公式断言保护。
+ *
+ * 基线更新依据：Issue #47 / #48（用户已批准的平衡变更）。
+ * 15 波起难度超线性增长、12 波起每波多 BOSS、BOSS 特殊宝箱——
+ * 16 波的逐帧对照因此偏离 v8，该波次从全模拟对照中移除，
+ * 由 D-03（难度公式）/ D-04（精英配额与特殊宝箱）显式断言保护。其余波次仍全部参与严格对照。
  * 任何其他天赋出现与 v8 的差异都按 bug 处理。
  */
 const BASELINE_EXCLUDED = ["击杀狂热", "强化弹丸"] as const;
@@ -152,7 +157,7 @@ it("every talent effect, cap and tier matches the protected original", () => {
     expect(u.t).toBe(expected.t);
   }
 });
-it.each([1, 4, 5, 8, 16])(
+it.each([1, 4, 5, 8])(
   "1800 deterministic ticks at wave %i match original combat and movement",
   (wave) => {
     const baseline = original();
@@ -200,7 +205,7 @@ it.each([1, 4, 5, 8, 16])(
   },
 );
 
-it.each([4, 8, 16])(
+it.each([4, 8])(
   "all talents except excluded baselines in combat retain original simulation at wave %i",
   (wave) => {
     const baseline = original();
@@ -296,4 +301,61 @@ it("D-02 魔弹实际伤害 = damage × boltDmgMul（衍生伤害不受强化弹
   g2.update(1 / 60);
   expect(g2.bullets[0].dmg).toBeCloseTo(g2.player.damage);
   expect(g2.bullets[0].dmg).toBeCloseTo(g.bullets[0].dmg / 1.25);
+});
+/**
+ * 基线更新依据：Issue #47（用户已批准的平衡变更）。
+ * 15 波起难度超线性：over = max(0, waveN-15)，
+ * hpScale = 1 + (n-1)*0.18 + over²×0.06，dmgScale = 1 + (n-1)*0.05 + over²×0.012。
+ * 保留回归能力：任何偏离该公式的实现都会让本条失败。
+ */
+it("D-03 难度超线性：15 波起 HP/伤害平方项加速，15 波前与 v8 一致", () => {
+  const g = fresh();
+  g.waveN = 16;
+  g.spawnEnemy("brute", true);
+  const e = g.enemies[0];
+  expect(e.hp).toBeCloseTo(65 * (1 + 15 * 0.18 + 1 * 0.06) * 8);
+  expect(e.dmg).toBeCloseTo(15 * (1 + 15 * 0.05 + 1 * 0.012) * 1.5);
+  const g2 = fresh();
+  g2.waveN = 14;
+  g2.spawnEnemy("brute", true);
+  expect(g2.enemies[0].hp).toBeCloseTo(65 * (1 + 13 * 0.18) * 8);
+});
+
+/**
+ * 基线更新依据：Issue #48（用户已批准的平衡变更）。
+ * 精英配额：<12 波每 4 波 1 只（与 v8 一致）；12-19 波每波 2 只；20+ 波每波 3 只。
+ */
+it.each([
+  [3, 0],
+  [8, 1],
+  [12, 2],
+  [16, 2],
+  [20, 3],
+  [25, 3],
+])("D-04 波 %i 的 BOSS 配额 = %i 只", (wave, expected) => {
+  const g = fresh();
+  g.waveN = wave;
+  g.quota = g.waveQuota(wave);
+  g.wavePhase = "fight";
+  g.spawnCd = 0;
+  for (let i = 0; i < 3; i++) {
+    g.update(1 / 60);
+    g.spawnCd = 0;
+  }
+  expect(g.enemies.filter((e) => e.elite).length).toBe(expected);
+});
+
+it("D-04 BOSS 掉落特殊宝箱：+2 宝箱点数，不占普通掉落上限", () => {
+  const g = fresh();
+  const e = enemy(g);
+  e.elite = true;
+  e.hp = 0;
+  g.killEnemy(e);
+  const box = g.boxes[g.boxes.length - 1];
+  expect(box.special).toBe(true);
+  const before = g.boxPicks;
+  g.player.x = box.x;
+  g.player.y = box.y;
+  g.update(1 / 60);
+  expect(g.boxPicks).toBe(before + 2);
 });
