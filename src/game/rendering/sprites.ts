@@ -36,24 +36,27 @@ SPR.slime = makeSprite(
   { s: "#4dd44d", k: "#0a3d0a" },
 );
 SPR.bat = makeSprite(
-  ["b......b", "bb....bb", "bbbbbbbb", ".brbbrb.", "..bbbb..", "........"],
-  { b: "#8a5cff", r: "#ff5b5b" },
+  ["..h..h..", "b.bbbb.b", "bbbbbbbb", ".brbbrb.", "..bbbb..", "........"],
+  { h: "#e8e8f0", b: "#5c4dff", r: "#ff5b5b" },
 );
 SPR.shooter = makeSprite(
   ["p......p", "pp....pp", "pppppppp", ".pgkkgp.", "..pppp.."],
-  { p: "#b05cff", g: "#7dff5a", k: "#1a0a2a" },
+  { p: "#e04fd0", g: "#7dff5a", k: "#1a0a2a" },
 );
+/** 火囊虫：矮胖鼓胀轮廓 + 背部三道熔岩裂纹，与 slime 的圆球剪影区分 */
 SPR.bomber = makeSprite(
   [
-    "..oooo..",
-    ".oooooo.",
-    "ookookoo",
-    "oooooooo",
-    "oooooooo",
-    ".oooooo.",
-    "..o..o..",
+    "..rrrrrr..",
+    ".rrrrrrrr.",
+    "rtrrrrrrtr",
+    "rtrrrrrrtr",
+    "rkkrrrrkkr",
+    "rrrrttrrrr",
+    ".rrrrrrrr.",
+    "..rr..rr..",
+    ".rr....rr.",
   ],
-  { o: "#ff8c3a", k: "#3a1a0a" },
+  { r: "#b8332b", t: "#ff8a2b", k: "#1a0a0a" },
 );
 SPR.brute = makeSprite(
   [
@@ -70,7 +73,30 @@ SPR.brute = makeSprite(
     "..gg..gg..",
     ".gg....gg.",
   ],
-  { g: "#c05050", y: "#ffe14a", k: "#3a0d0d" },
+  { g: "#4dd44d", y: "#ffe14a", k: "#0a3d0a" },
+);
+/**
+ * 精英·岩石巨兽：方形岩块 + 中部熔岩裂缝 + 不对称熔岩流（左 3 格主流、右 2 格渗漏且低一格）。
+ * 配色与普通 brute 完全不同（岩石深棕 vs 浅绿），体型也更宽厚。
+ */
+SPR.brute_elite = makeSprite(
+  [
+    "....kkkkkkkk....",
+    "..kkkkkkkkkkkk..",
+    ".kkkkkkkkkkkkkk.",
+    "kkkkkkkkkkkkkkkk",
+    "kkkffkkkkkkffkkk",
+    "kkkkkkkkkkkkkkkk",
+    "kkkccmmnnmmcckkk",
+    "kkkkkmkkkkkkkkkk",
+    ".kkkkmkkkkjkkkk.",
+    ".kkkkjkkkkjkkkk.",
+    "..kkkk....kkkk..",
+    "..kkkk....kkkk..",
+    "..kkkk....kkkk..",
+    "..dddd....dddd..",
+  ],
+  { k: "#4a2a2a", d: "#2a1616", f: "#ffd24a", m: "#ff6a2b", n: "#ffdd66", c: "#b83a12" },
 );
 SPR.gem = makeSprite([".ggg.", "gGGGg", "gGGGg", ".gGg.", "..g.."], {
   g: "#1a9fd4",
