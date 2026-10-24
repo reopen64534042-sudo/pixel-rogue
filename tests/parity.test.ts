@@ -3,7 +3,7 @@ import { createContext, runInContext } from "node:vm";
 import { it, expect, vi, afterEach } from "vitest";
 import { fresh, seeded, learn, enemy } from "./helpers";
 import { UPGRADES } from "../src/game/data/talents";
-import { POTION_GROW_CAP } from "../src/game/data/constants";
+import { ELITE_XP_STEP, POTION_GROW_CAP } from "../src/game/data/constants";
 afterEach(() => vi.restoreAllMocks());
 /**
  * 基线更新依据：Issue #1（用户已批准的平衡变更）。
@@ -46,18 +46,40 @@ function splitPlayerHealth(snapshot: unknown) {
   return { rest: { ...snap, player: rest }, hp, maxhp };
 }
 /**
- * 逐字段对照，同时按两条已批准的基线规则做显式断言：
- * - Issue #13：dmgBy.melee 是新增分项，v8 无此键，当前实现必须恒为 0；
- * - Issue #12：hp/maxhp 的增量必须在 [0, POTION_GROW_CAP] 内且同步增长。
- * 其余全部字段（含其余伤害分项）仍与 v8 严格相等。
+ * 基线更新依据：Issue #17（用户已批准的平衡变更）。
+ * 精英经验由固定 25 改为 25 + (波次-1) × ELITE_XP_STEP，v8 无此规则。
+ * 因此先断言每个精英宝石的经验符合新公式，再把该字段归一化后参与逐字段比较；
+ * 普通宝石经验、掉落数量、位置仍与 v8 严格相等。
  */
-function expectParity(actual: unknown, expected: unknown) {
+function expectEliteXp(snapshot: unknown, wave: number) {
+  const snap = snapshot as { gems: { e?: boolean; v: number }[] };
+  const eliteXp = 25 + (wave - 1) * ELITE_XP_STEP;
+  for (const g of snap.gems) if (g.e) expect(g.v).toBe(eliteXp);
+}
+function flattenEliteXp(snapshot: unknown) {
+  const snap = snapshot as { gems: { e?: boolean; v: number }[] };
+  for (const g of snap.gems) if (g.e) g.v = 0;
+  return snapshot;
+}
+/**
+ * 逐字段对照，同时按三条已批准的基线规则做显式断言：
+ * - Issue #13：dmgBy.melee 是新增分项，v8 无此键，当前实现必须恒为 0；
+ * - Issue #12：hp/maxhp 的增量必须在 [0, POTION_GROW_CAP] 内且同步增长；
+ * - Issue #17：精英宝石经验 = 25 + (波次-1) × ELITE_XP_STEP。
+ * 其余全部字段（含其余伤害分项、普通宝石经验）仍与 v8 严格相等。
+ */
+function expectParity(actual: unknown, expected: unknown, wave: number) {
   const a0 = splitPlayerHealth(JSON.parse(JSON.stringify(actual)));
   const e0 = splitPlayerHealth(JSON.parse(JSON.stringify(expected)));
   const grow = a0.maxhp - e0.maxhp;
   expect(grow).toBeGreaterThanOrEqual(0);
   expect(grow).toBeLessThanOrEqual(POTION_GROW_CAP);
   expect(a0.hp - e0.hp).toBe(grow);
+
+  // Issue #17：先断言精英经验符合新公式，再把该字段归一化后参与逐字段比较
+  expectEliteXp(a0.rest, wave);
+  flattenEliteXp(a0.rest);
+  flattenEliteXp(e0.rest);
 
   const a = takeMelee(a0.rest);
   const e = takeMelee(e0.rest);
@@ -156,7 +178,7 @@ it.each([1, 4, 5, 8, 16])(
       bpMode: g.bpMode,
       slotNames: g.slots.map((s) => ({ name: s.u.n, used: s.used })),
     };
-    expectParity(actual, expected);
+    expectParity(actual, expected, wave);
   },
 );
 
@@ -187,7 +209,7 @@ it.each([4, 8, 16])(
     const actual = Object.fromEntries(
       fields.split(",").map((key) => [key, g[key as keyof typeof g]]),
     );
-    expectParity(actual, expected);
+    expectParity(actual, expected, wave);
   },
 );
 

@@ -150,8 +150,8 @@ export class GameUI {
       <div class="ds">${u.d}</div><div class="up"></div><div class="lv"></div>`;
       elementWithin(el, ".up").textContent = u.pv(this.core.player); // 动态数值预览
       elementWithin(el, ".lv").textContent = `Lv.${lv} → ${lv + 1}`;
-      if (!s.used) {
-        // 每张卡独立刷新 1 次（阻止冒泡，避免误触发"选卡"）
+      if (!s.used && this.core.bpMode === "level") {
+        // 每张卡独立刷新 1 次（阻止冒泡，避免误触发"选卡"）；宝箱不提供刷新
         const rb = document.createElement("button");
         rb.className = "refr";
         rb.textContent = "🔄";
@@ -383,17 +383,30 @@ export class GameUI {
     };
   }
   openLevelPanel() {
-    if (this.core.bpMode !== "level") {
+    const mode = this.core.bpMode;
+    if (mode !== "level" && mode !== "box") {
       this.closeLevelPanelIfDone();
       return;
     }
+    // 升级面板与宝箱面板共用同一套卡片，只换标题文案
+    const box = mode === "box";
+    const title = document.querySelector<HTMLElement>("#bp-level .bp-title");
+    if (title)
+      title.textContent = box
+        ? `🎁 开启宝箱 · 剩余 ${this.core.boxPicks} 个 · 强化一项已学天赋`
+        : "⬆ 等级提升！选择一项天赋强化";
+    const hint = document.querySelector<HTMLElement>("#bp-level .level-subhint");
+    if (hint)
+      hint.textContent = box
+        ? "只强化已学天赋 · 键盘 1 / 2 / 3 快捷选取"
+        : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片右上角 🔄 单独刷新";
     this.drawCards();
     element("bp-level").classList.remove("hidden");
     element("bp-rest").classList.add("hidden");
     element("bottom-bar").classList.remove("hidden");
   }
   closeLevelPanelIfDone() {
-    if (this.core.pendingLevels > 0) return;
+    if (this.core.pendingLevels > 0 || this.core.boxPicks > 0) return;
     element("bp-level").classList.add("hidden");
     if (this.core.wavePhase === "rest") {
       this.showRestBar();

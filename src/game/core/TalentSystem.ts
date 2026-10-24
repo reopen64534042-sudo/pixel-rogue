@@ -1,3 +1,4 @@
+import { hash01 } from "../data/constants";
 import { statBase } from "../data/stats";
 import { DMG_POOL, RAMP, UPGRADES } from "../data/talents";
 import type { GameCore } from "./GameCore";
@@ -64,13 +65,64 @@ export function refreshSlot(this: GameCore, index: number) {
   this.audio.beep(500, 0.06, "square", 0.04, 150);
   return true;
 }
+/**
+ * 宝箱候选（#15 方案 C）：只从**已学且未满级**的天赋里抽 3 个不同项。
+ * 用确定性伪随机而非 Math.random —— 开箱可能发生在 parity 模拟的采集阶段，
+ * 消耗随机数会让后续对照分叉。
+ */
+export function rollBoxPicks(this: GameCore) {
+  const pool = UPGRADES.filter((u) => {
+    const lv = this.player.upCounts[u.n] || 0;
+    return lv > 0 && lv < u.max;
+  });
+  const picks: Talent[] = [];
+  const seed = this.kills * 7.77 + this.waveN * 3.13;
+  while (picks.length < 3 && pool.length) {
+    const idx = Math.floor(hash01(seed, picks.length * 17.3) * pool.length);
+    picks.push(pool.splice(idx, 1)[0]);
+  }
+  return picks;
+}
+export function openBoxPanel(this: GameCore) {
+  if (this.bpMode) return;
+  const picks = this.rollBoxPicks();
+  if (!picks.length) {
+    // 兜底：没有可强化的天赋（一个都没学，或全部满级）→ 转为少量经验 + 一个血包。
+    // 经验直接累加，升级判定在下次拾取经验球时统一结算。
+    this.boxPicks--;
+    this.player.xp += 8;
+    this.potions.push({ x: this.player.x, y: this.player.y });
+    this.addText(this.player.x, this.player.y - 14, "宝箱：+8 经验", "#57e6ff");
+    this.audio.beep(660, 0.1, "triangle", 0.05, 120);
+    return;
+  }
+  this.bpMode = "box";
+  this.slots = picks.map((u) => ({ u, used: false }));
+  this.view.level();
+}
 export function chooseSlot(this: GameCore, index: number) {
   const slot = this.slots[index];
+  if (this.state !== "play" || !slot) return false;
+
+  // ---- 宝箱：强化已学天赋 ----
+  if (this.bpMode === "box") {
+    if (this.boxPicks <= 0 || !this.learnTalent(slot.u)) return false;
+    this.boxPicks--;
+    this.audio.beep(880, 0.12, "square", 0.07, 300);
+    if (this.boxPicks > 0)
+      this.slots = this.rollBoxPicks().map((u) => ({ u, used: false }));
+    else {
+      this.bpMode = null;
+      this.slots = [];
+    }
+    this.view.level();
+    return true;
+  }
+
+  // ---- 升级：三选一 ----
   if (
-    this.state !== "play" ||
     this.bpMode !== "level" ||
     this.pendingLevels <= 0 ||
-    !slot ||
     !this.learnTalent(slot.u)
   )
     return false;

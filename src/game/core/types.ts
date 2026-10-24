@@ -1,5 +1,5 @@
 export type Mode = "start" | "play" | "stats" | "pause" | "over";
-export type Panel = "level" | "rest" | null;
+export type Panel = "level" | "rest" | "box" | null;
 export type GameState = Mode | "levelup" | "report" | "swap";
 export type WavePhase = "fight" | "collect" | "rest";
 export type DamageSource =
@@ -150,6 +150,11 @@ export interface Gem extends Point {
   vy: number;
   v: number;
   e?: boolean;
+  auto?: boolean;
+}
+/** 宝箱（#15）：掉落在地等待拾取，波次结束时统一吸附加收，休整期开启 */
+export interface Box extends Point {
+  /** 波次结束后自动飞向玩家 */
   auto?: boolean;
 }
 export interface Particle extends Point {

@@ -20,6 +20,7 @@ export function startNextWave(this: GameCore) {
   this.quota = this.waveQuota(this.waveN);
   this.spawnedThisWave = 0;
   this.potionGrow = 0; // 血包转化计数每波重置，已获得的生命上限永久保留
+  this.boxDropsThisWave = 0; // 宝箱掉落名额每波重置
   this.spawnCd = 1.2;
   this.wavePhase = "fight";
   this.state = "play";
@@ -73,13 +74,22 @@ export function updateWave(this: GameCore, dt: number) {
         }
       }
     } else if (this.enemies.length === 0) {
-      // 本波怪清空 → 收尾: 先吸经验球、选完升级，再休整
+      // 本波怪清空 → 收尾: 先吸经验球、选完升级，再收宝箱，最后休整
       this.wavePhase = "collect";
       this.gems.forEach((g) => (g.auto = true));
+      this.boxes.forEach((b) => (b.auto = true)); // 未拾取的宝箱自动飞向玩家
       this.audio.beep(520, 0.2, "triangle", 0.06, 180);
     }
   } else if (this.wavePhase === "collect") {
-    // 经验球吸完且升级选完 → 进入休整
-    if (this.gems.length === 0 && this.pendingLevels === 0) this.enterRest();
+    // 经验球吸完、升级选完、宝箱全部收齐 → 依次开箱，开完才进休整
+    if (
+      this.gems.length === 0 &&
+      this.pendingLevels === 0 &&
+      this.boxes.length === 0
+    ) {
+      if (this.boxPicks > 0) {
+        if (this.bpMode !== "box") this.openBoxPanel();
+      } else this.enterRest();
+    }
   }
 }

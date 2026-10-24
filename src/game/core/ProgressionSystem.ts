@@ -66,4 +66,21 @@ export function updateProgression(this: GameCore, dt: number) {
       this.audio.beep(700, 0.12, "triangle", 0.06, 200);
     }
   }
+  // 宝箱：平时留在原地等玩家踩上去；波次结束（auto）后像经验球一样飞过来
+  for (let i = this.boxes.length - 1; i >= 0; i--) {
+    const b = this.boxes[i];
+    const dx = p.x - b.x,
+      dy = p.y - b.y;
+    const d = Math.hypot(dx, dy);
+    if (b.auto && d > 0.01) {
+      b.x += (dx / d) * 300 * dt;
+      b.y += (dy / d) * 300 * dt;
+    }
+    if (dx * dx + dy * dy < 64) {
+      this.boxPicks++;
+      this.boxes.splice(i, 1);
+      this.addText(p.x, p.y - 14, "宝箱 +1", "#ffc23d");
+      this.audio.beep(1046, 0.1, "triangle", 0.05, 200);
+    }
+  }
 }
