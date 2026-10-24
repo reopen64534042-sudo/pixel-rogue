@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "v12",
+    date: "2026-10-25",
+    title: "UI 精修批次",
+    items: [
+      "环绕飞刃重绘：刀形像素精灵，刃尖朝外随轨道旋转（#3）",
+      "冲刺充能格移至角色脚下跟随显示，重绘为菱形格（#51）",
+    ],
+  },
+  {
+    version: "v12",
     date: "2026-10-24",
     title: "战斗基础：统一伤害管线（S1+S2）",
     items: [

@@ -253,6 +253,28 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
+  // Issue #51：冲刺充能菱形格（角色脚下，跟随玩家；满充能脉冲高亮）
+  if (this.player.dashLv > 0) {
+    const dchMax = 1 + this.player.dashChargeLv;
+    const full = this.player.dashCharges >= dchMax;
+    const pw = dchMax * 7 - 2;
+    const px = Math.round(this.player.x - pw / 2);
+    const py = Math.round(this.player.y + 10);
+    for (let i = 0; i < dchMax; i++) {
+      const charged = i < this.player.dashCharges;
+      const x = px + i * 7;
+      ctx.fillStyle = charged ? "#57e6ff" : "#1d2440";
+      ctx.fillRect(x + 1, py, 3, 1);
+      ctx.fillRect(x, py + 1, 5, 3);
+      ctx.fillRect(x + 1, py + 4, 3, 1);
+      if (charged && full) {
+        ctx.globalAlpha = 0.4 + Math.sin(this.time * 8) * 0.25;
+        ctx.fillStyle = "#9fe1ff";
+        ctx.fillRect(x + 2, py + 1, 1, 3);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
 
   // 近战刀光（三层同心弧：外缘最亮，向内渐淡）
   for (const s of this.slashes) {
@@ -273,17 +295,13 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   }
   ctx.globalAlpha = 1;
 
-  // 环绕飞刃
+  // 环绕飞刃（Issue #3：刀形精灵，刃尖朝外）
   if (this.player.orbit > 0) {
     for (let i = 0; i < this.player.orbit; i++) {
       const a = this.player.orbA + (i * Math.PI * 2) / this.player.orbit;
-      const bx = Math.round(this.player.x + Math.cos(a) * 26);
-      const by = Math.round(this.player.y + Math.sin(a) * 26);
-      ctx.fillStyle = "#c7cff2";
-      ctx.fillRect(bx - 2, by - 1, 4, 2);
-      ctx.fillRect(bx - 1, by - 2, 2, 4);
-      ctx.fillStyle = "#57e6ff";
-      ctx.fillRect(bx - 1, by - 1, 2, 2);
+      const bx = this.player.x + Math.cos(a) * 26;
+      const by = this.player.y + Math.sin(a) * 26;
+      ctx.spriteRot("blade", bx, by, a + Math.PI / 2);
     }
   }
 
@@ -386,15 +404,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.fillStyle = "#57e6ff";
     ctx.fillRect(90 + i * 7, 24, 5, 5);
   }
-  // 冲刺冷却条
-  if (this.player.dashLv) {
-    // 冲刺充能格
-    const dchMax = 1 + this.player.dashChargeLv;
-    for (let i = 0; i < dchMax; i++) {
-      ctx.fillStyle = i < this.player.dashCharges ? "#4dff88" : "#23283d";
-      ctx.fillRect(90 + i * 7, 38, 5, 5);
-    }
-  }
+  // Issue #51：冲刺充能格已移至角色脚下（见玩家绘制段），不再占用 HUD
   // 时间 (带波次号, 16px 像素字体)
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffd24a";

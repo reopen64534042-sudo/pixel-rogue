@@ -16,7 +16,23 @@ function makeSprite(map: string[], palette: Record<string, string>) {
   return c;
 }
 export const SPR: Record<string, HTMLCanvasElement> = {};
-SPR.player = makeSprite(
+SPR.blade = makeSprite(
+  [
+    "...s....",
+    "..sSs...",
+    "..sSs...",
+    "..sss...",
+    "..sss...",
+    ".gGGg...",
+    "..ggg...",
+    "...g....",
+  ],
+  {
+    s: "#c7d5e8",
+    S: "#f0f6ff",
+    g: "#c9a227",
+  },
+);SPR.player = makeSprite(
   [
     "  hhhh  ",
     " hhhhhh ",

@@ -83,6 +83,29 @@ export class PixelPainter {
     if (w !== undefined && h !== undefined) img.setDisplaySize(w, h);
     else img.setScale(1);
   }
+  /** 居中原点 + 旋转的精灵（Issue #3：环绕飞刃刀形绘制） */
+  spriteRot(
+    key: string,
+    cx: number,
+    cy: number,
+    angle: number,
+    scale = 1,
+  ) {
+    this.active = null;
+    const img =
+      this.images[this.ii] ?? this.scene.add.image(0, 0, key);
+    this.images[this.ii++] = img;
+    img
+      .setTexture(key)
+      .setVisible(true)
+      .setAlpha(this.globalAlpha)
+      .setOrigin(0.5)
+      .setPosition(cx, cy)
+      .setRotation(angle)
+      .setScale(scale)
+      .setDepth(this.depth++)
+      .setScrollFactor(this.hud ? 0 : 1);
+  }
   fillText(value: string, x: number, y: number) {
     this.active = null;
     const label = this.labels[this.ti] ?? this.scene.add.text(0, 0, "");
