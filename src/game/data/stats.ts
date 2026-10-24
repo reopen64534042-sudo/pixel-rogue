@@ -10,6 +10,7 @@ export function statBase() {
     burnSpread: 0,
     meteorGuided: 0,
     burnGround: 0,
+    bladeReflect: 0,
     fireRate: 2.2,
     multishot: 1,
     pierce: 0,

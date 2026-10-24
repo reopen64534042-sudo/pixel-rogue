@@ -513,6 +513,19 @@ export const UPGRADES: Talent[] = [
     f: (p) => (p.burnGround = 1),
     cur: (p) => (p.burnGround ? "燃烧地带已解锁" : "未解锁"),
   },
+  {
+    n: "魔刃回旋",
+    ico: "🪞",
+    t: 1,
+    cat: "防御",
+    d: "环绕飞刃可反弹敌方弹幕，沿原轨迹飞回伤害敌人（伤害不衰减）",
+    max: 1,
+    mech: 1,
+    req: (p) => (p.upCounts["守护之刃"] || 0) > 0,
+    pv: (p) => (p.bladeReflect ? "已解锁" : "解锁: 弹幕反弹"),
+    f: (p) => (p.bladeReflect = 1),
+    cur: (p) => (p.bladeReflect ? "弹幕反弹已解锁" : "未解锁"),
+  },
 ];
 export const TIERS = ["普通", "稀有", "史诗", "传奇"];
 export const TIER_VAL = [1, 2, 4, 8];
