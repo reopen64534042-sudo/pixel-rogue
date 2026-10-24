@@ -271,6 +271,10 @@ export class GameUI {
           const u = UPGRADES.find((item) => item.n === n);
           return u && u.cat === cat;
         });
+        // Issue #46：组内按稀有度从低到高，同稀有度按等级从高到低
+        const tierOf = (n: string) =>
+          UPGRADES.find((item) => item.n === n)?.t ?? 0;
+        inCat.sort((x, y) => tierOf(x[0]) - tierOf(y[0]) || y[1] - x[1]);
         if (!inCat.length) continue;
         const catIco = CAT_ICO[cat] || "";
         const catColor = CAT_COLOR[cat] || "#e8fbff";
