@@ -264,4 +264,79 @@ describe("combat foundation s3-a attribute wiring", () => {
     g.player.upCounts["致命一击"] = 8;
     expect(getPlayerCombatStats(g.player).critMultiplier).toBeCloseTo(2.4, 10);
   });
+
+  it("PR #4 评审 P1：焦土燃烧经管线吃火抗与火系增伤，中性敌人数值与旧直算一致", () => {
+    // 中性敌人：10 DPS × 1s = 10，与旧 e.hp -= dps*dt 逐位一致
+    const g = fresh();
+    const neutral = enemy(g);
+    neutral.hp = 999;
+    neutral.maxhp = 999;
+    g.applyBurnGroundDot(neutral, 10, 1);
+    expect(neutral.hp).toBeCloseTo(999 - 10, 10);
+    expect(g.dmgBy.burn).toBeCloseTo(10, 10);
+    // bomber 火抗 40% → 10 × 0.6 = 6
+    const g2 = fresh();
+    g2.spawnEnemy("bomber");
+    const bomber = g2.enemies[0]!;
+    bomber.hp = 999;
+    bomber.maxhp = 999;
+    g2.applyBurnGroundDot(bomber, 10, 1);
+    expect(bomber.hp).toBeCloseTo(999 - 6, 10);
+    // 火系增伤 +30%（元素亲和满级程序化等效）→ 13；与火抗组合 → 7.8
+    const g3 = fresh();
+    g3.player.typeDamageBonus = { fire: 0.3 };
+    const e3 = enemy(g3);
+    e3.hp = 999;
+    e3.maxhp = 999;
+    g3.applyBurnGroundDot(e3, 10, 1);
+    expect(e3.hp).toBeCloseTo(999 - 13, 10);
+    g3.spawnEnemy("bomber");
+    const b3 = g3.enemies.at(-1)!;
+    b3.hp = 999;
+    b3.maxhp = 999;
+    g3.applyBurnGroundDot(b3, 10, 1);
+    expect(b3.hp).toBeCloseTo(999 - 7.8, 10);
+    // 无普通命中副作用：不产生飘字/暴击/吸血
+    expect(g3.texts.length).toBe(0);
+    // 集成：真实焦土地带逐帧结算走同一入口（DPS = damage × 20%）
+    const g4 = fresh();
+    vi.spyOn(Math, "random").mockReturnValue(0.99);
+    const e4 = enemy(g4);
+    e4.hp = 999;
+    e4.maxhp = 999;
+    e4.speed = 0;
+    g4.player.burnGround = 1;
+    g4.burnZones.push({ x: e4.x, y: e4.y, R: 30, t: 5 });
+    g4.update(1 / 60);
+    expect(g4.dmgBy.burn).toBeCloseTo((g4.player.damage * 0.2) / 60, 10);
+  });
+
+  it("PR #4 评审 P2：暴击率随发射时快照固化，命中前改动不回溯", () => {
+    // 发射时必暴 → 命中前把暴击率改为 0，在途弹丸仍按快照暴击（11 × 2 = 22）
+    const g = fresh();
+    const e = enemy(g, g.player.x + 30, g.player.y);
+    e.hp = 9999;
+    e.maxhp = 9999;
+    e.speed = 0;
+    g.player.crit = 1;
+    vi.spyOn(Math, "random").mockReturnValue(0.99);
+    g.player.fireCd = 0;
+    g.update(1 / 60);
+    g.player.crit = 0;
+    for (let i = 0; i < 40 && g.dmgBy.bullet === 0; i++) g.update(1 / 60);
+    expect(g.dmgBy.bullet).toBe(22);
+    // 反向：发射时 0 暴击率，命中前改成 1 也不暴击
+    const g2 = fresh();
+    const e2 = enemy(g2, g2.player.x + 30, g2.player.y);
+    e2.hp = 9999;
+    e2.maxhp = 9999;
+    e2.speed = 0;
+    g2.player.crit = 0; // 基础暴击率是 0.05，须显式清零
+    vi.spyOn(Math, "random").mockReturnValue(0.01);
+    g2.player.fireCd = 0;
+    g2.update(1 / 60);
+    g2.player.crit = 1;
+    for (let i = 0; i < 40 && g2.dmgBy.bullet === 0; i++) g2.update(1 / 60);
+    expect(g2.dmgBy.bullet).toBe(11);
+  });
 });

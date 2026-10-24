@@ -1,11 +1,31 @@
 import type { GameCore } from "../core/GameCore";
 import type { PixelPainter } from "./PixelPainter";
 import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
-import { SPR } from "./sprites";
+import { spriteEntry } from "./assetRegistry";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
   h = (h ^ (h >> 13)) * 1274126177;
   return ((h ^ (h >> 16)) >>> 0) / 4294967295;
+}
+
+/**
+ * 以逻辑贴图名取「纹理键 + 居中后的整数坐标 + 绘制尺寸」。
+ *
+ * 尺寸一律从贴图条目推导，不再硬编码偏移：程序化贴图与外部 PNG 尺寸不同时，
+ * 硬编码的 -2 / -4 会直接错位。scale 用于精英的放大需求（有独立贴图时传 1）。
+ */
+function spriteRect(key: string, cx: number, cy: number, scale = 1) {
+  const entry = spriteEntry(key);
+  if (!entry) return null;
+  const w = Math.round(entry.w * scale);
+  const h = Math.round(entry.h * scale);
+  return {
+    tex: entry.tex,
+    x: Math.round(cx - w / 2),
+    y: Math.round(cy - h / 2),
+    w,
+    h,
+  };
 }
 export function draw(this: GameCore, ctx: PixelPainter) {
   const TS = 16,
@@ -66,26 +86,19 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   // 宝石 & 药水
   for (const g of this.gems) {
     const bob = Math.sin(this.time * 5 + g.x) * 1;
-    if (g.e) {
-      // 精英宝石: 金色大颗
-      const w = Math.round(5 * 1.8);
-      ctx.sprite(
-        "gemE",
-        Math.round(g.x - w / 2),
-        Math.round(g.y - w / 2 + bob),
-        w,
-        w,
-      );
-    } else {
-      ctx.sprite("gem", Math.round(g.x - 2), Math.round(g.y - 2 + bob));
-    }
+    // 精英宝石: 金色大颗
+    const rect = spriteRect(g.e ? "gemE" : "gem", g.x, g.y + bob, g.e ? 1.8 : 1);
+    if (rect) ctx.sprite(rect.tex, rect.x, rect.y, rect.w, rect.h);
   }
-  for (const o of this.potions)
-    ctx.sprite("potion", Math.round(o.x - 2), Math.round(o.y - 2));
+  for (const o of this.potions) {
+    const rect = spriteRect("potion", o.x, o.y);
+    if (rect) ctx.sprite(rect.tex, rect.x, rect.y, rect.w, rect.h);
+  }
   // 宝箱（波次结束后会自动飞向玩家）
   for (const b of this.boxes) {
     const bob = Math.sin(this.time * 4 + b.x) * 1.2;
-    ctx.sprite("box", Math.round(b.x - 6), Math.round(b.y - 5 + bob));
+    const rect = spriteRect("box", b.x, b.y + bob);
+    if (rect) ctx.sprite(rect.tex, rect.x, rect.y, rect.w, rect.h);
     // Issue #48：特殊宝箱金色皇冠标记
     if (b.special) {
       const gx = Math.round(b.x - 5);
@@ -133,19 +146,20 @@ export function draw(this: GameCore, ctx: PixelPainter) {
 
   // 敌人
   for (const e of this.enemies) {
-    // 精英优先使用专属贴图，未提供时回落到本体贴图
-    const eliteKey = e.spr + "_elite";
-    const key = e.elite && SPR[eliteKey] ? eliteKey : e.spr;
-    const spr = SPR[key];
+    // 精英优先用独立贴图；没有时退回「同系列贴图 ×1.8」。
+    // 命名统一为 `${spr}_elite`，与 sprites.ts 的注册键一致（如 brute_elite）。
+    const eliteKey = `${e.spr}_elite`;
+    const eliteEntry = e.elite ? spriteEntry(eliteKey) : undefined;
     // 火囊虫引爆时胀大，是「要炸了」的第一重信号
     const puff = e.type === "bomber" && e.fuse > 0 ? 1.35 : 1;
-    const w = Math.round(spr.width * (e.elite ? 1.8 : 1) * puff),
-      h = Math.round(spr.height * (e.elite ? 1.8 : 1) * puff);
-    const x = Math.round(e.x - w / 2),
-      y = Math.round(e.y - h / 2);
+    const rect = eliteEntry
+      ? spriteRect(eliteKey, e.x, e.y, puff)
+      : spriteRect(e.spr, e.x, e.y, (e.elite ? 1.8 : 1) * puff);
+    if (!rect) continue;
+    const { x, y, w, h } = rect;
     // 冰冻染色
     if (e.slowT > 0) ctx.globalAlpha = 0.9;
-    ctx.sprite(key, x, y, w, h);
+    ctx.sprite(rect.tex, x, y, w, h);
     if (e.slowT > 0) {
       ctx.globalAlpha = 0.35;
       ctx.fillStyle = "#57e6ff";
@@ -199,11 +213,15 @@ export function draw(this: GameCore, ctx: PixelPainter) {
 
   // 玩家 (冲刺时半透明残影感)
   ctx.globalAlpha = this.player.dashT > 0 ? 0.6 : 1;
-  ctx.sprite(
-    "player",
-    Math.round(this.player.x - 4),
-    Math.round(this.player.y - 5),
-  );
+  const playerRect = spriteRect("player", this.player.x, this.player.y);
+  if (playerRect)
+    ctx.sprite(
+      playerRect.tex,
+      playerRect.x,
+      playerRect.y,
+      playerRect.w,
+      playerRect.h,
+    );
   ctx.globalAlpha = 1;
   // 护盾光环
   if (this.player.shield > 0) {

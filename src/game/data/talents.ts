@@ -1,9 +1,20 @@
 import type { Talent } from "../core/types";
-import { frostFreezeDuration, burnStackDps, critMultiplier } from "../core/DamageMath";
+import {
+  frostFreezeDuration,
+  burnStackDps,
+  critMultiplier,
+} from "../core/DamageMath";
+import { COMBAT_BALANCE } from "./combatBalance";
 
 /** 击杀狂热叠层上限：随天赋等级提高（Lv1→4 层，Lv2→5 层，Lv3→6 层） */
 export function hasteCap(hasteLv: number) {
   return 3 + hasteLv;
+}
+
+/** 磐石预览用：护甲对应的物理减伤百分比（K/(K+DEF) 公式与 DamageSystem 一致） */
+function physMitPct(def: number) {
+  const k = COMBAT_BALANCE.armorK;
+  return Math.round((1 - k / (k + Math.max(0, def))) * 100);
 }
 
 export const UPGRADES: Talent[] = [
@@ -218,8 +229,7 @@ export const UPGRADES: Talent[] = [
     pv: (p) =>
       `间隔 ${Math.max(2.2, 4.6 - p.meteor * 0.4).toFixed(1)}s → ${Math.max(2.2, 4.6 - (p.meteor + 1) * 0.4).toFixed(1)}s`,
     f: (p) => p.meteor++,
-    cur: (p) =>
-      `轰炸间隔 ${Math.max(2.2, 4.6 - p.meteor * 0.4).toFixed(1)}s`,
+    cur: (p) => `轰炸间隔 ${Math.max(2.2, 4.6 - p.meteor * 0.4).toFixed(1)}s`,
   },
   {
     n: "吸血獠牙",
@@ -317,8 +327,7 @@ export const UPGRADES: Talent[] = [
         p.hasteT = 3;
       }
     },
-    cur: (p) =>
-      `上限 3 层(+30% 攻速) · 持续 ${(2 + p.hasteLv).toFixed(0)}s`,
+    cur: (p) => `上限 3 层(+30% 攻速) · 持续 ${(2 + p.hasteLv).toFixed(0)}s`,
   },
   {
     n: "幸运之星",
@@ -512,6 +521,47 @@ export const UPGRADES: Talent[] = [
     pv: (p) => (p.burnGround ? "已解锁" : "解锁: 燃烧地带"),
     f: (p) => (p.burnGround = 1),
     cur: (p) => (p.burnGround ? "燃烧地带已解锁" : "未解锁"),
+  },
+  // —— Combat Foundation S3-B 方案甲（用户已批准）——
+  {
+    n: "磐石",
+    ico: "🪨",
+    t: 1,
+    cat: "防御",
+    d: "护甲 +15/级（物理减伤，与通用减伤乘算）",
+    max: 3,
+    mech: 1,
+    pv: (p) => {
+      const cur = p.defense ?? 0;
+      return `物理减伤 ${physMitPct(cur)}% → ${physMitPct(cur + 15)}%`;
+    },
+    // recompute() 会先清除可选战斗属性键再按 picks 逐次重放（见 TalentSystem），
+    // 因此 f 用增量写法；learnTalent 单次调用同样成立
+    f: (p) => (p.defense = (p.defense ?? 0) + 15),
+    cur: (p) => {
+      const def = p.defense ?? 0;
+      return `护甲 ${def}（物理 -${physMitPct(def)}%，与减伤乘算）`;
+    },
+  },
+  {
+    n: "元素亲和",
+    ico: "🔮",
+    t: 2,
+    cat: "技能",
+    d: "火焰与雷电伤害 +10%/级",
+    max: 3,
+    pv: (p) => {
+      const cur = ((p.typeDamageBonus?.fire ?? 0) * 100).toFixed(0);
+      return `火/雷增伤 +${cur}% → +${Number(cur) + 10}%`;
+    },
+    // 同磐石：增量写法，recompute 清键后重放安全；S4 Modifier 化时改为聚合来源
+    f: (p) => {
+      const tdb = p.typeDamageBonus ?? (p.typeDamageBonus = {});
+      tdb.fire = (tdb.fire ?? 0) + 0.1;
+      tdb.lightning = (tdb.lightning ?? 0) + 0.1;
+    },
+    cur: (p) =>
+      `火焰/雷电伤害 +${((p.typeDamageBonus?.fire ?? 0) * 100).toFixed(0)}%`,
   },
 ];
 export const TIERS = ["普通", "稀有", "史诗", "传奇"];
