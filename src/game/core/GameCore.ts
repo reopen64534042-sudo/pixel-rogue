@@ -68,6 +68,20 @@ export class GameCore {
   boxes: Box[] = [];
   /** Issue #45：焦土燃烧地带 */
   burnZones: { x: number; y: number; R: number; t: number }[] = [];
+  /** Issue #71：剩余宝箱点数转为经验 + 血包（无强化项时的兜底） */
+  drainBoxPicks() {
+    while (this.boxPicks > 0) {
+      this.boxPicks--;
+      this.player.xp += 8;
+      this.potions.push({ x: this.player.x, y: this.player.y });
+    }
+    this.addText(
+      this.player.x,
+      this.player.y - 14,
+      "剩余宝箱转为经验 + 血包",
+      "#57e6ff",
+    );
+  }
   parts: Particle[] = [];
   texts: FloatingText[] = [];
   meteors: Meteor[] = [];

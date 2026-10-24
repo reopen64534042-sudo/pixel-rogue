@@ -52,6 +52,17 @@ export function enterRest(this: GameCore) {
   this.wavePhase = "rest";
   this.bpMode = "rest";
   this.swapUsedThisRest = false;
+  // Issue #67：休整面板依次执行——升级 → 宝箱 → 报告/置换
+  if (this.pendingLevels > 0) {
+    this.bpMode = null;
+    this.openLevelPanel();
+    return;
+  }
+  if (this.boxPicks > 0) {
+    this.bpMode = null;
+    this.openBoxPanel();
+    return;
+  }
   this.showRestBar();
 }
 
@@ -85,15 +96,7 @@ export function updateWave(this: GameCore, dt: number) {
       this.audio.beep(520, 0.2, "triangle", 0.06, 180);
     }
   } else if (this.wavePhase === "collect") {
-    // 经验球吸完、升级选完、宝箱全部收齐 → 依次开箱，开完才进休整
-    if (
-      this.gems.length === 0 &&
-      this.pendingLevels === 0 &&
-      this.boxes.length === 0
-    ) {
-      if (this.boxPicks > 0) {
-        if (this.bpMode !== "box") this.openBoxPanel();
-      } else this.enterRest();
-    }
+    // Issue #67：经验球与宝箱收齐即进休整（升级/宝箱面板在休整中依次执行）
+    if (this.gems.length === 0 && this.boxes.length === 0) this.enterRest();
   }
 }

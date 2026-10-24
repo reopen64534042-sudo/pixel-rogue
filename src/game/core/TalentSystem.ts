@@ -91,13 +91,9 @@ export function openBoxPanel(this: GameCore) {
   if (this.bpMode) return;
   const picks = this.rollBoxPicks();
   if (!picks.length) {
-    // 兜底：没有可强化的天赋（一个都没学，或全部满级）→ 转为少量经验 + 一个血包。
-    // 经验直接累加，升级判定在下次拾取经验球时统一结算。
-    this.boxPicks--;
-    this.player.xp += 8;
-    this.potions.push({ x: this.player.x, y: this.player.y });
-    this.addText(this.player.x, this.player.y - 14, "宝箱：+8 经验", "#57e6ff");
-    this.audio.beep(660, 0.1, "triangle", 0.05, 120);
+    // Issue #71：无可强化项（一个都没学，或全部满级）→ 全部剩余点数转为经验 + 血包
+    this.drainBoxPicks();
+    if (this.wavePhase === "rest") this.view.rest();
     return;
   }
   this.bpMode = "box";
@@ -114,9 +110,15 @@ export function chooseSlot(this: GameCore, index: number) {
     if (this.boxPicks <= 0 || !this.learnTalent(slot.u)) return false;
     this.boxPicks--;
     this.audio.beep(880, 0.12, "square", 0.07, 300);
-    if (this.boxPicks > 0)
+    if (this.boxPicks > 0) {
       this.slots = this.rollBoxPicks().map((u) => ({ u, used: false }));
-    else {
+      // Issue #71：重抽为空（可强化项耗尽）→ 剩余点数转为经验+血包并收尾
+      if (!this.slots.length) {
+        this.drainBoxPicks();
+        this.bpMode = null;
+        this.slots = [];
+      }
+    } else {
       this.bpMode = null;
       this.slots = [];
     }
