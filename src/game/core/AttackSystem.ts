@@ -85,9 +85,9 @@ export function updateAttacks(this: GameCore, dt: number) {
       const dx = e.x - z.x,
         dy = e.y - z.y;
       if (dx * dx + dy * dy < z.R * z.R) {
-        const d = burnGroundDps(p) * dt;
-        e.hp -= d;
-        this.dmgBy.burn += d;
+        // PR #4 评审 P1：经 fire/dot/preserve-float 管线结算（吃火抗与火系增伤），
+        // 死亡/掉落顺序与旧直算一致；中性敌人数值逐位不变
+        this.applyBurnGroundDot(e, burnGroundDps(p), dt);
         if (e.hp <= 0) this.killEnemy(e);
       }
     }

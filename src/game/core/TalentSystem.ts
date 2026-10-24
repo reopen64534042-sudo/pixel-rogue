@@ -35,8 +35,6 @@ export function recompute(this: GameCore) {
   Object.assign(this.player, statBase());
   // Combat Foundation S3-B：statBase 不含可选战斗属性键，Object.assign 不会清除
   // 残留值——磐石/元素亲和等增量型天赋重放前必须清键，否则在旧值上叠加
-  // Combat Foundation S3-B：statBase 不含可选战斗属性键，Object.assign 不会清除
-  // 残留值——磐石/元素亲和等增量型天赋重放前必须清键，否则在旧值上叠加
   for (const key of [
     "defense",
     "resistances",

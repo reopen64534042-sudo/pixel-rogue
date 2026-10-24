@@ -3,6 +3,8 @@ import { createContext, runInContext } from "node:vm";
 import { it, expect, vi, afterEach } from "vitest";
 import { fresh, seeded, learn, enemy } from "./helpers";
 import { UPGRADES } from "../src/game/data/talents";
+import { ETYPES } from "../src/game/data/enemies";
+import type { EnemyConfig } from "../src/game/core/types";
 import { ELITE_XP_STEP, POTION_GROW_CAP } from "../src/game/data/constants";
 afterEach(() => vi.restoreAllMocks());
 /**
@@ -245,7 +247,17 @@ function original() {
       "burnDps:0,burnStacks:0,frostStacks:0,frozenT:0,frostImmuneT:0,",
     )
     // 基线随 Issue #45 对齐：陨星伤害 ×3（用户已批准的平衡变更）
-    .replace("p.damage * 2 + p.meteor * 5", "p.damage * 3 + p.meteor * 8");
+    .replace("p.damage * 2 + p.meteor * 5", "p.damage * 3 + p.meteor * 8")
+    // 基线随 Issue #17 对齐：精英经验 = 25 + (波次-1) × ELITE_XP_STEP（用户已批准）。
+    // 此前两侧精英宝石经验不同（我们 53、v8 25），吸收后玩家等级分叉 → 升级抽卡
+    // 权重不同 → 抽取结果分叉（PR #4 评审 P2 排障：tick 879 抽卡实测）——
+    // 38 卡时代靠种子未显形，新卡改变档位池长度后级联成可见状态差。
+    // 对齐公式后两侧经验/等级/权重对称；expectEliteXp 断言与归一化保持不变。
+    .replace(
+      "gems.push({ x:e.x, y:e.y, vx:0, vy:0, v:25, e:true });",
+      "gems.push({ x:e.x, y:e.y, vx:0, vy:0, v:25+(waveN-1)*ELITE_XP_STEP, e:true });",
+    )
+    .replace("const ETYPES = {", "const ELITE_XP_STEP = 4; const ETYPES = {");
   runInContext(script, context);
   // Issue #55 批次：canOffer 对齐 hidden 语义（不屈移出基线卡池）
   runInContext(
@@ -262,9 +274,29 @@ function original() {
     'UPGRADES.push({ n: "灼热易伤", ico: "🌡️", t: 2, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["烈焰印记"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "烈焰蔓延", ico: "🌋", t: 3, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["灼热易伤"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "天眼制导", ico: "👁️", t: 2, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "焦土燃烧", ico: "🏜️", t: 3, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 });',
     context,
   );
-  // 基线随 S3-B 方案甲注入 2 张新卡桩（卡池组成对齐；req 恒假，模拟中永不投放）
+  // 基线随 S3-B 方案甲注入 2 张新卡桩，并**按我们 UPGRADES 的顺序整体重排**
+  // v8 的卡池（PR #4 评审 P2 排障定论）：
+  // 1) 桩必须无 req、展示字段与真卡一致、f 空操作——req 恒假会把桩排除出
+  //    v8 卡池，升级抽卡池 38≠40 不对称，伤害保底触发时机改变随机消耗数，
+  //    整条随机流分叉（波 8 于 t≈18s 刷怪类型抽取处级联分叉）。
+  // 2) 仅同位追加仍不够：#55 四张桩在 v8 尾部、我们同名真卡在数组中部，
+  //    档位池顺序本就不一致（38 张时代种子未踩中的既有隐患）；新卡把
+  //    档位池长度 N→N+1 后索引平移踩中错位（tick 879 升级抽卡实测）。
+  //    因此以我方数组为基准重排 v8 UPGRADES，两侧卡池在数量、顺序、
+  //    可序列化内容上逐位镜像；桩 f 不写字段，v8 模拟中无人学习它。
   runInContext(
-    'UPGRADES.push({ n: "磐石", ico: "🪨", t: 1, cat: "防御", d: "", max: 3, mech: 1, req: () => false, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "元素亲和", ico: "🔮", t: 2, cat: "技能", d: "", max: 3, mech: 1, req: () => false, pv: () => "", f: () => {}, cur: () => "", __stub: 1 });',
+    'UPGRADES.push({ n: "磐石", ico: "🪨", t: 1, cat: "防御", d: "护甲 +15/级（物理减伤，与通用减伤乘算）", max: 3, mech: 1, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "元素亲和", ico: "🔮", t: 2, cat: "技能", d: "火焰与雷电伤害 +10%/级", max: 3, pv: () => "", f: () => {}, cur: () => "", __stub: 1 });',
+    context,
+  );
+  // 不屈在我方自 v11 起暂隐藏（hidden），v8 原文没有该字段——canOffer 补丁
+  // 的 !u.hidden 拦不住它，v8 卡池因此 35≠34 多出一张（#55 时代的既有隐患，
+  // 新卡改变档位池长度后索引平移踩中，tick 879 实测）。此处同步补 hidden。
+  runInContext('UPGRADES.find(u=>u.n==="不屈").hidden = 1;', context);
+  runInContext(
+    `const _order = ${JSON.stringify(UPGRADES.map((u) => u.n))};
+     const _byName = new Map(UPGRADES.map((u) => [u.n, u]));
+     UPGRADES.length = 0;
+     for (const _n of _order) UPGRADES.push(_byName.get(_n));`,
     context,
   );
   runInContext(
@@ -305,81 +337,144 @@ it("every talent effect, cap and tier matches the protected original", () => {
  */
 it.each([1, 3])(
   "1800 deterministic ticks at wave %i match original combat and movement",
-  (wave) => {
-    const baseline = original();
-    runInContext(
-      `resetGame();player.boltDmgMul=1;waveN=${wave};quota=waveQuota(waveN);keys.d=true;`,
-      baseline,
-    );
-    // Re-seed after original startup star generation, before either simulation begins.
-    baseline.Math.random = seeded(900 + wave);
-    runInContext("for(let i=0;i<1800;i++)update(1/60);", baseline);
-    const expected = JSON.parse(
-      runInContext(
-        "JSON.stringify({player,enemies,bullets,gems,potions,time,kills,spawnCd,chainCd,wavePhase,waveN,quota,spawnedThisWave,dmgBy,ebullets,pendingLevels,bpMode,slotsUsed:slots.map(s=>s.used)})",
-        baseline,
-      ),
-    );
-    vi.spyOn(Math, "random").mockImplementation(seeded(900 + wave));
-    const g = fresh();
-    g.waveN = wave;
-    g.quota = g.waveQuota(wave);
-    g.keys.d = true;
-    // Same original update entry point, independent of display-clock gating.
-    for (let i = 0; i < 1800; i++) g.update(1 / 60);
-    const actual = {
-      player: g.player,
-      enemies: g.enemies,
-      bullets: g.bullets,
-      gems: g.gems,
-      potions: g.potions,
-      time: g.time,
-      kills: g.kills,
-      spawnCd: g.spawnCd,
-      chainCd: g.chainCd,
-      wavePhase: g.wavePhase,
-      waveN: g.waveN,
-      quota: g.quota,
-      spawnedThisWave: g.spawnedThisWave,
-      dmgBy: g.dmgBy,
-      ebullets: g.ebullets,
-      pendingLevels: g.pendingLevels,
-      bpMode: g.bpMode,
-      slotsUsed: g.slots.map((s) => s.used),
-    };
-    expectParity(actual, expected, wave);
-  },
+  (wave) => runWaveParity(wave),
 );
+
+function runWaveParity(wave: number) {
+  const baseline = original();
+  runInContext(
+    `resetGame();player.boltDmgMul=1;waveN=${wave};quota=waveQuota(waveN);keys.d=true;`,
+    baseline,
+  );
+  // Re-seed after original startup star generation, before either simulation begins.
+  baseline.Math.random = seeded(900 + wave);
+  runInContext("for(let i=0;i<1800;i++)update(1/60);", baseline);
+  const expected = JSON.parse(
+    runInContext(
+      "JSON.stringify({player,enemies,bullets,gems,potions,time,kills,spawnCd,chainCd,wavePhase,waveN,quota,spawnedThisWave,dmgBy,ebullets,pendingLevels,bpMode,slotsUsed:slots.map(s=>s.used)})",
+      baseline,
+    ),
+  );
+  vi.spyOn(Math, "random").mockImplementation(seeded(900 + wave));
+  const g = fresh();
+  g.waveN = wave;
+  g.quota = g.waveQuota(wave);
+  g.keys.d = true;
+  // Same original update entry point, independent of display-clock gating.
+  for (let i = 0; i < 1800; i++) g.update(1 / 60);
+  const actual = {
+    player: g.player,
+    enemies: g.enemies,
+    bullets: g.bullets,
+    gems: g.gems,
+    potions: g.potions,
+    time: g.time,
+    kills: g.kills,
+    spawnCd: g.spawnCd,
+    chainCd: g.chainCd,
+    wavePhase: g.wavePhase,
+    waveN: g.waveN,
+    quota: g.quota,
+    spawnedThisWave: g.spawnedThisWave,
+    dmgBy: g.dmgBy,
+    ebullets: g.ebullets,
+    pendingLevels: g.pendingLevels,
+    bpMode: g.bpMode,
+    slotsUsed: g.slots.map((s) => s.used),
+  };
+  expectParity(actual, expected, wave);
+}
 
 // 波次 4 因精英坦克带甲分叉（见上方依据），全天赋场景改在波 3（slime/bat 中性）
 it.each([3])(
   "all talents except excluded baselines in combat retain original simulation at wave %i",
+  (wave) => runAllTalentsParity(wave),
+);
+
+function runAllTalentsParity(wave: number) {
+  const baseline = original();
+  const excluded = JSON.stringify([...BASELINE_EXCLUDED, ...NOT_IN_V8]);
+  runInContext(
+    `resetGame();player.boltDmgMul=1;waveN=${wave};quota=waveQuota(waveN);for(const u of UPGRADES.filter(x=>!${excluded}.includes(x.n))){u.f(player);player.upCounts[u.n]=1;player.picks.push(u.n);}keys.s=true;keys[' ']=true;const q=UPGRADES.find(x=>x.n==='强化弹丸');q.d='魔弹伤害 +25%（仅魔弹）';q.max=30;`,
+    baseline,
+  );
+  baseline.Math.random = seeded(400 + wave);
+  runInContext("for(let i=0;i<1200;i++)update(1/60);", baseline);
+  const fields =
+    "player,enemies,bullets,gems,potions,time,kills,spawnCd,chainCd,wavePhase,waveN,quota,spawnedThisWave,dmgBy,ebullets,meteors,bolts,pendingLevels,bpMode,slots";
+  const expected = JSON.parse(
+    runInContext(`JSON.stringify({${fields}})`, baseline),
+  );
+  vi.spyOn(Math, "random").mockImplementation(seeded(400 + wave));
+  const g = fresh();
+  g.waveN = wave;
+  g.quota = g.waveQuota(wave);
+  for (const u of parityTalents) g.learnTalent(u);
+  g.keys.s = true;
+  g.keys[" "] = true;
+  for (let i = 0; i < 1200; i++) g.update(1 / 60);
+  const actual = Object.fromEntries(
+    fields.split(",").map((key) => [key, g[key as keyof typeof g]]),
+  );
+  expectParity(actual, expected, wave);
+}
+
+/**
+ * 基线更新依据：PR #4 评审 P2——恢复高波次全场对照覆盖。
+ * 波 4/5/8 在生产配置下因方案甲 DEF/RES 分叉（见上方依据），此处改为
+ * **测试内临时中性化**怪物新属性（try/finally 恢复，不修改生产配置迁就测试），
+ * 恢复原波次的严格逐字段对照，保护高波次战斗/精英/掉落/波次转换的整场回归。
+ */
+function neutralizeEnemyAttributes() {
+  const keys = Object.keys(ETYPES);
+  const saved = keys.map((k) => {
+    const cfg = ETYPES[k];
+    const snapshot: {
+      defense?: EnemyConfig["defense"];
+      resistances?: EnemyConfig["resistances"];
+    } = {};
+    if (cfg.defense !== undefined) {
+      snapshot.defense = cfg.defense;
+      delete cfg.defense;
+    }
+    if (cfg.resistances !== undefined) {
+      snapshot.resistances = cfg.resistances;
+      delete cfg.resistances;
+    }
+    return snapshot;
+  });
+  return () => {
+    keys.forEach((k, i) => Object.assign(ETYPES[k], saved[i]));
+  };
+}
+
+// 波次 8 基础场景暂不恢复：排障已核对两侧卡池（名称/顺序/可投放/档位/
+// DMG_POOL）、权重、等级/经验、rollPicks 代码与随机消耗计数均一致，仍在
+// tick 879 的升级抽卡处分叉（v8 抽到致命一击、我们抽到磨刃），随后级联成
+// 终局 HP ±8.1 的可见差异。已定位并修复三个真实基线不对称（不屈 hidden、
+// 卡池顺序镜像、精英经验公式对齐，见 original() 内注释）；波 8 的残余根因
+// 列为未决项，待后续专项排查，不在本 PR 强行放行。
+it.each([4, 5])(
+  "wave %i strict parity restored with S3-B attributes neutralized in-test",
   (wave) => {
-    const baseline = original();
-    const excluded = JSON.stringify([...BASELINE_EXCLUDED, ...NOT_IN_V8]);
-    runInContext(
-      `resetGame();player.boltDmgMul=1;waveN=${wave};quota=waveQuota(waveN);for(const u of UPGRADES.filter(x=>!${excluded}.includes(x.n))){u.f(player);player.upCounts[u.n]=1;player.picks.push(u.n);}keys.s=true;keys[' ']=true;const q=UPGRADES.find(x=>x.n==='强化弹丸');q.d='魔弹伤害 +25%（仅魔弹）';q.max=30;`,
-      baseline,
-    );
-    baseline.Math.random = seeded(400 + wave);
-    runInContext("for(let i=0;i<1200;i++)update(1/60);", baseline);
-    const fields =
-      "player,enemies,bullets,gems,potions,time,kills,spawnCd,chainCd,wavePhase,waveN,quota,spawnedThisWave,dmgBy,ebullets,meteors,bolts,pendingLevels,bpMode,slots";
-    const expected = JSON.parse(
-      runInContext(`JSON.stringify({${fields}})`, baseline),
-    );
-    vi.spyOn(Math, "random").mockImplementation(seeded(400 + wave));
-    const g = fresh();
-    g.waveN = wave;
-    g.quota = g.waveQuota(wave);
-    for (const u of parityTalents) g.learnTalent(u);
-    g.keys.s = true;
-    g.keys[" "] = true;
-    for (let i = 0; i < 1200; i++) g.update(1 / 60);
-    const actual = Object.fromEntries(
-      fields.split(",").map((key) => [key, g[key as keyof typeof g]]),
-    );
-    expectParity(actual, expected, wave);
+    const restore = neutralizeEnemyAttributes();
+    try {
+      runWaveParity(wave);
+    } finally {
+      restore();
+    }
+  },
+);
+
+it.each([4, 8])(
+  "all talents at wave %i strict parity restored with S3-B attributes neutralized in-test",
+  (wave) => {
+    const restore = neutralizeEnemyAttributes();
+    try {
+      runAllTalentsParity(wave);
+    } finally {
+      restore();
+    }
   },
 );
 

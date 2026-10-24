@@ -49,9 +49,12 @@ export function hurtEnemy(
   opts: HitOptions = {},
 ): DamageResult | undefined {
   if (e.dead || this.state !== "play") return undefined;
-  // §3.4 步骤 3：暴击判定留在编排层，掷骰条件与次数与旧路径一致
+  // §3.4 步骤 3：暴击判定留在编排层，掷骰条件与次数与旧路径一致。
+  // PR #4 评审 P2：暴击率与倍率同源——弹丸命中优先读发射时快照的 critChance，
+  // 其余路径读当前玩家；不新增随机调用、不改变命中执行顺序
+  const critChance = opts.attackerStats?.critChance ?? this.player.crit;
   let crit = false;
-  if (!opts.noCrit && Math.random() < this.player.crit) {
+  if (!opts.noCrit && Math.random() < critChance) {
     crit = true;
   }
   // Issue #42 灼热易伤：灼烧目标受伤增加——条件天赋增伤折叠进 rawAmount
@@ -377,31 +380,31 @@ export function damagePlayer(
 }
 
 /**
- * §3.3/§5 灼烧 DoT 入口：无副作用触发链——不取整、不保底、不暴击、
- * 不触发吸血/飘字/连锁/击退。由 EnemySystem 每帧调用，燃烧粒子等表现
- * 留在调用侧，死亡判定也由调用侧按原顺序执行。
+ * §3.3/§5 灼烧与焦土共用的火系 DoT 结算：无副作用触发链——不取整、不保底、
+ * 不暴击、不触发吸血/飘字/连锁/击退，记账到 dmgBy.burn；死亡判定由调用侧
+ * 按原顺序执行（PR #2 三审：lethal 表示已达阈值，killed 恒为 false）。
+ * 攻击方快照每帧读取当前玩家（与 DPS 的动态口径一致，见任务书 DoT 政策）。
  */
-export function applyBurnDot(
-  this: GameCore,
+function applyFireDot(
+  core: GameCore,
   e: Enemy,
+  dps: number,
   dt: number,
 ): DamageResult {
   const calc = calculateDamage(DAMAGE_TYPES, {
-    rawAmount: e.burnDps * dt,
+    rawAmount: dps * dt,
     type: "fire",
     form: "other",
     origin: "burn",
     kind: "dot",
     precision: "preserve-float",
     isCritical: false,
-    attackerStats: getPlayerCombatStats(this.player),
+    attackerStats: getPlayerCombatStats(core.player),
     defenderStats: getEnemyCombatStats(e),
   });
   const hpBefore = e.hp;
   e.hp -= calc.settledDamage;
-  this.dmgBy.burn += calc.settledDamage;
-  // PR #2 三审：死亡结算由 EnemySystem 按原顺序随后执行（粒子/击杀/随机数顺序
-  // 不变），返回时尚未完成——lethal 表示已达致死阈值，killed 恒为 false
+  core.dmgBy.burn += calc.settledDamage;
   return {
     ...calc,
     effectiveHpLoss: Math.min(hpBefore, calc.settledDamage),
@@ -411,4 +414,27 @@ export function applyBurnDot(
     killed: false,
     preventedDeath: false,
   };
+}
+
+/** 灼烧 DoT（EnemySystem 每帧调用）：DPS 来自施加时定值的 e.burnDps */
+export function applyBurnDot(
+  this: GameCore,
+  e: Enemy,
+  dt: number,
+): DamageResult {
+  return applyFireDot(this, e, e.burnDps, dt);
+}
+
+/**
+ * 焦土燃烧地带 DoT（PR #4 评审 P1，Issue #45）：DPS 由 DamageMath.burnGroundDps
+ * 按当前玩家逐帧计算，经 fire/dot/preserve-float 管线吃火抗与火系增伤；
+ * 中性敌人数值与旧直算逐位一致。由 AttackSystem 每帧调用，死亡判定留在调用侧。
+ */
+export function applyBurnGroundDot(
+  this: GameCore,
+  e: Enemy,
+  dps: number,
+  dt: number,
+): DamageResult {
+  return applyFireDot(this, e, dps, dt);
 }

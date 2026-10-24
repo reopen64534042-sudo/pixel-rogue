@@ -244,6 +244,7 @@ export class GameUI {
         "✴️ 全局增伤",
         p.globalDamageBonus ? "+" + pct(p.globalDamageBonus) : "—",
       ],
+      ["⚔️ 物理增伤", typeBonus.physical ? "+" + pct(typeBonus.physical) : "—"],
       ["🌡️ 火焰增伤", typeBonus.fire ? "+" + pct(typeBonus.fire) : "—"],
       [
         "🌩️ 雷电增伤",
@@ -265,8 +266,19 @@ export class GameUI {
         "🪨 护甲",
         p.defense ? `${p.defense}（物理 -${physMit(p.defense)}%）` : "—",
       ],
-      ["🌋 火焰抗性", resist.fire ? pct(resist.fire) : "—"],
-      ["🌩️ 雷电抗性", resist.lightning ? pct(resist.lightning) : "—"],
+      // PR #4 评审 P3：显示值同样受 resistanceCap 裁剪（与战斗实际减伤一致）
+      [
+        "🌋 火焰抗性",
+        resist.fire
+          ? pct(Math.min(resist.fire, COMBAT_BALANCE.resistanceCap))
+          : "—",
+      ],
+      [
+        "🌩️ 雷电抗性",
+        resist.lightning
+          ? pct(Math.min(resist.lightning, COMBAT_BALANCE.resistanceCap))
+          : "—",
+      ],
       ["✨ 生命回复", p.regen ? p.regen.toFixed(1) + " /秒" : "—"],
       ["🦷 吸血", p.lifesteal ? (p.lifesteal * 100).toFixed(1) + "%" : "—"],
       ["🌵 荆棘反伤", p.thorns ? `${p.thorns}` : "—"],
