@@ -168,7 +168,11 @@ function original() {
     setTimeout() {},
   });
   const html = readFileSync("legacy/upstream-v8.html", "utf8");
-  runInContext(html.match(/<script>([\s\S]*?)<\/script>/)![1], context);
+  // 基线随 Issue #37 更名对齐：急速施法 → 疾速扳机（否则按名查找落空）
+  const script = html
+    .match(/<script>([\s\S]*?)<\/script>/)![1]
+    .replace(/急速施法/g, "疾速扳机");
+  runInContext(script, context);
   runInContext(
     "muted=true;state='play';drawCards=()=>{};showRestBar=()=>{bpMode='rest';};",
     context,
