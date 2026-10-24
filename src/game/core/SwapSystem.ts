@@ -40,14 +40,21 @@ export function selectMaterial(this: GameCore, name: string) {
     this.state !== "play" ||
     this.wavePhase !== "rest" ||
     !this.swapOpen ||
-    !this.swTarget ||
     !u ||
-    u.t !== this.swTarget - 1 ||
+    u.t > 2 ||
     !lv
   )
     return false;
-  if (current < lv && this.selectedCount() < 2) this.swSel[name] = current + 1;
-  else delete this.swSel[name];
+  // Issue #74：两步式——目标档位由首选材料自动推导（材料档+1），
+  // 后续材料必须与已选材料同稀有度；选空后回退目标档，允许改选其他档位。
+  if (this.swTarget && u.t !== this.swTarget - 1) return false;
+  if (current < lv && this.selectedCount() < 2) {
+    this.swSel[name] = current + 1;
+    this.swTarget = u.t + 1;
+  } else {
+    delete this.swSel[name];
+    if (!this.selectedCount()) this.swTarget = 0;
+  }
   return true;
 }
 export function melt(this: GameCore) {
