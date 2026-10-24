@@ -12,7 +12,14 @@ export function updateAttacks(this: GameCore, dt: number) {
         (p.fireRate * (1 + p.haste * 0.1 + (p.rageT > 0 ? 0.2 * p.rageLv : 0)));
       const base = Math.atan2(tgt.y - p.y, tgt.x - p.x);
       for (let i = 0; i < p.multishot; i++) {
-        const a = base + (i - (p.multishot - 1) / 2) * 0.16;
+        // Issue #36 动态散布：目标附近敌人越少，弹道越收拢（孤立目标近平行）
+        const near = this.enemies.reduce(
+          (n, e) =>
+            (e.x - tgt.x) ** 2 + (e.y - tgt.y) ** 2 < 110 * 110 ? n + 1 : n,
+          0,
+        );
+        const spread = 0.04 + 0.12 * Math.min(1, (near - 1) / 4);
+        const a = base + (i - (p.multishot - 1) / 2) * spread;
         this.bullets.push({
           x: p.x,
           y: p.y - 3,

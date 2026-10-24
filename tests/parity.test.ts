@@ -20,9 +20,13 @@ afterEach(() => vi.restoreAllMocks());
  * 15 波起难度超线性增长、12 波起每波多 BOSS、BOSS 特殊宝箱——
  * 16 波的逐帧对照因此偏离 v8，该波次从全模拟对照中移除，
  * 由 D-03（难度公式）/ D-04（精英配额与特殊宝箱）显式断言保护。其余波次仍全部参与严格对照。
+ *
+ * 基线更新依据：Issue #36（用户已批准的手感变更）。
+ * 多弹道散布改为动态（孤立目标收拢 0.04 / 密集目标 0.16），
+ * 分裂射击不参与 v8 对照，由 D-05 显式断言保护。
  * 任何其他天赋出现与 v8 的差异都按 bug 处理。
  */
-const BASELINE_EXCLUDED = ["击杀狂热", "强化弹丸"] as const;
+const BASELINE_EXCLUDED = ["击杀狂热", "强化弹丸", "分裂射击"] as const;
 // v8 原版无 boltDmgMul 字段：对照前向原版 player 注入默认值 1，仅对齐结构，值语义不变。
 const parityTalents = UPGRADES.filter(
   (u) => !BASELINE_EXCLUDED.includes(u.n as (typeof BASELINE_EXCLUDED)[number]),
@@ -358,4 +362,36 @@ it("D-04 BOSS 掉落特殊宝箱：+2 宝箱点数，不占普通掉落上限", 
   g.player.y = box.y;
   g.update(1 / 60);
   expect(g.boxPicks).toBe(before + 2);
+});
+/**
+ * 基线更新依据：Issue #36（用户已批准的手感变更）。
+ * 动态散布：near = 目标 110px 内敌人数（含目标），
+ * spread = 0.04 + 0.12 × min(1, (near-1)/4)——孤立目标近平行，5+ 目标完整扇形。
+ * 保留回归能力：任何偏离该公式的实现都会让本条失败。
+ */
+it("D-05 动态散布：孤立目标收拢 0.04，密集目标展开 0.16", () => {
+  const angle = (b: { vx: number; vy: number }) => Math.atan2(b.vy, b.vx);
+  // 孤立目标 → 收拢
+  const g = fresh();
+  const split = UPGRADES.find((u) => u.n === "分裂射击");
+  g.learnTalent(split!);
+  g.learnTalent(split!); // multishot 3
+  enemy(g);
+  g.player.fireCd = 0;
+  g.update(1 / 60);
+  expect(g.bullets.length).toBe(3);
+  const tight = [1, 2].map((i) => angle(g.bullets[i]) - angle(g.bullets[i - 1]));
+  for (const d of tight) expect(d).toBeCloseTo(0.04, 1);
+  // 密集目标 → 展开
+  const g2 = fresh();
+  g2.learnTalent(split!);
+  g2.learnTalent(split!);
+  enemy(g2);
+  for (let i = 0; i < 5; i++)
+    enemy(g2, g2.player.x + 60 + i * 8, g2.player.y + (i % 2) * 10);
+  g2.player.fireCd = 0;
+  g2.update(1 / 60);
+  expect(g2.bullets.length).toBe(3);
+  const wide = [1, 2].map((i) => angle(g2.bullets[i]) - angle(g2.bullets[i - 1]));
+  for (const d of wide) expect(d).toBeCloseTo(0.16, 1);
 });
