@@ -2,6 +2,7 @@ import { UPGRADES } from "../data/talents";
 import type { GameCore } from "./GameCore";
 
 export function openSwap(this: GameCore) {
+  this.ensurePlay(); // Issue #34
   if (
     this.state !== "play" ||
     this.wavePhase !== "rest" ||
@@ -14,6 +15,7 @@ export function openSwap(this: GameCore) {
   return true;
 }
 export function setSwapTarget(this: GameCore, t: number) {
+  this.ensurePlay(); // Issue #34
   if (
     !this.swapOpen ||
     this.state !== "play" ||
@@ -33,6 +35,7 @@ export function selectMaterial(this: GameCore, name: string) {
   const u = UPGRADES.find((u) => u.n === name),
     lv = this.player.upCounts[name] || 0,
     current = this.swSel[name] || 0;
+  this.ensurePlay(); // Issue #34
   if (
     this.state !== "play" ||
     this.wavePhase !== "rest" ||
@@ -48,6 +51,7 @@ export function selectMaterial(this: GameCore, name: string) {
   return true;
 }
 export function melt(this: GameCore) {
+  this.ensurePlay(); // Issue #34
   if (
     this.state !== "play" ||
     this.wavePhase !== "rest" ||
