@@ -93,7 +93,9 @@ export function generalMitigationFactor(
  * 结算精度由 request.precision 显式声明（§3.3）：round-min-one 在末尾一次
  * 取整并对正伤害保底 1 点（对应既有 hurtEnemy 的 Math.max(1, Math.round)，
  * 用于敌方离散命中）；preserve-float 保留浮点（对应既有 damagePlayer 的
- * 玩家浮点扣血习惯，dot 固定此值）。rawAmount=0 是合法零伤害，保持为 0；
+ * 玩家浮点扣血习惯，dot 固定此值）。结算为 0 的命中（rawAmount=0，或乘区
+ * 倍率恰为 0，如 -100% 增伤、0 暴击倍率）是合法零伤害，保持为 0——保底
+ * 1 点只作用于结算为正的命中，不得把零倍率复活成 1 点。
  * NaN/负数等非法输入显式抛错，绝不静默变成 1 点。dot 禁止暴击与取整精度
  * （§3.3），由本函数运行时拒绝非法组合；暴击判定本身由编排层负责。
  */
@@ -166,7 +168,7 @@ export function calculateDamage<R extends DamageTypeRegistry>(
   }
 
   const settledDamage =
-    request.precision === "round-min-one" && request.rawAmount > 0
+    request.precision === "round-min-one" && settled > 0
       ? Math.max(1, Math.round(settled))
       : settled;
   return {

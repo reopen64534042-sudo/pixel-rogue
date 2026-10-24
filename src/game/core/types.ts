@@ -223,6 +223,12 @@ export interface EnemyBullet extends Point {
   dmg: number;
   r: number;
   life: number;
+  /**
+   * 发射时攻击者快照（Combat Foundation S2 · PR #2 评审 P2-3）：
+   * 发射者可能在命中前死亡/移除，因此存快照而非敌人引用；必须可选，
+   * 未携带时（如手工构造）对象结构与 v8 对照一致。
+   */
+  stats?: Readonly<CombatStatsSnapshot>;
 }
 export interface Gem extends Point {
   vx: number;
@@ -294,6 +300,8 @@ export interface PlayerHitOptions {
   type?: DamageTypeId;
   /** Combat Foundation S2（§5）：攻击方式，缺省 other */
   form?: AttackForm;
+  /** 发射时/引爆时攻击者快照（PR #2 评审 P2-3）：优先于 opts.src 构造默认快照 */
+  attackerStats?: Readonly<CombatStatsSnapshot>;
 }
 export interface Slot {
   u: Talent;

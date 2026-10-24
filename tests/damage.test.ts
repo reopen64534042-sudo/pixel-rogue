@@ -356,6 +356,23 @@ describe("combat foundation s1 damage calculator", () => {
         }),
       ).settledDamage,
     ).toBe(0);
+    // PR #2 评审 P2-1：round-min-one 下零结算同样保持 0，不得复活成 1 点
+    expect(
+      calculateDamage(
+        DAMAGE_TYPES,
+        req({ attackerStats: snap({ globalDamageBonus: -1 }) }),
+      ).settledDamage,
+    ).toBe(0);
+    // 合法的 0 暴击倍率同理：结算 0 保持 0
+    expect(
+      calculateDamage(
+        DAMAGE_TYPES,
+        req({
+          isCritical: true,
+          attackerStats: snap({ critMultiplier: 0 }),
+        }),
+      ).settledDamage,
+    ).toBe(0);
   });
 
   it("dot 保留浮点精度：不取整、不保底", () => {

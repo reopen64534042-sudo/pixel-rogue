@@ -231,4 +231,153 @@ describe("combat foundation s2 pipeline", () => {
     expect(e2.dead).toBe(true);
     expect(g2.kills).toBe(1);
   });
+
+  it("hurtEnemy 产出完整 DamageResult：结算值、实际损失封顶、击杀标记（§3.5）", () => {
+    const g = fresh();
+    const e = enemy(g);
+    const hp0 = e.hp;
+    vi.spyOn(Math, "random").mockReturnValue(0.99);
+    const r = g.hurtEnemy(e, 1000, 0, 0, {
+      src: "bullet",
+      type: "physical",
+      form: "ranged",
+    });
+    expect(r?.rawDamage).toBe(1000);
+    expect(r?.settledDamage).toBe(1000);
+    expect(r?.effectiveHpLoss).toBe(hp0); // 溢出部分不计入实际损失
+    expect(r?.killed).toBe(true);
+    expect(r?.dodged).toBe(false);
+    expect(r?.shieldUsed).toBe("none");
+    expect(r?.preventedDeath).toBe(false);
+    const e2 = enemy(g);
+    e2.hp = 999;
+    e2.maxhp = 999;
+    const r2 = g.hurtEnemy(e2, 23.7, 0, 0, {
+      src: "bullet",
+      type: "physical",
+      form: "ranged",
+    });
+    expect(r2?.settledDamage).toBe(24);
+    expect(r2?.effectiveHpLoss).toBe(24);
+    expect(r2?.killed).toBe(false);
+    // 非战斗状态早退返回 undefined
+    g.state = "pause";
+    expect(
+      g.hurtEnemy(e2, 10, 0, 0, {
+        src: "bullet",
+        type: "physical",
+        form: "ranged",
+      }),
+    ).toBeUndefined();
+    g.state = "play";
+  });
+
+  it("damagePlayer 各分支返回对应 DamageResult：闪避/壁垒/护盾/不屈/死亡", () => {
+    const g = fresh();
+    const e = enemy(g);
+    g.player.dodge = 0.5;
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    g.player.hurtCd = 0;
+    const dodged = g.damagePlayer(10, { type: "physical", form: "ranged" });
+    expect(dodged.dodged).toBe(true);
+    expect(dodged.settledDamage).toBe(0);
+    expect(dodged.effectiveHpLoss).toBe(0);
+    expect(dodged.shieldUsed).toBe("none");
+    g.player.dodge = 0;
+    g.player.hurtCd = 0;
+    g.player.tempShield = 1;
+    const barrier = g.damagePlayer(10, {
+      melee: true,
+      src: e,
+      type: "physical",
+      form: "melee",
+    });
+    expect(barrier.shieldUsed).toBe("temporary");
+    expect(barrier.effectiveHpLoss).toBe(0);
+    g.player.hurtCd = 0;
+    g.player.shield = 1;
+    const shield = g.damagePlayer(10, { type: "physical", form: "ranged" });
+    expect(shield.shieldUsed).toBe("normal");
+    expect(shield.effectiveHpLoss).toBe(0);
+    // 不屈：preventedDeath 且实际损失封顶
+    const g2 = fresh();
+    const e2 = enemy(g2);
+    g2.player.nd = 1;
+    g2.player.hp = 5;
+    g2.player.hurtCd = 0;
+    const nd = g2.damagePlayer(20, {
+      melee: true,
+      src: e2,
+      type: "physical",
+      form: "melee",
+    });
+    expect(nd.preventedDeath).toBe(true);
+    expect(nd.killed).toBe(false);
+    expect(nd.effectiveHpLoss).toBe(5);
+    expect(g2.player.hp).toBe(1);
+    // 致命一击（无不屈）：killed = true 并触发结算
+    const g3 = fresh();
+    g3.player.hurtCd = 0;
+    g3.player.hp = 5;
+    const dead = g3.damagePlayer(20, { type: "physical", form: "ranged" });
+    expect(dead.killed).toBe(true);
+    expect(dead.effectiveHpLoss).toBe(5);
+    expect(g3.state).toBe("over");
+  });
+
+  it("applyBurnDot 返回结算结果，实际损失封顶剩余 HP", () => {
+    const g = fresh();
+    const e = enemy(g);
+    e.hp = 1;
+    e.burnT = 1;
+    e.burnDps = 90; // 每帧 1.5，超出剩余 1 HP
+    const r = g.applyBurnDot(e, 1 / 60);
+    expect(r.settledDamage).toBeCloseTo(1.5, 10);
+    expect(r.effectiveHpLoss).toBe(1); // 溢出的 0.5 不计入
+    expect(r.killed).toBe(true); // 死亡应用仍由 EnemySystem 按原顺序执行
+    expect(e.dead).toBeFalsy();
+    expect(g.dmgBy.burn).toBeCloseTo(1.5, 10);
+  });
+
+  it("敌方弹丸携带发射时快照，命中读取 attackerStats（PR #2 评审 P2-3）", () => {
+    // 手工构造带 +50% 全局增伤快照的弹丸：8 × 1.5 = 12（真实敌人 S2 恒为零值快照）
+    const g = fresh();
+    g.player.hurtCd = 0;
+    g.ebullets.push({
+      x: g.player.x,
+      y: g.player.y,
+      vx: 0,
+      vy: 0,
+      dmg: 8,
+      r: 2,
+      life: 1,
+      stats: {
+        attack: 8,
+        defense: 0,
+        critChance: 0,
+        critMultiplier: 1,
+        tough: 0,
+        resistances: {},
+        globalDamageBonus: 0.5,
+        typeDamageBonus: {},
+        formDamageBonus: {},
+      },
+    });
+    g.update(1 / 60);
+    expect(g.player.hp).toBeCloseTo(100 - 12, 10);
+    // 射手真实发射：弹丸带默认零值快照，attack 与伤害快照同源
+    const g2 = fresh();
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    g2.spawnEnemy("shooter");
+    const s = g2.enemies[0]!;
+    s.x = g2.player.x - 100;
+    s.y = g2.player.y;
+    s.shootCd = 0;
+    s.speed = 0;
+    g2.update(1 / 60);
+    expect(g2.ebullets).toHaveLength(1);
+    expect(g2.ebullets[0].stats).toBeDefined();
+    expect(g2.ebullets[0].stats!.attack).toBeCloseTo(s.dmg);
+    expect(g2.ebullets[0].stats!.globalDamageBonus).toBe(0);
+  });
 });

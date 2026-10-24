@@ -67,8 +67,12 @@ export function updateProjectiles(this: GameCore, dt: number) {
       rr = p.r + b.r;
     if (dx * dx + dy * dy < rr * rr && p.hurtCd <= 0 && p.dashT <= 0) {
       this.ebullets.splice(i, 1);
-      if (this.damagePlayer(b.dmg, { type: "physical", form: "ranged" }))
-        return true;
+      const hit = this.damagePlayer(b.dmg, {
+        type: "physical",
+        form: "ranged",
+        attackerStats: b.stats,
+      });
+      if (hit.killed) return true;
     }
   }
 }

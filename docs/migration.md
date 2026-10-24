@@ -518,3 +518,24 @@ Vite base='./'；dist 包含 HTML、JS/CSS、字体及许可证。生产无 lega
 | `npx prettier@3.9.10 --check`（变更文件） | 通过 |
 
 环境备注：浏览器测试前 4173 端口被当日 20:08 遗留的本仓库 vite preview 占用（其他会话残留，PID 55784），已终止该进程后按标准命令验证；需要时可用 `npm run preview` 重启。
+
+### PR #2 评审修订（2026-10-24）
+
+评审结论 3×P2（无 P0/P1），全部于本分支第二轮修复：
+
+| 级别 | 问题 | 修复 |
+|---|---|---|
+| P2 | 零倍率复活成 1 点：-100% 乘区或合法 0 暴击倍率下结算为 0，却被最低伤害恢复成 1 | 保底条件从 `rawAmount>0` 改为 `settled>0`：结算为 0 的命中保持 0；-100% 乘区（round-min-one）与 0 暴击倍率两个边界用例入库 |
+| P2 | `DamageResult` 契约已声明但未产出 | `hurtEnemy`/`damagePlayer`/`applyBurnDot` 全路径产出 §3.5 完整结果：`effectiveHpLoss = min(受击前 HP, 结算值)`（溢出封顶）、`dodged`/`shieldUsed`（none/temporary/normal）/`killed`/`preventedDeath`；被闪避/护盾抵挡的命中未进入数值计算，结算与损失记 0；`damagePlayer` 返回值由 boolean 改为 `DamageResult`（两处调用方改读 `.killed`，已核验无外部调用依赖旧返回值；hurtEnemy 早退返回 undefined） |
+| P2 | 敌方远程攻击缺少攻击者上下文 | `EnemyBullet` 新增可选 `stats`（**发射时快照**，发射者可能在命中前死亡/移除，不依赖存活引用）；射手发射时经 `enemyCombatStats(e)` 快照，命中时经 `opts.attackerStats` 进入管线；自爆改为引爆时快照；接触伤害保留 `src`（反伤需要引用且即时结算） |
+
+parity 新增**第四条归一化**（D-02 先例）：弹丸 `stats` 从对照两侧摘出，并断言全部对照场景下快照为零值默认、`attack` 与伤害快照同源——证明该字段在 S2 数值零影响；S3 引入非零来源时须同步更新该断言。
+
+新增测试 4 项（combat 8→12 项，damage 边界并入既有用例），全套 **100 项**。变异验证 3 组均被咬住后恢复：保底条件回退 `rawAmount>0`、`damagePlayer` 忽略 `opts.attackerStats`、`effectiveHpLoss` 不封顶。
+
+| 项 | 结果 |
+|---|---|
+| `npm run typecheck` | 通过 |
+| `npm test` | **100 项通过**（parity 20 项全绿，含新归一化） |
+| `npm run build` | 通过 |
+| `npm run test:browser` | **6 项通过**；性能本次采样 p50=0.3 / p95=0.5ms（160 敌+120 弹，处于历史波动区间 0.2–0.5 内，无阈值违规） |
