@@ -227,37 +227,51 @@ function original() {
     setTimeout() {},
   });
   const html = readFileSync("legacy/upstream-v8.html", "utf8");
-  // 基线随 Issue #37 更名对齐：急速施法 → 疾速扳机（否则按名查找落空）
-  const script = html
-    .match(/<script>([\s\S]*?)<\/script>/)![1]
-    .replace(/急速施法/g, "疾速扳机")
-    // 基线随 Issue #48 对齐：精英宝箱带 special 标记（仅精英掉落路径）
-    .replace(
-      "boxes.push({ x: e.x - 8, y: e.y });",
-      "boxes.push({ x: e.x - 8, y: e.y, special: true });",
-    )
-    // 基线随 Issue #42 对齐：烈焰印记稀有度迁移（t2→1、max3→1，卡池组成保持一致）
-    .replace(
-      'n: "烈焰印记", ico: "♨️", t: 2, cat: "技能", d: "命中点燃敌人，持续灼烧", max: 3,',
-      'n: "烈焰印记", ico: "♨️", t: 1, cat: "技能", d: "命中叠加灼烧，最多 4 层，每层 10% 伤害/秒", max: 1,',
-    )
+  // 字符串补丁必须命中原版原文——失配即抛错（Issue #5 排障定论）：
+  // 烈焰印记补丁曾因空格风格与 v8 紧凑风格不符而静默失效（String.replace
+  // 无匹配时原样返回），烈焰印记滞留 t2，档位池 t1/t2 组成长期不对称，
+  // 直到波 8 种子 908 在 t=878 升级抽卡踩中档内索引交叉点才显形。
+  // 另：Issue #48 的「精英宝箱 special 标记」补丁已删除——upstream-v8
+  // 快照（27565b4）根本没有宝箱代码，该补丁从未命中过任何文本，属死补丁。
+  const patches: [RegExp | string, string][] = [
+    // 基线随 Issue #37 更名对齐：急速施法 → 疾速扳机（否则按名查找落空）
+    [/急速施法/g, "疾速扳机"],
+    // 基线随 Issue #42 对齐：烈焰印记稀有度迁移（t2→1、max3→1，卡池组成保持一致）。
+    // v8 原文为紧凑风格（冒号后无空格），模式串逐字对照 legacy/upstream-v8.html。
+    [
+      "n:'烈焰印记', ico:'♨️', t:2, cat:'技能', d:'命中点燃敌人，持续灼烧', max:3,",
+      "n:'烈焰印记', ico:'♨️', t:1, cat:'技能', d:'命中叠加灼烧，最多 4 层，每层 10% 伤害/秒', max:1,",
+    ],
     // 基线随 Issue #38-#45 批次补齐敌人新字段（结构对齐，值语义不变）
-    .replace(
+    [
       "burnDps:0,",
       "burnDps:0,burnStacks:0,frostStacks:0,frozenT:0,frostImmuneT:0,",
-    )
+    ],
     // 基线随 Issue #45 对齐：陨星伤害 ×3（用户已批准的平衡变更）
-    .replace("p.damage * 2 + p.meteor * 5", "p.damage * 3 + p.meteor * 8")
+    ["p.damage * 2 + p.meteor * 5", "p.damage * 3 + p.meteor * 8"],
     // 基线随 Issue #17 对齐：精英经验 = 25 + (波次-1) × ELITE_XP_STEP（用户已批准）。
     // 此前两侧精英宝石经验不同（我们 53、v8 25），吸收后玩家等级分叉 → 升级抽卡
     // 权重不同 → 抽取结果分叉（PR #4 评审 P2 排障：tick 879 抽卡实测）——
     // 38 卡时代靠种子未显形，新卡改变档位池长度后级联成可见状态差。
     // 对齐公式后两侧经验/等级/权重对称；expectEliteXp 断言与归一化保持不变。
-    .replace(
+    [
       "gems.push({ x:e.x, y:e.y, vx:0, vy:0, v:25, e:true });",
       "gems.push({ x:e.x, y:e.y, vx:0, vy:0, v:25+(waveN-1)*ELITE_XP_STEP, e:true });",
-    )
-    .replace("const ETYPES = {", "const ELITE_XP_STEP = 4; const ETYPES = {");
+    ],
+    ["const ETYPES = {", "const ELITE_XP_STEP = 4; const ETYPES = {"],
+  ];
+  let script = html.match(/<script>([\s\S]*?)<\/script>/)![1];
+  for (const [from, to] of patches) {
+    const hit =
+      typeof from === "string"
+        ? script.includes(from)
+        : script.search(from) >= 0;
+    if (!hit)
+      throw new Error(
+        `基线补丁失配（原版无此片段）: ${String(from).slice(0, 60)}`,
+      );
+    script = script.replace(from, to);
+  }
   runInContext(script, context);
   // Issue #55 批次：canOffer 对齐 hidden 语义（不屈移出基线卡池）
   runInContext(
@@ -448,13 +462,16 @@ function neutralizeEnemyAttributes() {
   };
 }
 
-// 波次 8 基础场景暂不恢复：排障已核对两侧卡池（名称/顺序/可投放/档位/
-// DMG_POOL）、权重、等级/经验、rollPicks 代码与随机消耗计数均一致，仍在
-// tick 879 的升级抽卡处分叉（v8 抽到致命一击、我们抽到磨刃），随后级联成
-// 终局 HP ±8.1 的可见差异。已定位并修复三个真实基线不对称（不屈 hidden、
-// 卡池顺序镜像、精英经验公式对齐，见 original() 内注释）；波 8 的残余根因
-// 列为未决项，待后续专项排查，不在本 PR 强行放行。
-it.each([4, 5])(
+// 波次 8 基础场景已随 Issue #5 专项排查恢复。根因：original() 的烈焰印记
+// 重做补丁（Issue #42）因模式串空格风格与 v8 紧凑风格不符而静默失效，
+// v8 侧烈焰印记滞留 t2，两侧档位池 t1/t2 组成不对称。种子 908 在 t=878
+// 升级抽卡踩中档内索引交叉点：同一随机值 floor(r×11)=2 抽中致命一击
+// （含伤害卡 → 保底不触发，消耗 6 次）、floor(r×12)=3 抽中守护之刃（无伤害
+// 卡 → 保底触发，消耗 9 次），此后整条随机流错位级联成终局 HP ±8.1。
+// 波 1/3/4/5 此前通过是种子未踩中交叉点；全天赋场景烈焰印记已满级不可
+// 投放，天然免疫。修复：补丁模式串逐字对照 v8 原文，且全部字符串补丁
+// 改为失配即抛错（见 original()），波 8 恢复中性化严格对照。
+it.each([4, 5, 8])(
   "wave %i strict parity restored with S3-B attributes neutralized in-test",
   (wave) => {
     const restore = neutralizeEnemyAttributes();
