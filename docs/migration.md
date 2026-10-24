@@ -753,7 +753,16 @@ S3-A/B/C 全部合入 fork main（PR #3/#4/#6）后，按「同步上游 → 集
 - `ProjectileSystem`：上游 #49 反弹块完整保留；反弹命中走 `hurtEnemy` 无 attackerStats → 回退读玩家实时 crit（飞刃反弹由存活玩家发射，与近战/环绕同理），我方弹丸命中通道 `attackerStats: b.stats` 原样。
 - `TalentSystem`：上游 #67/#71 宝箱与波末流程完整保留；我方 recompute 清键块原样。
 - `GameCore`：上游 drainBoxPicks/dmgBy.reflect 完整；parity 基线 resetGame 注入 `reflect: 0` 使 dmgBy 对照两侧同构。
-- `AGENTS.md`：与上游零差异。
+- `AGENTS.md`：架构描述 1 行更新（core/ 行补 CombatStats 与 S3-A/B 状态）——本节初稿「与上游零差异」为复核 grep 过滤误判（变更行以 `- src` 开头被过滤器吞掉），已纠正。
+
+### 上游 PR 评审修订（跨平台 P1 + 计数 P3）
+
+上游评审发现 1 项 P1：parity 基线 `enterRest()` 补丁模式含 `\r\n`，而 `legacy/upstream-v8.html` 的 git blob 为 LF——模式只在 Windows autocrlf 检出下命中，LF 检出（Linux/CI）失配。该模式沿自上游 #67 原写法，集成时并入 patches 数组后由失配守卫显形。处置：
+
+- **复现**：`git -c core.autocrlf=false` 独立检出（工作区 0 个 CR 行）跑 parity，9 个调用 `original()` 的用例全部失败，守卫报错指名片段；
+- **修复**：`readFileSync(...)` 后统一 `replace(/\r\n/g, "\n")` 归一化，`enterRest` 模式与替换串全部改用 `\n`（注释警告不得再写 `\r\n`）——检出环境不再影响行为；
+- **双向验证**：主工作区（CRLF 检出）与 LF 独立检出均全量 `npm test` 123/123；
+- **P3**：AGENTS.md 天赋计数 34→41（项目定位/data 结构/验收三处，标注含暂隐藏的不屈）。上游重复 v12 维持披露、不扩大本批范围。
 
 ### 验证
 

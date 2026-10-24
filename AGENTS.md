@@ -1,13 +1,13 @@
 # Pixel Rogue Coding Agent Guide
 
 ## 项目定位与技术
-像素秘境是 PC Web 优先的 2D 像素动作 Roguelike，目标是可静态发布、持续开发的独立游戏。初始迁移原件为 legacy/original.html（v7），当前规则对照基线为 legacy/upstream-v8.html（上游 27565b4），实际包含 34 种天赋。采用 TypeScript 6.0.3、Vite 8.3.5、Phaser 4.2.1、Vitest 5、Playwright；无需后端或 React/Vue。Phaser 管理世界、相机、输入和表现，DOM 管理复杂 UI。
+像素秘境是 PC Web 优先的 2D 像素动作 Roguelike，目标是可静态发布、持续开发的独立游戏。初始迁移原件为 legacy/original.html（v7），当前规则对照基线为 legacy/upstream-v8.html（上游 27565b4），实际包含 41 种天赋（含暂隐藏的不屈）。采用 TypeScript 6.0.3、Vite 8.3.5、Phaser 4.2.1、Vitest 5、Playwright；无需后端或 React/Vue。Phaser 管理世界、相机、输入和表现，DOM 管理复杂 UI。
 
 ## 实际结构
 - src/main.ts：入口、缩放和 Phaser 配置。
 - src/game/scenes/GameScene.ts：唯一场景及其输入/更新/清理生命周期。
 - src/game/core/：GameCore 状态与命令，Simulation 按原顺序调度规则；Player/Combat/Attack/Projectile/Enemy/Wave/Progression/Talent/Swap/Effects 各有实际职责，Damage/CombatSystem 构成 Combat Foundation 统一伤害管线（S1 纯计算 + S2 全路径接入），CombatStats 为实体属性适配层（S3-A 接线 + S3-B 方案甲数值），FixedClock 固定步长。
-- src/game/data/：常量、初始属性、34 天赋、敌人配置及伤害类型注册与战斗基准。
+- src/game/data/：常量、初始属性、41 天赋、敌人配置及伤害类型注册与战斗基准。
 - src/game/rendering/：原像素纹理、Phaser 绘制和对象复用。
 - src/ui/：DOM 显示及命令适配；src/services/：音频、战绩；src/styles/：样式。
 - public/：随产物发布的字体、许可证与第三方说明。
@@ -50,7 +50,7 @@
 通常只运行变更相关的现有检查；除非明确请求测试，不主动新增/扩展测试。本次迁移已明确授权测试。
 
 ## 验收
-核心不可回归：480×270 视野、1392×1040 世界、5 类敌人及每 4 波精英、完整自动攻击/伤害/掉落/经验、34 天赋及独立刷新、清场→收球→选卡→报告/置换→下一波、死亡和完整重置、最近 50 战绩兼容。v8 波次配额 min(150,20+(n-1)×10)，第 5 波起普通敌人双只生成、精英单独生成；初始经验 6、阈值 ceil(×1.13)。熔炉为同档 2 等级→高一档 1 等级，不能丢卡复制；整局伤害与本波报告分开。
+核心不可回归：480×270 视野、1392×1040 世界、5 类敌人及每 4 波精英、完整自动攻击/伤害/掉落/经验、41 天赋及独立刷新、清场→收球→选卡→报告/置换→下一波、死亡和完整重置、最近 50 战绩兼容。v8 波次配额 min(150,20+(n-1)×10)，第 5 波起普通敌人双只生成、精英单独生成；初始经验 6、阈值 ceil(×1.13)。熔炉为同档 2 等级→高一档 1 等级，不能丢卡复制；整局伤害与本波报告分开。
 规则改动运行相关 Vitest、类型检查和构建；场景/UI 改动再做浏览器检查及截图，区分受控状态验证、自然生产试玩、截图视觉证据和未验证项。构建成功不能代替玩法验证。
 
 ## Git 与文件安全

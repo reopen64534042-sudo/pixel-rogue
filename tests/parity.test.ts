@@ -227,7 +227,14 @@ function original() {
     performance: { now: () => 0 },
     setTimeout() {},
   });
-  const html = readFileSync("legacy/upstream-v8.html", "utf8");
+  // 换行归一化为 LF（上游 PR #76 评审 P1）：git blob 为 LF，但 Windows 的
+  // autocrlf 检出会把工作区转成 CRLF——含 \r\n 的补丁模式只在 Windows 命中，
+  // LF 检出（Linux/CI）下静默失配。读取后统一 LF，补丁模式全部用 LF，
+  // 检出环境不再影响行为（已用 core.autocrlf=false 的独立检出双向验证）。
+  const html = readFileSync("legacy/upstream-v8.html", "utf8").replace(
+    /\r\n/g,
+    "\n",
+  );
   // 字符串补丁必须命中原版原文——失配即抛错（Issue #5 排障定论）：
   // 烈焰印记补丁曾因空格风格与 v8 紧凑风格不符而静默失效（String.replace
   // 无匹配时原样返回），烈焰印记滞留 t2，档位池 t1/t2 组成长期不对称，
@@ -251,12 +258,13 @@ function original() {
     // 基线随 Issue #45 对齐：陨星伤害 ×3（用户已批准的平衡变更）
     ["p.damage * 2 + p.meteor * 5", "p.damage * 3 + p.meteor * 8"],
     // 基线随 Issue #67 对齐：升级/宝箱延迟到休整统一执行
-    // （移除立即开面板/collect 门/enterRest 级联；enterRest 为多行 CRLF 模式）
+    // （移除立即开面板/collect 门/enterRest 级联；enterRest 为多行 LF 模式，
+    // 依赖上方读取时的换行归一化，不得写 \r\n——见本函数开头说明）
     ["if (pendingLevels > 0) openLevelPanel();", ""],
     ["gems.length === 0 && pendingLevels === 0", "gems.length === 0"],
     [
-      "function enterRest() {\r\n  wavePhase = 'rest';\r\n  swapUsedThisRest = false;\r\n  showRestBar();\r\n}",
-      "function enterRest() {\r\n  wavePhase = 'rest';\r\n  swapUsedThisRest = false;\r\n  if (pendingLevels > 0) { bpMode = null; openLevelPanel(); return; }\r\n  if (boxPicks > 0) { bpMode = null; openBoxPanel(); return; }\r\n  showRestBar();\r\n}",
+      "function enterRest() {\n  wavePhase = 'rest';\n  swapUsedThisRest = false;\n  showRestBar();\n}",
+      "function enterRest() {\n  wavePhase = 'rest';\n  swapUsedThisRest = false;\n  if (pendingLevels > 0) { bpMode = null; openLevelPanel(); return; }\n  if (boxPicks > 0) { bpMode = null; openBoxPanel(); return; }\n  showRestBar();\n}",
     ],
     // 基线随 Issue #17 对齐：精英经验 = 25 + (波次-1) × ELITE_XP_STEP（用户已批准）。
     // 此前两侧精英宝石经验不同（我们 53、v8 25），吸收后玩家等级分叉 → 升级抽卡
