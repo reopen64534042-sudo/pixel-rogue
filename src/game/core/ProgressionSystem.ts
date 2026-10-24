@@ -1,3 +1,4 @@
+import { POTION_GROW_CAP } from "../data/constants";
 import type { GameCore } from "./GameCore";
 
 export function updateProgression(this: GameCore, dt: number) {
@@ -34,21 +35,33 @@ export function updateProgression(this: GameCore, dt: number) {
       if (this.pendingLevels > 0) this.openLevelPanel();
     }
   }
-  const canPull = p.hp < p.maxhp; // 满血时血瓶不吸附
+  // 满血也吸附：满血拾取会转化为最大生命，不再是废品
   const pullR = p.magnet * 0.4; // 血瓶吸附范围 ≤ 经验球的一半
   for (let i = this.potions.length - 1; i >= 0; i--) {
     const o = this.potions[i];
     const dx = p.x - o.x,
       dy = p.y - o.y;
     const d = Math.hypot(dx, dy);
-    if (canPull && d >= 6 && d < pullR) {
+    if (d >= 6 && d < pullR) {
       const s = 140;
       o.x += (dx / d) * s * dt;
       o.y += (dy / d) * s * dt;
     }
     if (dx * dx + dy * dy < 36) {
-      p.hp = Math.min(p.maxhp, p.hp + 20);
-      this.addText(p.x, p.y - 10, "+20", "#4dff88");
+      if (p.hp >= p.maxhp) {
+        // 满血转化：每波最多 +POTION_GROW_CAP 点最大生命，加成本身永久保留
+        if (this.potionGrow < POTION_GROW_CAP) {
+          this.potionGrow++;
+          p.maxhp += 1;
+          p.hp += 1;
+          this.addText(p.x, p.y - 10, "生命上限+1", "#ffd24a");
+        } else {
+          this.addText(p.x, p.y - 10, "本波已满", "#8a93b0");
+        }
+      } else {
+        p.hp = Math.min(p.maxhp, p.hp + 20);
+        this.addText(p.x, p.y - 10, "+20", "#4dff88");
+      }
       this.potions.splice(i, 1);
       this.audio.beep(700, 0.12, "triangle", 0.06, 200);
     }
