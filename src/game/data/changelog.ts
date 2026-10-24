@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v10",
+    date: "2026-10-24",
+    title: "命名修订与流程批次",
+    items: [
+      "「急速施法」更名「疾速扳机」（效果不变：攻速 +18%×8）——「施法」命名留给主动技能冷却缩减体系（#57）",
+      "游戏内更新日志系统上线",
+    ],
+  },
+  {
     version: "v9",
     date: "2026-10-24",
     title: "平衡与协作批次",
