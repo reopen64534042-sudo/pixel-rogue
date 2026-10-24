@@ -173,6 +173,17 @@ export interface Player extends Point {
   ndUsed: boolean;
   explodeDmg: number;
   chainDmg: number;
+  /* —— Combat Foundation S3-A 可配置战斗属性（全部可选、默认不写入）——
+   * 字段命名与 CombatStatsSnapshot 一致；仅有数值来源（S3-B 批准后）时才出现，
+   * 保证实体序列化形状与 v8/parity 逐字段对照一致（先例：Enemy.kx）。
+   * 注意 p.damage 是攻击基线（已含天赋强化，进 rawAmount），不是 globalDamageBonus。 */
+  /** 物理护甲（physical 减伤策略） */
+  defense?: number;
+  resistances?: ResistanceMap;
+  globalDamageBonus?: number;
+  typeDamageBonus?: Partial<Record<DamageTypeId, number>>;
+  formDamageBonus?: Partial<Record<AttackForm, number>>;
+  skillDamageBonus?: Readonly<Record<string, number>>;
 }
 export interface Talent {
   hidden?: number;
@@ -220,6 +231,17 @@ export interface Enemy extends Point {
   kx?: number;
   ky?: number;
   dead?: boolean;
+  /* —— Combat Foundation S3-A 可配置战斗属性（全部可选、默认不写入）——
+   * EnemyConfig 同名字段存在时由 spawnEnemy 拷贝；防御/抗性作防守方，
+   * 三个增伤乘区作攻击方（随发射时快照固化进 EnemyBullet.stats）。
+   * 既有敌人配置不含这些键 → 对象形状与 v8/parity 对照一致。 */
+  defense?: number;
+  resistances?: ResistanceMap;
+  tough?: number;
+  globalDamageBonus?: number;
+  typeDamageBonus?: Partial<Record<DamageTypeId, number>>;
+  formDamageBonus?: Partial<Record<AttackForm, number>>;
+  skillDamageBonus?: Readonly<Record<string, number>>;
 }
 export interface EnemyConfig {
   hp: number;
@@ -230,6 +252,14 @@ export interface EnemyConfig {
   spr: string;
   w0: number;
   wt: number;
+  /* —— Combat Foundation S3-A：可选战斗属性，spawnEnemy 在存在时拷贝到实体 —— */
+  defense?: number;
+  resistances?: ResistanceMap;
+  tough?: number;
+  globalDamageBonus?: number;
+  typeDamageBonus?: Partial<Record<DamageTypeId, number>>;
+  formDamageBonus?: Partial<Record<AttackForm, number>>;
+  skillDamageBonus?: Readonly<Record<string, number>>;
 }
 export interface Bullet extends Point {
   vx: number;
@@ -240,6 +270,12 @@ export interface Bullet extends Point {
   size: number;
   jumps: number;
   hitList: Enemy[];
+  /**
+   * 发射时攻击者快照（Combat Foundation S3-B 定稿接口）：
+   * 与 EnemyBullet.stats 对称——增伤等攻击方属性按发射时固化，
+   * 飞行中学习/修改天赋不回溯。可选字段保持旧对象形状。
+   */
+  stats?: Readonly<CombatStatsSnapshot>;
 }
 export interface EnemyBullet extends Point {
   vx: number;
@@ -322,6 +358,8 @@ export interface HitOptions {
   type?: DamageTypeId;
   /** Combat Foundation S2（§5）：攻击方式，缺省 other */
   form?: AttackForm;
+  /** 发射时攻击者快照（S3-B）：玩家弹丸命中按发射时属性结算；缺省读当前实体 */
+  attackerStats?: Readonly<CombatStatsSnapshot>;
 }
 export interface PlayerHitOptions {
   melee?: boolean;

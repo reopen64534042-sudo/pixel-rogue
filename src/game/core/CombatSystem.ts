@@ -7,61 +7,20 @@ import {
 } from "../data/constants";
 import { DAMAGE_TYPES } from "../data/damageTypes";
 import { calculateDamage } from "./DamageSystem";
+import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import type {
-  CombatStatsSnapshot,
   DamageResult,
   Enemy,
   HitOptions,
-  Player,
   PlayerHitOptions,
 } from "./types";
 import { hasteCap } from "../data/talents";
 import {
-  critMultiplier,
   burnStackDps,
   scorchVulnMultiplier,
   frostFreezeDuration,
   shieldShockDamage,
 } from "./DamageMath";
-
-/**
- * Combat Foundation S2 只读适配器（§4）：实体 → CombatStatsSnapshot。
- * 快照不是另一个可变实体对象，每次结算按需构造；S2 增伤/护甲/抗性全为 0，
- * 数值上与旧直算路径逐位一致，S3 才引入非零来源。
- * critMultiplier 经 DamageMath（含 #41 致命一击满层觉醒 +0.4），
- * 使暴击倍率随天赋成长进入管线。
- */
-function playerCombatStats(p: Player): CombatStatsSnapshot {
-  return {
-    attack: p.damage,
-    defense: 0,
-    critChance: p.crit,
-    critMultiplier: critMultiplier(p),
-    tough: p.tough,
-    resistances: {},
-    globalDamageBonus: 0,
-    typeDamageBonus: {},
-    formDamageBonus: {},
-  };
-}
-
-/**
- * 敌人快照：S2 全为默认零值。导出供 EnemySystem 在敌人发射弹丸时做
- * 发射时快照（发射者可能在命中前死亡/移除，不依赖存活的敌人引用）。
- */
-export function enemyCombatStats(e?: Enemy): CombatStatsSnapshot {
-  return {
-    attack: e ? e.dmg : 0,
-    defense: 0,
-    critChance: 0,
-    critMultiplier: 1,
-    tough: 0,
-    resistances: {},
-    globalDamageBonus: 0,
-    typeDamageBonus: {},
-    formDamageBonus: {},
-  };
-}
 
 /** §3.5：被闪避/护盾完全抵挡的命中——未进入数值计算，结算与实际损失均为 0 */
 function blockedHit(
@@ -90,9 +49,12 @@ export function hurtEnemy(
   opts: HitOptions = {},
 ): DamageResult | undefined {
   if (e.dead || this.state !== "play") return undefined;
-  // §3.4 步骤 3：暴击判定留在编排层，掷骰条件与次数与旧路径一致
+  // §3.4 步骤 3：暴击判定留在编排层，掷骰条件与次数与旧路径一致。
+  // PR #4 评审 P2：暴击率与倍率同源——弹丸命中优先读发射时快照的 critChance，
+  // 其余路径读当前玩家；不新增随机调用、不改变命中执行顺序
+  const critChance = opts.attackerStats?.critChance ?? this.player.crit;
   let crit = false;
-  if (!opts.noCrit && Math.random() < this.player.crit) {
+  if (!opts.noCrit && Math.random() < critChance) {
     crit = true;
   }
   // Issue #42 灼热易伤：灼烧目标受伤增加——条件天赋增伤折叠进 rawAmount
@@ -110,8 +72,8 @@ export function hurtEnemy(
     kind: "hit",
     precision: "round-min-one",
     isCritical: crit,
-    attackerStats: playerCombatStats(this.player),
-    defenderStats: enemyCombatStats(e),
+    attackerStats: opts.attackerStats ?? getPlayerCombatStats(this.player),
+    defenderStats: getEnemyCombatStats(e),
   });
   dmg = calc.settledDamage;
   const hpBefore = e.hp;
@@ -363,8 +325,8 @@ export function damagePlayer(
     kind: "hit",
     precision: "preserve-float",
     isCritical: false,
-    attackerStats: opts.attackerStats ?? enemyCombatStats(opts.src),
-    defenderStats: playerCombatStats(p),
+    attackerStats: opts.attackerStats ?? getEnemyCombatStats(opts.src),
+    defenderStats: getPlayerCombatStats(p),
   });
   dmg = calc.settledDamage;
   const hpBefore = p.hp;
@@ -418,31 +380,31 @@ export function damagePlayer(
 }
 
 /**
- * §3.3/§5 灼烧 DoT 入口：无副作用触发链——不取整、不保底、不暴击、
- * 不触发吸血/飘字/连锁/击退。由 EnemySystem 每帧调用，燃烧粒子等表现
- * 留在调用侧，死亡判定也由调用侧按原顺序执行。
+ * §3.3/§5 灼烧与焦土共用的火系 DoT 结算：无副作用触发链——不取整、不保底、
+ * 不暴击、不触发吸血/飘字/连锁/击退，记账到 dmgBy.burn；死亡判定由调用侧
+ * 按原顺序执行（PR #2 三审：lethal 表示已达阈值，killed 恒为 false）。
+ * 攻击方快照每帧读取当前玩家（与 DPS 的动态口径一致，见任务书 DoT 政策）。
  */
-export function applyBurnDot(
-  this: GameCore,
+function applyFireDot(
+  core: GameCore,
   e: Enemy,
+  dps: number,
   dt: number,
 ): DamageResult {
   const calc = calculateDamage(DAMAGE_TYPES, {
-    rawAmount: e.burnDps * dt,
+    rawAmount: dps * dt,
     type: "fire",
     form: "other",
     origin: "burn",
     kind: "dot",
     precision: "preserve-float",
     isCritical: false,
-    attackerStats: playerCombatStats(this.player),
-    defenderStats: enemyCombatStats(e),
+    attackerStats: getPlayerCombatStats(core.player),
+    defenderStats: getEnemyCombatStats(e),
   });
   const hpBefore = e.hp;
   e.hp -= calc.settledDamage;
-  this.dmgBy.burn += calc.settledDamage;
-  // PR #2 三审：死亡结算由 EnemySystem 按原顺序随后执行（粒子/击杀/随机数顺序
-  // 不变），返回时尚未完成——lethal 表示已达致死阈值，killed 恒为 false
+  core.dmgBy.burn += calc.settledDamage;
   return {
     ...calc,
     effectiveHpLoss: Math.min(hpBefore, calc.settledDamage),
@@ -452,4 +414,27 @@ export function applyBurnDot(
     killed: false,
     preventedDeath: false,
   };
+}
+
+/** 灼烧 DoT（EnemySystem 每帧调用）：DPS 来自施加时定值的 e.burnDps */
+export function applyBurnDot(
+  this: GameCore,
+  e: Enemy,
+  dt: number,
+): DamageResult {
+  return applyFireDot(this, e, e.burnDps, dt);
+}
+
+/**
+ * 焦土燃烧地带 DoT（PR #4 评审 P1，Issue #45）：DPS 由 DamageMath.burnGroundDps
+ * 按当前玩家逐帧计算，经 fire/dot/preserve-float 管线吃火抗与火系增伤；
+ * 中性敌人数值与旧直算逐位一致。由 AttackSystem 每帧调用，死亡判定留在调用侧。
+ */
+export function applyBurnGroundDot(
+  this: GameCore,
+  e: Enemy,
+  dps: number,
+  dt: number,
+): DamageResult {
+  return applyFireDot(this, e, dps, dt);
 }

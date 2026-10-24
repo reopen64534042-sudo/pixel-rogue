@@ -1,6 +1,6 @@
 import { WORLD, clamp } from "../data/constants";
 import { ETYPES } from "../data/enemies";
-import { enemyCombatStats } from "./CombatSystem";
+import { getEnemyCombatStats } from "./CombatStats";
 import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
 import type { Enemy } from "./types";
@@ -68,6 +68,26 @@ export function spawnEnemy(
     shootCd: 1 + Math.random() * 1.5,
     fuse: 0,
     noDrop: false,
+    // Combat Foundation S3-A：EnemyConfig 可选战斗属性存在时才拷贝（条件展开），
+    // 既有敌人配置不带这些键 → 实体形状与 v8/parity 逐字段对照一致。
+    // S3-A 默认不随波次/精英缩放 DEF/RES；成长规则待 S3-B 批准。
+    ...(T.defense !== undefined ? { defense: T.defense } : {}),
+    ...(T.resistances !== undefined
+      ? { resistances: { ...T.resistances } }
+      : {}),
+    ...(T.tough !== undefined ? { tough: T.tough } : {}),
+    ...(T.globalDamageBonus !== undefined
+      ? { globalDamageBonus: T.globalDamageBonus }
+      : {}),
+    ...(T.typeDamageBonus !== undefined
+      ? { typeDamageBonus: { ...T.typeDamageBonus } }
+      : {}),
+    ...(T.formDamageBonus !== undefined
+      ? { formDamageBonus: { ...T.formDamageBonus } }
+      : {}),
+    ...(T.skillDamageBonus !== undefined
+      ? { skillDamageBonus: { ...T.skillDamageBonus } }
+      : {}),
   });
 }
 
@@ -191,7 +211,7 @@ export function updateEnemies(this: GameCore, dt: number) {
           r: 2,
           life: 4,
           // 发射时攻击者快照：发射者可能在命中前死亡/移除，不依赖存活引用
-          stats: enemyCombatStats(e),
+          stats: getEnemyCombatStats(e),
         });
         this.audio.beep(340, 0.08, "square", 0.03, -60);
       }
@@ -212,7 +232,7 @@ export function updateEnemies(this: GameCore, dt: number) {
             this.damagePlayer(e.dmg, {
               type: "fire",
               form: "other",
-              attackerStats: enemyCombatStats(e),
+              attackerStats: getEnemyCombatStats(e),
             });
           for (let j = 0; j < 12; j++) {
             const an = Math.random() * Math.PI * 2;
