@@ -576,3 +576,196 @@ parity 新增**第四条归一化**（D-02 先例）：弹丸 `stats` 从对照�
 | 测试 | 「盾序」用例的敌人移出 80px 反震半径以隔离 #43 干扰；新增护盾反震管线整合用例（`dmgBy.shock` = 22 断言） |
 
 验证：typecheck 通过；`npm test` **102 项全绿**（上游重做断言 + parity 20 项 + 我方计算器/管线 31 项共存）；build 通过；`test:browser` 6 项通过，性能 p50=0.2 / p95=0.4ms 回到基线。
+
+## 基础设施 D-07：Combat Foundation S3-A 属性接线（2026-10-25）
+
+**基线更新依据：docs/pixel-rogue-S3-implementation-brief.md（S3-A 为首个独立 PR）。** 基线为上游 `5d85c46`（PR #63 合并）。仅接线、默认数值中性、无正式平衡变更；S3-B 具体数值与来源待批准后另行实施。
+
+### 交付
+
+- 新增 `core/CombatStats.ts` 实体战斗属性适配层：`getPlayerCombatStats` / `getEnemyCombatStats` 作为快照唯一出入口，CombatSystem 结算与 EnemySystem 发射时快照共用；玩家暴击倍率统一经 `DamageMath.critMultiplier`（含 #41 满层觉醒）。
+- `Player` / `Enemy` / `EnemyConfig` 增加可选战斗属性（defense / resistances / [tough 仅 Enemy] / globalDamageBonus / typeDamageBonus / formDamageBonus / skillDamageBonus），命名与 `CombatStatsSnapshot` 一致；**默认不写入** → 实体序列化形状与 v8/parity 逐字段对照一致（先例 Enemy.kx），parity 无需新增归一化即全绿。
+- `spawnEnemy` 以条件展开拷贝 `EnemyConfig` 可选属性（存在才产生键）；S3-A 按任务书默认 DEF/RES **不随波次/精英缩放**，成长规则待 S3-B 审议。
+- 明确不做（任务书边界）：不把 `p.damage` 转为 globalDamageBonus（天赋强化已含在 raw，禁止双加）；不新增天赋/卡池/难度/平衡值；不动 `TalentSystem.recompute()`（S4）。
+
+### 验收对照（任务书 §5/§7）
+
+| 场景 | 结果 |
+|---|---|
+| DEF=50、K=50 | 物理 100→50（真实 hurtEnemy，mock 非暴击） |
+| RES.fire=0.2 | 火 100→80；物理/雷电不受 fire 抗性影响 |
+| DEF=50 + tough=0.2 | 100→40（乘算） |
+| true | 无视 DEF/RES/tough，仍走普通命中管线 |
+| 增伤维度 | 100×1.2×1.3×1.4=218.4 → round 218；fire/ranged 独立乘区 100×1.25×1.2=150 |
+| 玩家受击 | preserve-float：护甲减伤 100→50.0 浮点扣血 |
+| 弹丸快照 | 发射后修改敌人增伤并标记死亡/移除，原弹丸仍按发射时快照结算（e.dmg×1.5） |
+| DoT | 吃火抗且逐帧浮点（DPS40、火抗 25% → 60 帧共 30），无命中副作用 |
+| Config 链路 | EnemyConfig 存在时拷贝、恢复后不产生键（形状不变断言） |
+| 中性默认 | 实体无新字段时快照全 0/空；S2 零变化 |
+
+### 变异验证
+
+| 变异 | 实测 |
+|---|---|
+| `getPlayerCombatStats` 忽略 `p.defense` | FAIL「玩家护甲 preserve-float」用例 |
+| `getEnemyCombatStats` 忽略 `resistances` | FAIL「火抗」+「DoT 火抗」两用例 |
+
+### 验证结果
+
+- `npm run typecheck` 通过。
+- `npm test` **113 项通过**（原 102 + 新增 `tests/combat-stats.test.ts` 11 项），parity 20 项在无新增归一化的情况下直接通过。
+- `npm run build` 通过；`npm run test:browser` **6 项通过**，性能采样 p50=0.3 / p95=0.5ms（历史波动区间内）。
+- 格式说明：本仓库 Prettier 检查不含 docs/，历史文档保持原格式，本节不做整文件重排。
+
+### PR #3 评审修订（2026-10-25）
+
+评审结论 1×P2 + 1×P3，本轮修复：
+
+| 级别 | 问题 | 修复 |
+|---|---|---|
+| P2 | 快照嵌套映射（resistances/三个增伤乘区/skill）与实体共享引用：发射后**原地修改**敌人 `typeDamageBonus.physical` 会渗入已飞行弹丸的发射时快照，破坏 S2 契约 | `getPlayerCombatStats`/`getEnemyCombatStats` 对嵌套映射一律**复制一层**（`{ ...map }`）；新增适配器隔离直测 + 扩展弹丸用例（发射后原地改映射 `0.2→0.8`，命中仍按 0.2 结算 `e.dmg×1.5×1.2`） |
+| P3 | 任务书顶部状态仍写「尚未修改仓库代码」 | 更新为「S3-A 已实施；S3-B 数值待批准；S3-C 尚未实施」 |
+
+变异验证：`typeDamageBonus` 深拷贝回退浅引用 → 弹丸快照用例失败（其余含隔离直测全过）。修复后 `npm test` **114 项通过**（11→12 项，+适配器隔离直测）。
+
+S3-B 前待明确（评审提出，不阻塞本 PR）：`hurtEnemy()` 尚未传递 `skillId`（skillDamageBonus 已入快照但无调用方）；玩家弹丸（Bullet）新增增伤属性的读取时机（发射时 vs 命中时）需与敌方弹丸的发射时快照原则对齐设计。
+
+## 平衡变更 D-08：Combat Foundation S3-B 方案甲 + S3-C UI（2026-10-25）
+
+**基线更新依据：docs/pixel-rogue-S3-implementation-brief.md §3-B/§3-C + 用户批准「方案甲」（三选一怪物分布方案，含玩家 DEF/增伤来源与两条接口规则定稿）。** 基线为上游 `9d26087`（#59 贴图管线）合并入含 S3-A 的 fork main。这是需求变更驱动的基线升级，不是为通过测试修改验收目标。
+
+### 怪物克制分布（方案甲）
+
+| 怪物 | 属性 | 数值效果（K=50） |
+|---|---|---|
+| brute（含波 4 首敌精英坦克） | DEF 30 | 物理弹 11→7（-37.5%）；火焰/雷电/真实全额 |
+| shooter（波 6 起） | 雷抗 30% | 连锁跳伤 ×0.7 |
+| bomber（波 8 起） | 火抗 40% | 灼烧/陨星/爆炸 ×0.6；本体 HP 最低保持易杀 |
+| slime / bat | 全中性 | 前 3 波教学期零影响 |
+| 精英 | 不额外加成 | 避免与 ×8 HP 双重叠税 |
+
+### 玩家来源与新卡（40 张天赋）
+
+- **磐石**（🪨 防御 t1 max3）：护甲 +15/级——玩家 DEF 来源；与铁布衫（tough 通用减伤）乘算区分
+- **元素亲和**（🔮 技能 t2 max3）：火焰/雷电伤害 +10%/级——typeDamageBonus 首个正式来源；不进 DMG_POOL（试点不扩散伤害保底池）
+- **接口定稿**：玩家 Bullet 发射时 `stats` 快照（与 EnemyBullet 对称，`HitOptions.attackerStats` 通道，飞行中不回溯）；skillDamageBonus 推迟至近战链（#7-#10）随 skillId 启用；DoT 维持「施加时定值 + 每帧读快照」
+
+### 实现要点
+
+- **recompute 清键**：`TalentSystem.recompute()` 在 `Object.assign(statBase())` 后**删除六个可选战斗属性键**再重放——增量型天赋 f 才能重放安全（首版绝对值写法在逐 pick 重放下会算错，已改增量 + 变异验证）。此为 S3-B 必需的最小 TalentSystem 触碰，非 S4 重构
+- S3-C UI（buildStats）：「全局伤害」文案改「基础攻击」（只改文案不动 p.damage）；魔弹读 `DamageMath.boltDamage`、暴伤读有效值 `critMultiplier(p)`（含觉醒）；新增护甲（K/(K+DEF) 同公式百分比）/火焰/雷电抗性/全局/火/雷/近战/远程增伤行（0 值按既有惯例显示 —）
+
+### parity 基线更新
+
+- 新卡入 `NOT_IN_V8`（v8 注入 req 恒假桩，卡池组成对齐）；严格对照波次 [1,4,5,8]→[1,3]、全天赋 [4,8]→[3]——**波 4 首敌是精英坦克**，带甲后伤害/击杀时序分叉无法摘键归一化（#47/#48 先例）；玩家弹丸 stats 归一化（摘出 + 攻击乘区中性断言，attack≥dmg 容 0.85 衰减）
+- 新增 D-08 四项显式断言：怪物三属性公式（含 slime/bat 中性与 true 穿透）、磐石含 recompute 不叠加与玩家受击浮点、元素亲和属性隔离、玩家弹丸快照不回溯
+
+### 变异验证（3 组均被咬住后恢复）
+
+| 变异 | 实测 |
+|---|---|
+| 移除 brute DEF 30 | FAIL D-08 怪物属性用例 |
+| recompute 去掉可选键清除 | FAIL D-08 磐石用例（60≠45） |
+| 弹丸命中忽略发射时快照 | FAIL D-08 快照用例 |
+
+### 验证结果
+
+- `npm run typecheck` 通过；`npm test` **115 项通过**（parity 21 项：严格波 1/3 逐字段 + D-01~D-08）；`npm run build` 通过
+- `npm run test:browser` **6 项通过**；性能 p50=0.3 / p95=0.5ms（波动区间内）；生产自然首波+真实升级选择通过（含 UI 改动的实机验证）
+- game.test 天赋数 38→40（两处计数 + 唯一名计数）
+
+### 回退方法
+
+单点回退：清空 `enemies.ts` 三项新键与两张新卡即回 S3-A 中性；UI 行为无依赖。
+
+### PR #4 评审修订（2026-10-25）
+
+评审 1×P1 + 2×P2 + 2×P3，全部处理；其中高波次 parity 恢复引出一次深度排障，产出三项基线加固与一个未决项。
+
+| 级别 | 问题 | 修复 |
+|---|---|---|
+| P1 | 焦土燃烧（#45）仍直改 `e.hp`，绕过火抗与「元素亲和」 | 抽出共用 `applyFireDot`（fire/dot/preserve-float，无命中副作用），新增导出 `applyBurnGroundDot(e, dps, dt)`；AttackSystem 调用点替换，持续时长/逐帧/死亡掉落顺序原样保留；组合用例：bomber 火抗 40% → 6 DPS、火增伤 +30% → 13、组合 7.8、中性敌人与旧直算逐位一致 + 真实地带集成 |
+| P2 | 弹丸暴击率读命中时、倍率读发射时（两时间点混用） | `hurtEnemy` 掷骰改读 `opts.attackerStats?.critChance ?? this.player.crit`——不新增随机调用、不改顺序；用例：发射时 100%→命中前改 0% 仍暴击（22）、反向不暴击（11） |
+| P2 | 高波次确定性回归覆盖下降 | 测试内临时中性化（try/finally 恢复，不改生产配置）恢复波 4/5 基础与波 4/8 全天赋严格对照；波 8 基础场景见下方未决项 |
+| P3 | UI 抗性未按 75% 上限裁剪、缺物理增伤行 | 显示值 `min(res, resistanceCap)`；补「⚔️ 物理增伤」行 |
+| P3 | recompute 重复注释 | 清理 |
+
+**深度排障与三项基线加固**（波 4/5/8 中性化恢复时发现，均为先于本 PR 的既有隐患）：
+
+1. **v8 卡池多出不屈**：我方自 v11 将不屈 `hidden`，v8 原文无该字段，canOffer 补丁拦不住 → v8 可投放 35 张 vs 我方 34。已给基线补 `hidden = 1`。
+2. **卡池顺序不一致**：#55 四张桩在 v8 尾部、我方同名真卡在数组中部；新卡把档位池长度 N→N+1 后随机索引平移踩中错位（tick 879 升级抽卡实测：v8 致命一击 / 我方磨刃）。已按我方数组**整体镜像重排** v8 UPGRADES，并把新卡桩改为无 req、展示字段一致的结构克隆（req 恒假会因池大小 38≠40 改变保底触发时机而分叉随机流）。
+3. **精英经验基线未对齐公式**（#17 已批准）：两侧精英宝石 53 vs 25 xp，吸收后等级分叉→抽卡权重不同。已按陨星 ×3 先例把 v8 基线对齐到 `25+(waveN-1)×ELITE_XP_STEP`；`expectEliteXp` 断言与归一化保持不变。
+
+**未决项（波 8 基础场景）**：完成上述三项加固后，波 4/5 基础与波 4/8 全天赋均恢复严格对照通过；波 8 基础场景仍在 tick 879 的升级抽卡处分叉（已逐一核对两侧卡池名称/顺序/可投放/档位/DMG_POOL、tierWeights、等级/经验、rollPicks 逐行代码均一致），随后级联为终局 HP ±8.1。作为独立未决项记录，不在本 PR 强行放行；生产数值行为不受影响（波 8 数值本就按方案甲分叉）。
+
+变异验证：焦土绕过管线、暴击率回退当前值，均被新用例咬住。修复后 `npm test` **121 项通过**（parity 22 项：波 1/3 严格 + 中性化恢复波 4/5 与全天赋 4/8 + D-01~D-08）；browser 6/6。
+
+## D-09 Issue #5：波 8 parity 分叉根因——基线补丁静默失配（2026-10-24）
+
+PR #4 遗留未决项（上方「未决项（波 8 基础场景）」）的专项排查结论，分支 `fix/issue-5-wave8-parity`。
+
+**归属：测试基线缺陷，非生产回归**——生产行为零改动，仅修 `tests/parity.test.ts`。
+
+### 排障方法（三轮对拍，插桩均保持种子流原样）
+
+1. **全量有序轨迹对拍**：单例委托包装两侧 `Math.random`（只记录 (tick, value)，不重置、不新建种子），逐索引 diff。结果：两侧 1800 tick 各消耗恰好 1005 次、**值序列逐位相同**——但同一批值被取走的 **tick 位置不同**，首个逐 tick 计数差在 t=878。
+2. **调用点栈对比**（v8 帧用「行号→行首偏移」映射回源码片段）：t=878 我方升级抽卡消耗 9 次、v8 消耗 6 次；多出的 3 次是伤害保底（pickTier + 池内选卡 + 替换位各 1）。
+3. **rollPicks 忠实克隆取证**（克隆的随机消费点与原版逐点一致，仅加日志）：avail 全表 34=34 diff 仅一处——`烈焰印记#2（v8） vs 烈焰印记#1（我方）`。
+
+### 根因
+
+`original()` 的烈焰印记重做补丁（Issue #42，t2→1、max3→1）模式串写成空格风格（`n: "烈焰印记"`），而 v8 原文是紧凑风格（`n:'烈焰印记'`）——`String.replace` 无匹配时**静默返回原文**，该补丁自写入起从未生效。级联路径：
+
+- 两侧档位池 t1/t2 组成长期不对称（v8 的 t1 少烈焰印记、t2 多烈焰印记）；
+- 种子 908 在 t=878 升级抽卡第 2 抽踩中档内索引交叉点：同一随机值 `floor(0.258×11)=2`（v8 抽中致命一击，含伤害卡 → 保底不触发、消耗 6 次）vs `floor(0.258×12)=3`（我方抽中守护之刃，无伤害卡 → 保底触发、消耗 9 次）；
+- 此后整条随机流错位级联，终局 HP ±8.1。
+
+波 1/3/4/5 通过纯属种子未踩中交叉点；全天赋场景烈焰印记已满级不可投放，天然免疫。另：PR #4 排障中「随机消耗计数一致」的结论实际只核对了总次数、未核对 tick 内归位——本缺陷正藏在该盲区。
+
+### 修复（仅 tests/parity.test.ts）
+
+1. 烈焰印记补丁模式串逐字对照 v8 原文（紧凑风格），真正生效；
+2. 全部补丁改为 `patches` 数组遍历，**失配即抛错**并指名片段——静默失效从此不可能；
+3. 删除 Issue #48「精英宝箱 special 标记」死补丁——upstream-v8 快照（27565b4）没有宝箱代码，该补丁从未命中过任何文本；
+4. 波 8 基础场景恢复中性化严格对照（`it.each([4, 5, 8])`）。
+
+### 验证
+
+- `npm test` **122 项通过**（parity 26 项 = 波次模拟 8：波 1/3 严格 + 中性化 4/5/8 + 全天赋 3 严格 + 全天赋中性化 4/8；规则断言 18。上文 D-08 记录的「parity 22 项」为当时计数笔误，实测 25）；
+- `npm run typecheck` 通过；生产行为与产物零改动（无 src/ 变更），无需 browser/构建复验；
+- 变异验证：把模式串改回空格风格 → 5 个调用 original() 的中性化用例立即失败，报错指名失配片段，守卫按设计工作。
+
+## D-10 S3 上游集成与交付（2026-10-25）
+
+S3-A/B/C 全部合入 fork main（PR #3/#4/#6）后，按「同步上游 → 集成验证 → 审查差异 → 上游 PR」流程向上游交付完整 Combat Foundation S3。
+
+### 集成方式
+
+- 分支 `feat/combat-foundation-s3` 基于 **upstream/main（ebb2a92，含 #73 波末统一执行/置换重做、#49 魔刃回旋反弹、#46 面板排序、#3/#51 精灵重绘）**，merge fork main（f1610e6，S3 全栈）。合并方向：上游新功能全部保留，S3 改动在其上叠加。
+- 5 个文件冲突，解法：
+  - `CHANGELOG.md` / `changelog.ts`：fork 的 S3 条目 v13/v14 与上游新占的 v13/v14 冲突，**fork 条目重编号 v15（S3-A）/ v16（S3-B/C）置顶**，上游 v14（置换）/v13（反弹）/v12（UI 精修）原样保留。上游自身存在重复 v12（UI 精修 vs S1+S2），非本批引入，未擅自改动。
+  - `talents.ts`：两侧均在数组尾部追加新卡——并集保留（魔刃回旋 + 磐石/元素亲和，共 41 张）。
+  - `game.test.ts`：天赋计数 41（两处）。
+  - `parity.test.ts`：NOT_IN_V8 并集 7 项；上游 #67 的 3 个新基线补丁并入 `patches` 数组（同样受失配即抛错守卫保护）；镜像重排/桩注入/不屈 hidden 逻辑不变（自动合并区已核对：resetGame 注入含 bladeReflect/reflect，魔刃回旋桩随上游就位）。
+
+### 自动合并热点语义复核
+
+- `ProjectileSystem`：上游 #49 反弹块完整保留；反弹命中走 `hurtEnemy` 无 attackerStats → 回退读玩家实时 crit（飞刃反弹由存活玩家发射，与近战/环绕同理），我方弹丸命中通道 `attackerStats: b.stats` 原样。
+- `TalentSystem`：上游 #67/#71 宝箱与波末流程完整保留；我方 recompute 清键块原样。
+- `GameCore`：上游 drainBoxPicks/dmgBy.reflect 完整；parity 基线 resetGame 注入 `reflect: 0` 使 dmgBy 对照两侧同构。
+- `AGENTS.md`：架构描述 1 行更新（core/ 行补 CombatStats 与 S3-A/B 状态）——本节初稿「与上游零差异」为复核 grep 过滤误判（变更行以 `- src` 开头被过滤器吞掉），已纠正。
+
+### 上游 PR 评审修订（跨平台 P1 + 计数 P3）
+
+上游评审发现 1 项 P1：parity 基线 `enterRest()` 补丁模式含 `\r\n`，而 `legacy/upstream-v8.html` 的 git blob 为 LF——模式只在 Windows autocrlf 检出下命中，LF 检出（Linux/CI）失配。该模式沿自上游 #67 原写法，集成时并入 patches 数组后由失配守卫显形。处置：
+
+- **复现**：`git -c core.autocrlf=false` 独立检出（工作区 0 个 CR 行）跑 parity，9 个调用 `original()` 的用例全部失败，守卫报错指名片段；
+- **修复**：`readFileSync(...)` 后统一 `replace(/\r\n/g, "\n")` 归一化，`enterRest` 模式与替换串全部改用 `\n`（注释警告不得再写 `\r\n`）——检出环境不再影响行为；
+- **双向验证**：主工作区（CRLF 检出）与 LF 独立检出均全量 `npm test` 123/123；
+- **P3**：AGENTS.md 天赋计数 34→41（项目定位/data 结构/验收三处，标注含暂隐藏的不屈）。上游重复 v12 维持披露、不扩大本批范围。
+
+### 验证
+
+- `npm test` **123 项通过**（parity 26 项不变：波 1/3 严格 + 中性化 4/5/8 + 全天赋 3 严格 + 全天赋中性化 4/8 + D-01~D-08——上游 #67 波末流程在两侧一致实现，严格对照全绿）
+- `npm run typecheck`、`npm run build` 通过；`npm run test:browser` 见交付 PR 描述
+- 对照 upstream/main 最终 delta：19 文件 +1364/−177，全部为 S3 基建 + 新卡/克制数值 + 配套测试与文档，无上游功能改动

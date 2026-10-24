@@ -5,6 +5,7 @@ import { statBase } from "../data/stats";
 import {
   addText,
   applyBurnDot,
+  applyBurnGroundDot,
   damagePlayer,
   hurtEnemy,
   killEnemy,
@@ -175,6 +176,7 @@ export class GameCore {
   hurtEnemy = hurtEnemy.bind(this);
   killEnemy = killEnemy.bind(this);
   applyBurnDot = applyBurnDot.bind(this);
+  applyBurnGroundDot = applyBurnGroundDot.bind(this);
   meleeSwing = meleeSwing.bind(this);
   addText = addText.bind(this);
   damagePlayer = damagePlayer.bind(this);
