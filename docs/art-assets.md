@@ -1,7 +1,7 @@
 # 贴图资产产线规格（Art Asset Pipeline Spec）
 
-> 状态：**产线工具已落地并验证；生成路线未定，模型生成未开始**
-> 分支：`feat/art-assets`
+> 状态：**产线工具与加载层已落地并验证；生成路线未定，模型生成未开始**
+> 分支：`feat/asset-loader`（加载层）
 > 适用范围：游戏内全部像素贴图（战斗单位、拾取物、投射物、天赋图标）
 > 不适用范围：平衡数值、玩法规则、UI 布局
 
@@ -88,22 +88,29 @@
 
 ### 5.1 战斗单位（10）
 
-| key | 尺寸 | 依据 |
-| --- | --- | --- |
-| `player` | 16×20 | 金盔蓝袍持短杖 |
-| `enemy_slime` | 16×16 | 绿色黏体，双眼 |
-| `enemy_bat` | 16×16 | 紫蝠展翼 |
-| `enemy_shooter` | 16×16 | 紫体荧光眼，远程 |
-| `enemy_bomber` | 16×16 | 橙色虫体带引信 |
-| `enemy_brute` | 16×16 | 红色壮硕近战，金纹 |
-| `elite_brute` | 24×24 | 岩石巨兽（已认可造型 16×14 → 重制） |
-| `elite_shooter` | 24×24 | 飞行眼魔（已认可造型 16×14 → 重制） |
-| `boss_three` | 48×32 | 三头巨兽（已认可造型 28×18 → 重制） |
-| `boss_reaper` / `boss_tyrant` | TBD | **造型未定，暂不生成** |
+**命名规则（硬约束）**：key 必须等于 `sprites.ts` 的 `SPR` 键，因为 `draw.ts` 用 `e.spr` 直接索引贴图表；精英键由 `elite_<spr>` 推导。键名对不上时覆盖贴图不会生效，且不会报错——这是最容易踩的坑。
+
+| key | SPR 键 | 尺寸 | 依据 |
+| --- | --- | --- | --- |
+| `player` | `player` | 16×20 | 金盔蓝袍持短杖 |
+| `slime` | `slime` | 16×16 | 绿色黏体，双眼 |
+| `bat` | `bat` | 16×16 | 紫蝠展翼 |
+| `shooter` | `shooter` | 16×16 | 紫体荧光眼，远程 |
+| `bomber` | `bomber` | 16×16 | 橙色虫体带引信 |
+| `brute` | `brute` | 16×16 | 红色壮硕近战，金纹 |
+| `elite_brute` | `elite_brute` | 24×24 | 岩石巨兽（已认可造型 16×14 → 重制） |
+| `elite_shooter` | `elite_shooter` | 24×24 | 飞行眼魔（已认可造型 16×14 → 重制） |
+| `boss_three` | 暂无 | 48×32 | 三头巨兽；当前 ETYPES 无 BOSS，键名待定 |
+| `boss_reaper` / `boss_tyrant` | 暂无 | TBD | **造型未定，暂不生成** |
 
 ### 5.2 投射物与拾取物（6）
 
-`proj_bolt` 8×8、`proj_dagger` 8×8（8 方向待定）、`pick_gem` 8×8、`pick_gemE` 8×8、`pick_potion` 8×8、`proj_enemy` 8×8。
+| key | SPR 键 | 尺寸 | 说明 |
+| --- | --- | --- | --- |
+| `gem` | `gem` | 8×8 | 经验宝石 |
+| `gemE` | `gemE` | 8×8 | 精英宝石（当前按 ×1.8 绘制） |
+| `potion` | `potion` | 8×8 | 血瓶 |
+| `proj_bolt` / `proj_enemy` / `proj_dagger` | 暂无 | 8×8 | 当前投射物由矢量绘制，尚无贴图消费方 |
 
 ### 5.3 天赋图标（34）
 
@@ -260,15 +267,40 @@
 
 **实测发现（重要）**：64×64 源图缩到 16×16 后，原本 5×7 像素的双眼被面积平均抹平，只剩下零星 1–2 个暗色像素。这说明**后处理无法救回在错误分辨率下生成的细节**——必须直接请求 16×16 网格生成，把大图缩小当保底手段是行不通的。这条从推测升级为实测结论，第 6.1 节第 1 条硬性要求的依据即在此。
 
-## 8. 入库与加载改造（后续阶段，不在本轮）
+## 8. 入库与加载（已实施，2026-10-24）
 
-| 改造点 | 现状 | 目标 |
+改动落在 `src/game/rendering/assetRegistry.ts`（新增）、`GameScene.ts`、`draw.ts`、`scripts/pixelize.mjs`。
+
+| 改造点 | 改造前 | 现状 |
 | --- | --- | --- |
-| 注册 | `textures.addCanvas` | `this.load.image` / atlas 加载 |
-| 玩家偏移 | 硬编码 `(x-4, y-5)` | 由 `spr.width/2, spr.height/2` 推导 |
-| 精英 | ×1.8 缩放 | 独立 24×24 贴图 key |
-| 回退 | 无 | 保留 `sprites.ts` 作 fallback 开关，避免一次性切断 |
-| 天赋图标 | `ico` emoji | 新增 `icon` 字段，emoji 保留 |
+| 贴图解析 | `draw.ts` 直接读 `SPR[key]` | 统一走 `spriteEntry(key)` → `{ tex, w, h }` |
+| 纹理来源 | 仅程序化 Canvas | Canvas 兜底 + 外部 PNG 覆盖（纹理键 `ovr:<key>`） |
+| 覆盖清单 | 无 | `public/assets/sprites/manifest.json`，由 `pixelize.mjs` 自动维护 |
+| 玩家偏移 | 硬编码 `(x-4, y-5)` | 由贴图尺寸推导 `x - w/2, y - h/2` |
+| 精英 | 固定 ×1.8 | 有 `elite_<spr>` 贴图时 1:1 绘制，否则沿用 ×1.8 |
+| 回退 | 无 | 清单缺失或单张加载失败即回退程序化贴图，不阻塞启动 |
+| 天赋图标 | `ico` emoji | 未改，仍是 emoji（第 5.3 节目标） |
+
+关键设计取舍：
+
+- **用 `fetch` + `Image`，不用 Phaser Loader**：清单本身决定加载哪些文件，走 Loader 需要两阶段加载，复杂度不划算。
+- **覆盖而非替换**：Canvas 纹理始终先注册，PNG 加载成功后才覆盖解析表。因此**没有任何 PNG 时行为与改造前完全一致**，这是回归底线。
+- **异步、失败不影响启动**：单张失败仅 DEV 下告警，保留程序化版本。
+
+### 8.1 覆盖链路验证（2026-10-24）
+
+用合成的 64×80 品红图跑 `--key player`（→16×20），在 e2e 模式实测：
+
+| 检查项 | 结果 |
+| --- | --- |
+| 清单自动写入 | `{"sprites":{"slime":"slime.png","player":"player.png"}}` |
+| 覆盖纹理注册 | `textures.exists("ovr:player")` = true，尺寸 16×20 |
+| 兜底纹理仍在 | `textures.exists("player")` = true（Canvas 未被破坏） |
+| 游戏内渲染 | 截图中玩家变为 16×20 品红方块，居中正确、无错位 |
+| 页面异常 | 0 条 `pageerror` |
+| 回归 | Vitest 40 项 + Playwright 6 项全过（含 production 构建产物） |
+
+**过程中发现并修正的真实缺陷**：`plan.json` 原本用 `enemy_slime` 这类描述性键名，而运行时键是 `SPR` 的 `slime`。键名不匹配时覆盖**静默失效**——不报错、不告警，只是贴图不生效。现已统一为 `SPR` 键名，并在第 5.1 节写明命名硬约束。
 
 ## 9. 验收清单
 
