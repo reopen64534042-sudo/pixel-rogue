@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v13",
+    date: "2026-10-25",
+    title: "战斗基础 S3-A：属性接线",
+    items: [
+      "玩家/怪物可配置战斗属性接入统一管线：护甲、元素抗性、全局/属性/攻击方式增伤（可选字段，默认中性）",
+      "实体属性适配层 core/CombatStats.ts 落地；敌方弹丸发射时快照携带完整新属性",
+      "仅接线、无平衡变更：默认数值全中性，正式数值与来源待 S3-B 批准",
+    ],
+  },
+  {
     version: "v12",
     date: "2026-10-24",
     title: "战斗基础：统一伤害管线（S1+S2）",
