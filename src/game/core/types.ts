@@ -157,6 +157,8 @@ export interface Gem extends Point {
 export interface Box extends Point {
   /** 波次结束后自动飞向玩家 */
   auto?: boolean;
+  /** Issue #48：BOSS 掉落的特殊宝箱（+2 宝箱点数，不占普通掉落上限） */
+  special?: boolean;
 }
 export interface Particle extends Point {
   vx: number;

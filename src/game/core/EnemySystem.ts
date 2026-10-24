@@ -36,8 +36,10 @@ export function spawnEnemy(
     sy = clamp(this.player.y + Math.sin(a) * 300, 30, WORLD.h - 30);
     if (Math.hypot(sx - this.player.x, sy - this.player.y) > 150) break;
   }
-  const hpScale = 1 + (this.waveN - 1) * 0.18;
-  const dmgScale = 1 + (this.waveN - 1) * 0.05;
+  // Issue #47：15 波起难度超线性增长（平方项），后期压力陡增
+  const over = Math.max(0, this.waveN - 15);
+  const hpScale = 1 + (this.waveN - 1) * 0.18 + over * over * 0.06;
+  const dmgScale = 1 + (this.waveN - 1) * 0.05 + over * over * 0.012;
   const lvlPow = Math.pow(1.03, Math.floor(this.player.lvl / 5)); // 玩家每5级，怪物全属性+3%
   this.enemies.push({
     type,

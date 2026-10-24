@@ -87,7 +87,8 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
       this.potions.push({ x: e.x + 8, y: e.y });
       this.shake = Math.min(this.shake + 5, 8);
       // #17：精英必掉宝箱，且不占用普通怪名额
-      this.boxes.push({ x: e.x - 8, y: e.y });
+      // Issue #48：BOSS 掉落特殊宝箱（不计入普通怪 BOX_DROP_CAP）
+      this.boxes.push({ x: e.x - 8, y: e.y, special: true });
     } else {
       const v = e.xp * (Math.random() < p.luck * 0.07 ? 2 : 1);
       this.gems.push({
