@@ -5,6 +5,7 @@ export type GameState = Mode | "levelup" | "report" | "swap";
 export type WavePhase = "fight" | "collect" | "rest";
 export type DamageSource =
   | "bullet"
+  | "reflect"
   | "shock"
   | "orbit"
   | "chain"
@@ -125,6 +126,7 @@ export interface Player extends Point {
   burnSpread: number;
   meteorGuided: number;
   burnGround: number;
+  bladeReflect: number;
   fireRate: number;
   multishot: number;
   pierce: number;
@@ -245,6 +247,8 @@ export interface EnemyBullet extends Point {
   dmg: number;
   r: number;
   life: number;
+  /** Issue #49：被飞刃反弹后标记为友方，可命中敌人 */
+  reflected?: boolean;
   /**
    * 发射时攻击者快照（Combat Foundation S2 · PR #2 评审 P2-3）：
    * 发射者可能在命中前死亡/移除，因此存快照而非敌人引用；必须可选，

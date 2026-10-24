@@ -342,10 +342,10 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     const x = Math.round(b.x),
       y = Math.round(b.y);
     ctx.globalAlpha = 0.35;
-    ctx.fillStyle = "#ff5b5b";
+    ctx.fillStyle = b.reflected ? "#9fe1ff" : "#ff5b5b";
     ctx.fillRect(x - 2, y - 2, 4, 4);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = "#ffd0c0";
+    ctx.fillStyle = b.reflected ? "#e0f6ff" : "#ffd0c0";
     ctx.fillRect(x - 1, y - 1, 2, 2);
   }
 
