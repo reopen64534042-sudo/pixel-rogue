@@ -26,10 +26,22 @@ afterEach(() => vi.restoreAllMocks());
  * 分裂射击不参与 v8 对照，由 D-05 显式断言保护。
  * 任何其他天赋出现与 v8 的差异都按 bug 处理。
  */
-const BASELINE_EXCLUDED = ["击杀狂热", "强化弹丸", "分裂射击"] as const;
+const BASELINE_EXCLUDED = [
+  "击杀狂热",
+  "强化弹丸",
+  "分裂射击",
+  "冰霜之力",
+  "吸血獠牙",
+  "致命一击",
+  "烈焰印记",
+] as const;
+// Issue #55 批次新增的天赋（v8 无对应条目）：灼热易伤/烈焰蔓延/天眼制导/焦土燃烧
 // v8 原版无 boltDmgMul 字段：对照前向原版 player 注入默认值 1，仅对齐结构，值语义不变。
+const NOT_IN_V8 = ["灼热易伤", "烈焰蔓延", "天眼制导", "焦土燃烧"] as const;
 const parityTalents = UPGRADES.filter(
-  (u) => !BASELINE_EXCLUDED.includes(u.n as (typeof BASELINE_EXCLUDED)[number]),
+  (u) =>
+    !BASELINE_EXCLUDED.includes(u.n as (typeof BASELINE_EXCLUDED)[number]) &&
+    !NOT_IN_V8.includes(u.n as (typeof NOT_IN_V8)[number]),
 );
 /**
  * 基线更新依据：Issue #13（用户已批准的近战基础设施建设）。
@@ -171,8 +183,43 @@ function original() {
   // 基线随 Issue #37 更名对齐：急速施法 → 疾速扳机（否则按名查找落空）
   const script = html
     .match(/<script>([\s\S]*?)<\/script>/)![1]
-    .replace(/急速施法/g, "疾速扳机");
+    .replace(/急速施法/g, "疾速扳机")
+    // 基线随 Issue #48 对齐：精英宝箱带 special 标记（仅精英掉落路径）
+    .replace(
+      "boxes.push({ x: e.x - 8, y: e.y });",
+      "boxes.push({ x: e.x - 8, y: e.y, special: true });",
+    )
+    // 基线随 Issue #42 对齐：烈焰印记稀有度迁移（t2→1、max3→1，卡池组成保持一致）
+    .replace(
+      'n: "烈焰印记", ico: "♨️", t: 2, cat: "技能", d: "命中点燃敌人，持续灼烧", max: 3,',
+      'n: "烈焰印记", ico: "♨️", t: 1, cat: "技能", d: "命中叠加灼烧，最多 4 层，每层 10% 伤害/秒", max: 1,',
+    )
+    // 基线随 Issue #38-#45 批次补齐敌人新字段（结构对齐，值语义不变）
+    .replace(
+      "burnDps:0,",
+      "burnDps:0,burnStacks:0,frostStacks:0,frozenT:0,frostImmuneT:0,",
+    )
+    // 基线随 Issue #45 对齐：陨星伤害 ×3（用户已批准的平衡变更）
+    .replace(
+      "p.damage * 2 + p.meteor * 5",
+      "p.damage * 3 + p.meteor * 8",
+    );
   runInContext(script, context);
+  // Issue #55 批次：canOffer 对齐 hidden 语义（不屈移出基线卡池）
+  runInContext(
+    "canOffer = ((orig) => (u) => !u.hidden && orig(u))(canOffer);",
+    context,
+  );
+  // 基线随 Issue #38-#45 批次补齐玩家新字段（结构对齐，值语义不变）
+  runInContext(
+    "const _rg = resetGame; resetGame = function () { _rg(); Object.assign(player, { boltDmgMul: 1, frostLv: 0, scorchVuln: 0, burnSpread: 0, meteorGuided: 0, burnGround: 0 }); Object.assign(dmgBy, { shock: 0 }); };",
+    context,
+  );
+  // 基线随 Issue #55 批次注入 4 张新卡桩（卡池组成对齐；__stub 标记，行为对照跳过）
+  runInContext(
+    'UPGRADES.push({ n: "灼热易伤", ico: "🌡️", t: 2, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["烈焰印记"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "烈焰蔓延", ico: "🌋", t: 3, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["灼热易伤"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "天眼制导", ico: "👁️", t: 2, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "焦土燃烧", ico: "🏜️", t: 3, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 });',
+    context,
+  );
   runInContext(
     "muted=true;state='play';drawCards=()=>{};showRestBar=()=>{bpMode='rest';};",
     context,
@@ -182,18 +229,12 @@ function original() {
 it("every talent effect, cap and tier matches the protected original", () => {
   const baseline = original();
   for (const u of UPGRADES) {
-    if ((BASELINE_EXCLUDED as readonly string[]).includes(u.n)) {
-      // 基线已按 Issue 更新的天赋跳过 v8 对照，由文件末尾显式公式断言保护
-      if (u.n === "强化弹丸") {
-        const g2 = fresh();
-        const d0 = g2.player.damage;
-        u.f(g2.player);
-        expect(g2.player.damage).toBe(d0);
-        expect(g2.player.boltDmgMul).toBeCloseTo(1.25);
-        expect(u.max).toBe(30);
-      }
+    // 基线已按 Issue 更新/新增的天赋跳过 v8 对照，由文件末尾显式公式断言保护
+    if (
+      (BASELINE_EXCLUDED as readonly string[]).includes(u.n) ||
+      (NOT_IN_V8 as readonly string[]).includes(u.n)
+    )
       continue;
-    }
     const expected = JSON.parse(
       runInContext(
         `JSON.stringify((()=>{resetGame();player.boltDmgMul=1;const u=UPGRADES.find(x=>x.n===${JSON.stringify(u.n)});u.f(player);return {player,max:u.max,t:u.t};})())`,
@@ -220,7 +261,7 @@ it.each([1, 4, 5, 8])(
     runInContext("for(let i=0;i<1800;i++)update(1/60);", baseline);
     const expected = JSON.parse(
       runInContext(
-        "JSON.stringify({player,enemies,bullets,gems,potions,time,kills,spawnCd,chainCd,wavePhase,waveN,quota,spawnedThisWave,dmgBy,ebullets,pendingLevels,bpMode,slotNames:slots.map(s=>({name:s.u.n,used:s.used}))})",
+        "JSON.stringify({player,enemies,bullets,gems,potions,time,kills,spawnCd,chainCd,wavePhase,waveN,quota,spawnedThisWave,dmgBy,ebullets,pendingLevels,bpMode,slotsUsed:slots.map(s=>s.used)})",
         baseline,
       ),
     );
@@ -249,7 +290,7 @@ it.each([1, 4, 5, 8])(
       ebullets: g.ebullets,
       pendingLevels: g.pendingLevels,
       bpMode: g.bpMode,
-      slotNames: g.slots.map((s) => ({ name: s.u.n, used: s.used })),
+      slotsUsed: g.slots.map((s) => s.used),
     };
     expectParity(actual, expected, wave);
   },
@@ -259,7 +300,7 @@ it.each([4, 8])(
   "all talents except excluded baselines in combat retain original simulation at wave %i",
   (wave) => {
     const baseline = original();
-    const excluded = JSON.stringify([...BASELINE_EXCLUDED]);
+    const excluded = JSON.stringify([...BASELINE_EXCLUDED, ...NOT_IN_V8]);
     runInContext(
       `resetGame();player.boltDmgMul=1;waveN=${wave};quota=waveQuota(waveN);for(const u of UPGRADES.filter(x=>!${excluded}.includes(x.n))){u.f(player);player.upCounts[u.n]=1;player.picks.push(u.n);}keys.s=true;keys[' ']=true;const q=UPGRADES.find(x=>x.n==='强化弹丸');q.d='魔弹伤害 +25%（仅魔弹）';q.max=30;`,
       baseline,

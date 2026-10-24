@@ -66,6 +66,8 @@ export class GameCore {
   gems: Gem[] = [];
   potions: Point[] = [];
   boxes: Box[] = [];
+  /** Issue #45：焦土燃烧地带 */
+  burnZones: { x: number; y: number; R: number; t: number }[] = [];
   parts: Particle[] = [];
   texts: FloatingText[] = [];
   meteors: Meteor[] = [];
@@ -97,6 +99,7 @@ export class GameCore {
     explode: 0,
     thorns: 0,
     burn: 0,
+    shock: 0,
     melee: 0,
   };
   private waveStartDamage: DamageTotals = {
@@ -107,6 +110,7 @@ export class GameCore {
     explode: 0,
     thorns: 0,
     burn: 0,
+    shock: 0,
     melee: 0,
   };
   beginWaveReport() {
@@ -183,6 +187,7 @@ export class GameCore {
     this.gems = [];
     this.potions = [];
     this.boxes = [];
+    this.burnZones = [];
     this.parts = [];
     this.texts = [];
     this.meteors = [];
@@ -210,6 +215,7 @@ export class GameCore {
       chain: 0,
       meteor: 0,
       explode: 0,
+      shock: 0,
       thorns: 0,
       burn: 0,
       melee: 0,

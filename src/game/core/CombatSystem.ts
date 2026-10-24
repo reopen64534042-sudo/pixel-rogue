@@ -16,18 +16,27 @@ import type {
   PlayerHitOptions,
 } from "./types";
 import { hasteCap } from "../data/talents";
+import {
+  critMultiplier,
+  burnStackDps,
+  scorchVulnMultiplier,
+  frostFreezeDuration,
+  shieldShockDamage,
+} from "./DamageMath";
 
 /**
  * Combat Foundation S2 只读适配器（§4）：实体 → CombatStatsSnapshot。
  * 快照不是另一个可变实体对象，每次结算按需构造；S2 增伤/护甲/抗性全为 0，
  * 数值上与旧直算路径逐位一致，S3 才引入非零来源。
+ * critMultiplier 经 DamageMath（含 #41 致命一击满层觉醒 +0.4），
+ * 使暴击倍率随天赋成长进入管线。
  */
 function playerCombatStats(p: Player): CombatStatsSnapshot {
   return {
     attack: p.damage,
     defense: 0,
     critChance: p.crit,
-    critMultiplier: p.critMul,
+    critMultiplier: critMultiplier(p),
     tough: p.tough,
     resistances: {},
     globalDamageBonus: 0,
@@ -86,8 +95,13 @@ export function hurtEnemy(
   if (!opts.noCrit && Math.random() < this.player.crit) {
     crit = true;
   }
+  // Issue #42 灼热易伤：灼烧目标受伤增加——条件天赋增伤折叠进 rawAmount
+  //（§3.1：D_raw 已包含天赋效果）。该天赋不在 v8 严格对照集内（NOT_IN_V8），
+  // 乘法顺序变化不影响 parity
+  if (e.burnStacks > 0 && this.player.scorchVuln)
+    dmg *= scorchVulnMultiplier(this.player);
   // §3.4 步骤 4：数值交给 DamageSystem。敌方离散命中用 round-min-one，
-  // 与旧 Math.max(1, Math.round(dmg × 暴击倍率)) 逐位一致
+  // 与旧 Math.max(1, Math.round(dmg × 暴击倍率（含 #41 觉醒）× 易伤)) 一致
   const calc = calculateDamage(DAMAGE_TYPES, {
     rawAmount: dmg,
     type: opts.type ?? "physical",
@@ -118,9 +132,22 @@ export function hurtEnemy(
     e.slowT = 1.2;
     e.slowF = this.player.slow;
   }
+  // Issue #38：冰霜叠层 → 冰冻
+  if (this.player.frostLv > 0 && (e.frostImmuneT || 0) <= 0) {
+    e.frostStacks = (e.frostStacks || 0) + 1;
+    if (e.frostStacks >= 3) {
+      e.frozenT = frostFreezeDuration(this.player);
+      e.frostImmuneT = 2.5;
+      e.frostStacks = 0;
+      this.addText(e.x, e.y - e.r - 6, "冰冻", "#9fe1ff");
+      this.audio.beep(880, 0.1, "sine", 0.04, 300);
+    }
+  }
+  // Issue #42：灼烧叠层（每层 10% 伤害/秒）
   if (this.player.burn) {
+    e.burnStacks = Math.min(4, (e.burnStacks || 0) + 1);
     e.burnT = 2;
-    e.burnDps = this.player.damage * 0.3 * this.player.burn;
+    e.burnDps = burnStackDps(this.player, e.burnStacks);
   }
   if (this.player.chain > 0 && this.chainCd <= 0 && !opts.noChain) {
     this.chainCd = 0.6;
@@ -169,6 +196,20 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   if (p.hasteLv) {
     p.haste = Math.min(hasteCap(p.hasteLv), p.haste + 1);
     p.hasteT = 2 + p.hasteLv;
+  }
+  // Issue #42 烈焰蔓延：灼烧敌人死亡时传播剩余层数
+  if (p.burnSpread > 0 && e.burnStacks > 0) {
+    const targets = this.enemies
+      .filter(
+        (o) => o !== e && !o.dead && Math.hypot(o.x - e.x, o.y - e.y) < 80,
+      )
+      .sort((a, b) => a.hp - b.hp)
+      .slice(0, 1 + p.burnSpread);
+    for (const o of targets) {
+      o.burnStacks = Math.min(4, e.burnStacks);
+      o.burnT = 2;
+      this.addText(o.x, o.y - 10, "蔓延", "#ff9a3d");
+    }
   }
   // 掉落 (自爆虫自毁不掉落)
   if (!e.noDrop) {
@@ -292,6 +333,21 @@ export function damagePlayer(
     p.shield--;
     p.shieldCd = 10;
     p.hurtCd = 0.5;
+    // Issue #43：护盾破碎反震（天然节拍 = 护盾 10s 充能）
+    const targets = this.enemies.filter(
+      (o) => !o.dead && Math.hypot(o.x - p.x, o.y - p.y) < 80,
+    );
+    for (const o of targets) {
+      const d = Math.hypot(o.x - p.x, o.y - p.y) || 1;
+      this.hurtEnemy(
+        o,
+        shieldShockDamage(p),
+        ((o.x - p.x) / d) * 6,
+        ((o.y - p.y) / d) * 6,
+        { noCrit: true, src: "shock", type: "physical", form: "other" },
+      );
+    }
+    if (targets.length) this.addText(p.x, p.y - 16, "反震!", "#ffd24a");
     this.addText(p.x, p.y - 10, "护盾抵挡!", "#57e6ff");
     this.audio.beep(980, 0.12, "sine", 0.06, -200);
     return blockedHit(dmg, { dodged: false, shieldUsed: "normal" });

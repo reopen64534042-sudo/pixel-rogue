@@ -561,3 +561,18 @@ parity 新增**第四条归一化**（D-02 先例）：弹丸 `stats` 从对照�
 - CHANGELOG 双文件：上游 v10「命名修订与流程批次」保留，本分支条目升为 **v11** 置顶，版本顺序唯一
 
 整合后整体验证：typecheck 通过；`npm test` **101 项通过**（含更名后的 parity 20 项全绿）；build 通过；`npm run test:browser` **6 项通过**，性能采样 p50=0.3 / p95=0.5ms（与既有波动区间一致）。
+
+## 上游交付：S1+S2 与上游 v11 平衡批次的整合（2026-10-24）
+
+向上游 `reopen64534042-sudo/pixel-rogue` 提 PR 前，在交付分支 `feat/combat-foundation-s1-s2`（自 fork main `5fa2973` 切出）内合并 `upstream/main`（`2c504b6`，含 #58 更名与 **#60 天赋平衡大重做**）。#60 刻意按 Combat Foundation 精神新增了 `DamageMath.ts`（自述「S1 DamageSystem 的前身适配层」）与 `combatBalance.ts`（天赋平衡系数），与本分支 S1 的同名 `combatBalance.ts` 构成 add/add 冲突。语义整合决策：
+
+| 冲突/接缝 | 整合方式 |
+|---|---|
+| combatBalance.ts add/add | 合并为单一 `CombatBalance` 接口：Combat Foundation 减伤基准（armorK/resistanceCap/toughCap）+ #38-#45 全部天赋系数；DamageMath 与 DamageSystem 各取所需 |
+| 暴击觉醒（#41） | `playerCombatStats` 的 critMultiplier 改用 `DamageMath.critMultiplier`（含满层 +0.4），觉醒随攻击者快照进入管线，暴击乘法位置不变 |
+| 灼热易伤（#42） | 条件天赋增伤折叠进 rawAmount（§3.1：D_raw 已含天赋效果）；该天赋属上游 NOT_IN_V8 排除集，乘法顺序变化不影响 parity |
+| 冰冻/灼烧叠层/烈焰蔓延/护盾反震/陨星制导 | 上游编排逻辑原位保留（自动合并落入 S2 结构），反震/蔓延的 hurtEnemy 调用点补齐显式 type/form；反震经管线记账 `dmgBy.shock` |
+| CHANGELOG v11 撞号 | 上游 v11「天赋平衡大重做」保留原位，本交付升为 **v12** 并补充整合说明条目 |
+| 测试 | 「盾序」用例的敌人移出 80px 反震半径以隔离 #43 干扰；新增护盾反震管线整合用例（`dmgBy.shock` = 22 断言） |
+
+验证：typecheck 通过；`npm test` **102 项全绿**（上游重做断言 + parity 20 项 + 我方计算器/管线 31 项共存）；build 通过；`test:browser` 6 项通过，性能 p50=0.2 / p95=0.4ms 回到基线。

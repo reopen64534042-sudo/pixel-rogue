@@ -151,7 +151,8 @@ describe("combat foundation s2 pipeline", () => {
 
   it("闪避 → 壁垒 → 护盾 顺序保持；抵挡时不扣血、不触发反伤", () => {
     const g = fresh();
-    const e = enemy(g);
+    // 敌人放在 80px 反震半径之外，隔离上游 v11 #43 护盾反震对本用例的干扰
+    const e = enemy(g, g.player.x + 200, g.player.y);
     g.player.tempShield = 1;
     g.player.shield = 1;
     g.player.thorns = 5;
@@ -188,6 +189,21 @@ describe("combat foundation s2 pipeline", () => {
     expect(g.player.hp).toBeCloseTo(90, 10);
     expect(g.dmgBy.thorns).toBe(5);
     expect(e.hp).toBe(e.maxhp - 5);
+  });
+
+  it("#43 护盾破碎反震经管线结算：记账 shock、玩家不扣血（上游 v11 整合）", () => {
+    const g = fresh();
+    const e = enemy(g); // 默认就在玩家身边（20px < 80px 半径）
+    g.player.shield = 1;
+    g.player.hurtCd = 0;
+    vi.spyOn(Math, "random").mockReturnValue(0.99);
+    const r = g.damagePlayer(10, { type: "physical", form: "ranged" });
+    expect(r.shieldUsed).toBe("normal");
+    expect(r.effectiveHpLoss).toBe(0);
+    expect(g.player.hp).toBe(100);
+    // 反震伤害 = p.damage × 2，经 round-min-one 管线结算并记账 shock 分项
+    expect(g.dmgBy.shock).toBe(22);
+    expect(e.hp).toBe(e.maxhp - 22);
   });
 
   it("闪避完全无效化；dodge>0 才消耗掷骰，dodge=0 全程无随机调用", () => {

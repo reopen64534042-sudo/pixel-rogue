@@ -60,6 +60,10 @@ export function spawnEnemy(
     slowF: 0,
     burnT: 0,
     burnDps: 0,
+    burnStacks: 0,
+    frostStacks: 0,
+    frozenT: 0,
+    frostImmuneT: 0,
     seed: Math.random() * 10,
     shootCd: 1 + Math.random() * 1.5,
     fuse: 0,
@@ -146,6 +150,14 @@ export function updateEnemies(this: GameCore, dt: number) {
         this.killEnemy(e);
         continue;
       }
+    } else if (e.burnStacks) {
+      e.burnStacks = 0;
+    }
+    // Issue #38：冰冻定身（仍可受伤害/灼烧）
+    e.frostImmuneT = Math.max(0, e.frostImmuneT - dt);
+    if (e.frozenT > 0) {
+      e.frozenT -= dt;
+      continue;
     }
     let a = Math.atan2(p.y - e.y, p.x - e.x);
     if (e.type === "bat") a += Math.sin(this.time * 6 + e.seed) * 0.5;
