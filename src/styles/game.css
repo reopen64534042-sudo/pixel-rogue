@@ -1168,3 +1168,36 @@ p {
   opacity: 0.5;
   cursor: wait;
 }
+
+/* Issue #55：更新日志面板 */
+#changelog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vmin;
+  max-height: 62vh;
+  overflow-y: auto;
+  width: min(88vmin, 720px);
+  padding: 0 1vmin;
+  text-align: left;
+}
+.cl-entry {
+  border: 0.25vmin solid #3d4a7a;
+  border-radius: 8px;
+  padding: 1.2vmin 1.6vmin;
+  background: rgba(20, 26, 51, 0.6);
+}
+.cl-entry:first-child {
+  border-color: #ffd24a;
+}
+.cl-head {
+  color: #ffd24a;
+  font-size: 1.7vmin;
+  margin-bottom: 0.8vmin;
+}
+.cl-entry ul {
+  margin: 0;
+  padding-left: 2vmin;
+  color: #c7cff2;
+  font-size: 1.4vmin;
+  line-height: 1.8;
+}

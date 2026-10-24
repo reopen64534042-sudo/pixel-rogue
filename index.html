@@ -65,7 +65,7 @@
   <div id="ov-start" class="overlay">
     <h1>像素秘境</h1>
     <p>动作割草肉鸽 · 活下去，变强，再活下去</p>
-    <p class="version">Pixel Rogue · v0.1.0 · 试玩版</p>
+    <p class="version" id="start-version">Pixel Rogue · 试玩版</p>
     <div class="keys">
       <span class="key">WASD / 方向键 移动</span>
       <span class="key">攻击全自动</span>
@@ -76,6 +76,13 @@
     </div>
     <p style="font-size:1.3vmin">敌潮一波接一波，波与波之间有休整时间 · 地图四周有边界</p>
     <button class="btn" id="btn-start" disabled aria-busy="true">开 始 冒 险</button>
+    <button class="btn" id="btn-changelog" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">📜 更新日志</button>
+  </div>
+
+  <div id="ov-changelog" class="overlay hidden">
+    <h2>📜 更新日志</h2>
+    <div id="changelog-list"></div>
+    <button class="btn" id="btn-changelog-close">返 回</button>
   </div>
 
   <!-- 属性面板 -->

@@ -163,8 +163,8 @@ describe("34 talents, card pools and combat", () => {
       expect(picks.some((u) => DMG_POOL.includes(u.n))).toBe(true);
       expect(picks.every((u) => u.t < 3)).toBe(true);
     }
-    learn(g, "急速施法", 8);
-    expect(g.learnTalent(talent("急速施法"))).toBe(false);
+    learn(g, "疾速扳机", 8);
+    expect(g.learnTalent(talent("疾速扳机"))).toBe(false);
   });
   it("each of three cards refreshes once, no duplicate peers or accidental selection", () => {
     const g = fresh();

@@ -1,4 +1,5 @@
 import type { GameCore } from "../game/core/GameCore";
+import { CHANGELOG, CURRENT_VERSION } from "../game/data/changelog";
 import {
   UPGRADES,
   TIERS,
@@ -50,6 +51,19 @@ export class GameUI {
       },
     };
     element("btn-start").onclick = () => this.core.startGame();
+    // Issue #55：开始界面版本号 + 更新日志面板
+    element("start-version").textContent =
+      `Pixel Rogue · ${CURRENT_VERSION} · 试玩版`;
+    element("btn-changelog").onclick = () => {
+      element("changelog-list").innerHTML = CHANGELOG.map(
+        (e) =>
+          `<div class="cl-entry"><div class="cl-head">${e.version} · ${e.date} · ${e.title}</div><ul>${e.items
+            .map((it) => `<li>${it}</li>`)
+            .join("")}</ul></div>`,
+      ).join("");
+      show("ov-changelog");
+    };
+    element("btn-changelog-close").onclick = () => hide("ov-changelog");
     element("btn-retry").onclick = () => this.core.startGame();
     element("btn-resume").onclick = () => this.core.togglePause();
     element("btn-statclose").onclick = () => this.core.toggleStats();
