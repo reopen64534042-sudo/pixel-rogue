@@ -769,3 +769,39 @@ S3-A/B/C 全部合入 fork main（PR #3/#4/#6）后，按「同步上游 → 集
 - `npm test` **123 项通过**（parity 26 项不变：波 1/3 严格 + 中性化 4/5/8 + 全天赋 3 严格 + 全天赋中性化 4/8 + D-01~D-08——上游 #67 波末流程在两侧一致实现，严格对照全绿）
 - `npm run typecheck`、`npm run build` 通过；`npm run test:browser` 见交付 PR 描述
 - 对照 upstream/main 最终 delta：19 文件 +1364/−177，全部为 S3 基建 + 新卡/克制数值 + 配套测试与文档，无上游功能改动
+
+## D-11 Combat Foundation S4-A：纯属性模型 StatModel（2026-10-25）
+
+依据 `docs/pixel-rogue-S4-implementation-brief.md` §4-S4-A/§6，分支 `feat/combat-foundation-s4a`（基线 cd9c8b6，#76 合并后上游无其他新提交）。
+
+### 交付范围（不接入运行时，零行为变化）
+
+- **新模块 `src/game/core/StatModel.ts`**：`effective = (base + Σflat) × (1 + Σpercent) × Πfinal`。同 percent 区加算（Σ 先求和再乘一次，浮点逐位契约 `0.1+0.1 → ×1.2` 而非 ×1.21）；final 连乘（按修饰符数组顺序、IEEE754 左结合）；`final.value` 是倍率本身（1.1），不是「+10%」。
+- **契约冻结**：全部数值有限（NaN/±Infinity 抛 TypeError）；base ≥ 0 缺省视为 0；flat 允许任意有限值（负增益合法、模型不裁剪——夹紧属接入点决策）；percent 每项 > -1、区因子允许为 0；final 每项 > 0；sourceId 非空字符串、同一来源可多条；结果只含出现过的属性（Partial 语义）；纯函数不改写输入。
+- **历史卡兼容原则（任务书 §3）**：逐次乘算卡（磨刃/狂怒等 `p.damage *= 1.1^n`）必须映射为 n 条 final，测试钉死 `11×1.1² ≠ 13.2`，禁止折叠成 percent +0.2n。
+- **来源追踪**：`modifierSources(sheet, stat)` 按首次出现顺序去重返回 sourceId，供 S4-B shadow 对照。
+- **S4-B 桥接设计（仅纯投影，未替换任何 CombatStats.ts 调用）**：`resolveCombatStats(sheet)` 投影 CombatStatsSnapshot 标量子集（attack/defense/critChance/critMultiplier/tough），缺失属性省略键；resistances 与三类增伤映射的接入方式是 S4-B 决策项。
+
+### 未触碰（S4-A 边界）
+
+Player/Enemy、41 张天赋、敌人配置、波次/RNG、DamageSystem、CombatStats.ts、UI——零运行时改动；parity 测试内容原样（26 项全绿）。
+
+### 验证
+
+- 新增 `tests/stat-model.test.ts` **21 项**：任务书必测项全覆盖（180 通式 / ×1.5 加算 / ×1.21 连乘 / 零值 / 合法负 percent 与区因子 0 / NaN·Infinity / 非法 final / 缺省属性 / 输入不变性·冻结输入 / 来源追踪 / 桥接投影）
+- `npm test` **144 项通过**（原 123 + 21，parity 26 原样）；`npm run build`（含 typecheck）通过
+- 变异验证 2 组均被咬住：percent 区改逐项乘算（3 红，含两个加算契约钉子）、移除 final > 0 校验（1 红）
+- 浏览器测试未运行：无场景/UI 改动，符合任务书 §4-S4-A「不因新增计算模块要求浏览器测试」
+
+### S4-B 待决策项（提交审查时列出）
+
+1. shadow 对照首批字段（建议 DEF/抗性/增伤来源）与对照场景集。
+2. resistances 与 global/type/form/skillDamageBonus 映射进入白名单的方式（独立 StatId 还是结构化来源组）。
+3. 模型负值/上限夹紧的接入点选择（须与现有实际生效点一致，不提前统一）。
+4. sidecar（若需）生命周期与清理策略；首选无持久缓存的纯函数派生。
+
+### 上游 PR #77 评审修订（P2 溢出守卫 + P3 负区因子政策）
+
+- **P2**：输入逐项有限不代表聚合结果有限——flat/percent 求和、base+flat、各阶段乘积都可能在全合法输入下溢出为 ±Infinity（NaN 同样被守卫覆盖）。修复：`resolveStats` 在 flat 聚合/flat 阶段/percent 聚合/percent 阶段/final 阶段五处校验结果有限性，溢出抛 **RangeError**（区别于输入非法的 TypeError），不静默返回非有限数。新增 4 组回归：两 flat 求和溢出、base+flat 溢出（评审原始样例 MAX_VALUE+MAX_VALUE）、两 percent 求和溢出、base×final 乘积溢出。变异验证：移除溢出守卫 → 4 用例红；还原 26/26。
+- **P3（不改变行为）**：多项合法负 percent 合计可 < -1，产生负区因子。任务书仅明确允许因子为 0。按评审建议本批**不裁剪**，在契约 JSDoc 明示「负区因子当前允许，政策须在 S4-B 正式读取前明确」，并新增钉住现状的回归（-0.6×2 → 负因子，与实现同序表达式逐位相等），防止后续被静默更改。
+- 测试 26 项（+5）；`npm test` **149/149**（parity 26 原样）；build/typecheck 通过；架构与运行时边界零改动。

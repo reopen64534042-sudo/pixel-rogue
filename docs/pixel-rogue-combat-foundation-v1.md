@@ -1,6 +1,6 @@
 # Pixel Rogue · Combat Foundation v1 技术设计规范
 
-> 状态：**设计已确认；S1/S2 已实施（记录见 docs/migration.md「D-05/D-06」），S3–S4 尚未实施**  
+> 状态：**设计已确认；S1–S3 已实施（S1/S2 见「D-05/D-06」，S3 见「D-07/D-08/D-10」并已并入上游 PR #76），S4 进行中（S4-A 见「D-11」）**  
 > 日期：2026-10-24  
 > 项目：Pixel Rogue（像素秘境）  
 > 目标开发仓库：[`yunluoxincheng/pixel-rogue`](https://github.com/yunluoxincheng/pixel-rogue)（S1 实施所在仓库；规范初稿来自上游 `reopen64534042-sudo/pixel-rogue`）  
