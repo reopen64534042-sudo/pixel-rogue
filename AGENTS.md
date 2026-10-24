@@ -69,3 +69,7 @@
 
 ## 文档维护
 本文件应简洁、准确、可执行；新增/修改结构和命令后同步。临时报告写 docs/migration.md，不堆入本文件。README 记录运行、操作和静态部署。交付时核对规则、文档、测试和产物一致性。
+
+**更新日志（Issue #55）**：功能 PR 合并进 main 前，须在 `CHANGELOG.md` 顶部与
+`src/game/data/changelog.ts` 同步追加条目（版本号递增、最近在前），开始界面版本号随
+`CURRENT_VERSION` 自动更新。
