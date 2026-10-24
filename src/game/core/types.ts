@@ -282,10 +282,18 @@ export interface HitOptions {
   noChain?: boolean;
   src?: DamageSource;
   fromExplode?: boolean;
+  /** Combat Foundation S2（§5）：伤害属性，缺省 physical；所有既有调用点均已显式声明 */
+  type?: DamageTypeId;
+  /** Combat Foundation S2（§5）：攻击方式，缺省 other */
+  form?: AttackForm;
 }
 export interface PlayerHitOptions {
   melee?: boolean;
   src?: Enemy;
+  /** Combat Foundation S2（§5）：伤害属性，缺省 physical（接触=physical/melee、弹幕=physical/ranged、自爆=fire/other） */
+  type?: DamageTypeId;
+  /** Combat Foundation S2（§5）：攻击方式，缺省 other */
+  form?: AttackForm;
 }
 export interface Slot {
   u: Talent;

@@ -5,8 +5,50 @@ import {
   ELITE_XP_STEP,
   hash01,
 } from "../data/constants";
-import type { Enemy, HitOptions, PlayerHitOptions } from "./types";
+import { DAMAGE_TYPES } from "../data/damageTypes";
+import { calculateDamage } from "./DamageSystem";
+import type {
+  CombatStatsSnapshot,
+  Enemy,
+  HitOptions,
+  Player,
+  PlayerHitOptions,
+} from "./types";
 import { hasteCap } from "../data/talents";
+
+/**
+ * Combat Foundation S2 只读适配器（§4）：实体 → CombatStatsSnapshot。
+ * 快照不是另一个可变实体对象，每次结算按需构造；S2 增伤/护甲/抗性全为 0，
+ * 数值上与旧直算路径逐位一致，S3 才引入非零来源。
+ */
+function playerCombatStats(p: Player): CombatStatsSnapshot {
+  return {
+    attack: p.damage,
+    defense: 0,
+    critChance: p.crit,
+    critMultiplier: p.critMul,
+    tough: p.tough,
+    resistances: {},
+    globalDamageBonus: 0,
+    typeDamageBonus: {},
+    formDamageBonus: {},
+  };
+}
+
+function enemyCombatStats(e?: Enemy): CombatStatsSnapshot {
+  return {
+    attack: e ? e.dmg : 0,
+    defense: 0,
+    critChance: 0,
+    critMultiplier: 1,
+    tough: 0,
+    resistances: {},
+    globalDamageBonus: 0,
+    typeDamageBonus: {},
+    formDamageBonus: {},
+  };
+}
+
 export function hurtEnemy(
   this: GameCore,
   e: Enemy,
@@ -16,12 +58,24 @@ export function hurtEnemy(
   opts: HitOptions = {},
 ) {
   if (e.dead || this.state !== "play") return;
+  // §3.4 步骤 3：暴击判定留在编排层，掷骰条件与次数与旧路径一致
   let crit = false;
   if (!opts.noCrit && Math.random() < this.player.crit) {
     crit = true;
-    dmg *= this.player.critMul;
   }
-  dmg = Math.max(1, Math.round(dmg));
+  // §3.4 步骤 4：数值交给 DamageSystem。敌方离散命中用 round-min-one，
+  // 与旧 Math.max(1, Math.round(dmg × 暴击倍率)) 逐位一致
+  dmg = calculateDamage(DAMAGE_TYPES, {
+    rawAmount: dmg,
+    type: opts.type ?? "physical",
+    form: opts.form ?? "other",
+    origin: opts.src ?? "hit",
+    kind: "hit",
+    precision: "round-min-one",
+    isCritical: crit,
+    attackerStats: playerCombatStats(this.player),
+    defenderStats: enemyCombatStats(e),
+  }).settledDamage;
   e.hp -= dmg;
   e.flash = 0.08;
   if (opts.src) this.dmgBy[opts.src] = (this.dmgBy[opts.src] || 0) + dmg;
@@ -60,6 +114,8 @@ export function hurtEnemy(
         noChain: true,
         noCrit: true,
         src: "chain",
+        type: "lightning",
+        form: "other",
       });
     }
     if (near.length) this.audio.beep(1200, 0.08, "sawtooth", 0.04, -600);
@@ -125,7 +181,14 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
           (p.damage * 0.5 + p.explode * 2) * (1 + p.explodeDmg),
           0,
           0,
-          { noChain: true, noCrit: true, fromExplode: true, src: "explode" },
+          {
+            noChain: true,
+            noCrit: true,
+            fromExplode: true,
+            src: "explode",
+            type: "fire",
+            form: "other",
+          },
         );
     }
     for (let i = 0; i < 10; i++) {
@@ -197,7 +260,19 @@ export function damagePlayer(
     this.audio.beep(980, 0.12, "sine", 0.06, -200);
     return false;
   }
-  dmg *= 1 - Math.min(0.6, p.tough); // 铁布衫减伤
+  // §3.4 步骤 4：玩家受击固定 preserve-float（§3.3 浮点扣血，UI 取整仅显示）；
+  // tough 经通用减伤乘区生效，S2 其余乘区全为 1
+  dmg = calculateDamage(DAMAGE_TYPES, {
+    rawAmount: dmg,
+    type: opts.type ?? "physical",
+    form: opts.form ?? "other",
+    origin: opts.src ? "contact" : "enemy",
+    kind: "hit",
+    precision: "preserve-float",
+    isCritical: false,
+    attackerStats: enemyCombatStats(opts.src),
+    defenderStats: playerCombatStats(p),
+  }).settledDamage;
   p.hurtCd = 0.6;
   p.hp -= dmg;
   if (opts.melee && p.thorns && opts.src) {
@@ -207,6 +282,8 @@ export function damagePlayer(
     this.hurtEnemy(opts.src, p.thorns, (-dx / kd) * 4, (-dy / kd) * 4, {
       noCrit: true,
       src: "thorns",
+      type: "physical",
+      form: "other",
     });
   }
   if (p.haste > 0) {
@@ -232,4 +309,25 @@ export function damagePlayer(
     return true;
   }
   return false;
+}
+
+/**
+ * §3.3/§5 灼烧 DoT 入口：无副作用触发链——不取整、不保底、不暴击、
+ * 不触发吸血/飘字/连锁/击退。由 EnemySystem 每帧调用，燃烧粒子等表现
+ * 留在调用侧，死亡判定也由调用侧按原顺序执行。
+ */
+export function applyBurnDot(this: GameCore, e: Enemy, dt: number) {
+  const dmg = calculateDamage(DAMAGE_TYPES, {
+    rawAmount: e.burnDps * dt,
+    type: "fire",
+    form: "other",
+    origin: "burn",
+    kind: "dot",
+    precision: "preserve-float",
+    isCritical: false,
+    attackerStats: playerCombatStats(this.player),
+    defenderStats: enemyCombatStats(e),
+  }).settledDamage;
+  e.hp -= dmg;
+  this.dmgBy.burn += dmg;
 }

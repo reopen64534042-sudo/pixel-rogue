@@ -21,7 +21,11 @@ export function updateProjectiles(this: GameCore, dt: number) {
       if (dx * dx + dy * dy < rr * rr) {
         const kx = (b.vx / p.projSpeed) * 4,
           ky = (b.vy / p.projSpeed) * 4;
-        this.hurtEnemy(e, b.dmg, kx, ky, { src: "bullet" });
+        this.hurtEnemy(e, b.dmg, kx, ky, {
+          src: "bullet",
+          type: "physical",
+          form: "ranged",
+        });
         b.hitList.push(e);
         if (b.pierce > 0) {
           b.pierce--;
@@ -63,7 +67,8 @@ export function updateProjectiles(this: GameCore, dt: number) {
       rr = p.r + b.r;
     if (dx * dx + dy * dy < rr * rr && p.hurtCd <= 0 && p.dashT <= 0) {
       this.ebullets.splice(i, 1);
-      if (this.damagePlayer(b.dmg, {})) return true;
+      if (this.damagePlayer(b.dmg, { type: "physical", form: "ranged" }))
+        return true;
     }
   }
 }

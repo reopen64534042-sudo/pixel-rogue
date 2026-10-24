@@ -468,3 +468,53 @@ Vite base='./'；dist 包含 HTML、JS/CSS、字体及许可证。生产无 lega
 | 忽略 precision 恒按 round-min-one 取整 | FAIL 3 项（含 P1 回归「preserve-float 保留玩家受伤浮点语义」） |
 
 修复后整体验证：`npm run typecheck` 通过；`npm test` **88 项通过**；`npm run build` 通过；Prettier 通过。
+
+## 基础设施 D-06：Combat Foundation S2 全伤害路径接入统一管线（2026-10-24）
+
+**基线更新依据：docs/pixel-rogue-combat-foundation-v1.md S2（设计已确认的 P0）。** S1 交付的 DamageSystem 纯计算器接入全部 11 条现有伤害路径；「默认零增伤/零护甲/零抗性时与原状态完全一致」由 parity 逐字段对照保证（20 项全绿，未删任何既有测试）。
+
+### 交付物与路径映射（§5）
+
+| 路径 | type / form / kind / precision | 调用位置 |
+|---|---|---|
+| 普通弹（保留发射快照与 0.85 衰减） | physical / ranged / hit / round-min-one | ProjectileSystem |
+| 环绕飞刃 | physical / other / hit / round-min-one | AttackSystem |
+| 陨星 | fire / other / hit / round-min-one | AttackSystem |
+| 近战 | physical / melee / hit / round-min-one | MeleeSystem |
+| 雷霆连锁 | lightning / other / hit / round-min-one | CombatSystem.hurtEnemy |
+| 荆棘反伤 | physical / other / hit / round-min-one | CombatSystem.damagePlayer |
+| 击杀爆炸 | fire / other / hit / round-min-one | CombatSystem.killEnemy |
+| 敌人接触 | physical / melee / hit / preserve-float | EnemySystem |
+| 敌方弹幕 | physical / ranged / hit / preserve-float | ProjectileSystem |
+| 自爆虫引爆 | fire / other / hit / preserve-float | EnemySystem |
+| 灼烧 DoT | fire / other / dot / preserve-float | CombatSystem.applyBurnDot（EnemySystem 每帧调用） |
+
+### 编排语义保持（§3.4）
+
+- **暴击判定留在编排层**：掷骰条件（!noCrit 才掷）与顺序（先判定、结算后音效）不变；单测断言掷骰次数（普通 2 次 / noCrit 1 次 / dodge=0 全程 0 次），parity 随机序列一致证实。
+- **敌方命中走 round-min-one**，与旧 `Math.max(1, Math.round(dmg × critMul))` 逐位一致（零乘区下 ×1 乘法不影响 IEEE754 结果）。
+- **玩家受击走 preserve-float**：浮点扣血、UI 取整仅显示；闪避 → 壁垒 → 护盾顺序与 RNG 短路条件保持；反伤仍只发生在真实扣血后并复用管线。
+- **雷霆连锁继承上一击结算值** × (0.7 + chainDmg)，noCrit/noChain 防递归不变。
+- **applyBurnDot 为无副作用 DoT 入口**：不取整/不保底/不暴击/不触发吸血飘字连锁；燃烧粒子与死亡判定留在 EnemySystem 原位置。
+- 非伤害 HP 路径不在管线内（此即其说明）：自爆虫自毁 hp=0 触发死亡、治疗（药水/再生/吸血回血）、不屈保命 hp=1。
+- 适配器为 CombatSystem 内 playerCombatStats / enemyCombatStats 只读快照（玩家带 crit/critMul/tough，敌人全 0）；S2 无任何非零增伤/抗性来源，S3 引入。DamageSystem 纯函数零改动。
+
+### 变异验证（3 组均被咬住后恢复）
+
+| 变异 | 实测 |
+|---|---|
+| hurtEnemy 改 preserve-float | FAIL 2 项（旧公式一致、连锁继承） |
+| damagePlayer 改 round-min-one | FAIL 1 项（玩家浮点） |
+| applyBurnDot 扣血取整 | FAIL 1 项（DoT 60Hz 累计） |
+
+### 验证结果
+
+| 项 | 结果 |
+|---|---|
+| `npm run typecheck` | 通过 |
+| `npm test` | **96 项通过**（原 88 + 新增 tests/combat.test.ts 8 项），parity 20 项全绿 |
+| `npm run build` | 通过 |
+| `npm run test:browser` | **6 项通过**；纯模拟性能 p50=0.2ms / p95=0.4ms（160 敌+120 弹，与 S2 前基线一致，逐次快照分配无回归）；生产自然首波+真实升级选择通过 |
+| `npx prettier@3.9.10 --check`（变更文件） | 通过 |
+
+环境备注：浏览器测试前 4173 端口被当日 20:08 遗留的本仓库 vite preview 占用（其他会话残留，PID 55784），已终止该进程后按标准命令验证；需要时可用 `npm run preview` 重启。
