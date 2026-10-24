@@ -513,7 +513,12 @@ export class GameUI {
     [...inv.querySelectorAll<HTMLElement>("span[data-n]")].forEach((sp) => {
       sp.onclick = () => {
         const n = sp.dataset.n!;
-        this.core.selectMaterial(n);
+        if (!this.core.selectMaterial(n)) {
+          // Issue #74：两步式下最常见的拒绝原因是材料稀有度不一致
+          element("sw-hint").textContent =
+            "材料稀有度须一致——请继续选同稀有度的天赋";
+          return;
+        }
         this.updateSwapHint();
         this.renderSwInv();
       };

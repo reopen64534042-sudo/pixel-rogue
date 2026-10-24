@@ -37,6 +37,8 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
   await page.evaluate(() => {
     const g = window.__PIXEL_ROGUE__!.core;
     g.gems.push({ x: g.player.x + 1, y: g.player.y, vx: 0, vy: 0, v: 18 });
+    // 基线更新依据：Issue #67（v14 波末统一执行）——升级不再立即弹面板，受控夹具显式打开
+    g.openLevelPanel();
   });
   await expect(page.locator("#bp-level")).toBeVisible();
   await page.screenshot({ path: "output/playwright/bottombar-levelup.png" });
@@ -93,9 +95,7 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
   }).toPass({ timeout: 15000 });
   await page.screenshot({ path: "output/playwright/bottombar-rest.png" });
   await page.getByRole("button", { name: "⚗ 打开置换" }).click();
-  await page
-    .getByRole("button", { name: "→ 稀有 (2×普通)", exact: true })
-    .click();
+  // 基线更新依据：Issue #74（两步式置换）——目标稀有度由首选材料自动推导，旧目标按钮已移除
   const material = page.locator('#sw-inv span[data-n="磨刃"]');
   await material.click();
   await material.click();

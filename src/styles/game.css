@@ -1053,8 +1053,7 @@ p {
 #bp-swap.hidden {
   display: none !important;
 }
-#bp-swap .swap-header,
-#bp-swap .swap-targets {
+#bp-swap .swap-header {
   display: flex;
   flex-wrap: wrap;
   gap: 1vmin;
@@ -1166,7 +1165,7 @@ p {
 }
 .btn:disabled {
   opacity: 0.5;
-  cursor: wait;
+  cursor: not-allowed;
 }
 
 /* Issue #55：更新日志面板 */

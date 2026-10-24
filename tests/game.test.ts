@@ -351,6 +351,36 @@ describe("furnace economics and regressions", () => {
     expect(g.melt()).not.toBe(null);
     expect(g.player.picks).toHaveLength(1);
   });
+  // 基线更新依据：Issue #74（用户实测置换界面无法选材）——两步式下不再预设目标档
+  it("two-step swap: target tier derived from first material, mixed tiers rejected", () => {
+    const g = fresh();
+    learn(g, "磨刃");
+    learn(g, "强化弹丸");
+    const rare = UPGRADES.find((u) => u.t === 1 && !u.req)!.n;
+    learn(g, rare, 2); // 两级才能作为 2 个等级的材料投入
+    g.wavePhase = "rest";
+    g.openSwap();
+    expect(g.swTarget).toBe(0);
+    expect(g.selectMaterial("磨刃")).toBe(true);
+    expect(g.swTarget).toBe(1); // 首选材料自动推导目标档
+    expect(g.selectedCount()).toBe(1);
+    expect(g.selectMaterial(rare)).toBe(false); // 稀有度不一致直接拒绝
+    expect(g.selectedCount()).toBe(1);
+    expect(g.selectMaterial("强化弹丸")).toBe(true);
+    expect(g.selectedCount()).toBe(2);
+    // 全部取消后目标档回退，允许改选其他档位
+    g.selectMaterial("磨刃");
+    g.selectMaterial("强化弹丸");
+    expect(g.selectedCount()).toBe(0);
+    expect(g.swTarget).toBe(0);
+    expect(g.selectMaterial(rare)).toBe(true);
+    expect(g.swTarget).toBe(2);
+    g.selectMaterial(rare);
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const output = g.melt();
+    expect(output?.t).toBe(2);
+    expect(g.player.upCounts[rare]).toBeUndefined();
+  });
   it("recomputes removed damage and preserves current HP; selection cycles back to zero", () => {
     const g = fresh();
     learn(g, "强化弹丸", 2);

@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v14",
+    date: "2026-10-25",
+    title: "置换界面修复（#74）",
+    items: [
+      "修复置换界面无法选中材料：目标稀有度改由首选材料自动推导（两步式），后续材料强制同稀有度",
+      "取消全部材料后目标档回退，可改选其他稀有度；传奇卡不可作为材料",
+      "熔炼按钮禁用态指针由转圈（wait）改为 not-allowed",
+      "移除置换面板残留的旧目标稀有度按钮",
+    ],
+  },
+  {
     version: "v13",
     date: "2026-10-25",
     title: "飞刃反弹机制（#49）",
