@@ -25,6 +25,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
           src: "bullet",
           type: "physical",
           form: "ranged",
+          attackerStats: b.stats,
         });
         b.hitList.push(e);
         if (b.pierce > 0) {

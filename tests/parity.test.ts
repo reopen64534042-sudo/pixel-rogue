@@ -37,7 +37,17 @@ const BASELINE_EXCLUDED = [
 ] as const;
 // Issue #55 批次新增的天赋（v8 无对应条目）：灼热易伤/烈焰蔓延/天眼制导/焦土燃烧
 // v8 原版无 boltDmgMul 字段：对照前向原版 player 注入默认值 1，仅对齐结构，值语义不变。
-const NOT_IN_V8 = ["灼热易伤", "烈焰蔓延", "天眼制导", "焦土燃烧"] as const;
+const NOT_IN_V8 = [
+  "灼热易伤",
+  "烈焰蔓延",
+  "天眼制导",
+  "焦土燃烧",
+  // 基线更新依据：Combat Foundation S3-B 方案甲（用户已批准）。
+  // 磐石/元素亲和是 v8 没有的新卡（玩家护甲 / 火雷增伤乘区），
+  // 不参与 v8 逐字段对照与全天赋学习，由文件末尾 D-08 显式断言保护。
+  "磐石",
+  "元素亲和",
+] as const;
 const parityTalents = UPGRADES.filter(
   (u) =>
     !BASELINE_EXCLUDED.includes(u.n as (typeof BASELINE_EXCLUDED)[number]) &&
@@ -154,7 +164,42 @@ function expectParity(actual: unknown, expected: unknown, wave: number) {
     expect(st.formDamageBonus).toEqual({});
     expect(st.attack).toBe(dmg);
   }
-  expect(aEb.rest).toEqual(eEb.rest);
+
+  // Combat Foundation S3-B：玩家弹丸发射时快照摘出（v8 无此字段）。
+  // 对照场景不含磐石/元素亲和（NOT_IN_V8），断言攻击相关乘区保持中性；
+  // attack 与发射时伤害同源，穿透/弹射的 0.85 衰减只作用于 dmg。
+  const aB = takeBulletStats(aEb.rest);
+  const eB = takeBulletStats(eEb.rest);
+  expect(eB.pairs.every(({ stats }) => stats === undefined)).toBe(true);
+  for (const { dmg, stats } of aB.pairs) {
+    const st = stats as {
+      attack: number;
+      resistances: Record<string, number>;
+      globalDamageBonus: number;
+      typeDamageBonus: Record<string, number>;
+      formDamageBonus: Record<string, number>;
+    };
+    expect(st.resistances).toEqual({});
+    expect(st.globalDamageBonus).toBe(0);
+    expect(st.typeDamageBonus).toEqual({});
+    expect(st.formDamageBonus).toEqual({});
+    expect(st.attack).toBeGreaterThanOrEqual(dmg);
+    expect(st.attack).toBeGreaterThan(0);
+  }
+  expect(aB.rest).toEqual(eB.rest);
+}
+/**
+ * 基线更新依据：Combat Foundation S3-B（玩家弹丸发射时快照，定稿接口）。
+ * Bullet 新增 stats 键，v8 无此字段；对照前摘出并断言中性不变量（见 expectParity）。
+ */
+function takeBulletStats(snapshot: unknown) {
+  const snap = snapshot as { bullets?: { dmg: number; stats?: unknown }[] };
+  const pairs: { dmg: number; stats: unknown }[] = [];
+  for (const b of snap.bullets ?? []) {
+    pairs.push({ dmg: b.dmg, stats: b.stats });
+    delete b.stats;
+  }
+  return { rest: snapshot, pairs };
 }
 /** Run actual preserved source, never a rewritten expectation of the same algorithm. */
 function original() {
@@ -200,10 +245,7 @@ function original() {
       "burnDps:0,burnStacks:0,frostStacks:0,frozenT:0,frostImmuneT:0,",
     )
     // 基线随 Issue #45 对齐：陨星伤害 ×3（用户已批准的平衡变更）
-    .replace(
-      "p.damage * 2 + p.meteor * 5",
-      "p.damage * 3 + p.meteor * 8",
-    );
+    .replace("p.damage * 2 + p.meteor * 5", "p.damage * 3 + p.meteor * 8");
   runInContext(script, context);
   // Issue #55 批次：canOffer 对齐 hidden 语义（不屈移出基线卡池）
   runInContext(
@@ -218,6 +260,11 @@ function original() {
   // 基线随 Issue #55 批次注入 4 张新卡桩（卡池组成对齐；__stub 标记，行为对照跳过）
   runInContext(
     'UPGRADES.push({ n: "灼热易伤", ico: "🌡️", t: 2, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["烈焰印记"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "烈焰蔓延", ico: "🌋", t: 3, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["灼热易伤"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "天眼制导", ico: "👁️", t: 2, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "焦土燃烧", ico: "🏜️", t: 3, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 });',
+    context,
+  );
+  // 基线随 S3-B 方案甲注入 2 张新卡桩（卡池组成对齐；req 恒假，模拟中永不投放）
+  runInContext(
+    'UPGRADES.push({ n: "磐石", ico: "🪨", t: 1, cat: "防御", d: "", max: 3, mech: 1, req: () => false, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "元素亲和", ico: "🔮", t: 2, cat: "技能", d: "", max: 3, mech: 1, req: () => false, pv: () => "", f: () => {}, cur: () => "", __stub: 1 });',
     context,
   );
   runInContext(
@@ -248,7 +295,15 @@ it("every talent effect, cap and tier matches the protected original", () => {
     expect(u.t).toBe(expected.t);
   }
 });
-it.each([1, 4, 5, 8])(
+/**
+ * 基线更新依据：Combat Foundation S3-B 方案甲（用户已批准）。
+ * brute（含波 4 首敌精英坦克）带 DEF 30、shooter（波 6 起）雷抗 30%、
+ * bomber（波 8 起）火抗 40%——伤害结果自波 4 起分叉且无法用摘字段归一化
+ * （击杀时序改变会连锁分叉全场状态）。原波次 4/5/8 从全模拟对照移除，
+ * 严格对照保留波次 1/3（slime/bat 全中性），由 D-08 显式断言 +
+ * game.test 精英/配额用例共同保护；全天赋场景同样改在波 3。
+ */
+it.each([1, 3])(
   "1800 deterministic ticks at wave %i match original combat and movement",
   (wave) => {
     const baseline = original();
@@ -296,7 +351,8 @@ it.each([1, 4, 5, 8])(
   },
 );
 
-it.each([4, 8])(
+// 波次 4 因精英坦克带甲分叉（见上方依据），全天赋场景改在波 3（slime/bat 中性）
+it.each([3])(
   "all talents except excluded baselines in combat retain original simulation at wave %i",
   (wave) => {
     const baseline = original();
@@ -485,4 +541,176 @@ it("D-05 动态散布：孤立目标收拢 0.04，密集目标展开 0.16", () =
     (i) => angle(g2.bullets[i]) - angle(g2.bullets[i - 1]),
   );
   for (const d of wide) expect(d).toBeCloseTo(0.16, 1);
+});
+
+/**
+ * 基线更新依据：Combat Foundation S3-B 方案甲（用户已批准）。
+ * 怪物克制分布 + 玩家护甲/元素增伤来源，替代被移除的波次 5/8 全模拟对照。
+ * 保留回归能力：任何偏离以下公式的实现都会失败。
+ */
+it("D-08 方案甲怪物属性：brute 物理甲 / shooter 雷抗 / bomber 火抗", () => {
+  const g = fresh();
+  vi.spyOn(Math, "random").mockReturnValue(0.99); // 不暴击
+  // brute DEF 30：物理 11 × 50/80 = 6.875 → 7；火焰/雷电不受护甲影响
+  g.spawnEnemy("brute");
+  const brute = g.enemies[0]!;
+  brute.hp = 999;
+  brute.maxhp = 999;
+  g.hurtEnemy(brute, 11, 0, 0, {
+    src: "bullet",
+    type: "physical",
+    form: "ranged",
+  });
+  expect(brute.hp).toBe(999 - 7);
+  g.hurtEnemy(brute, 11, 0, 0, {
+    src: "meteor",
+    type: "fire",
+    form: "other",
+    noCrit: true,
+    noChain: true,
+  });
+  expect(brute.hp).toBe(999 - 7 - 11);
+  g.hurtEnemy(brute, 11, 0, 0, {
+    src: "chain",
+    type: "lightning",
+    form: "other",
+    noCrit: true,
+    noChain: true,
+  });
+  expect(brute.hp).toBe(999 - 7 - 11 - 11);
+  // shooter 雷抗 30%：雷 10 × 0.7 = 7；物理全额
+  const g2 = fresh();
+  vi.spyOn(Math, "random").mockReturnValue(0.99);
+  g2.spawnEnemy("shooter");
+  const shooter = g2.enemies[0]!;
+  shooter.hp = 999;
+  shooter.maxhp = 999;
+  g2.hurtEnemy(shooter, 10, 0, 0, {
+    src: "chain",
+    type: "lightning",
+    form: "other",
+    noCrit: true,
+    noChain: true,
+  });
+  expect(shooter.hp).toBe(999 - 7);
+  g2.hurtEnemy(shooter, 10, 0, 0, {
+    src: "bullet",
+    type: "physical",
+    form: "ranged",
+  });
+  expect(shooter.hp).toBe(999 - 17);
+  // bomber 火抗 40%：火 10 × 0.6 = 6；真实伤害无视一切
+  const g3 = fresh();
+  vi.spyOn(Math, "random").mockReturnValue(0.99);
+  g3.spawnEnemy("bomber");
+  const bomber = g3.enemies[0]!;
+  bomber.hp = 999;
+  bomber.maxhp = 999;
+  g3.hurtEnemy(bomber, 10, 0, 0, {
+    src: "meteor",
+    type: "fire",
+    form: "other",
+    noCrit: true,
+    noChain: true,
+  });
+  expect(bomber.hp).toBe(999 - 6);
+  g3.hurtEnemy(bomber, 10, 0, 0, {
+    src: "bullet",
+    type: "true",
+    form: "ranged",
+  });
+  expect(bomber.hp).toBe(999 - 16);
+  // slime/bat 保持全中性（方案甲：前 4 波教学期零影响）
+  for (const type of ["slime", "bat"] as const) {
+    const gn = fresh();
+    gn.spawnEnemy(type);
+    const e = gn.enemies[0]!;
+    expect(e.defense).toBeUndefined();
+    expect(e.resistances).toBeUndefined();
+  }
+});
+
+it("D-08 磐石：每级 DEF+15（增量写入），物理减伤按 K/(K+DEF) 且 recompute 不叠加", () => {
+  const g = fresh();
+  learn(g, "磐石", 3);
+  expect(g.player.defense).toBe(45);
+  g.recompute();
+  expect(g.player.defense).toBe(45); // f 按 upCounts 绝对值，重放安全
+  // 玩家受击：100 × 50/95 浮点；再与 tough 乘算
+  const e = enemy(g, g.player.x + 5, g.player.y);
+  e.dmg = 100;
+  g.player.hurtCd = 0;
+  vi.spyOn(Math, "random").mockReturnValue(0.99);
+  g.damagePlayer(e.dmg, {
+    melee: true,
+    src: e,
+    type: "physical",
+    form: "melee",
+  });
+  expect(g.player.hp).toBeCloseTo(100 - (100 * 50) / 95, 10);
+  g.player.tough = 0.3;
+  g.player.hurtCd = 0;
+  g.player.hp = 100;
+  g.damagePlayer(e.dmg, {
+    melee: true,
+    src: e,
+    type: "physical",
+    form: "melee",
+  });
+  expect(g.player.hp).toBeCloseTo(100 - ((100 * 50) / 95) * 0.7, 10);
+});
+
+it("D-08 元素亲和：火/雷 +10%/级只作用于对应属性，物理不受影响", () => {
+  const g = fresh();
+  learn(g, "元素亲和", 3);
+  expect(g.player.typeDamageBonus?.fire).toBeCloseTo(0.3, 10);
+  expect(g.player.typeDamageBonus?.lightning).toBeCloseTo(0.3, 10);
+  g.recompute();
+  expect(g.player.typeDamageBonus?.fire).toBeCloseTo(0.3, 10);
+  expect(g.player.typeDamageBonus?.lightning).toBeCloseTo(0.3, 10);
+  vi.spyOn(Math, "random").mockReturnValue(0.99);
+  const e = enemy(g);
+  e.hp = 999;
+  e.maxhp = 999;
+  g.hurtEnemy(e, 100, 0, 0, {
+    src: "meteor",
+    type: "fire",
+    form: "other",
+    noCrit: true,
+    noChain: true,
+  });
+  expect(e.hp).toBe(999 - 130);
+  g.hurtEnemy(e, 100, 0, 0, {
+    src: "chain",
+    type: "lightning",
+    form: "other",
+    noCrit: true,
+    noChain: true,
+  });
+  expect(e.hp).toBe(999 - 260);
+  g.hurtEnemy(e, 100, 0, 0, {
+    src: "bullet",
+    type: "physical",
+    form: "ranged",
+  });
+  expect(e.hp).toBe(999 - 360); // 物理不吃火/雷增伤
+});
+
+it("D-08 玩家弹丸发射时快照：发射后修改增伤不回溯飞行中弹丸", () => {
+  const g = fresh();
+  vi.spyOn(Math, "random").mockReturnValue(0.99);
+  g.player.typeDamageBonus = { physical: 0.5 };
+  const e = enemy(g, g.player.x + 30, g.player.y);
+  e.hp = 9999;
+  e.maxhp = 9999;
+  e.speed = 0;
+  g.player.fireCd = 0;
+  g.update(1 / 60);
+  expect(g.bullets).toHaveLength(1);
+  // 发射后原地提高增伤：飞行中的弹丸仍按发射时 +50% 结算
+  g.player.typeDamageBonus.physical = 2;
+  // 推进模拟直到弹丸命中目标
+  for (let i = 0; i < 40 && e.hp > 9999 - 1; i++) g.update(1 / 60);
+  expect(g.dmgBy.bullet).toBe(Math.round(11 * 1.5)); // 16.5 → 17（发射时快照）
+  expect(g.player.typeDamageBonus.physical).toBe(2); // 实体现值未被快照逻辑改动
 });

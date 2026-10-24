@@ -8,6 +8,8 @@ import {
   CAT_ICO,
 } from "../game/data/talents";
 import { fmtTime } from "../game/data/constants";
+import { boltDamage, critMultiplier } from "../game/core/DamageMath";
+import { COMBAT_BALANCE } from "../game/data/combatBalance";
 import { element, elementWithin } from "./dom";
 const DMG_NAMES: Record<string, string> = {
   bullet: "🏹魔弹",
@@ -188,14 +190,27 @@ export class GameUI {
   }
   buildStats() {
     const p = this.core.player;
+    // S3-C：UI 与战斗系统同源——魔弹读 DamageMath.boltDamage、暴伤读有效值
+    // critMultiplier（含致命觉醒），不再各自复算公式；基础攻击与增伤乘区分展示
+    const pct = (v: number) => (v * 100).toFixed(0) + "%";
+    const resist = p.resistances ?? {};
+    const typeBonus = p.typeDamageBonus ?? {};
+    const formBonus = p.formDamageBonus ?? {};
+    const physMit = (def: number) =>
+      Math.round(
+        (1 -
+          COMBAT_BALANCE.armorK / (COMBAT_BALANCE.armorK + Math.max(0, def))) *
+          100,
+      );
     const combatRows: [string, string | number][] = [
       ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
       ["📘 下级所需经验", p.xpNext],
       ["🌊 当前波次", this.core.waveN + "（配额 " + this.core.quota + "）"],
-      ["⚔️ 全局伤害", p.damage.toFixed(1)],
+      // 文案更名（S3-C）：p.damage 是攻击基线（技能系数/raw），非 globalDamageBonus
+      ["⚔️ 基础攻击", p.damage.toFixed(1)],
       [
         "🔥 魔弹伤害",
-        (p.damage * p.boltDmgMul).toFixed(1) +
+        boltDamage(p).toFixed(1) +
           (p.boltDmgMul > 1 ? ` ×${p.boltDmgMul.toFixed(2)}` : ""),
       ],
       [
@@ -206,7 +221,7 @@ export class GameUI {
       ],
       [
         "💥 暴击/暴伤",
-        (p.crit * 100).toFixed(0) + "% / ×" + p.critMul.toFixed(1),
+        (p.crit * 100).toFixed(0) + "% / ×" + critMultiplier(p).toFixed(1),
       ],
       ["🔱 弹道/穿透", `${p.multishot} / ${p.pierce}`],
       ["🌐 施法范围", "×" + p.area.toFixed(2)],
@@ -224,6 +239,18 @@ export class GameUI {
       ],
       ["💣 击杀爆炸", p.explode ? "Lv." + p.explode : "—"],
       ["🍀 幸运", p.luck ? "Lv." + p.luck : "—"],
+      // S3-C：独立增伤乘区展示（与 p.damage 基线区分；0 值按既有惯例显示 —）
+      [
+        "✴️ 全局增伤",
+        p.globalDamageBonus ? "+" + pct(p.globalDamageBonus) : "—",
+      ],
+      ["🌡️ 火焰增伤", typeBonus.fire ? "+" + pct(typeBonus.fire) : "—"],
+      [
+        "🌩️ 雷电增伤",
+        typeBonus.lightning ? "+" + pct(typeBonus.lightning) : "—",
+      ],
+      ["🗡️ 近战增伤", formBonus.melee ? "+" + pct(formBonus.melee) : "—"],
+      ["🏹 远程增伤", formBonus.ranged ? "+" + pct(formBonus.ranged) : "—"],
     ];
     const defenseRows: [string, string | number][] = [
       ["🛡️ 护盾", p.shieldMax ? `${p.shield} / ${p.shieldMax}` : "—"],
@@ -233,6 +260,13 @@ export class GameUI {
         "🥋 减伤",
         p.tough ? (Math.min(0.6, p.tough) * 100).toFixed(0) + "%" : "—",
       ],
+      // S3-C：护甲/元素抗性与战斗计算同公式（K/(K+DEF)，与减伤乘算）
+      [
+        "🪨 护甲",
+        p.defense ? `${p.defense}（物理 -${physMit(p.defense)}%）` : "—",
+      ],
+      ["🌋 火焰抗性", resist.fire ? pct(resist.fire) : "—"],
+      ["🌩️ 雷电抗性", resist.lightning ? pct(resist.lightning) : "—"],
       ["✨ 生命回复", p.regen ? p.regen.toFixed(1) + " /秒" : "—"],
       ["🦷 吸血", p.lifesteal ? (p.lifesteal * 100).toFixed(1) + "%" : "—"],
       ["🌵 荆棘反伤", p.thorns ? `${p.thorns}` : "—"],
@@ -243,7 +277,10 @@ export class GameUI {
           : "—",
       ],
       ["😡 战意", p.rageLv ? "受伤攻速 +" + p.rageLv * 20 + "% (3秒)" : "—"],
-      ["🏅 不屈", p.nd ? (p.ndUsed ? "免死(本波已触发)" : "每波一次免死") : "—"],
+      [
+        "🏅 不屈",
+        p.nd ? (p.ndUsed ? "免死(本波已触发)" : "每波一次免死") : "—",
+      ],
     ];
 
     const renderRows = (items: [string, string | number][]) =>
@@ -418,7 +455,9 @@ export class GameUI {
       title.textContent = box
         ? `🎁 开启宝箱 · 剩余 ${this.core.boxPicks} 个 · 强化一项已学天赋`
         : "⬆ 等级提升！选择一项天赋强化";
-    const hint = document.querySelector<HTMLElement>("#bp-level .level-subhint");
+    const hint = document.querySelector<HTMLElement>(
+      "#bp-level .level-subhint",
+    );
     if (hint)
       hint.textContent = box
         ? "只强化已学天赋 · 键盘 1 / 2 / 3 快捷选取"

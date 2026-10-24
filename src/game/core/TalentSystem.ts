@@ -33,6 +33,19 @@ export function canOffer(this: GameCore, u: Talent) {
 export function recompute(this: GameCore) {
   const hpBefore = this.player.hp;
   Object.assign(this.player, statBase());
+  // Combat Foundation S3-B：statBase 不含可选战斗属性键，Object.assign 不会清除
+  // 残留值——磐石/元素亲和等增量型天赋重放前必须清键，否则在旧值上叠加
+  // Combat Foundation S3-B：statBase 不含可选战斗属性键，Object.assign 不会清除
+  // 残留值——磐石/元素亲和等增量型天赋重放前必须清键，否则在旧值上叠加
+  for (const key of [
+    "defense",
+    "resistances",
+    "globalDamageBonus",
+    "typeDamageBonus",
+    "formDamageBonus",
+    "skillDamageBonus",
+  ] as const)
+    delete this.player[key];
   for (const n of this.player.picks) {
     const talent = UPGRADES.find((u) => u.n === n);
     if (!talent) throw new Error(`未知天赋: ${n}`);

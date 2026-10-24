@@ -268,6 +268,12 @@ export interface Bullet extends Point {
   size: number;
   jumps: number;
   hitList: Enemy[];
+  /**
+   * 发射时攻击者快照（Combat Foundation S3-B 定稿接口）：
+   * 与 EnemyBullet.stats 对称——增伤等攻击方属性按发射时固化，
+   * 飞行中学习/修改天赋不回溯。可选字段保持旧对象形状。
+   */
+  stats?: Readonly<CombatStatsSnapshot>;
 }
 export interface EnemyBullet extends Point {
   vx: number;
@@ -348,6 +354,8 @@ export interface HitOptions {
   type?: DamageTypeId;
   /** Combat Foundation S2（§5）：攻击方式，缺省 other */
   form?: AttackForm;
+  /** 发射时攻击者快照（S3-B）：玩家弹丸命中按发射时属性结算；缺省读当前实体 */
+  attackerStats?: Readonly<CombatStatsSnapshot>;
 }
 export interface PlayerHitOptions {
   melee?: boolean;

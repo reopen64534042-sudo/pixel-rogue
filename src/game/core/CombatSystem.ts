@@ -69,7 +69,7 @@ export function hurtEnemy(
     kind: "hit",
     precision: "round-min-one",
     isCritical: crit,
-    attackerStats: getPlayerCombatStats(this.player),
+    attackerStats: opts.attackerStats ?? getPlayerCombatStats(this.player),
     defenderStats: getEnemyCombatStats(e),
   });
   dmg = calc.settledDamage;

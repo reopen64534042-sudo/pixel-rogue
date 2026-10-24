@@ -1,4 +1,5 @@
 import type { GameCore } from "./GameCore";
+import { getPlayerCombatStats } from "./CombatStats";
 import {
   boltDamage,
   meteorDamage,
@@ -24,8 +25,7 @@ export function updateAttacks(this: GameCore, dt: number) {
             (e.x - tgt.x) ** 2 + (e.y - tgt.y) ** 2 < 110 * 110 ? n + 1 : n,
           0,
         );
-        const a =
-          base + (i - (p.multishot - 1) / 2) * multishotSpread(near);
+        const a = base + (i - (p.multishot - 1) / 2) * multishotSpread(near);
         this.bullets.push({
           x: p.x,
           y: p.y - 3,
@@ -37,6 +37,8 @@ export function updateAttacks(this: GameCore, dt: number) {
           size: 2 * p.area,
           jumps: p.ricochet,
           hitList: [],
+          // S3-B 定稿接口：攻击方属性发射时固化，与敌方弹丸快照对称
+          stats: getPlayerCombatStats(p),
         });
       }
       this.audio.beep(620, 0.05, "square", 0.02, -250);
@@ -136,8 +138,7 @@ export function updateAttacks(this: GameCore, dt: number) {
           });
       }
       // Issue #45 焦土燃烧：陨星落点燃烧地带
-      if (p.burnGround)
-        this.burnZones.push({ x: m.x, y: m.y, R: m.R, t: 5 });
+      if (p.burnGround) this.burnZones.push({ x: m.x, y: m.y, R: m.R, t: 5 });
       for (let j = 0; j < 14; j++) {
         const a = Math.random() * Math.PI * 2;
         this.parts.push({
