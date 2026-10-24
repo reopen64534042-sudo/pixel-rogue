@@ -22,6 +22,7 @@ export interface Player extends Point {
   speed: number;
   projSpeed: number;
   damage: number;
+    boltDmgMul: number;
   fireRate: number;
   multishot: number;
   pierce: number;

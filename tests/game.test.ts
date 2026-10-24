@@ -350,7 +350,8 @@ describe("furnace economics and regressions", () => {
   it("recomputes removed damage and preserves current HP; selection cycles back to zero", () => {
     const g = fresh();
     learn(g, "强化弹丸", 2);
-    expect(g.player.damage).toBeCloseTo(17.1875);
+    expect(g.player.boltDmgMul).toBeCloseTo(1.5625);
+    expect(g.player.damage).toBe(11);
     g.player.hp = 40;
     g.wavePhase = "rest";
     g.openSwap();
@@ -363,6 +364,7 @@ describe("furnace economics and regressions", () => {
     g.selectMaterial("强化弹丸");
     vi.spyOn(Math, "random").mockReturnValue(0);
     g.melt();
+    expect(g.player.boltDmgMul).toBe(1);
     expect(g.player.damage).toBe(11);
     expect(g.player.hp).toBe(40);
   });

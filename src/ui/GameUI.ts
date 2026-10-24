@@ -144,7 +144,12 @@ export class GameUI {
       ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
       ["📘 下级所需经验", p.xpNext],
       ["🌊 当前波次", this.core.waveN + "（配额 " + this.core.quota + "）"],
-      ["⚔️ 伤害", p.damage.toFixed(1)],
+      ["⚔️ 全局伤害", p.damage.toFixed(1)],
+      [
+        "🔥 魔弹伤害",
+        (p.damage * p.boltDmgMul).toFixed(1) +
+          (p.boltDmgMul > 1 ? ` ×${p.boltDmgMul.toFixed(2)}` : ""),
+      ],
       [
         "⚡ 攻速",
         (p.fireRate * (1 + p.haste * 0.1)).toFixed(2) +

@@ -18,7 +18,7 @@ export function updateAttacks(this: GameCore, dt: number) {
           y: p.y - 3,
           vx: Math.cos(a) * p.projSpeed,
           vy: Math.sin(a) * p.projSpeed,
-          dmg: p.damage,
+          dmg: p.damage * p.boltDmgMul,
           pierce: p.pierce,
           life: 1.4,
           size: 2 * p.area,

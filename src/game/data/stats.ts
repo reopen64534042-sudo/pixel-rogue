@@ -4,6 +4,7 @@ export function statBase() {
     speed: 62,
     projSpeed: 170,
     damage: 11,
+    boltDmgMul: 1,
     fireRate: 2.2,
     multishot: 1,
     pierce: 0,

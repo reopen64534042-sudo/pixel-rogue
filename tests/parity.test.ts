@@ -8,12 +8,18 @@ afterEach(() => vi.restoreAllMocks());
  * 基线更新依据：Issue #1（用户已批准的平衡变更）。
  * 击杀狂热的叠层上限改为 3 + hasteLv（Lv1=4 / Lv2=5 / Lv3=6），不再固定 3 层。
  * 该天赋因此不参与「与 v8 逐字段相等」的战斗对照（攻速分叉会必然扩散到所有弹道字段），
- * 改由本文件末尾的显式公式断言做回归保护；其余天赋仍全部参与严格对照，
+ * 改由本文件末尾的显式公式断言做回归保护。
+ *
+ * 基线更新依据：Issue #25（用户已批准的平衡变更）。
+ * 强化弹丸从「全局伤害 +25%（99 层）」改为「仅魔弹伤害 +25%（30 层）」，
+ * 解决普通卡单级/总潜力双双碾压稀有卡的稀有度倒挂；同样不参与 v8 对照，
+ * 由 D-02 显式公式断言保护。其余天赋仍全部参与严格对照，
  * 任何其他天赋出现与 v8 的差异都按 bug 处理。
  */
-const D01_EXCLUDED = ["击杀狂热"] as const;
+const BASELINE_EXCLUDED = ["击杀狂热", "强化弹丸"] as const;
+// v8 原版无 boltDmgMul 字段：对照前向原版 player 注入默认值 1，仅对齐结构，值语义不变。
 const parityTalents = UPGRADES.filter(
-  (u) => !D01_EXCLUDED.includes(u.n as (typeof D01_EXCLUDED)[number]),
+  (u) => !BASELINE_EXCLUDED.includes(u.n as (typeof BASELINE_EXCLUDED)[number]),
 );
 /** Run actual preserved source, never a rewritten expectation of the same algorithm. */
 function original() {
@@ -49,9 +55,21 @@ function original() {
 it("every talent effect, cap and tier matches the protected original", () => {
   const baseline = original();
   for (const u of UPGRADES) {
+    if ((BASELINE_EXCLUDED as readonly string[]).includes(u.n)) {
+      // 基线已按 Issue 更新的天赋跳过 v8 对照，由文件末尾显式公式断言保护
+      if (u.n === "强化弹丸") {
+        const g2 = fresh();
+        const d0 = g2.player.damage;
+        u.f(g2.player);
+        expect(g2.player.damage).toBe(d0);
+        expect(g2.player.boltDmgMul).toBeCloseTo(1.25);
+        expect(u.max).toBe(30);
+      }
+      continue;
+    }
     const expected = JSON.parse(
       runInContext(
-        `JSON.stringify((()=>{resetGame();const u=UPGRADES.find(x=>x.n===${JSON.stringify(u.n)});u.f(player);return {player,max:u.max,t:u.t};})())`,
+        `JSON.stringify((()=>{resetGame();player.boltDmgMul=1;const u=UPGRADES.find(x=>x.n===${JSON.stringify(u.n)});u.f(player);return {player,max:u.max,t:u.t};})())`,
         baseline,
       ),
     );
@@ -67,7 +85,7 @@ it.each([1, 4, 5, 8, 16])(
   (wave) => {
     const baseline = original();
     runInContext(
-      `resetGame();waveN=${wave};quota=waveQuota(waveN);keys.d=true;`,
+      `resetGame();player.boltDmgMul=1;waveN=${wave};quota=waveQuota(waveN);keys.d=true;`,
       baseline,
     );
     // Re-seed after original startup star generation, before either simulation begins.
@@ -111,12 +129,12 @@ it.each([1, 4, 5, 8, 16])(
 );
 
 it.each([4, 8, 16])(
-  "all talents except D-01 in combat retain original simulation at wave %i",
+  "all talents except excluded baselines in combat retain original simulation at wave %i",
   (wave) => {
     const baseline = original();
-    const excluded = JSON.stringify([...D01_EXCLUDED]);
+    const excluded = JSON.stringify([...BASELINE_EXCLUDED]);
     runInContext(
-      `resetGame();waveN=${wave};quota=waveQuota(waveN);for(const u of UPGRADES.filter(x=>!${excluded}.includes(x.n))){u.f(player);player.upCounts[u.n]=1;player.picks.push(u.n);}keys.s=true;keys[' ']=true;`,
+      `resetGame();player.boltDmgMul=1;waveN=${wave};quota=waveQuota(waveN);for(const u of UPGRADES.filter(x=>!${excluded}.includes(x.n))){u.f(player);player.upCounts[u.n]=1;player.picks.push(u.n);}keys.s=true;keys[' ']=true;const q=UPGRADES.find(x=>x.n==='强化弹丸');q.d='魔弹伤害 +25%（仅魔弹）';q.max=30;`,
       baseline,
     );
     baseline.Math.random = seeded(400 + wave);
@@ -175,4 +193,35 @@ it("D-01 未学习击杀狂热时不产生叠层（与 v8 一致）", () => {
   g.killEnemy(e);
   expect(g.player.hasteLv).toBe(0);
   expect(g.player.haste).toBe(0);
+});
+
+/**
+ * 基线更新依据：Issue #25（用户已批准的平衡变更）。
+ * 强化弹丸只加成魔弹：boltDmgMul ×1.25、p.damage 不动、上限 30 层；
+ * 保留回归能力：任何偏离该公式的实现都会让本条失败。
+ */
+it("D-02 强化弹丸只加成魔弹：boltDmgMul ×1.25，p.damage 不变，上限 30", () => {
+  const g = fresh();
+  const dmg0 = g.player.damage;
+  learn(g, "强化弹丸", 2);
+  expect(g.player.boltDmgMul).toBeCloseTo(1.5625);
+  expect(g.player.damage).toBe(dmg0);
+  const u = UPGRADES.find((x) => x.n === "强化弹丸");
+  expect(u?.max).toBe(30);
+});
+
+it("D-02 魔弹实际伤害 = damage × boltDmgMul（衍生伤害不受强化弹丸影响）", () => {
+  const g = fresh();
+  learn(g, "强化弹丸", 1);
+  enemy(g);
+  g.player.fireCd = 0;
+  g.update(1 / 60);
+  expect(g.bullets.length).toBeGreaterThan(0);
+  expect(g.bullets[0].dmg).toBeCloseTo(g.player.damage * g.player.boltDmgMul);
+  const g2 = fresh();
+  enemy(g2);
+  g2.player.fireCd = 0;
+  g2.update(1 / 60);
+  expect(g2.bullets[0].dmg).toBeCloseTo(g2.player.damage);
+  expect(g2.bullets[0].dmg).toBeCloseTo(g.bullets[0].dmg / 1.25);
 });
