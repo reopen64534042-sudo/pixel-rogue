@@ -27,7 +27,10 @@ export const UPGRADES: Talent[] = [
     max: 30,
     pv: (p) =>
       `魔弹伤害 ${(p.damage * p.boltDmgMul).toFixed(1)} → ${(p.damage * p.boltDmgMul * 1.25).toFixed(1)}`,
-    f: (p) => (p.boltDmgMul *= 1.25),
+    // S4-C C2-B：boltDmgMul ×1.25/级 由权威来源表声明（core/TalentStatSources.ts，
+    // boltDmgMul final 逐次连乘），learnTalent/recompute/melt 统一经投影写入；
+    // 本卡无获得时即时效果。
+    f: () => {},
     cur: (p) =>
       `魔弹伤害 ${(p.damage * p.boltDmgMul).toFixed(1)}（仅魔弹，全局伤害 ${p.damage.toFixed(1)}）`,
   },
@@ -40,7 +43,9 @@ export const UPGRADES: Talent[] = [
     max: 8,
     pv: (p) =>
       `攻速 ${p.fireRate.toFixed(2)} → ${(p.fireRate * 1.18).toFixed(2)}/秒`,
-    f: (p) => (p.fireRate *= 1.18),
+    // S4-C C2-B：fireRate ×1.18/级 由权威来源表声明（core/TalentStatSources.ts）。
+    // 击杀狂热/战意沸腾的动态攻速仍在消费点（AttackSystem 开火公式）实时乘算。
+    f: () => {},
     cur: (p) => `当前攻速 ${p.fireRate.toFixed(2)}/秒`,
   },
   {
@@ -51,7 +56,9 @@ export const UPGRADES: Talent[] = [
     d: "移动速度 +10%",
     max: 6,
     pv: (p) => `移速 ${Math.round(p.speed)} → ${Math.round(p.speed * 1.1)}`,
-    f: (p) => (p.speed *= 1.1),
+    // S4-C C2-B：speed ×1.1/级 由权威来源表声明（core/TalentStatSources.ts，
+    // moveSpeed StatId）；冲刺的固定 280 px/s 运动不读 speed，不受影响。
+    f: () => {},
     cur: (p) => `当前移速 ${Math.round(p.speed)}`,
   },
   {
@@ -98,7 +105,9 @@ export const UPGRADES: Talent[] = [
     d: "拾取范围 +40%",
     max: 5,
     pv: (p) => `拾取 ${Math.round(p.magnet)} → ${Math.round(p.magnet * 1.4)}`,
-    f: (p) => (p.magnet *= 1.4),
+    // S4-C C2-B：magnet ×1.4/级 由权威来源表声明（core/TalentStatSources.ts）；
+    // 血瓶吸附半径 magnet×0.4 在消费点（ProgressionSystem）实时读取。
+    f: () => {},
     cur: (p) => `当前拾取范围 ${Math.round(p.magnet)}`,
   },
   {
@@ -151,7 +160,10 @@ export const UPGRADES: Talent[] = [
     max: 4,
     mech: 1,
     pv: (p) => `范围 ×${p.area.toFixed(2)} → ×${(p.area * 1.2).toFixed(2)}`,
-    f: (p) => (p.area *= 1.2),
+    // S4-C C2-B：area ×1.2/级 由权威来源表声明（core/TalentStatSources.ts）。
+    // 弹丸尺寸/陨星半径生成时固化，飞刃位置/半径与爆炸半径实时读取——
+    // 既有读写时机不变。
+    f: () => {},
     cur: (p) => `施法范围加成 ×${p.area.toFixed(2)}`,
   },
   {

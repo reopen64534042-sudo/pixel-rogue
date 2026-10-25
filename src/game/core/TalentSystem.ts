@@ -50,9 +50,9 @@ export function recompute(this: GameCore) {
     if (!talent) throw new Error(`未知天赋: ${n}`);
     talent.f(this.player);
   }
-  // Combat Foundation S4-C C1：五张已迁移纯 flat 卡（磐石/铁布衫/致命一击/
-  // 会心深渊/元素亲和）的属性由权威来源表解析投影，不经 talent.f 累积
-  // （它们的 f 是空操作）——单一权威来源，重算幂等零重复叠加
+  // Combat Foundation S4-C C1/C2-A/C2-B：已迁移天赋卡（C1 纯 flat 五张 +
+  // C2-A 全局伤害三张 + C2-B 乘法属性五张）的属性由权威来源表解析投影，
+  // 不经 talent.f 累积（这些卡的 f 是空操作）——单一权威来源，重算幂等零重复叠加
   applyTalentStatProjection(this.player);
   this.player.hp = Math.max(1, Math.min(hpBefore, this.player.maxhp));
 }
@@ -63,7 +63,8 @@ export function learnTalent(this: GameCore, u: Talent) {
   u.f(this.player);
   this.player.upCounts[u.n] = (this.player.upCounts[u.n] || 0) + 1;
   this.player.picks.push(u.n);
-  // S4-C C1：学习后同步五张已迁移卡的权威属性投影（幂等，只取决于 picks）
+  // S4-C C1：学习后同步已迁移卡（C1/C2-A/C2-B 共十三张）的权威属性投影
+  // （幂等，只取决于 picks）
   applyTalentStatProjection(this.player);
   return true;
 }

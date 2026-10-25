@@ -45,6 +45,13 @@ export const STAT_IDS = [
   "critChance",
   "critMultiplier",
   "tough",
+  // S4-C C2-B：五张乘法天赋中尚缺的三个标量槽位（fireRate/moveSpeed 已有）。
+  // boltDmgMul 是技能特化倍率（仅魔弹伤害消费），magnet/area 是拾取/施法范围
+  // 倍率——均为「base×倍率」语义，与 attack 同构进入 final 区，不占用
+  // typeDamageBonus 等键控族。
+  "boltDmgMul",
+  "magnet",
+  "area",
 ] as const;
 
 /**
