@@ -82,6 +82,14 @@ const parityTalents = UPGRADES.filter(
  * 改由来源表以对应 StatId 的 final 修饰符声明（speed ↔ moveSpeed 仅命名差），
  * Talent.f 不再写入——加入本清单走 learnTalent 路径对照；五字段各自
  * 只有一张天赋来源，逐位数值由 S4-C C2-B 聚焦测试的旧实现基准对照咬住。
+ *
+ * 基线更新依据：Combat Foundation S4-C C3-A（D-C3-01/D-C3-05，用户已批准）。
+ * 生命之泉/巨人血脉的 maxhp flat（+20/+30/级）改由来源表声明，获得时治疗
+ * （回满 / hp+30）分离至 core/OnAcquireEffects.ts 仅在 learnTalent 执行——
+ * 加入本清单走 learnTalent 路径对照（v8 f 的 maxhp/hp 结果与「投影 + 获得时
+ * 效果」逐位一致，独立旧版生命效果比较由 s4c-c3-baseline B1~B3 与
+ * s4c-c3a-life 的旧实现基准对照继续咬住，不排除、不归零）；全天赋模拟场景
+ * （parityTalents）继续包含这两张卡（learnTalent 路径不变）。
  */
 const S4C_AUTHORITY_MIGRATED = [
   "铁布衫",
@@ -94,6 +102,8 @@ const S4C_AUTHORITY_MIGRATED = [
   "疾风之靴",
   "磁力护符",
   "广域法印",
+  "生命之泉",
+  "巨人血脉",
 ] as const;
 /**
  * 基线更新依据：Issue #13（用户已批准的近战基础设施建设）。

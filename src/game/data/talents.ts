@@ -69,10 +69,10 @@ export const UPGRADES: Talent[] = [
     d: "生命上限 +20 并回满",
     max: 99,
     pv: (p) => `上限 ${p.maxhp} → ${p.maxhp + 20}，并回满`,
-    f: (p) => {
-      p.maxhp += 20;
-      p.hp = p.maxhp;
-    },
+    // S4-C C3-A：maxhp +20/级 由权威来源表声明（core/TalentStatSources.ts，
+    // maxHp flat）；「回满」为获得时效果（core/OnAcquireEffects.ts），仅在
+    // learnTalent 成功获得时执行一次，recompute 绝不重放（D-C3-01/契约 §5.2）。
+    f: () => {},
     cur: (p) => `当前生命上限 ${p.maxhp}`,
   },
   {
@@ -439,10 +439,10 @@ export const UPGRADES: Talent[] = [
     d: "生命上限 +30",
     max: 99,
     pv: (p) => `上限 ${p.maxhp} → ${p.maxhp + 30}`,
-    f: (p) => {
-      p.maxhp += 30;
-      p.hp += 30;
-    },
+    // S4-C C3-A：maxhp +30/级 由权威来源表声明（core/TalentStatSources.ts，
+    // maxHp flat）；「当前 HP +30」为获得时效果（core/OnAcquireEffects.ts），
+    // 保持旧实现不主动夹紧 HP 的行为，仅在 learnTalent 成功获得时执行一次。
+    f: () => {},
     cur: (p) => `当前生命上限 ${p.maxhp}`,
   },
   {

@@ -2,6 +2,7 @@ import { hash01 } from "../data/constants";
 import { statBase } from "../data/stats";
 import { DMG_POOL, RAMP, UPGRADES } from "../data/talents";
 import type { GameCore } from "./GameCore";
+import { applyOnAcquireEffect } from "./OnAcquireEffects";
 import { applyTalentStatProjection } from "./TalentStatSources";
 import type { Talent } from "./types";
 export function tierWeights(this: GameCore) {
@@ -50,22 +51,37 @@ export function recompute(this: GameCore) {
     if (!talent) throw new Error(`未知天赋: ${n}`);
     talent.f(this.player);
   }
-  // Combat Foundation S4-C C1/C2-A/C2-B：已迁移天赋卡（C1 纯 flat 五张 +
-  // C2-A 全局伤害三张 + C2-B 乘法属性五张）的属性由权威来源表解析投影，
-  // 不经 talent.f 累积（这些卡的 f 是空操作）——单一权威来源，重算幂等零重复叠加
-  applyTalentStatProjection(this.player);
+  // Combat Foundation S4-C C1/C2-A/C2-B/C3-A：已迁移天赋卡（C1 纯 flat 五张 +
+  // C2-A 全局伤害三张 + C2-B 乘法属性五张 + C3-A 生命 flat 两张）的属性由权威
+  // 来源表解析投影，不经 talent.f 累积（这些卡的 f 是空操作）——单一权威来源，
+  // 重算幂等零重复叠加。C3-A（契约 v1.2 §10.8）：persistent **必传**当前实例的
+  // 持久来源（potionMaxHpGrow），杜绝漏传静默按 0 重建 maxHp 的 R-1 复活路径
+  applyTalentStatProjection(this.player, {
+    potionMaxHpGrow: this.potionMaxHpGrow,
+  });
   this.player.hp = Math.max(1, Math.min(hpBefore, this.player.maxhp));
 }
 
 export function learnTalent(this: GameCore, u: Talent) {
   // max 校验保留；hidden 只影响卡池投放，不影响直接学习（测试/宝箱链路）
   if ((this.player.upCounts[u.n] || 0) >= u.max) return false;
+  // C3-A：记录获得前等级（OnAcquireEffect 判定依据；在 upCounts 递增前捕获，
+  // 契约 §8.5）。max 校验失败/满级路径在此早退，不产生任何来源或治疗副作用
+  const lvBefore = this.player.upCounts[u.n] || 0;
+  // 未迁移卡保持旧时序：f 先执行、记录在后（本批两张生命卡 f 已空操作，
+  // 属性与治疗分别由投影与 OnAcquireEffects 承接——不可调换为「记录 → 所有 f」）
   u.f(this.player);
-  this.player.upCounts[u.n] = (this.player.upCounts[u.n] || 0) + 1;
+  this.player.upCounts[u.n] = lvBefore + 1;
   this.player.picks.push(u.n);
-  // S4-C C1：学习后同步已迁移卡（C1/C2-A/C2-B 共十三张）的权威属性投影
-  // （幂等，只取决于 picks）
-  applyTalentStatProjection(this.player);
+  // S4-C C1/C2/C3-A：学习后同步已迁移卡的权威属性投影（幂等，只取决于 picks
+  // 与实例持久来源；persistent 必传，理由同 recompute 处注释）
+  applyTalentStatProjection(this.player, {
+    potionMaxHpGrow: this.potionMaxHpGrow,
+  });
+  // C3-A：获得时效果在投影**之后**执行（生命之泉回满依赖新有效 maxhp）；
+  // 仅对已登记卡生效（未登记 no-op），melt 输出卡路径经本函数自动复用，
+  // recompute 绝不经过此处（D-C3-02/03：重算不得重放获得时效果）
+  applyOnAcquireEffect(u.n, this.player, lvBefore);
   return true;
 }
 export function openLevelPanel(this: GameCore) {

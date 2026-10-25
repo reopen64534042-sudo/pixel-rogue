@@ -1304,3 +1304,55 @@ CSS 中字体被重写为 `url(../assets/fonts/press-start-2p.ttf)`，HTML 引�
 2. **P3 §3.4 dashLv 行修正**：删除残留的折叠公式 `2.4 − 0.4×dashLv`；明确 dashLv 为 flat +1/级（base 0，整数精确）、dashMax 不由 dashLv 推导，由有序 flat −0.4/级独立解析（base 2.4，折叠公式禁止见 §8.3）。B10/B16 基线不调整。
 3. **P3 §9 验收编号归属修正**：C3-A 为 G-1～G-5 **与 G-23**；C3-C 为 **G-10～G-22**；G 用例实际内容不变。D-22 同型表述检查：无折叠公式残留、无 G 批次归属映射，无需正文修订，仅追加本记录。
 4. 本轮为纯契约与文档修正：生产代码零改动；B16 所在测试文件未变动；修订后实跑 `npm test` **327/327**（parity 26 原样）、`npm run typecheck`、`npm run build` 全部通过。
+
+## D-23 Combat Foundation S4-C 第三批（C3-A）：生命上限权威迁移 + 获得时治疗分离 + 血包永久成长修复（2026-10-26）
+
+依据任务书「C3-A 实施任务」与契约 `docs/pixel-rogue-S4C-C3-contract-v1.md`（v1.2，上游 PR #98 合并），分支 `feat/combat-foundation-s4c-c3a-life`（基线 20e737d = 上游 PR #98 合并提交）。**只实施 C3-A（生命），完成即停止；R-2/R-3/R-4 维持缺陷 pin，C3-B/C3-C 未开始。** 已批准差异：D-C3-01（血包永久成长持久来源）、D-C3-05（HP 夹紧逐字保留）、两张生命卡获得时治疗与属性贡献分离。
+
+### 实施范围与权威来源切换
+
+- **切换图（复用 C1/C2 管线）**：`picks 序列 → talentStatModifiers(picks, persistent) 新增两 case（生命之泉 maxHp flat +20、巨人血脉 maxHp flat +30）→ StatModel.resolveStats（base.maxHp = statBase().maxhp + persistent.potionMaxHpGrow）→ applyTalentStatProjection → 既有 p.maxhp 字段`。接入点：`learnTalent` 记录后（+新增 OnAcquire）、`recompute` 重放后（hp 夹紧前）、`melt` 经 learnTalent 自然复用；两卡 `Talent.f` 改空操作，旧写入与新 Modifier 不并行。
+- **PersistentStatSources（新接口，core/TalentStatSources.ts）**：`{ readonly potionMaxHpGrow: number }` 为 `talentStatModifiers` / `applyTalentStatProjection` 的**必传参数**（契约 §10.8 编译期防线，杜绝漏传静默按 0 重建的 R-1 复活路径；非默认参数、负值抛 RangeError）。生产接入点（learnTalent/recompute，均为 GameCore 方法）就地取用 `this.potionMaxHpGrow`。
+- **血包永久成长（D-C3-01）**：GameCore 新增实例字段 `potionMaxHpGrow`（初始 0、resetGame 重置、startNextWave 不清零、非 Player 字段——先例 potionGrow，parity 快照不受影响）。满血转化处按「累计权威来源 → 即时双写实体投影」次序：`potionGrow++`（每波上限计数，语义不变）→ `potionMaxHpGrow++`（权威）→ `p.maxhp += 1; p.hp += 1`（兼容投影，保持当帧满血判定/regen/治疗读取行为，契约 §8.2 推荐方案落地）。**有效 maxHp = 100 + 血包永久成长 + 按 picks 顺序叠加的生命天赋贡献；成长仅在 base 计入一次，绝不重复作为 flat 修饰符。**
+- **获得时效果分离（新模块 core/OnAcquireEffects.ts）**：`applyOnAcquireEffect(name, p, lvBefore)` 纯函数（无 DOM/Phaser/GameCore 依赖、零随机、不管来源）。生命之泉：`hp = maxhp`（回满至新有效上限）；巨人血脉：`hp += 30`（保持旧实现不主动夹紧）。调用时机 = learnTalent 内投影**之后**（回满依赖新 maxhp）；melt 输出卡经 learnTalent 自动复用；**recompute 绝不调用**。未迁移卡 no-op（不做预测登记）。
+- **learnTalent 新时序（未迁移卡旧时序保持）**：max 校验 → `lvBefore` 捕获（递增前）→ `u.f(player)`（未迁移卡先行，两生命卡为空操作）→ upCounts/picks 记录 → 权威投影（带实例持久来源）→ `applyOnAcquireEffect` → 返回。max 校验失败/满级路径在校验处早退，零副作用。**未把旧「f → 记录」调换为「记录 → 所有 f」。**
+- **recompute 最小改造**：结构零变动（hpBefore 捕获 / Object.assign / 六键清理 / 未迁移卡 f 重放原样保留），仅投影调用补传持久来源；hp 夹紧公式 `Math.max(1, Math.min(hpBefore, player.maxhp))` **逐字保留**（D-C3-05）。RuntimeStateProtection 空骨架**未引入**——本批无运行状态保存/恢复需求，不为凑架构增加无效抽象（任务书 §四 明示允许）；R-2/R-3/R-4 在 recompute 中仍复现旧缺陷。
+- **来源所有权变更**：`p.maxhp` 运行期写入者自本批起 = 两张生命卡旧 f（已取消）+ 权威投影 + 满血转化即时双写（ProgressionSystem，权威为 potionMaxHpGrow，双写仅为当帧行为）；`hp` 写入者新增 OnAcquire 两卡（获得路径），recompute 夹紧不变。
+
+### 修复前后对照（D-C3-01 / R-1）
+
+| 场景 | 修复前（基线 20e737d） | 修复后（本批） |
+|---|---|---|
+| 满血血包 ×1 → recompute | maxhp 丢失回 100（R-1 缺陷） | maxhp 保留 101（R-1 反转为保留断言） |
+| 成长 5 + 生命之泉 1 级 → recompute×3 | maxhp 120（成长丢失） | maxhp 125 恒定（G-1） |
+| 成长 3 + 学习磐石/磨刃 | maxhp 103→100 | maxhp 103 恒定（G-23） |
+| 置换移除泉+血脉（无成长） | maxhp 100 / hp 夹紧 | 行为一致（G-4/B12） |
+| 换波 / 新游戏 | 成长随实体字段幸存/清零（但 recompute 必丢） | 换波保留、resetGame 清零（G-5） |
+
+两张生命卡获得路径数值与旧 f 逐位一致（旧版语义独立重述 `legacyLife` 对照四种顺序 + B1～B3 + parity learnTalent 路径对照）；重放路径自本批起不再治疗（旧行为为「重放后夹紧中和」，可观测结果一致、机制更干净——R-5 断言不变）。
+
+### 测试与验证
+
+- R-1 反转为「永久成长正确保留」（保留旧行为注释与批准编号，含 potionMaxHpGrow 同步累计与重算幂等断言）；R-5 断言不变（注释更新机制说明）；**R-2/R-3/R-4 原样通过，未修改断言**（护盾重放/狂热重放/运行状态重置仍复现，留 C3-B/C）。
+- 新增 `tests/s4c-c3a-life.test.ts` 14 项：G-1～G-5、G-23（契约 §7.2 验收落地）+ 旧版生命效果独立对照（legacyLife 四顺序）+ 生命卡与 recompute 交错时序 + 宝箱强化获得生命卡（chooseSlot 全链路）+ 生命之泉 99 级满级与满级失败零副作用 + 多波累计超单波上限（10+10、第 11 瓶触顶、跨波累计 20）+ 生命卡与伤害卡混合熔炼（melt 经实例持久来源）+ **结构钉子两条**（两卡 f 直接调用后 Player JSON 不变；OnAcquire 未登记卡 no-op）。
+- C3-0 基线 B1～B16 原样通过（B1/B2/B3/B12/B15 在新路径下行为逐位一致）；C1/C2-A/C2-B 回归通过；`s4c-damage-talent-sources` 直调测试补传显式测试来源（断言未削减）。
+- **parity 26 项原样通过**：生命之泉/巨人血脉加入 `S4C_AUTHORITY_MIGRATED`（基线更新依据已留痕：v8 f 的 maxhp/hp 结果与「投影 + 获得时效果」逐位一致，独立旧版比较由 legacyLife 对照与 B1～B3 咬住，不排除、不归零）；全天赋模拟场景继续包含两卡；wave parity 快照为固定字段清单，`potionMaxHpGrow` 为 GameCore 字段不入 Player 序列化，**无新增 Player 字段**。
+- `npm test` **341/341**（C3-0 交付基线 327 + 本批 14）；`npm run typecheck`、`npm run build` 通过；`npm run test:browser` **7/7**（真实输入升级选择、宝箱强化精确投影、生产构建自然首波通关）。
+
+### 变异验证（7 组，全部被咬住后逐组还原，还原后全量 341/341 确认）
+
+| # | 变异 | 红数 | 检测面 |
+|---|---|---|---|
+| ① | 删除生命之泉 flat 来源 | 16 | G-1/G-2/G-4、R-5、B1/B3/B12/B15、legacyLife 对照、parity 4 项 |
+| ② | 删除巨人血脉 flat 来源 | 11 | R-5、G-4、B2/B3/B12、legacyLife、parity 4 项 |
+| ③ | recompute 漏传永久来源（静默按 0） | 3 | R-1（反转）、G-1、G-23——恰为成长重建检测面 |
+| ④ | 重复计算永久来源（base 双加） | 3 | R-1、G-1、G-23（125→130 越界即红） |
+| ⑤ | 生命之泉回满效果恢复进 f | **1（恰为结构钉子）** | 行为面全绿——印证「旧 f 恢复写入被绝对投影+同值 OnAcquire 掩盖」，结构契约测试为唯一检测面（C2-A 变异②先例复现） |
+| ⑥ | 巨人血脉 +30 改回满血恢复进 f | 8 | B2（受伤/满血时序）、B3/B12/G-4、legacyLife + 结构钉子 |
+| ⑦ | recompute 夹紧公式改动（去 max(1,·)） | 1 | G-3——下限语义的唯一守卫（hp∈(0,1) 浮点边界） |
+
+### 遗留问题与下一步
+
+- R-2（护盾重放恢复）/R-3（狂热重放触发）/R-4（dash/meteor/tempShield/ndUsed/orbA/hurtCd 等被 statBase 覆盖）维持 C0 审计 pin，属 C3-B/C3-C 范围；RuntimeStateProtection 白名单机制待 C3-B 首次引入（契约 §5.3）。
+- 宝箱模式键盘 1/2/3 快捷键缺陷（C2-A 发现）未修（任务书明示不夹带）。
+- 运行状态字段（shield/shieldCd/haste/hasteT/dash*/tempShield/ndUsed/meteorT/orbA/hurtCd）在 recompute 中仍被 statBase 覆盖——既有缺陷行为，本批未顺手保护。

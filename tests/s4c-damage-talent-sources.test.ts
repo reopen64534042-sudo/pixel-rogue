@@ -183,7 +183,9 @@ describe("S4-C C2-A · 无关天赋、重算幂等与投影所有权", () => {
   it("空 picks 投影 = statBase 基础值 11（fresh 后 damage 不被改写）", () => {
     const g = fresh();
     expect(g.player.damage).toBe(11);
-    applyTalentStatProjection(g.player);
+    // C3-A：persistent 为必传参数（契约 v1.2 §10.8）——测试显式提供来源
+    //（fresh 实例无血包成长，语义等价 0），不用默认参数掩盖漏传
+    applyTalentStatProjection(g.player, { potionMaxHpGrow: g.potionMaxHpGrow });
     expect(g.player.damage).toBe(11);
   });
 });
