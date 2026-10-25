@@ -15,6 +15,11 @@ import { enemy, fresh, learn, talent, ticks } from "./helpers";
  * 文档 §7.2 的 Given/When/Then，不写成当前断言。C3-A/B/C 实施时按契约 §9
  * 将对应用例反转为新语义，反转时保留旧行为注释留痕。
  *
+ * 反转进度：C3-A 已反转 R-1（s4c-recompute-audit，血包成长保留）；C3-B 已
+ * 反转 B6（D-C3-02：破盾后重算不回满、shieldCd 保留，旧行为注释留痕）。
+ * 其余 B 用例（B1~B5/B7~B16）为获得/消费/换波路径回归——它们钉住的正是
+ * 获得时效果与消费点行为，新机制下必须持续通过、断言不削弱。
+ *
  * v1.1 第一轮评审修订：B16 为现有 StatModel 有序 flat 解析行为的独立验证
  * （P2-2），不接入疾影步生产逻辑、不改动 StatModel 契约。
  */
@@ -93,21 +98,24 @@ describe("S4-C C3-0 · 护盾获得/消耗/恢复（旧行为基线）", () => {
     expect(g.player.shieldCd).toBe(10);
   });
 
-  it("B6 缺陷：破盾后 recompute 恢复盾层（R-2）且 shieldCd 被清零（R-2 未覆盖的补充面）", () => {
+  it("B6 修复（D-C3-02）：破盾后 recompute 保留现值——盾不回满、shieldCd 不清零（R-2 补充面）", () => {
     const g = fresh();
     learn(g, "能量护盾");
     g.player.shield = 0;
     g.player.shieldCd = 6.5; // 恢复倒计时进行中
     g.recompute();
-    expect(g.player.shield).toBe(1); // 重放赠层 → 已耗盾回满
-    expect(g.player.shieldCd).toBe(0); // statBase 重置 → 恢复 CD 也被清除
-    // 两级部分消耗：全部恢复
+    // 旧行为（C3-0 pin，基线 65c6922）：重放赠层回满（shield=1）+ statBase
+    // 重置 shieldCd=0（未满盾时下一帧立即恢复一层）。C3-B（D-C3-02/04）：
+    // shield/shieldCd 均为 RuntimeState，重算原样保留——继续倒计时、不回满
+    expect(g.player.shield).toBe(0);
+    expect(g.player.shieldCd).toBe(6.5);
+    // 两级部分消耗：同样保留现值，不回满
     const g2 = fresh();
     learn(g2, "能量护盾", 2);
     expect(g2.player.shieldMax).toBe(2);
     g2.player.shield = 0;
     g2.recompute();
-    expect(g2.player.shield).toBe(2);
+    expect(g2.player.shield).toBe(0);
   });
 });
 
@@ -261,12 +269,12 @@ describe("S4-C C3-0 · 置换与换波入口（旧行为基线）", () => {
     expect(g.player.ndUsed).toBe(false);
   });
 
-  it("B15 十三张已迁移卡与混合卡交错学习：属性各归其源、recompute 幂等（交错场景回归）", () => {
+  it("B15 已迁移卡与混合卡交错学习：属性各归其源、recompute 幂等（交错场景回归）", () => {
     const g = fresh();
     learn(g, "磐石"); // C1：defense 15（投影）
-    learn(g, "生命之泉"); // 混合：旧 f maxhp+20 且回满
+    learn(g, "生命之泉"); // C3-A 已迁移：投影 maxhp+20 且回满（OnAcquire）
     learn(g, "磨刃"); // C2-A：damage 11×1.1（投影）
-    learn(g, "击杀狂热"); // 混合：旧 f hasteLv=1 + 首级 Buff
+    learn(g, "击杀狂热"); // 混合（未迁移）：旧 f hasteLv=1 + 首级 Buff
     expect(g.player.defense).toBe(15);
     expect(g.player.maxhp).toBe(120);
     expect(g.player.damage).toBe(12.100000000000001);
