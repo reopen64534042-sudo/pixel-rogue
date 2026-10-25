@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v30",
+    date: "2026-10-26",
+    title: "触屏交互：天赋详情点按开关 + hover 规则隔离（M2-2）",
+    items: [
+      "更正前期判断：天赋详情在触屏上原本点按即可展开（onclick 早已实现），真正的缺陷是「展开后关不掉」——触屏没有 mouseleave、再点同一条也不收起。本次补上关闭路径：点开 / 再点收起 / 点面板空白收起；鼠标仍走 hover，PC 手感零变化",
+      "19 处交互 :hover 规则（game.css 18 + codex.css 1）包裹进 @media (hover: hover)，消除触屏「点过之后卡片一直放大、按钮一直青底」的粘滞态；.pause-actions .btn:disabled 的基础禁用样式必须留在媒体查询外（整体塞进去会让触屏禁用按钮丢掉虚线边框与背景），只把 :disabled:hover 压回媒体查询内",
+      "验收：npm test 360/360、parity 26 项原样、浏览器 16/16（新增 2 项，含「顶层不得残留 :hover 规则」的 CSS 结构断言）、typecheck 与 build 通过",
+    ],
+  },
+  {
     version: "v29",
     date: "2026-10-26",
     title: "手机端横屏引导与触屏手势边界（M2-1）",

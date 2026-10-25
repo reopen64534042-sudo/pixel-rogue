@@ -92,8 +92,10 @@
   padding: 1vmin 0.6vmin;
   text-align: center;
 }
-.cx-cell:hover {
-  background: #1c2240;
+@media (hover: hover) {
+  .cx-cell:hover {
+    background: #1c2240;
+  }
 }
 .cx-cell.locked {
   border-color: #3d4a7a;

@@ -180,6 +180,8 @@ export class GameUI {
       node.onmousemove = null;
       node.onmouseleave = null;
     }
+    const overlay = document.getElementById("ov-stats");
+    if (overlay) overlay.onpointerdown = null;
   }
   drawCards() {
     const box = element("bp-cards");
@@ -379,6 +381,7 @@ export class GameUI {
 
     const tooltip = document.getElementById("talent-tooltip");
     const stage = document.getElementById("stage");
+    const statsOverlay = document.getElementById("ov-stats");
 
     const updateTooltipPosition = (e: MouseEvent) => {
       if (!tooltip || !stage) return;
@@ -447,53 +450,107 @@ export class GameUI {
       if (tooltip) tooltip.classList.add("hidden");
     };
 
+    /**
+     * Issue #96（M2-2）：触屏没有 mouseleave，「点开就关不掉」。
+     *
+     * 分工：
+     * - 鼠标：沿用 hover 展开（onmouseover/mousemove/mouseleave），不动 PC 手感；
+     * - 触控/笔：pointerdown 切换（点开 / 再点收起 / 点空白收起），并跳过随后的 click。
+     * `shownTag` 只在 pointerdown 与 click 里写，hover 不写——否则 PC 上「鼠标已经展开 + 点击」
+     * 会立刻命中同一条而被误判成收起。
+     */
+    let shownTag: HTMLElement | null = null;
+    let skipNextClick = false;
+    const isVisible = () =>
+      tooltip !== null && !tooltip.classList.contains("hidden");
+    const tagOf = (target: EventTarget | null) =>
+      target instanceof Element
+        ? target.closest<HTMLElement>("span[data-n]")
+        : null;
+    const clearActive = () => {
+      tl.querySelectorAll(".talent-tag.active").forEach((el) =>
+        el.classList.remove("active"),
+      );
+    };
+    const closeTooltip = () => {
+      shownTag = null;
+      clearActive();
+      hideTooltip();
+    };
+    const showTag = (sp: HTMLElement, e: MouseEvent) => {
+      clearActive();
+      sp.classList.add("active");
+      renderTooltip(sp);
+      updateTooltipPosition(e);
+      shownTag = sp;
+    };
+    /** 触屏的确定性开关：点开、再点收起，都与「当前展示的是不是这一条」比较 */
+    const toggleTag = (sp: HTMLElement, e: MouseEvent) => {
+      if (shownTag === sp && isVisible()) closeTooltip();
+      else showTag(sp, e);
+    };
+
     tl.onmouseover = (e) => {
-      const sp =
-        e.target instanceof Element
-          ? e.target.closest<HTMLElement>("span[data-n]")
-          : null;
+      const sp = tagOf(e.target);
       if (!sp) {
         hideTooltip();
         return;
       }
-      tl.querySelectorAll(".talent-tag.active").forEach((el) =>
-        el.classList.remove("active"),
-      );
+      clearActive();
       sp.classList.add("active");
       renderTooltip(sp);
       updateTooltipPosition(e);
     };
 
     tl.onmousemove = (e) => {
-      const sp =
-        e.target instanceof Element
-          ? e.target.closest<HTMLElement>("span[data-n]")
-          : null;
-      if (sp && tooltip && !tooltip.classList.contains("hidden")) {
-        updateTooltipPosition(e);
-      }
+      const sp = tagOf(e.target);
+      if (sp && isVisible()) updateTooltipPosition(e);
     };
 
     tl.onmouseleave = () => {
-      tl.querySelectorAll(".talent-tag.active").forEach((el) =>
-        el.classList.remove("active"),
-      );
+      clearActive();
       hideTooltip();
+      shownTag = null;
+    };
+
+    tl.onpointerdown = (e) => {
+      // 鼠标交给 hover 逻辑，避免 PC 上点一下就收起
+      if (e.pointerType === "mouse") return;
+      // 触控本轮由这里决定开关，随后的 click 不再重复处理
+      skipNextClick = true;
+      const sp = tagOf(e.target);
+      if (!sp) {
+        closeTooltip();
+        return;
+      }
+      toggleTag(sp, e as unknown as MouseEvent);
     };
 
     tl.onclick = (e) => {
-      const sp =
-        e.target instanceof Element
-          ? e.target.closest<HTMLElement>("span[data-n]")
-          : null;
-      if (!sp) return;
-      tl.querySelectorAll(".talent-tag.active").forEach((el) =>
-        el.classList.remove("active"),
-      );
-      sp.classList.add("active");
-      renderTooltip(sp);
-      updateTooltipPosition(e);
+      if (skipNextClick) {
+        skipNextClick = false;
+        return;
+      }
+      const sp = tagOf(e.target);
+      if (!sp) {
+        closeTooltip();
+        return;
+      }
+      // 鼠标点击同样支持切换（无 hover 能力的设备走不到这里，但有键盘/辅助技术在）
+      toggleTag(sp, e);
     };
+
+    /*
+     * 点属性面板空白处收起：触屏上浏览器补发的 mouseover 不可靠，
+     * 这里用 pointerdown（鼠标/触摸都触发）做确定性关闭。
+     */
+    if (statsOverlay)
+      statsOverlay.onpointerdown = (e) => {
+        const inside =
+          e.target instanceof Element &&
+          e.target.closest("#talent-list span[data-n]") !== null;
+        if (!inside) closeTooltip();
+      };
   }
   openLevelPanel() {
     const mode = this.core.bpMode;
