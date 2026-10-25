@@ -150,6 +150,17 @@ export class GameCore {
   swTarget = 0;
   swSel: Record<string, number> = {};
   keys: Record<string, boolean> = {};
+  /**
+   * Issue #95：触控八向向量（取值只可能是 -1 / 0 / 1）。
+   *
+   * 刻意与 `keys` 分开：物理键盘的按下态和虚拟摇杆的当前方向必须能同时存在，
+   * 合到同一张表里会互相覆盖（症状是松手后角色仍在走）。
+   * 非触屏设备恒为 0，此时 `PlayerSystem` 走原键盘分支，行为与旧版逐字段一致。
+   */
+  moveX = 0;
+  moveY = 0;
+  /** Issue #95：触屏冲刺按住态，语义等同键盘空格（`keys[" "]`） */
+  dashHeld = false;
   view: GameView = silentView;
   /** 图鉴：旁路观测状态，不参与模拟，也不在 parity 快照的字段白名单内 */
   codex!: CodexSystem;
@@ -264,7 +275,28 @@ export class GameCore {
     this.swSel = {};
     this.slots = [];
     this.keys = {};
+    this.moveX = 0;
+    this.moveY = 0;
+    this.dashHeld = false;
     this.view.reset();
+  }
+  /**
+   * Issue #95：写入触控方向。只接受八向量，防止上层误传模拟量
+   * 悄悄改变移动规则（摇杆是离散八向，不是 360° 自由方向）。
+   */
+  setMoveAxis(x: number, y: number) {
+    this.moveX = Math.max(-1, Math.min(1, Math.round(x)));
+    this.moveY = Math.max(-1, Math.min(1, Math.round(y)));
+  }
+  /** Issue #95：触屏冲刺按住/松开 */
+  setDashHeld(held: boolean) {
+    this.dashHeld = held;
+  }
+  /** Issue #95：清空触控输入（失焦、切后台、进入非 play 状态时调用） */
+  clearTouchInput() {
+    this.moveX = 0;
+    this.moveY = 0;
+    this.dashHeld = false;
   }
   startGame() {
     this.resetGame();

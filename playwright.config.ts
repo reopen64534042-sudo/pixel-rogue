@@ -19,6 +19,7 @@ export default defineConfig({
         "performance.spec.ts",
         "original.spec.ts",
         "visual.spec.ts",
+        "touch.spec.ts",
       ],
       use: { baseURL: "http://127.0.0.1:5174" },
     },

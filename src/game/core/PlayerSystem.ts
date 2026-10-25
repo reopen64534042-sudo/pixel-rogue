@@ -5,12 +5,18 @@ export function updatePlayer(this: GameCore, dt: number) {
   const p = this.player;
   // ---- 玩家移动 ----
   // ---- 移动 & 冲刺 ----
-  let mx =
-    (this.keys["d"] || this.keys["arrowright"] ? 1 : 0) -
-    (this.keys["a"] || this.keys["arrowleft"] ? 1 : 0);
-  let my =
-    (this.keys["s"] || this.keys["arrowdown"] ? 1 : 0) -
-    (this.keys["w"] || this.keys["arrowup"] ? 1 : 0);
+  // Issue #95：触控八向向量优先；无触控输入时退回键盘分支，两种来源互不覆盖。
+  // 摇杆已把方向吸附成 -1/0/1，因此下面的对角归一与移动规则保持不变。
+  let mx = this.moveX;
+  let my = this.moveY;
+  if (!mx && !my) {
+    mx =
+      (this.keys["d"] || this.keys["arrowright"] ? 1 : 0) -
+      (this.keys["a"] || this.keys["arrowleft"] ? 1 : 0);
+    my =
+      (this.keys["s"] || this.keys["arrowdown"] ? 1 : 0) -
+      (this.keys["w"] || this.keys["arrowup"] ? 1 : 0);
+  }
   if (mx && my) {
     mx *= 0.7071;
     my *= 0.7071;
@@ -29,7 +35,12 @@ export function updatePlayer(this: GameCore, dt: number) {
       if (p.dashCharges < dchMax) p.dashRe = p.dashMax;
     }
   }
-  if (p.dashLv && this.keys[" "] && p.dashCharges > 0 && p.dashT <= -0.1) {
+  if (
+    p.dashLv &&
+    (this.keys[" "] || this.dashHeld) &&
+    p.dashCharges > 0 &&
+    p.dashT <= -0.1
+  ) {
     p.dashT = 0.16;
     p.dashCharges--;
     if (p.dashCharges === dchMax - 1 && p.dashRe <= 0) p.dashRe = p.dashMax;
