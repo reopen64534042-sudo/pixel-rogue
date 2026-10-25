@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { fresh, talent } from "./helpers";
-import { getPlayerCombatStats } from "../src/game/core/CombatStats";
+import {
+  getEnemyCombatStats,
+  getPlayerCombatStats,
+} from "../src/game/core/CombatStats";
 import { critMultiplier } from "../src/game/core/DamageMath";
 import {
   enemyShadowFromConfig,
   enemyShadowFromEntity,
   playerShadowFromEntity,
   playerShadowFromPicks,
+  resolveKeyedMap,
 } from "../src/game/core/StatSheets";
 import { ETYPES } from "../src/game/data/enemies";
 import type { GameCore } from "../src/game/core/GameCore";
@@ -68,6 +72,39 @@ describe("S4-B shadow · 来源 B（picks 独立推导）vs 权威重放", () =>
     expect(shadow.critChance).toBe(g.player.crit);
     expect(shadow.critMultiplier).toBe(critMultiplier(g.player));
     expect(shadow.critMultiplier).toBe(2);
+  });
+
+  it("会心深渊×1：暴伤 2→2.5，与权威 critMultiplier 逐位一致", () => {
+    const g = fresh();
+    learnOrder(g, ["会心深渊"]);
+    const shadow = playerShadowFromPicks(g.player.picks);
+    expect(shadow.critMultiplier).toBe(g.player.critMul);
+    expect(shadow.critMultiplier).toBe(critMultiplier(g.player));
+    expect(shadow.critMultiplier).toBe(2.5);
+  });
+
+  it("会心深渊×4（满级）：暴伤 4.0，与权威逐位一致", () => {
+    const g = fresh();
+    learnOrder(g, Array(4).fill("会心深渊"));
+    const shadow = playerShadowFromPicks(g.player.picks);
+    expect(shadow.critMultiplier).toBe(g.player.critMul);
+    expect(shadow.critMultiplier).toBe(critMultiplier(g.player));
+    expect(shadow.critMultiplier).toBe(4);
+  });
+
+  it("会心深渊×2 + 致命一击×8 觉醒：3.4（2 + 1.0 + 0.4），两种 pick 顺序都逐位一致", () => {
+    for (const order of [
+      [...Array(8).fill("致命一击"), "会心深渊", "会心深渊"],
+      ["会心深渊", ...Array(8).fill("致命一击"), "会心深渊"],
+    ]) {
+      const g = fresh();
+      learnOrder(g, order);
+      const shadow = playerShadowFromPicks(g.player.picks);
+      expect(shadow.critChance).toBe(g.player.crit);
+      expect(shadow.critMultiplier).toBe(g.player.critMul + 0.4);
+      expect(shadow.critMultiplier).toBe(critMultiplier(g.player));
+      expect(shadow.critMultiplier).toBe(3.4);
+    }
   });
 
   it("元素亲和×3：火/雷 typeDamageBonus 与快照逐位一致（含 0.30000000000000004 浮点尾）", () => {
@@ -139,7 +176,7 @@ describe("S4-B shadow · 来源 A（实体值构造）接口兼容", () => {
   });
 });
 
-describe("S4-B shadow · 敌人护甲与抗性（方案甲）", () => {
+describe("S4-B shadow · 敌人护甲与抗性（方案甲，权威=getEnemyCombatStats）", () => {
   it("brute/shooter/bomber：配置推导（来源 B）与生成实体（来源 A）都逐位一致", () => {
     for (const kind of ["brute", "shooter", "bomber"] as const) {
       const g = fresh();
@@ -147,29 +184,72 @@ describe("S4-B shadow · 敌人护甲与抗性（方案甲）", () => {
       const e = g.enemies.at(-1)!;
       const fromConfig = enemyShadowFromConfig(ETYPES[kind]);
       const fromEntity = enemyShadowFromEntity(e);
+      const auth = getEnemyCombatStats(e);
       expect(fromConfig.defense).toBe(e.defense ?? 0);
       expect(fromConfig.resistances).toEqual(e.resistances ?? {});
       expect(fromEntity).toEqual(fromConfig);
+      expect(fromConfig.defense).toBe(auth.defense);
+      expect(fromConfig.resistances).toEqual(auth.resistances);
     }
   });
 
-  it("精英倍率只作用 hp/dmg：elite 生成体的护甲/抗性与配置一致", () => {
-    const g = fresh();
-    g.spawnEnemy("brute", true);
-    const e = g.enemies.at(-1)!;
-    const fromConfig = enemyShadowFromConfig(ETYPES.brute);
-    expect(fromConfig.defense).toBe(e.defense ?? 0);
-    expect(fromConfig.defense).toBe(30);
-    expect(enemyShadowFromEntity(e)).toEqual(fromConfig);
+  it("精英倍率只作用 hp/dmg：三种怪的 elite 生成体甲抗与权威快照一致", () => {
+    for (const kind of ["brute", "shooter", "bomber"] as const) {
+      const g = fresh();
+      g.spawnEnemy(kind, true);
+      const e = g.enemies.at(-1)!;
+      const fromConfig = enemyShadowFromConfig(ETYPES[kind]);
+      const auth = getEnemyCombatStats(e);
+      expect(e.elite).toBe(true);
+      expect(fromConfig.defense).toBe(auth.defense);
+      expect(fromConfig.resistances).toEqual(auth.resistances);
+      expect(enemyShadowFromEntity(e)).toEqual(fromConfig);
+    }
   });
 
-  it("中性怪（slime/bat）：无甲无抗，映射为空对象", () => {
-    const g = fresh();
-    g.spawnEnemy("slime");
-    const e = g.enemies.at(-1)!;
-    const shadow = enemyShadowFromConfig(ETYPES.slime);
-    expect(shadow.defense).toBe(0);
-    expect(shadow.resistances).toEqual({});
-    expect(enemyShadowFromEntity(e)).toEqual(shadow);
+  it("中性怪（slime/bat）：无甲无抗，权威快照同为 0/空映射", () => {
+    for (const kind of ["slime", "bat"] as const) {
+      const g = fresh();
+      g.spawnEnemy(kind);
+      const e = g.enemies.at(-1)!;
+      const shadow = enemyShadowFromConfig(ETYPES[kind]);
+      const auth = getEnemyCombatStats(e);
+      expect(shadow.defense).toBe(0);
+      expect(shadow.resistances).toEqual({});
+      expect(auth.defense).toBe(0);
+      expect(auth.resistances).toEqual({});
+      expect(enemyShadowFromEntity(e)).toEqual(shadow);
+    }
+  });
+});
+
+describe("S4-B shadow · resolveKeyedMap 危险原型键（P3）", () => {
+  it('base 中的自有 "__proto__" 键（JSON 解析产物）显式拒绝，不静默丢键', () => {
+    const base = JSON.parse('{"__proto__": 3, "fire": 0.3}') as Record<
+      string,
+      number
+    >;
+    expect(Object.keys(base)).toContain("__proto__");
+    expect(() => resolveKeyedMap("resistance", base, [])).toThrow(TypeError);
+  });
+
+  it('修饰符 key 为 "__proto__" 显式拒绝', () => {
+    expect(() =>
+      resolveKeyedMap("resistance", {}, [
+        {
+          sourceId: "x",
+          stat: "resistance",
+          stage: "flat",
+          value: 0.3,
+          key: "__proto__",
+        },
+      ]),
+    ).toThrow(TypeError);
+  });
+
+  it('非魔键（如 "constructor"）作为自有数据属性正常工作', () => {
+    const out = resolveKeyedMap("resistance", { constructor: 0.2 }, []);
+    expect(out.constructor).toBe(0.2);
+    expect(Object.prototype.hasOwnProperty.call(out, "constructor")).toBe(true);
   });
 });

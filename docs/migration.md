@@ -1055,3 +1055,10 @@ Player/Enemy、41 张天赋、敌人配置、波次/RNG、DamageSystem、CombatS
 ### S4-C 就绪备注
 
 来源表（磐石/铁布衫/致命一击/元素亲和）已是 S4-C「天赋贡献 → 修饰符」的雏形；迁移时将其从 shadow 专用转为天赋声明的权威形态，并按任务书 §4-S4-C 分组迁移（纯 flat 来源先行）、逐组全链路权威来源唯一。
+
+### 上游 PR #89 评审修订（P2×2 + P3，2026-10-25）
+
+1. **P2 来源表补「会心深渊」**：来源 B 新增 critMultiplier flat +0.5/级（max 4，值逐字对照 talents.ts，不引用 talent.f）；新增单级（2.5）/满级（4.0）/与致命一击×8 觉醒组合（3.4，两种 pick 顺序）的权威 critMultiplier 逐位对照。0.5 可精确表示，与任何乘区分组无浮点歧义。
+2. **P2 敌怪对照升级为权威快照比较**：brute/shooter/bomber（普通+精英）与 slime/bat（中性）全部增加 `getEnemyCombatStats(e)` 比较维度；适配器字段漂移变异（defense 兜底 0→1）实测 3 用例红，shadow 对适配器回归有咬合力。
+3. **P3 resolveKeyedMap 危险原型键显式拒绝**：普通对象上 `out.__proto__ = v` 会触发原型 setter——键被静默丢弃且下游 `{ ...map }` 展开会再次丢失，故对 `"__proto__"` 键抛 TypeError（拒绝优于安全容器：游戏数据无合法 __proto__ 键）；`"constructor"` 等非魔键作为自有数据属性正常工作（边界用例固定）。base（JSON 解析自有键）与修饰符 key 两个入口都被覆盖。
+4. S4-A 语义修订（flat base 起始顺序累加）、percent 加算、final 连乘、平衡/RNG/Player/Enemy 全部未动。

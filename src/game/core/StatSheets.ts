@@ -61,6 +61,12 @@ export function resolveKeyedMap<F extends KeyedStatFamily>(
   ]);
   const out: Record<string, number> = {};
   for (const key of keys) {
+    // 危险原型键显式拒绝（PR #89 评审 P3）：普通对象上 out.__proto__ = v
+    // 会触发原型 setter 而非自有属性——键被静默丢弃且可能污染原型链；
+    // 且下游 { ...map } 展开会再次丢失。游戏数据无合法 __proto__ 键，
+    // 拒绝优于安全容器（其他自有键如 constructor 无 setter 魔法，不受限）。
+    if (key === "__proto__")
+      throw new TypeError('类型化映射不允许危险原型键 "__proto__"');
     const sheet: StatSheet = {
       base: { [family]: base[key] ?? 0 },
       modifiers: mods.filter((m) => m.key === key),
@@ -157,6 +163,14 @@ export function playerShadowFromPicks(
           stat: "critChance",
           stage: "flat",
           value: 0.1,
+        });
+        break;
+      case "会心深渊": // data/talents.ts：critMul +0.5/级（max 4；0.5 可精确表示）
+        scalars.push({
+          sourceId: "天赋:会心深渊",
+          stat: "critMultiplier",
+          stage: "flat",
+          value: 0.5,
         });
         break;
       case "元素亲和": // data/talents.ts：火/雷 typeDamageBonus +0.1/级（增量 f）
