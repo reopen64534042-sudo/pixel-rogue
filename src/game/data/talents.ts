@@ -282,10 +282,11 @@ export const UPGRADES: Talent[] = [
     max: 3,
     mech: 1,
     pv: (p) => `护盾 ${p.shieldMax} → ${p.shieldMax + 1} 层 · 破碎反震`,
-    f: (p) => {
-      p.shieldMax++;
-      p.shield++;
-    },
+    // S4-C C3-B：shieldMax +1/级 由权威来源表声明（core/TalentStatSources.ts，
+    // shieldMax flat）；「当前护盾 +1」为获得时效果（core/OnAcquireEffects.ts，
+    // 无条件赠层与旧 f 逐字一致），仅在 learnTalent 成功获得时执行一次，
+    // recompute 绝不重放（D-C3-02：重算保留已消耗现值）。
+    f: () => {},
     cur: (p) => `护盾 ${p.shield}/${p.shieldMax} 层 · 破碎反震 200%`,
   },
   {

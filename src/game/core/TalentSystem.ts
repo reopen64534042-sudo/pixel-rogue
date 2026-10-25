@@ -3,6 +3,12 @@ import { statBase } from "../data/stats";
 import { DMG_POOL, RAMP, UPGRADES } from "../data/talents";
 import type { GameCore } from "./GameCore";
 import { applyOnAcquireEffect } from "./OnAcquireEffects";
+import {
+  captureRuntimeState,
+  effectiveCaps,
+  reconcileRuntimeToCaps,
+  restoreRuntimeState,
+} from "./RuntimeStateProtection";
 import { applyTalentStatProjection } from "./TalentStatSources";
 import type { Talent } from "./types";
 export function tierWeights(this: GameCore) {
@@ -34,6 +40,11 @@ export function canOffer(this: GameCore, u: Talent) {
 
 export function recompute(this: GameCore) {
   const hpBefore = this.player.hp;
+  // Combat Foundation S4-C C3-B（D-C3-02/04）：重建前捕获有效上限协调面
+  // （本批仅 shieldMax）与 RuntimeState 白名单快照——shield/shieldCd 是运行
+  // 状态，重算保留现值、不恢复已消耗盾层、不清零恢复倒计时（R-2 修复载体）
+  const capsBefore = effectiveCaps(this.player);
+  const runtime = captureRuntimeState(this.player);
   Object.assign(this.player, statBase());
   // Combat Foundation S3-B：statBase 不含可选战斗属性键，Object.assign 不会清除
   // 残留值——磐石/元素亲和等增量型天赋重放前必须清键，否则在旧值上叠加
@@ -51,14 +62,20 @@ export function recompute(this: GameCore) {
     if (!talent) throw new Error(`未知天赋: ${n}`);
     talent.f(this.player);
   }
-  // Combat Foundation S4-C C1/C2-A/C2-B/C3-A：已迁移天赋卡（C1 纯 flat 五张 +
-  // C2-A 全局伤害三张 + C2-B 乘法属性五张 + C3-A 生命 flat 两张）的属性由权威
-  // 来源表解析投影，不经 talent.f 累积（这些卡的 f 是空操作）——单一权威来源，
-  // 重算幂等零重复叠加。C3-A（契约 v1.2 §10.8）：persistent **必传**当前实例的
-  // 持久来源（potionMaxHpGrow），杜绝漏传静默按 0 重建 maxHp 的 R-1 复活路径
+  // Combat Foundation S4-C C1/C2-A/C2-B/C3-A/C3-B：已迁移天赋卡（C1 纯 flat
+  // 五张 + C2-A 全局伤害三张 + C2-B 乘法属性五张 + C3-A 生命 flat 两张 +
+  // C3-B 护盾容量一张）的属性由权威来源表解析投影，不经 talent.f 累积
+  // （这些卡的 f 是空操作）——单一权威来源，重算幂等零重复叠加。C3-A（契约
+  // v1.2 §10.8）：persistent **必传**当前实例的持久来源（potionMaxHpGrow），
+  // 杜绝漏传静默按 0 重建 maxHp 的 R-1 复活路径
   applyTalentStatProjection(this.player, {
     potionMaxHpGrow: this.potionMaxHpGrow,
   });
+  // C3-B：属性重建完成后原样回写 shield/shieldCd（不恢复资源、不刷新倒计时），
+  // 再按「上限降低」方向协调——置换移除层级使 shieldMax 下降时夹紧
+  // shield = min(shield, 新上限)；上限升高或不变时为无操作
+  restoreRuntimeState(this.player, runtime);
+  reconcileRuntimeToCaps(this.player, capsBefore, effectiveCaps(this.player));
   this.player.hp = Math.max(1, Math.min(hpBefore, this.player.maxhp));
 }
 

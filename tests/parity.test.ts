@@ -90,6 +90,16 @@ const parityTalents = UPGRADES.filter(
  * 效果」逐位一致，独立旧版生命效果比较由 s4c-c3-baseline B1~B3 与
  * s4c-c3a-life 的旧实现基准对照继续咬住，不排除、不归零）；全天赋模拟场景
  * （parityTalents）继续包含这两张卡（learnTalent 路径不变）。
+ *
+ * 基线更新依据：Combat Foundation S4-C C3-B（D-C3-02/D-C3-04 护盾部分，
+ * 用户已批准）。能量护盾的 shieldMax flat（+1/级）改由来源表声明，获得时
+ * 赠层（shield+1）分离至 core/OnAcquireEffects.ts 仅在 learnTalent 执行，
+ * 重算侧由 core/RuntimeStateProtection 快照保留 shield/shieldCd——加入本
+ * 清单走 learnTalent 路径对照（v8 f 的 shieldMax/shield 结果与「投影 +
+ * 获得时效果」逐位一致：单级 = shieldMax 1 / shield 1；独立旧行为比较由
+ * s4c-c3-baseline B4/B13 与 s4c-c3b-shield 的 legacyShield 对照继续咬住，
+ * 不排除、不删减字段、不放宽比较）；全天赋模拟场景（parityTalents）继续
+ * 包含该卡（learnTalent 路径不变）。
  */
 const S4C_AUTHORITY_MIGRATED = [
   "铁布衫",
@@ -104,6 +114,7 @@ const S4C_AUTHORITY_MIGRATED = [
   "广域法印",
   "生命之泉",
   "巨人血脉",
+  "能量护盾",
 ] as const;
 /**
  * 基线更新依据：Issue #13（用户已批准的近战基础设施建设）。

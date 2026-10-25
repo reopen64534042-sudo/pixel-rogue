@@ -1507,3 +1507,52 @@ M2 拆分时曾把「天赋详情」记为**触屏上的死功能**。实测（8
 - R-2（护盾重放恢复）/R-3（狂热重放触发）/R-4（dash/meteor/tempShield/ndUsed/orbA/hurtCd 等被 statBase 覆盖）维持 C0 审计 pin，属 C3-B/C3-C 范围；RuntimeStateProtection 白名单机制待 C3-B 首次引入（契约 §5.3）。
 - 宝箱模式键盘 1/2/3 快捷键缺陷（C2-A 发现）未修（任务书明示不夹带）。
 - 运行状态字段（shield/shieldCd/haste/hasteT/dash*/tempShield/ndUsed/meteorT/orbA/hurtCd）在 recompute 中仍被 statBase 覆盖——既有缺陷行为，本批未顺手保护。
+
+## D-28 Combat Foundation S4-C 第三批（C3-B）：护盾容量权威迁移 + 获得时赠层分离 + 运行状态保护（2026-10-26）
+
+依据任务书「C3-B 实施任务」与契约 `docs/pixel-rogue-S4C-C3-contract-v1.md`（v1.2），分支 `feat/combat-foundation-s4c-c3b-shield`（基线 65c6922 = 上游 PR #102 C3-A 合并提交）。**只实施 C3-B（护盾），完成即停止；R-3/R-4 维持缺陷 pin，C3-C 未开始。** 已批准差异：D-C3-02（重算不恢复已消耗护盾、容量降低夹紧）、D-C3-04 护盾部分（仅保护 shield/shieldCd 两个运行状态字段）。
+
+### 实施范围与权威来源切换
+
+- **切换图（复用 C1/C2/C3-A 管线）**：`picks 序列 → talentStatModifiers(picks, persistent) 新增一 case（能量护盾 shieldMax flat +1/级）→ StatModel.resolveStats（STAT_IDS 白名单新增 shieldMax，base = statBase().shieldMax = 0）→ applyTalentStatProjection → 既有 p.shieldMax 字段（必写投影，无来源时写回 base 0）`。接入点与 C3-A 一致：`learnTalent` 记录后（+OnAcquire）、`recompute` 投影后（恢复/夹紧前）、`melt` 经 learnTalent 自然复用；能量护盾 `Talent.f` 改空操作，旧写入与新 Modifier 不并行。
+- **来源所有权（C3-B 审计定界）**：`p.shieldMax` 运行期写入者 = 能量护盾旧 f（本批取消）+ 权威投影；基础值唯一来自 `statBase()`。`p.shield`/`p.shieldCd` 为 RuntimeState：写入者 = 破盾消耗（CombatSystem）、恢复逻辑（PlayerSystem）、获得时赠层（OnAcquireEffects，仅 learnTalent 路径）——来源表与投影**不声明、不写回**这两个字段。
+- **获得时赠层分离（OnAcquireEffects 登记）**：`case "能量护盾": p.shield += 1`——与旧 f 逐字一致的无条件赠层（不检查当前层数、不回满、不刷新 shieldCd、不修改 shieldMax、零随机消耗）；lvBefore 不参与判定（每级获得都赠 1 层，B4 语义）。生命之泉/巨人血脉已有实现与执行时序未动。
+- **RuntimeStateProtection（新纯模块，契约 §5.3 最小落地）**：`RUNTIME_STATE_KEYS = ["shield", "shieldCd"]`（const 字面量白名单 + Partial<Record> 只读快照，无 any）；`captureRuntimeState`/`restoreRuntimeState` 原样保存回写；`EffectiveCaps` **仅含 shieldMax**（C3-B 真正生效的协调字段——契约草案的 dashChargeMax/hasteCap 属 C3-C，狂热/冲刺未迁移前不得纳入，避免被误读为已完成权威属性；本批也不构造更大的 RuntimeState 容器）；`reconcileRuntimeToCaps` 只做「上限降低」方向的向下夹紧（`after.shieldMax < before.shieldMax → shield = min(shield, after.shieldMax)`），升高或不变时无操作。模块不依赖 GameCore/DOM/Phaser、不持全局状态、不掷随机数、不新增 Player 可枚举字段；hp 不入白名单（D-C3-05 夹紧承接），tempShield/C3-C 字段未提前保护。
+- **recompute 编排（任务书 §五 10 步）**：① hpBefore 捕获 → ② `effectiveCaps` 捕获重建前 shieldMax → ③ `captureRuntimeState` 快照 → ④ `Object.assign(statBase())`（保留）→ ⑤ S3 六键清理（保留）→ ⑥ picks 重放未迁移卡 f（能量护盾 f 已空操作，不再产生写入）→ ⑦ 权威投影（persistent 必传）→ ⑧ `restoreRuntimeState` 回写 shield/shieldCd → ⑨ `reconcileRuntimeToCaps` 容量下降夹紧 → ⑩ HP 夹紧公式 `Math.max(1, Math.min(hpBefore, maxhp))` 逐字保留（D-C3-05）。learnTalent 未接入 reconcile——学习方向上限只增不减，夹紧结构性无操作（任务书 §三 未要求改动 learnTalent 时序）。SwapSystem.melt 结构零改动（材料删除、恰好 1 次随机、recompute→learnTalent 次序不变）。
+
+### 修复前后对照（D-C3-02 / R-2/B6 反转）
+
+| 场景 | 修复前（基线 65c6922） | 修复后（本批） |
+|---|---|---|
+| 破盾（shield=0、shieldCd=6.5）→ recompute | 重放 f 回满 shield=1、shieldCd 清 0（未满盾下一帧立即恢复） | shield=0、shieldCd=6.5 原样保留，继续倒计时（B6/R-2 反转） |
+| 能量护盾 3 级满盾 → 置换移除 1 级 | 重放重建 shield=2（来源为重放） | shield 保留 3 → 夹紧 2（来源为保护后协调；已消耗时分叉：旧=回满，新=保留）（G-7） |
+| shield=1、shieldMax 3→2 置换 | 重放回满至 2 | 保留 1，不凭空回满（G-7 变体） |
+| 真实 damagePlayer 破盾 → recompute → 计时推进 | 盾复活 + CD 清零即恢复 | 10s 倒计时持续推进，唯一一次合法到期才 +1 |
+
+获得路径数值与旧 f 逐位一致（legacyShield 独立重述 1~3 级对照 + B4/B13 + parity 单级 learnTalent 对照：shieldMax=1/shield=1）；重放路径自本批起不再赠层（旧行为为重放回满，D-C3-02 批准差异）。
+
+### 测试与验证
+
+- **反转**：R-2（tests/s4c-recompute-audit，保留旧行为注释与 D-C3-02 编号，新增 shieldMax 属性面断言）与 B6（tests/s4c-c3-baseline，shield/shieldCd 双保留断言）。
+- **保持通过**：B4（获得赠层）、B5（恢复与满盾冻结）、B13（置换输出卡赠层）、B12/B14、R-1/R-5（C3-A 生命修复与 HP 夹紧）、R-3/R-4（狂热与其余 RuntimeState 缺陷继续复现——断言未动）、B15（交错回归，标题去张数化）；combat.test.ts 消耗顺序/破盾反震不变。
+- **新增** `tests/s4c-c3b-shield.test.ts` 14 项：G-6（含 recompute×3 幂等）/G-7（夹紧 + 部分消耗不回满变体）/G-8/G-9 契约验收 + 真实 damagePlayer 破盾→重算→合法到期恢复 + 满盾 shieldCd 冻结保持 + 未学习时不增盾 + 满级失败零副作用 + 与生命卡/血包成长交错（双生命卡 OnAcquire 不回归）+ RNG 消耗数量不变（learnTalent 0 次/melt 1 次）+ legacyShield 旧行为独立对照 + 结构钉子两条（f 空操作 JSON 不变 / OnAcquire 未登记卡 no-op）。C3-A 的 OnAcquire no-op 结构测试样本更新（能量护盾已登记，改用疾影步/壁垒）。
+- **Parity 26 项原样通过**：能量护盾加入 `S4C_AUTHORITY_MIGRATED`（基线更新依据已留痕：v8 f 的 shieldMax/shield 单级结果与「投影 + 获得时效果」逐位一致，独立旧版比较由 legacyShield/B4/B13 咬住，不排除、不删减字段、不放宽比较）；全天赋模拟场景继续包含该卡；无新增 Player 字段。
+- `npm test` **389/389**（上游基线 375 + 本批 14）；`npm run typecheck`、`npm run build` 通过；`npm run test:browser` **16/16**。护盾层数游戏内显示已验证（一次性 Playwright 手动脚本，用后即删）：学习后世界内护盾环渲染 + 属性面板「🛡️ 护盾 1 / 1」+ 已学天赋能量护盾 Lv.1，真实破盾后显示同步 0 / 1（截图 output/playwright/c3b-shield-ring.png、c3b-stats-panel.png、c3b-shield-consumed.png，output/ 不入库）。
+
+### 变异验证（7 组，全部被咬住后逐组还原；红数为 389 基线下的全量失败数）
+
+| # | 变异 | 红数 | 检测面 |
+|---|---|---|---|
+| ① | 删除 shieldMax flat 来源 | 19 | R-2/B4/B5/B6/B13、G-6~G-9、damagePlayer、legacyShield、满级失败、交错、RNG、parity 4 项 |
+| ② | 删除 OnAcquire 赠盾 | 14 | R-2/B4/B13、G-6~G-9、damagePlayer、满盾冻结、满级失败、legacyShield、parity 3 项 |
+| ③ | 恢复旧 f 盾层与上限写入（并行叠加） | 16 | ②的全部面 + B6/parity 4 项 + **结构钉子（f 空操作）**——行为面与结构面双重咬住 |
+| ④ | recompute 不恢复 shield | 4 | G-7 两项（夹紧/不回满）、damagePlayer、满盾冻结——恰好为「shield>0 保留」检测面 |
+| ⑤ | recompute 不恢复 shieldCd | 5 | B6、G-6、damagePlayer、满盾冻结、交错——恰好为「shieldCd 保留」检测面 |
+| ⑥ | 删除容量下降夹紧 | 2 | G-7 夹紧、RNG 用例（含两级全移除 shield 夹紧断言） |
+| ⑦ | recompute 错误重新赠盾 + 清零恢复 CD | 11 | R-2/B6/B13/G-6~G-8、damagePlayer、满盾冻结、未学习不增盾、交错、D-08（重算幂等面） |
+
+### 遗留问题与下一步
+
+- R-3（狂热重放触发）/R-4（dash/meteor/tempShield/ndUsed/orbA/hurtCd/dx/dy 等被 statBase 覆盖）维持 C0 审计 pin，属 C3-C 范围；RuntimeStateProtection 白名单与 EffectiveCaps 已为其预留扩充位（契约 §5.3 全量清单）。
+- 击杀狂热/疾影步/二段冲刺/壁垒/不屈/战意沸腾的属性迁移（hasteLv/dashLv/dashMax/dashChargeLv/barrierLv/nd/rageLv）未开始；能量护盾旧 f 已空操作，其余混合卡 f 仍按旧语义重放。
+- 宝箱模式键盘 1/2/3 快捷键缺陷（C2-A 发现）未修（任务书明示不夹带）。

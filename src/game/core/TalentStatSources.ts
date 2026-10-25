@@ -1,5 +1,5 @@
 /**
- * Combat Foundation S4-C（C1 + C2-A + C2-B + C3-A）：十五张天赋的属性权威来源表。
+ * Combat Foundation S4-C（C1 + C2-A + C2-B + C3-A + C3-B）：十六张天赋的属性权威来源表。
  *
  * 职责（任务书 §4-S4-C「全链路权威来源唯一」）：
  * - C1 五张纯 flat：「磐石/铁布衫/致命一击/会心深渊/元素亲和」的属性贡献
@@ -10,9 +10,14 @@
  *   C3-A 两张生命 flat：「生命之泉/巨人血脉」的 maxHp flat +20/+30 在此声明，
  *   并新增实例级持久来源 PersistentStatSources（血包永久成长 potionMaxHpGrow，
  *   作为 maxHp 的 base 增量参与解析——只计一次，不做 flat 修饰符）。
- *   data/talents.ts 中这十五张卡的 `f` 不再写入属性字段（C1/C2 卡无获得时
- *   即时效果，f 为空操作；生命两卡的获得时治疗分离至 core/OnAcquireEffects.ts，
- *   仅在 learnTalent 成功获得时执行、recompute 绝不重放）。旧 `Talent.f`
+ *   C3-B 一张护盾 flat：「能量护盾」的 shieldMax flat +1/级 在此声明（StatId
+ *   白名单新增 shieldMax）；「当前护盾 +1」是获得时效果，分离至
+ *   core/OnAcquireEffects.ts——本表不声明 shield/shieldCd（RuntimeState，
+ *   D-C3-02/04：重算保留现值、绝不重放赠层）。
+ *   data/talents.ts 中这十六张卡的 `f` 不再写入属性字段（C1/C2 卡无获得时
+ *   即时效果，f 为空操作；生命两卡的治疗、能量护盾的赠层分离至
+ *   core/OnAcquireEffects.ts，仅在 learnTalent 成功获得时执行、recompute
+ *   绝不重放）。旧 `Talent.f`
  *   累加/乘算与新 Modifier 不并行生效——learnTalent/recompute/melt 统一收敛
  *   到 applyTalentStatProjection 写出的投影值。
  * - Player 上的 `defense/tough/crit/critMul/typeDamageBonus/damage/maxhp` 是
@@ -38,6 +43,13 @@
  *   （ProgressionSystem——权威为实例级 potionMaxHpGrow 持久来源，双写仅为
  *   保持当帧满血判定/治疗读取行为，不构成第二来源）；maxhp 基础值唯一来自
  *   `statBase()`（recompute 经 Object.assign 重置后由投影重建）。
+ * - 来源所有权（C3-B 审计定界）：`p.shieldMax` 的运行期写入者**只有**能量
+ *   护盾的旧 f（本批取消）+ 本投影；基础值唯一来自 `statBase()`（recompute
+ *   经 Object.assign 重置后由投影重建）。`p.shield`/`p.shieldCd` 是
+ *   RuntimeState：写入者为恢复逻辑（PlayerSystem）、破盾消耗（CombatSystem）
+ *   与获得时赠层（OnAcquireEffects，仅 learnTalent 路径）——本表与投影
+ *   **不声明、不写回**这两个字段，recompute 侧由 core/RuntimeStateProtection
+ *   快照保留（D-C3-02/04）。
  * - 「致命一击」觉醒（upCounts ≥ critMaxLevel → 有效暴伤 +0.4）是**条件
  *   来源**：判定时机保持读时进行（DamageMath.critMultiplier 按 upCounts
  *   现值叠加），不烘焙进 p.critMul 字段——与旧语义逐位一致，置换移除层级
@@ -240,6 +252,18 @@ export function talentStatModifiers(
           value: 30,
         });
         break;
+      // ---- C3-B：护盾容量 flat（shieldMax StatId，C3-B 新增白名单；整数
+      // 贡献无浮点歧义）。「当前护盾 +1」为获得时效果（OnAcquireEffects），
+      // 本表只承载容量属性，不声明 shield/shieldCd（RuntimeState，D-C3-02）。----
+      case "能量护盾": // data/talents.ts：p.shieldMax++（max 3）；旧 f 的
+        // p.shield++（赠层）分离至 OnAcquireEffects，仅 learnTalent 执行
+        scalars.push({
+          sourceId: "天赋:能量护盾",
+          stat: "shieldMax",
+          stage: "flat",
+          value: 1,
+        });
+        break;
       default: // 未迁移批次的天赋不进属性表（仍由 talent.f 重放，不在此维护张数）
         break;
     }
@@ -268,10 +292,13 @@ export function talentStatModifiers(
  * 未知外部来源，不在所有权内，学习任何天赋都保持不动。
  *
  * `damage`（C2-A）、`boltDmgMul/fireRate/speed/magnet/area`（C2-B）与
- * `maxhp`（C3-A）为必写字段：字段由 statBase 提供（与 tough/crit/critMul
- * 同类的必填投影），投影以对应 base 全量解析后覆写——无来源时写回 base 值
- * （maxHp 无生命卡来源时 = 100 + 血包永久成长）。来源所有权见模块头注：
- * 卡外写入者出现前不得以本投影覆盖。
+ * `maxhp`（C3-A）、`shieldMax`（C3-B）为必写字段：字段由 statBase 提供
+ * （与 tough/crit/critMul 同类的必填投影），投影以对应 base 全量解析后
+ * 覆写——无来源时写回 base 值（maxHp 无生命卡来源时 = 100 + 血包永久成长，
+ * shieldMax 无能量护盾来源时 = 0）。来源所有权见模块头注：卡外写入者
+ * 出现前不得以本投影覆盖。`p.shield`/`p.shieldCd`（C3-B）**不在投影内**：
+ * RuntimeState 由 RuntimeStateProtection 在 recompute 快照保留，获得时
+ * 赠层只发生在 OnAcquireEffects（learnTalent 路径）。
  *
  * 兼容边界（明示，不猜测恢复）：
  * - 外部来源若也写 fire/lightning，与元素亲和贡献无法区分，投影覆写为
@@ -294,6 +321,9 @@ export function applyTalentStatProjection(
       // C3-A：maxHp base = 数据层初始值 + 实例级血包永久成长（持久来源仅在此
       // 计入一次；生命卡贡献为 flat 修饰符，非 base）
       maxHp: base.maxhp + persistent.potionMaxHpGrow,
+      // C3-B：护盾容量 base = 数据层初始值 0，recompute 经 Object.assign
+      // 重置后由本投影全量解析，无来源时写回 base 值
+      shieldMax: base.shieldMax,
       // C2-B：五字段 base = statBase 数据层初始值（fireRate 2.2 / speed 62 /
       // magnet 36 / boltDmgMul 1 / area 1），recompute 经 Object.assign 重置
       // 后由本投影全量解析，无来源时写回 base 值
@@ -312,6 +342,9 @@ export function applyTalentStatProjection(
   // C3-A：maxHp 解析结果写回既有 maxhp 字段（base 含血包永久成长 + 生命卡
   // flat；无生命来源时 = 100 + potionMaxHpGrow，与旧 f 无写入时的语义一致）
   p.maxhp = resolved.maxHp ?? base.maxhp + persistent.potionMaxHpGrow;
+  // C3-B：shieldMax 解析结果写回既有字段（每级 flat +1，整数精确）；shield/
+  // shieldCd 不在此写回（RuntimeState，见函数说明与 RuntimeStateProtection）
+  p.shieldMax = resolved.shieldMax ?? base.shieldMax;
   // C2-A：attack 解析结果写回既有 damage 字段（base=statBase().damage，
   // final 区按 picks 顺序连乘——与旧 f 重放运算序列逐位一致）
   p.damage = resolved.attack ?? base.damage;

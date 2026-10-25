@@ -298,7 +298,10 @@ describe("S4-C C3-A · 旧行为对照与边界（任务书 §六.B）", () => {
     const before = JSON.stringify(g.player);
     applyOnAcquireEffect("磨刃", g.player, 0);
     applyOnAcquireEffect("击杀狂热", g.player, 0);
-    applyOnAcquireEffect("能量护盾", g.player, 0);
+    // C3-B 起能量护盾已登记（赠层，见 tests/s4c-c3b-shield.test.ts），
+    // 未登记样本改用仍走旧 f 的疾影步/壁垒（C3-C 范围）
+    applyOnAcquireEffect("疾影步", g.player, 0);
+    applyOnAcquireEffect("壁垒", g.player, 0);
     expect(JSON.stringify(g.player)).toBe(before);
   });
 });

@@ -40,6 +40,10 @@ export const STAT_IDS = [
   "attack",
   "defense",
   "maxHp",
+  // S4-C C3-B：能量护盾容量（旧 f 的 shieldMax++ 每级 +1 → flat 修饰符；
+  // 对应 Player 字段 p.shieldMax，base=statBase().shieldMax=0）。当前护盾
+  // shield 与恢复倒计时 shieldCd 是 RuntimeState，不进属性模型。
+  "shieldMax",
   "moveSpeed",
   "fireRate",
   "critChance",

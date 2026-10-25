@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v32",
+    date: "2026-10-26",
+    title: "战斗基础 S4-C 第三批（C3-B）：护盾容量权威迁移与运行状态保护",
+    items: [
+      "能量护盾的护盾容量改由权威来源表声明（shieldMax flat +1 每级，StatModel 白名单新增 shieldMax），对应 Talent.f 不再写入属性；「当前护盾 +1」分离为获得时效果（OnAcquireEffects 登记，无条件赠层与旧实现逐字一致），仅在成功学习时执行一次，置换输出卡正常获得",
+      "修复破盾/消耗后重算复活盾层、恢复倒计时被清零的问题（D-C3-02/R-2/B6 反转）：新增 core/RuntimeStateProtection.ts 运行状态保护模块，重算先快照 shield/shieldCd、属性重建后原样回写——已消耗的盾层不再凭空恢复，恢复倒计时继续走；容量因置换下降时按 min(shield, 新上限) 夹紧，上限升高或不变时无操作",
+      "运行状态保护按批次分阶段启用（D-C3-04）：本批仅 shield/shieldCd 两个真实生效字段，HP 夹紧公式逐字保留，狂热/冲刺等其余运行状态留给 C3-C；学习路径零随机消耗、置换恰好 1 次随机、换波重置语义均不变；parity 26 项原样通过（能量护盾走真实学习路径对照）；全量 Vitest 389 项、浏览器 16 项通过",
+    ],
+  },
+  {
     version: "v31",
     date: "2026-10-26",
     title: "战斗基础 S4-C 第三批（C3-A）：生命上限权威迁移与获得时治疗分离",
