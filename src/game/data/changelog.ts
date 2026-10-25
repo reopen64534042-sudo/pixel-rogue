@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v21",
+    date: "2026-10-25",
+    title: "修复：环绕飞刃导致全屏贴图旋转与主角偏移",
+    items: [
+      "修复解锁「环绕飞刃」后，场上其他贴图被带着旋转、主角偏离视觉中心的问题",
+      "根因：绘制对象池跨帧复用，普通贴图未重置飞刃留下的旋转角与「居中原点」",
+    ],
+  },
+  {
     version: "v20",
     date: "2026-10-25",
     title: "图鉴：敌人分类与累计击杀",

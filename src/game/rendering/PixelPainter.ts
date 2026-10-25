@@ -78,6 +78,11 @@ export class PixelPainter {
       .setPosition(x, y)
       .setVisible(true)
       .setAlpha(this.globalAlpha)
+      // 对象池跨帧复用：必须把 spriteRot 留下的旋转与「居中原点」复位。
+      // 否则飞刃用过的槽位被普通贴图复用时，会带着上一帧的旋转角绘制（画面整体转动），
+      // 并按中心定位导致坐标偏移半个贴图（主角偏离视觉中心）。见 Issue #85。
+      .setOrigin(0)
+      .setRotation(0)
       .setDepth(this.depth++)
       .setScrollFactor(this.hud ? 0 : 1);
     if (w !== undefined && h !== undefined) img.setDisplaySize(w, h);
