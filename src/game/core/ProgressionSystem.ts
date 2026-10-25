@@ -55,6 +55,10 @@ export function updateProgression(this: GameCore, dt: number) {
         // 满血转化：每波最多 +POTION_GROW_CAP 点最大生命，加成本身永久保留
         if (this.potionGrow < POTION_GROW_CAP) {
           this.potionGrow++;
+          // C3-A（D-C3-01）：先累计实例级持久来源（权威），再即时双写实体
+          // 兼容投影——保持本帧 regen/满血判定/治疗读取行为不变；实体字段
+          // 不构成第二来源，recompute 由投影以 potionMaxHpGrow 重建（契约 §8.2）
+          this.potionMaxHpGrow++;
           p.maxhp += 1;
           p.hp += 1;
           this.addText(p.x, p.y - 10, "生命上限+1", "#ffd24a");

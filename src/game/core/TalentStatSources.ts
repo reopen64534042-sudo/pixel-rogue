@@ -1,5 +1,5 @@
 /**
- * Combat Foundation S4-C（C1 + C2-A + C2-B）：十三张天赋的属性权威来源表。
+ * Combat Foundation S4-C（C1 + C2-A + C2-B + C3-A）：十五张天赋的属性权威来源表。
  *
  * 职责（任务书 §4-S4-C「全链路权威来源唯一」）：
  * - C1 五张纯 flat：「磐石/铁布衫/致命一击/会心深渊/元素亲和」的属性贡献
@@ -7,19 +7,25 @@
  *   「磨刃/狂怒/毁灭本能」的 attack final 倍率同样在此声明。C2-B 五张乘法
  *   属性：「强化弹丸/疾速扳机/疾风之靴/磁力护符/广域法印」的
  *   boltDmgMul/fireRate/moveSpeed/magnet/area final 倍率在此声明。
- *   data/talents.ts 中这十三张卡的 `f` 不再写入属性字段（无获得时即时效果，
- *   f 为空操作）。旧 `Talent.f` 累加/乘算与新 Modifier 不并行生效——
- *   learnTalent/recompute/melt 统一收敛到 applyTalentStatProjection 写出的
- *   投影值。
- * - Player 上的 `defense/tough/crit/critMul/typeDamageBonus/damage` 是兼容
- *   投影：字段保留（消费点 CombatStats/UI/pv·cur 不变），但唯一来源是本表
+ *   C3-A 两张生命 flat：「生命之泉/巨人血脉」的 maxHp flat +20/+30 在此声明，
+ *   并新增实例级持久来源 PersistentStatSources（血包永久成长 potionMaxHpGrow，
+ *   作为 maxHp 的 base 增量参与解析——只计一次，不做 flat 修饰符）。
+ *   data/talents.ts 中这十五张卡的 `f` 不再写入属性字段（C1/C2 卡无获得时
+ *   即时效果，f 为空操作；生命两卡的获得时治疗分离至 core/OnAcquireEffects.ts，
+ *   仅在 learnTalent 成功获得时执行、recompute 绝不重放）。旧 `Talent.f`
+ *   累加/乘算与新 Modifier 不并行生效——learnTalent/recompute/melt 统一收敛
+ *   到 applyTalentStatProjection 写出的投影值。
+ * - Player 上的 `defense/tough/crit/critMul/typeDamageBonus/damage/maxhp` 是
+ *   兼容投影：字段保留（消费点 CombatStats/UI/pv·cur 不变），但唯一来源是本表
  *   解析。damage 的 base = statBase().damage（数据层初始值），映射到
  *   StatModel 的既有 `attack` StatId——projected 值仍写回既有 `p.damage`
  *   字段，不新增 Player 可枚举字段、不引入第二套累加缓存；伤害管线侧
  *   rawAmount 已含该值（CombatStats.attack = p.damage），DamageSystem 的
  *   globalDamageBonus 等乘区不重复乘 attack。C2-B 五字段同理写回既有
  *   `boltDmgMul/fireRate/speed/magnet/area` 字段（speed ↔ moveSpeed 仅是
- *   Player 字段名与 StatId 的历史命名差，语义一致）。
+ *   Player 字段名与 StatId 的历史命名差，语义一致）。C3-A 的 maxHp 写回
+ *   既有 `p.maxhp` 字段，base = statBase().maxhp + 实例级 potionMaxHpGrow
+ *   （持久成长仅计入一次）。
  * - 来源所有权（C2-A/C2-B 审计定界）：`p.damage` 的运行期写入者**只有**
  *   三张伤害卡的旧 f（C2-A 已取消）+ 本投影；`boltDmgMul/fireRate/speed/
  *   magnet/area` 的运行期写入者**只有**对应单张卡的旧 f（本批取消）+ 本
@@ -27,6 +33,11 @@
  *   **五字段各自只有一张天赋来源**（与 attack 的三卡不同），若未来出现
  *   卡外的合法写入者，不得被本投影以 picks 结果直接覆盖——须先在来源表
  *   登记为独立来源并设计兼容方案（任务书 §二.7）。
+ * - 来源所有权（C3-A 审计定界）：`p.maxhp` 的运行期写入者**只有**两张生命
+ *   卡的旧 f（本批取消）+ 本投影 + 满血血包转化的即时兼容双写
+ *   （ProgressionSystem——权威为实例级 potionMaxHpGrow 持久来源，双写仅为
+ *   保持当帧满血判定/治疗读取行为，不构成第二来源）；maxhp 基础值唯一来自
+ *   `statBase()`（recompute 经 Object.assign 重置后由投影重建）。
  * - 「致命一击」觉醒（upCounts ≥ critMaxLevel → 有效暴伤 +0.4）是**条件
  *   来源**：判定时机保持读时进行（DamageMath.critMultiplier 按 upCounts
  *   现值叠加），不烘焙进 p.critMul 字段——与旧语义逐位一致，置换移除层级
@@ -56,10 +67,21 @@ import { resolveStats, type StatModifier } from "./StatModel";
 import { resolveKeyedMap, type TypeDamageBonusModifier } from "./StatSheets";
 import type { Player } from "./types";
 
-/** 十三张已迁移卡的来源贡献：标量区（含 attack 与五字段 final）+ 类型化火雷增伤区 */
+/** 十三张已迁移卡（C1/C2）+ 两张生命卡（C3-A）的来源贡献：标量区（含 attack 与五字段 final）+ 类型化火雷增伤区 */
 export interface TalentStatContribution {
   scalars: StatModifier[];
   typeDamageBonus: TypeDamageBonusModifier[];
+}
+
+/**
+ * C3-A：GameCore 实例级持久属性来源（契约 v1.2 §5.1/§10.8）。
+ * 非 Player 字段（不进实体序列化，先例 GameCore.potionGrow）；
+ * resetGame 重置、startNextWave 保留；满血血包成功转化时累计。
+ * 作为 maxHp 解析的 **base 增量**（statBase().maxhp + potionMaxHpGrow）参与
+ * StatModel——只计入一次，绝不重复作为 flat 修饰符（变异④的咬合点）。
+ */
+export interface PersistentStatSources {
+  readonly potionMaxHpGrow: number;
 }
 
 /**
@@ -72,10 +94,20 @@ const ELEMENT_TDB_KEYS = ["fire", "lightning"] as const;
 /**
  * 把 picks 序列翻译为修饰符（未迁移批次的 pick 忽略）。
  * 顺序即 picks 顺序——同一张卡重复学习按次数展开，与旧重放逐位一致。
+ *
+ * C3-A（契约 v1.2 §5.1/§10.8）：persistent 为**必传参数**（编译期防线）——
+ * 漏传可选参数会让 maxHp 静默按 0 重建（R-1 复活路径），不得用默认值掩盖；
+ * 三个生产接入点（learnTalent/recompute/melt→learnTalent）均为 GameCore 方法，
+ * 就地取用当前实例的 potionMaxHpGrow。
  */
 export function talentStatModifiers(
   picks: readonly string[],
+  persistent: PersistentStatSources,
 ): TalentStatContribution {
+  if (persistent.potionMaxHpGrow < 0)
+    throw new RangeError(
+      `potionMaxHpGrow 不能为负，收到 ${persistent.potionMaxHpGrow}`,
+    );
   const scalars: StatModifier[] = [];
   const typeDamageBonus: TypeDamageBonusModifier[] = [];
   for (const name of picks) {
@@ -189,6 +221,25 @@ export function talentStatModifiers(
           value: 1.2,
         });
         break;
+      // ---- C3-A：生命 flat（maxHp StatId，复用既有白名单；flat 区 base 起始
+      // 逐次累加，整数贡献无浮点歧义）。获得时治疗分离至 OnAcquireEffects，
+      // 本表只承载属性贡献，不含 hp 写入。----
+      case "生命之泉": // data/talents.ts：p.maxhp += 20/级（max 99）
+        scalars.push({
+          sourceId: "天赋:生命之泉",
+          stat: "maxHp",
+          stage: "flat",
+          value: 20,
+        });
+        break;
+      case "巨人血脉": // data/talents.ts：p.maxhp += 30/级（max 99）
+        scalars.push({
+          sourceId: "天赋:巨人血脉",
+          stat: "maxHp",
+          stage: "flat",
+          value: 30,
+        });
+        break;
       default: // 未迁移批次的天赋不进属性表（仍由 talent.f 重放，不在此维护张数）
         break;
     }
@@ -198,8 +249,16 @@ export function talentStatModifiers(
 
 /**
  * 把已迁移卡的权威解析结果写回 Player 兼容投影。幂等：可重复调用，
- * 结果只取决于 picks 当前内容。写入点 = 旧 f 的全部生效点
+ * 结果只取决于 picks 当前内容与 persistent 持久来源。写入点 = 旧 f 的全部生效点
  * （learnTalent / recompute / melt 经 learnTalent），不存在第二套累积来源。
+ *
+ * C3-A：persistent 为**必传参数**（与 talentStatModifiers 同理由，见其注释）；
+ * maxHp 的 base = statBase().maxhp + persistent.potionMaxHpGrow——血包永久成长
+ * 只在 base 计入一次，两张生命卡的贡献为 picks 展开的 flat 修饰符（+20/+30/级），
+ * 有效 maxHp = 100 + 血包永久成长 + 按 picks 顺序叠加的生命天赋贡献。
+ * p.maxhp 的运行期写入者自本批起**只有**：本投影 + 满血血包转化的即时兼容
+ * 双写（ProgressionSystem，保持当帧满血判定/治疗行为；来源唯一权威为
+ * potionMaxHpGrow，见该处注释）。
  *
  * 可选字段存在性沿用旧语义：磐石来源存在才写 `defense` 键，无来源删键。
  * typeDamageBonus 为**键级所有权**（第一轮评审 P2）：投影只管理 fire/lightning
@@ -208,11 +267,11 @@ export function talentStatModifiers(
  * 时删除这两键（映射因此为空则连映射一并删除）；其余键（physical 等）属
  * 未知外部来源，不在所有权内，学习任何天赋都保持不动。
  *
- * `damage`（C2-A）与 `boltDmgMul/fireRate/speed/magnet/area`（C2-B）为必写
- * 字段：字段由 statBase 提供（与 tough/crit/critMul 同类的必填投影），投影
- * 以对应 statBase 字段为 base 全量解析后覆写——无来源时写回 base 值（与
- * 旧 f 无乘算时的字段值一致）。来源所有权见模块头注：卡外写入者出现前
- * 不得以本投影覆盖。
+ * `damage`（C2-A）、`boltDmgMul/fireRate/speed/magnet/area`（C2-B）与
+ * `maxhp`（C3-A）为必写字段：字段由 statBase 提供（与 tough/crit/critMul
+ * 同类的必填投影），投影以对应 base 全量解析后覆写——无来源时写回 base 值
+ * （maxHp 无生命卡来源时 = 100 + 血包永久成长）。来源所有权见模块头注：
+ * 卡外写入者出现前不得以本投影覆盖。
  *
  * 兼容边界（明示，不猜测恢复）：
  * - 外部来源若也写 fire/lightning，与元素亲和贡献无法区分，投影覆写为
@@ -220,15 +279,21 @@ export function talentStatModifiers(
  * - recompute/melt 路径沿用历史行为：recompute 先整体删除 typeDamageBonus
  *   键再重放（S3-B 语义），外部键在该路径不保留——原有状态行为，本轮不动。
  */
-export function applyTalentStatProjection(p: Player): void {
+export function applyTalentStatProjection(
+  p: Player,
+  persistent: PersistentStatSources,
+): void {
   const base = statBase();
-  const { scalars, typeDamageBonus } = talentStatModifiers(p.picks);
+  const { scalars, typeDamageBonus } = talentStatModifiers(p.picks, persistent);
   const resolved = resolveStats({
     base: {
       attack: base.damage,
       tough: base.tough,
       critChance: base.crit,
       critMultiplier: base.critMul,
+      // C3-A：maxHp base = 数据层初始值 + 实例级血包永久成长（持久来源仅在此
+      // 计入一次；生命卡贡献为 flat 修饰符，非 base）
+      maxHp: base.maxhp + persistent.potionMaxHpGrow,
       // C2-B：五字段 base = statBase 数据层初始值（fireRate 2.2 / speed 62 /
       // magnet 36 / boltDmgMul 1 / area 1），recompute 经 Object.assign 重置
       // 后由本投影全量解析，无来源时写回 base 值
@@ -244,6 +309,9 @@ export function applyTalentStatProjection(p: Player): void {
   p.crit = resolved.critChance ?? base.crit;
   // 不含觉醒：DamageMath.critMultiplier 在读取时按 upCounts 现值叠加 0.4
   p.critMul = resolved.critMultiplier ?? base.critMul;
+  // C3-A：maxHp 解析结果写回既有 maxhp 字段（base 含血包永久成长 + 生命卡
+  // flat；无生命来源时 = 100 + potionMaxHpGrow，与旧 f 无写入时的语义一致）
+  p.maxhp = resolved.maxHp ?? base.maxhp + persistent.potionMaxHpGrow;
   // C2-A：attack 解析结果写回既有 damage 字段（base=statBase().damage，
   // final 区按 picks 顺序连乘——与旧 f 重放运算序列逐位一致）
   p.damage = resolved.attack ?? base.damage;

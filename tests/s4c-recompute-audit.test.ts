@@ -9,9 +9,16 @@ import { fresh, learn } from "./helpers";
  * 1. 证明 C1 权威迁移未改变非迁移区域的行为；
  * 2. 为后续批次（RuntimeState 分离、maxhp 持久来源）提供修复前基线——
  *    缺陷纠正须另行授权，不得借迁移之名静默修复（任务书 §4-S4-C.3）。
+ *
+ * 基线更新依据：Combat Foundation S4-C C3-A（D-C3-01，用户已批准）。
+ * R-1 由「缺陷存在」反转为「永久成长正确保留」——血包永久 maxhp 成长进入
+ * GameCore 实例级持久来源 potionMaxHpGrow，recompute 后由权威投影重建；
+ * 旧行为（成长丢失回 100）的对照依据保留在用例注释中（契约 v1.2 §2）。
+ * R-5 的断言保持不变（夹紧语义逐字保留，D-C3-05）；R-2/R-3/R-4 维持缺陷
+ * pin，留给 C3-B/C3-C。
  */
-describe("S4-C C0 · recompute 现状审计（差异矩阵 pin，不修复）", () => {
-  it("R-1 缺陷：满血血包永久 maxhp 成长在 recompute 后丢失", () => {
+describe("C3 差异审计与分阶段修复验证", () => {
+  it("R-1 修复（D-C3-01）：满血血包永久 maxhp 成长在 recompute 后保留", () => {
     const g = fresh();
     // 真实路径触发满血转化：血包落在脚下 + 满血拾取 → maxhp+1（永久）
     g.player.hp = g.player.maxhp;
@@ -19,10 +26,15 @@ describe("S4-C C0 · recompute 现状审计（差异矩阵 pin，不修复）", 
     g.update(1 / 60);
     expect(g.player.maxhp).toBe(101);
     expect(g.potionGrow).toBe(1);
-    // recompute 以 statBase+talent 重放重建 maxhp：血包成长无来源 → 丢失
+    expect(g.potionMaxHpGrow).toBe(1); // C3-A：实例级持久来源同步累计
+    // 旧行为（C3-0 pin，基线 de37d93）：recompute 以 statBase 重放、血包成长
+    // 无来源 → maxhp 丢失回 100。修复后：持久来源参与权威重建 → 成长保留
     g.recompute();
-    expect(g.player.maxhp).toBe(100);
-    expect(g.player.hp).toBe(100); // hp 被新 maxhp 夹紧
+    expect(g.player.maxhp).toBe(101);
+    expect(g.player.hp).toBe(101); // 满血拾取后 hp=maxhp，夹紧语义保持（D-C3-05）
+    g.recompute();
+    g.recompute();
+    expect(g.player.maxhp).toBe(101); // 连续重算幂等，成长不重复计也不丢失
   });
 
   it("R-2 缺陷：能量护盾重放 shield++ → 已消耗盾层在 recompute 后恢复满值", () => {
@@ -73,14 +85,17 @@ describe("S4-C C0 · recompute 现状审计（差异矩阵 pin，不修复）", 
     expect(g.player.dashMax).toBe(2);
   });
 
-  it("R-5 保护语义：重放治疗被 hp 夹紧中和——recompute 不改变当前 HP（除上限夹紧）", () => {
+  it("R-5 保护语义：recompute 不改变当前 HP（除上限夹紧）——D-C3-05 逐字保留", () => {
     const g = fresh();
     learn(g, "生命之泉"); // 学习时：maxhp 120 并回满
     learn(g, "巨人血脉"); // 学习时：maxhp 150、hp +30
     g.player.hp = 40; // 模拟战斗中受伤
     g.recompute();
-    expect(g.player.maxhp).toBe(150); // 天赋来源正确重建
-    // 重放会执行 f 的 hp=maxhp / hp+=30，但随后被 min(hpBefore, maxhp) 覆盖
+    expect(g.player.maxhp).toBe(150); // 天赋来源正确重建（C3-A 起经权威投影）
+    // C3-0 时点的旧行为注释：重放会执行 f 的 hp=maxhp / hp+=30，但随后被
+    // min(hpBefore, maxhp) 覆盖。C3-A（D-C3-01/03）起获得时效果不再进入
+    // recompute（两张生命卡 f 为空操作），重放治疗从根源消失——夹紧公式
+    // max(1, min(hpBefore, maxhp)) 逐字保留，断言与旧行为完全一致
     expect(g.player.hp).toBe(40);
   });
 });

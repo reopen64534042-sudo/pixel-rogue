@@ -104,6 +104,15 @@ export class GameCore {
   spawnedThisWave = 0;
   /** 本波已由满血血包转化的最大生命点数（换波清零，加成本身永久保留） */
   potionGrow = 0;
+  /**
+   * Combat Foundation S4-C C3-A（D-C3-01）：满血血包永久 maxHp 成长的**实例级
+   * 持久来源**（权威）。每波转化时累计，跨换波保留、仅 resetGame 重置；
+   * 属性投影（TalentStatSources.applyTalentStatProjection）以本值参与 maxHp
+   * 解析（base = statBase().maxhp + potionMaxHpGrow，只计一次）。Player 实体
+   * 上的 maxhp 为兼容投影（转化处即时双写保持当帧读取行为），非持久来源。
+   * 非 Player 字段：不进实体序列化（parity 快照不受影响，先例 potionGrow）。
+   */
+  potionMaxHpGrow = 0;
   /** 本波普通怪已掉落的宝箱数（精英宝箱不占此名额） */
   boxDropsThisWave = 0;
   /** 本波精英宝箱已贡献的强化点数（Issue #87：上限 ELITE_BOX_POINT_CAP，换波清零） */
@@ -252,6 +261,7 @@ export class GameCore {
     this.quota = this.waveQuota(1);
     this.spawnedThisWave = 0;
     this.potionGrow = 0;
+    this.potionMaxHpGrow = 0; // C3-A：新游戏重置累计永久成长（D-C3-01/契约 §6 生命⑤）
     this.boxDropsThisWave = 0;
     this.eliteBoxPointsThisWave = 0;
     this.boxPicks = 0;
