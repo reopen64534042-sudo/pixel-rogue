@@ -1342,9 +1342,90 @@ CSS 中字体被重写为 `url(../assets/fonts/press-start-2p.ttf)`，HTML 引�
 - 竖屏未做布局：390×844 下舞台仅 390×219，需横屏引导（D2 已定为强制横屏）。
 - 真机未验证（无 iOS/Android 实机），手势边界与多指并发留待 M3。
 
-## D-24 Combat Foundation S4-C 第三批（C3-A）：生命上限权威迁移 + 获得时治疗分离 + 血包永久成长修复（2026-10-26）
+## D-24 Issue #100：移动端属性面板入口——并入暂停界面（2026-10-26）
 
-依据任务书「C3-A 实施任务」与契约 `docs/pixel-rogue-S4C-C3-contract-v1.md`（v1.2，上游 PR #98 合并），分支 `feat/combat-foundation-s4c-c3a-life`（基线 20e737d = 上游 PR #98 合并提交；已合并 upstream/main f1dd840 = PR #99 触控输入，编号顺延 v28/D-24）。**只实施 C3-A（生命），完成即停止；R-2/R-3/R-4 维持缺陷 pin，C3-B/C3-C 未开始。** 已批准差异：D-C3-01（血包永久成长持久来源）、D-C3-05（HP 夹紧逐字保留）、两张生命卡获得时治疗与属性贡献分离。
+### 背景
+
+M1（#95）上线后真机实测发现：属性面板唯一入口是键盘 `C`（`GameScene.ts` 的 keydown 路由），触屏无键盘即无法打开。曾比较「常驻按钮」与「并入暂停界面」两种方案，**采用后者**：
+
+- 属性面板本身就把 `state` 切到 `stats`，此时 `GameScene` 不推进模拟——「边打边看」在机制上不存在，常驻按钮的快捷收益为零；
+- 手机横屏舞台高度仅 390px，已有摇杆（左下）、冲刺（右下）、暂停（右下角）三个控件，再放常驻键必然挤压 HUD；
+- 暂停界面已并列「图鉴」入口，属性并入属同一类「查看信息」操作，且常驻键还需在升级/宝箱/置换/结算面板弹出时逐一门控隐藏。
+
+### 实现
+
+- `GameCore.statsFrom: "play" | "pause"`（默认 `play`）记录来源；新增 `openStatsFromPause()`，**仅在 `state === "pause"` 时接受**，置来源后切 `stats` 并先 `view.paused(false)` 再 `view.stats(true)`。
+- `toggleStats()` 关闭分支按来源分流：`pause` → 回 `pause` 并 `view.paused(true)`；`play` → 原样回 `play`。键盘路径（play↔stats）逐字未变。
+- `ensurePlay()`（Issue #34）在关闭属性前先把来源复位为 `play`，保持「面板命令强制回战斗态」的原语义。
+- UI：暂停面板新增 `#btn-pause-stats`（角色属性，位于继续/图鉴之间）；`view.stats(true)` 时按来源设置底部按钮文案「返 回」/「返回战斗 (C)」。
+- `resetGame()` 复位 `statsFrom`。
+
+### 两处坑（与既有实现冲突的地方）
+
+1. **层级**：`#ov-stats` z-index 30 < `#ov-pause` 60，两者同时可见时属性会被暂停面板盖住 → 必须"先收暂停、再开属性"，而不是把属性提到 70（提到 70 会与图鉴同级，且暂停面板残留在下层的状态更难推理）。
+2. **返回目标**：若沿用 `toggleStats()` 的旧行为，从暂停进入后关闭会直接 `state = "play"` 恢复战斗——玩家只看一眼属性就被丢回战场，属明显体验缺陷。来源字段是必要成本。
+
+### 验收
+
+- 新增 `tests/stats-entry.test.ts` **6 项**：暂停进入并回到暂停、属性打开期间模拟冻结（`time`/`player.x` 不变，且摇杆输入不生效）、非暂停态拒绝进入、键盘 play↔stats 不变、`ensurePlay()` 仍强制回 play、新局复位来源。
+- 新增浏览器用例 1 项（`tests/browser/touch.spec.ts`）：暂停 → 角色属性 → 属性面板可见 / 暂停面板已收起 / 文案为「返 回」/ `state === "stats"` → 返回 → 暂停面板恢复且 `state === "pause"` → 继续战斗。
+- `npm test` **357/357**（上一基线 351 + 6）；`parity` 26 项原样；`npm run test:browser` **12/12**；`npm run typecheck`、`npm run build` 通过。
+
+### 遗留
+
+- 从暂停进入属性后按 `P`（暂停快捷键）无响应——`togglePause()` 只处理 play↔pause，此时可点「返 回」或按 `Esc`。属键鼠边缘路径，未修，记录备查。
+- 手机档字号问题（属性面板内的 34 条天赋列表同样偏小）仍归 #96。
+
+## D-25 Issue #96（M2-1）：竖屏引导与触屏手势边界（2026-10-26）
+
+### 背景与决策变更
+
+M1/M2 上线后用户真机试玩，反馈「升级选卡与属性面板文字**很清楚，没问题**」。此前按 `vmin` 绝对值推算（横屏 390 高时 1.2vmin ≈ 4.7 CSS px）判定不可读，实际真机观感可接受。据此在 #96 留痕调整：
+
+- **`vmin` → `--u` 的 313 处全量替换降级为可选**，不再作为必做项；
+- 后续若局部仍读不清，改为只对该组件做媒体查询放大，不做全局单位迁移；
+- 结论以用户观感为准，不以算术推算为准。
+
+M2 因此重排为：**M2-1 横屏引导 + 手势边界（本章）→ M2-2 hover 改点按 → M2-3 字号（可选）**。
+
+### 实现
+
+- `src/ui/OrientationGate.ts`：`isPortraitSize` 纯谓词（`height > width`，正方形按横屏处理，避免误伤桌面窄窗）+ 闸门类。仅在**触屏设备**启用（与触控层共用 `TouchControls.active` 判定结果，桌面拉窄窗口不会弹提示）。
+- 行为：进入竖屏 → 显示遮罩；若 `state === "play"` 则 `togglePause()`。**转回横屏只收起遮罩，不自动恢复战斗**——玩家可能正在看暂停里的信息，自动恢复会突然开打。
+- 只在朝向真正翻转时动作（比较 `portrait` 前后值），避免 `resize` 抖动反复触发暂停。
+- CSS：遮罩用 `position: fixed; inset: 0`，因为竖屏下 `#stage` 只有 390×219，跟随舞台会变成一条小窄条；标题/副标题另给 `max(20px, 6vmin)` / `max(12px, 3vmin)`，不受全局 `vmin` 字号偏小的影响。
+- 开始界面键位提示在触屏档改写为触控说明（原文案备份并在 `dispose` 还原）。
+
+### 手势边界的关键取舍
+
+**不能对 `#stage` 整体用 `touch-action: none`。** `#ov-stats`、`#changelog-list`、`#bp-cards`、置换库存都是纵向滚动容器，`none` 会把面板内滚动一起禁掉——这是最容易踩的坑。采用：
+
+| 目标 | 规则 | 理由 |
+|---|---|---|
+| `html, body` | `overscroll-behavior: none` | 禁下拉刷新与橡皮筋回弹 |
+| `#stage.touch-mode` | `touch-action: manipulation` | 只禁双击缩放，保留滚动与捏合 |
+| `#stage.touch-mode` | `user-select: none` + `-webkit-touch-callout: none` | 禁长按选中/弹出菜单 |
+| `#game canvas`、`#btn-dash` | `touch-action: none` | 摇杆手势专用禁区（#95 已落地） |
+
+不使用 `user-scalable=no`（牺牲可访问性），缩放控制交给 `touch-action`。
+
+### 验收
+
+- 新增 `tests/orientation.test.ts` **3 项**：竖屏/横屏判定、边长接近时判竖屏、正方形按横屏处理。
+- 新增浏览器用例 **2 项**：①触屏 844×390 起手 → 转 390×844 弹遮罩且 `state === "pause"` → 转回横屏遮罩收起但仍为 pause → 点「继续战斗」恢复；②非触屏设备 420×900 窄窗下遮罩不出现。
+- 既有触控用例补充断言：PC 档开始界面保留 `WASD` 键位提示，触屏档替换为「左半屏拖拽」。
+- `npm test` **360/360**（上一基线 357 + 3）；`parity` 26 项原样；`npm run test:browser` **14/14**；`npm run typecheck`、`npm run build` 通过。
+- 实拍（390×844 DPR 2）：遮罩铺满视口、标题与图标居中；横屏开始界面的键位提示已换成触控文案。
+
+### 遗留
+
+- 真机仍未验证（无 iOS/Android 实机）：iOS Safari 的 `orientationchange` 触发时机与 Android 边缘返回手势留待 #97。
+- 手机档字号（M2-3）已降级为可选，若后续出现具体读不清的组件再单独处理。
+- 天赋详情仍依赖 `onmouseover`（`GameUI.ts:445-472`），归 M2-2。
+
+## D-26 Combat Foundation S4-C 第三批（C3-A）：生命上限权威迁移 + 获得时治疗分离 + 血包永久成长修复（2026-10-26）
+
+依据任务书「C3-A 实施任务」与契约 `docs/pixel-rogue-S4C-C3-contract-v1.md`（v1.2，上游 PR #98 合并），分支 `feat/combat-foundation-s4c-c3a-life`（基线 20e737d = 上游 PR #98 合并提交；已合并 upstream/main 972cf42 = PR #99 触控输入 + PR #101 属性面板入口 + PR #103 横屏引导，文档编号顺延 v30/D-26（v28/D-24、v29/D-25 已被上游移动端批次占用））。**只实施 C3-A（生命），完成即停止；R-2/R-3/R-4 维持缺陷 pin，C3-B/C3-C 未开始。** 已批准差异：D-C3-01（血包永久成长持久来源）、D-C3-05（HP 夹紧逐字保留）、两张生命卡获得时治疗与属性贡献分离。
 
 ### 实施范围与权威来源切换
 
@@ -1375,9 +1456,9 @@ CSS 中字体被重写为 `url(../assets/fonts/press-start-2p.ttf)`，HTML 引�
 - P3 收尾新增真实入口回归：满血血包成长 3 + 生命之泉/巨人血脉（maxhp 153）→ 置换移除两卡 → maxhp 103、HP 按 `max(1, min(hpBefore, 103))` 夹紧、`potionMaxHpGrow` 保留 3；后续 recompute 与无关卡学习维持 103，输出卡恰好学习一次（`upCounts=1`）。
 - C3-0 基线 B1～B16 原样通过（B1/B2/B3/B12/B15 在新路径下行为逐位一致）；C1/C2-A/C2-B 回归通过；`s4c-damage-talent-sources` 直调测试补传显式测试来源（断言未削减）。
 - **parity 26 项原样通过**：生命之泉/巨人血脉加入 `S4C_AUTHORITY_MIGRATED`（基线更新依据已留痕：v8 f 的 maxhp/hp 结果与「投影 + 获得时效果」逐位一致，独立旧版比较由 legacyLife 对照与 B1～B3 咬住，不排除、不归零）；全天赋模拟场景继续包含两卡；wave parity 快照为固定字段清单，`potionMaxHpGrow` 为 GameCore 字段不入 Player 序列化，**无新增 Player 字段**。
-- `npm test` **366/366**（C3-0 基线 327 + 上游 #99 触控 24 + 本批 15）；`npm run typecheck`、`npm run build` 通过；`npm run test:browser` **11/11**（本批原有 7 项 + 上游 #99 触控 4 项）。
+- `npm test` **375/375**（C3-0 基线 327 + 上游 #99 触控 24 + #101 属性面板 6 + #103 横屏 3 + 本批 15）；`npm run typecheck`、`npm run build` 通过；`npm run test:browser` **14/14**（本批原有 7 项 + 上游 #99 触控 4 项 + #101 属性面板 1 项 + #103 横屏 2 项）。
 
-### 变异验证（7 组，全部被咬住后逐组还原；表中红数为新增回归测试前的 C3-A 初版 341 基线测量，合并后最终全量 366/366 通过）
+### 变异验证（7 组，全部被咬住后逐组还原；表中红数为新增回归测试前的 C3-A 初版 341 基线测量，合并后最终全量 375/375 通过）
 
 | # | 变异 | 红数 | 检测面 |
 |---|---|---|---|

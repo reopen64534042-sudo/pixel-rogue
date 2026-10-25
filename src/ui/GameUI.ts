@@ -50,6 +50,9 @@ export class GameUI {
       },
       stats: (open) => {
         if (open) {
+          // Issue #100：从暂停进入时是「返回暂停」，文案不能写返回战斗
+          element("btn-statclose").textContent =
+            this.core.statsFrom === "pause" ? "返 回" : "返回战斗 (C)";
           this.buildStats();
           show("ov-stats");
         } else {
@@ -87,6 +90,8 @@ export class GameUI {
     element("btn-retry").onclick = () => this.core.startGame();
     element("btn-resume").onclick = () => this.core.togglePause();
     element("btn-pause-codex").onclick = () => this.codex.open();
+    // Issue #100：触屏没有 C 键，属性面板从暂停界面进入
+    element("btn-pause-stats").onclick = () => this.core.openStatsFromPause();
     // 设置入口本期只占位：保持 disabled，不绑空的 onclick（避免出现死按钮）
     element("btn-restart").onclick = () => {
       if (!this.restartArmed) {
