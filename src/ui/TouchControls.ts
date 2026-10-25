@@ -32,6 +32,8 @@ export class TouchControls {
   private dashPointer: number | null = null;
   private radius = 40;
   private bounds: { width: number; height: number } | null = null;
+  /** 开始界面键位提示的原文案，dispose 时还原 */
+  private hintsBackup: string | null = null;
 
   constructor(
     private readonly core: GameCore,
@@ -89,8 +91,27 @@ export class TouchControls {
     entry.onclick = () => this.openSettings();
     // 触屏没有键盘，暂停键去掉快捷键后缀，并按下文的 .touch-mode 放大点击区
     element("btn-pause").textContent = "暂停";
+    this.rewriteStartHints();
     window.addEventListener("resize", this.layout);
     window.addEventListener("orientationchange", this.layout);
+  }
+
+  /**
+   * 开始界面的键位提示原本全是键鼠说明（WASD / 空格 / C / P / M），
+   * 手机上一句都用不上。触屏档换成实际操作方式，退出时还原原文案。
+   */
+  private rewriteStartHints() {
+    const hints = document.querySelector("#ov-start .keys");
+    if (!hints) return;
+    this.hintsBackup = hints.innerHTML;
+    hints.innerHTML = [
+      "左半屏拖拽 移动",
+      "右下角 冲刺（解锁后显示）",
+      "攻击全自动",
+      "右下角 暂停 / 属性 / 图鉴",
+    ]
+      .map((text) => `<span class="key">${text}</span>`)
+      .join("");
   }
 
   /** 指针坐标换算到舞台局部坐标（与 #stage 内绝对定位控件同一坐标系） */
@@ -343,6 +364,8 @@ export class TouchControls {
     window.removeEventListener("orientationchange", this.layout);
     document.getElementById("stage")?.classList.remove("touch-mode");
     element("btn-pause").textContent = "⏸ 暂停 (P)";
+    const hints = document.querySelector("#ov-start .keys");
+    if (hints && this.hintsBackup !== null) hints.innerHTML = this.hintsBackup;
     this.core.clearTouchInput();
   }
 }

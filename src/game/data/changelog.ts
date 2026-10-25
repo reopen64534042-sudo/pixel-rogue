@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v29",
+    date: "2026-10-26",
+    title: "手机端横屏引导与触屏手势边界（M2-1）",
+    items: [
+      "竖屏引导（仅触屏设备）：检测到竖屏弹出全屏「请横屏游玩」遮罩，若正在战斗自动暂停；转回横屏只收起遮罩、不自动恢复战斗，由玩家点「继续战斗」。遮罩用 position: fixed 铺满视口，不随竖屏下 390×219 的窄舞台收缩",
+      "触屏手势边界：html/body 加 overscroll-behavior: none；#stage.touch-mode 用 touch-action: manipulation（只禁双击缩放）+ user-select: none + -webkit-touch-callout: none。刻意不对 #stage 用 touch-action: none——属性面板、更新日志、卡牌与置换库存需要纵向滚动，none 会把面板内滚动一起禁掉",
+      "开始界面键位提示在触屏档替换为触控说明（左半屏拖拽移动 / 右下冲刺 / 暂停含属性与图鉴），PC 端文案不变，退出时还原",
+      "验收：npm test 360/360（新增 3 项）、parity 26 项原样、浏览器 14/14（新增 2 项）、typecheck 与 build 通过",
+    ],
+  },
+  {
     version: "v28",
     date: "2026-10-26",
     title: "移动端属性面板入口：并入暂停界面",

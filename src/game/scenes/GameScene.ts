@@ -3,6 +3,7 @@ import { GameCore } from "../core/GameCore";
 import { FixedClock } from "../core/FixedClock";
 import { GameUI } from "../../ui/GameUI";
 import { TouchControls } from "../../ui/TouchControls";
+import { OrientationGate } from "../../ui/OrientationGate";
 import { PixelPainter } from "../rendering/PixelPainter";
 import { draw } from "../rendering/draw";
 import { SPR } from "../rendering/sprites";
@@ -40,6 +41,8 @@ export class GameScene extends Phaser.Scene {
   private ui!: GameUI;
   /** Issue #95：触控操作层，非触屏设备下内部不启用（所有方法为空操作） */
   private touch?: TouchControls;
+  /** Issue #96：竖屏引导闸门，与触控层共用同一套设备判定 */
+  private orient?: OrientationGate;
   private clock = new FixedClock();
   private stars = Array.from({ length: 60 }, () => ({
     x: Math.random() * W,
@@ -55,6 +58,8 @@ export class GameScene extends Phaser.Scene {
       this.textures.addCanvas(key, canvas);
     this.painter = new PixelPainter(this);    this.ui = new GameUI(this.core);
     this.touch = new TouchControls(this.core, this.game.canvas);
+    // 与触控层共用判定结果：桌面拖窄窗口不该弹横屏提示
+    this.orient = new OrientationGate(this.core, this.touch.active);
     this.cameras.main.setBounds(0, 0, WORLD.w, WORLD.h).setRoundPixels(true);
     const down = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
@@ -113,6 +118,7 @@ export class GameScene extends Phaser.Scene {
       window.removeEventListener("blur", clear);
       document.removeEventListener("visibilitychange", hidden);
       this.touch?.dispose();
+      this.orient?.dispose();
       this.ui.dispose();
       this.core.audio.dispose();
       if (import.meta.env.DEV) delete window.__PIXEL_ROGUE__;

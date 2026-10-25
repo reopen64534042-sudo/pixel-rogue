@@ -142,3 +142,65 @@
   border-color: #57e6ff;
   color: #0b0c14;
 }
+
+/*
+ * Issue #96（M2-1）：触屏手势边界。
+ *
+ * 铁律：**不能对 #stage 整体设 `touch-action: none`** —— 属性面板、更新日志、
+ * 卡牌与置换库存都是纵向滚动容器，none 会把面板内滚动一起禁掉。
+ * 这里用 manipulation 只关掉双击缩放，滚动与捏合保持可用；
+ * 摇杆所在的 canvas 与冲刺键仍各自保持 none（#95 已落地的禁区）。
+ */
+html,
+body {
+  overscroll-behavior: none;
+}
+
+#stage.touch-mode {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Issue #96：竖屏引导遮罩（仅触屏设备，PC 显示不出来也不打扰） */
+#ov-orient {
+  /* 竖屏下 #stage 只剩 390×219 的窄条，遮罩必须铺满视口而不是跟随舞台 */
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #07080f;
+  /* 提示语走自己的字号：h2/p 的全局 vmin 在窄视口下只有几像素 */
+  gap: 3vmin;
+}
+
+#ov-orient h2 {
+  font-size: max(20px, 6vmin);
+}
+
+#ov-orient p {
+  font-size: max(12px, 3vmin);
+  color: #9aa3c7;
+  margin: 0;
+}
+
+.orient-icon {
+  width: 12vmin;
+  height: 20vmin;
+  border: 0.5vmin solid #57e6ff;
+  border-radius: 1.8vmin;
+  transform: rotate(90deg);
+  margin-bottom: 1vmin;
+  position: relative;
+}
+
+.orient-icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 1.4vmin;
+  width: 2.4vmin;
+  height: 0.4vmin;
+  background: #57e6ff;
+  transform: translateX(-50%);
+}
