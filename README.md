@@ -16,7 +16,7 @@
 | 修改完成，想确认能否交付 | 看[检查、测试与生产预览](#6-检查测试与生产预览) |
 | 要提交给朋友审核 | 看[分支说明](#51-先理解这几个词)和[交付提示词](#57-确认交付再授权提交与-pr) |
 | 命令报错、网页打不开 | 看[常见问题](#7-常见问题) |
-| 想发布成别人能打开的网站 | 看[发布到 Cloudflare Pages](#10-发布到-cloudflare-pages) |
+| 想发布成别人能打开的网站 | 看[发布到静态托管](#10-发布到静态托管)：GitHub Pages 已配置自动部署，也支持 Cloudflare Pages |
 
 游戏工程规则在 [AGENTS.md](AGENTS.md)，迁移过程和验证证据在 [docs/migration.md](docs/migration.md)。让 AI 接手时应先读这两份文档中的相关内容。
 
@@ -430,9 +430,11 @@ npm run preview
 
 例如：要调整敌人移速，让 AI 先看 `src/game/data/enemies.ts`；要修选卡交互，先看 `src/ui/` 和天赋系统。不要让 AI 通过修改 `legacy/` 或 `dist/` 来实现当前功能。
 
-## 10. 发布到 Cloudflare Pages
+## 10. 发布到静态托管
 
 本项目可以纯静态发布，不需要 Node.js 后端、数据库、账号系统或 Worker。**npm run dev / preview 都只是本地服务，不等于已发布。**
+
+提供两种方式：**GitHub Pages（本仓库已配置自动部署，推荐）** 与 Cloudflare Pages。
 
 发布前由负责人确认本次版本和目标仓库。下面是部署说明，实际连接账号、创建项目或发布应由获得授权的人执行。
 
@@ -466,6 +468,20 @@ npm run build
 再用 `npm run preview` 试玩，确认后在 Pages 的直接上传流程中上传 **dist 里的完整内容**。站点根目录应直接包含构建后的 `index.html` 和 `assets/`。
 
 不要只上传一个 HTML，也不要把 `src/`、`node_modules/` 或整个开发仓库当作发布文件。`dist/` 是生成目录，通常不提交 Git；别人从仓库获取源码后需要自行构建。
+
+### 方式 C：GitHub Pages（本仓库已配置自动部署）
+
+仓库包含 `.github/workflows/deploy.yml`：**每次合并到 `main` 会自动构建并发布**，无需手动操作。
+
+- 在线地址：<https://reopen64534042-sudo.github.io/pixel-rogue/>
+- 触发条件：push 到 `main`，或在 Actions 页面手动运行 `Deploy to GitHub Pages`
+- 构建流程：`npm ci` → `npm run build`（内含 `tsc --noEmit` 类型检查）→ 上传 `dist`
+- 首次启用：仓库 Settings → Pages → Source 选择 **GitHub Actions**
+
+两个容易踩的坑：
+
+1. **`dist/` 是构建产物、被 `.gitignore` 忽略，`git pull` 不会更新它**。想在本机看到最新版本，请用 `npm run dev`（见[第一次运行](#2-第一次运行)），不要直接打开 `dist/` 里的旧文件。
+2. `dist/index.html` **不能双击打开**——Vite 产出的是 ES module，浏览器用 `file://` 加载会被 CORS 拦截，必须通过 HTTP 访问（`npm run dev` 或 `npm run preview`）。
 
 Vite 使用 `base: './'`，资源相对部署位置解析，支持静态子目录。字体已自托管，运行不依赖 Google Fonts/CDN。发布时保留 `dist/PHASER-LICENSE.md`、`dist/THIRD_PARTY_NOTICES.md` 与字体的 `assets/fonts/OFL.txt`。
 
