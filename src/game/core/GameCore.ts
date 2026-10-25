@@ -278,6 +278,7 @@ export class GameCore {
     this.moveX = 0;
     this.moveY = 0;
     this.dashHeld = false;
+    this.statsFrom = "play";
     this.view.reset();
   }
   /**
@@ -313,19 +314,49 @@ export class GameCore {
       this.view.paused(false);
     }
   }
+  /**
+   * Issue #100：属性面板的来源层，决定关闭时回到哪里。
+   * 从暂停进入的必须回暂停——玩家只是看一眼属性，返回却直接恢复战斗会挨打。
+   * 该字段不进 parity 快照白名单，也不参与任何数值计算。
+   */
+  statsFrom: "play" | "pause" = "play";
   /** Issue #34：底部面板(Z:11/12)会压住属性面板(Z:10)——
    *  面板命令入口先自动关闭属性面板，保证底部面板按钮始终可用。 */
   ensurePlay() {
-    if (this.state === "stats") this.toggleStats();
+    // Issue #100：先复位来源，保持「面板命令强制回战斗态」的既有语义
+    if (this.state === "stats") {
+      this.statsFrom = "play";
+      this.toggleStats();
+    }
   }
   toggleStats() {
     if (this.state === "play") {
+      this.statsFrom = "play";
       this.state = "stats";
       this.view.stats(true);
     } else if (this.state === "stats") {
-      this.state = "play";
       this.view.stats(false);
+      if (this.statsFrom === "pause") {
+        this.statsFrom = "play";
+        this.state = "pause";
+        this.view.paused(true);
+      } else {
+        this.state = "play";
+      }
     }
+  }
+  /**
+   * Issue #100：从暂停界面进入属性面板（触屏无 C 键时的唯一入口）。
+   * 先收起暂停面板再开属性——`#ov-stats`(30) 低于 `#ov-pause`(60)，同时存在会被盖住。
+   * @returns 是否进入成功（非暂停态直接拒绝）
+   */
+  openStatsFromPause(): boolean {
+    if (this.state !== "pause") return false;
+    this.statsFrom = "pause";
+    this.state = "stats";
+    this.view.paused(false);
+    this.view.stats(true);
+    return true;
   }
   get phase(): GameState {
     if (this.state !== "play") return this.state;
