@@ -1019,3 +1019,46 @@ Player/Enemy、41 张天赋、敌人配置、波次/RNG、DamageSystem、CombatS
 
 - `typecheck` 0 错误；`npm test` **186/186**（原 181 + 5）
 - 普通宝箱的掉落名额与价值行为未变（既有 9 项宝箱测试原样通过）
+
+## D-12 Combat Foundation S4-B：只读属性 shadow 基建（2026-10-25）
+
+依据 `docs/pixel-rogue-S4-implementation-brief.md` §4-S4-B 与 PR #77 评审定基线，分支 `feat/combat-foundation-s4b`（基线 232d3e7，含上游 #83–#88 图鉴/渲染/宝箱批次——四个战斗文件零改动，shadow 范围权威实现未受影响）。
+
+### 交付范围（旧快照仍为唯一权威，零运行时改动）
+
+- **新模块 `core/StatSheets.ts`**：shadow 构建器 + 逐 key 映射解析，不被任何结算路径引用；纯函数、无持久缓存、无 sidecar（评审定基线：首选按需纯函数）。
+- **双输入来源对照**（防「同值包装两次」假对照）：
+  - 来源 A：实体当前值打包（Player/Enemy 字段 → 属性表 → 空修饰符恒等穿过解析管线），证明接口兼容；
+  - 来源 B：玩家从 picks 序列按**来源表**翻译修饰符、敌人从 EnemyConfig 复刻 spawnEnemy 条件展开规则——与 talent.f、实体字段、spawner 无引用关系，权威实现漂移由对照测试直接暴露。
+- **类型化映射保持类型化**（评审定基线）：StatModel 加性扩展通用映射族 `KEYED_STAT_FAMILIES = ["typeDamageBonus", "resistance"]`，类型/形态名永远只作 key；逐 key 构造以族为槽位的子属性表走 resolveStats，适配层装配回 `Partial<Record<键, 数值>>`——不把火/雷/冰等组合硬编码成 StatId。
+- **shadow 首批字段**（评审定基线）：defense、tough、critChance、critMultiplier（含觉醒）、typeDamageBonus（火/雷）、敌人 defense/resistances；attack/maxHp 未迁移。
+
+### shadow 立刻抓到的语义缺口：flat 区浮点分组（S4-A 契约有据修订）
+
+对照铁布衫×4 / 致命一击×7、8 时发现：S4-A 初版 flat 区为「Σ 先求和再加」，而权威 recompute 重放是 **base 起始逐次累加**——两者浮点分组不同，非可精确表示的十进制值相差 1 ulp（0.05+0.1×8：Σ分组 0.85 vs 顺序累加 0.8499999999999999）。任务书要求 S4-C「迁移输出与旧值逐位比对」，故在本批把 resolveStats 的 flat 区改为 **base 起始、按修饰符顺序逐次累加**（溢出守卫随逐次加法下放，语义更precise），stat-model 测试新增顺序钉子（`0.8499999999999999`，并断言 ≠ Σ分组值）。percent 区无既有来源，维持 Σ 先求和再乘一次的冻结语义，首个 percent 来源迁移（S4-C）时同样逐位核对。
+
+### 覆盖与验证
+
+- 新增 `tests/shadow-stats.test.ts` **13 项**：零来源/磐石×3/铁布衫×4/致命一击×8 觉醒（2→2.4）/×7 未觉醒（条件来源独立判定）/元素亲和×3（0.30000000000000004 浮点尾逐位）/混合顺序五字段同时一致/来源 A 恒等+无别名/纯函数不改写输入/敌怪三属性配置与实体双来源/精英不缩放甲抗/中性怪空映射
+- `npm test` **200 项通过**（上游基线 + stat-model 27 + shadow 13；parity 26 原样）；`npm run build`（含 typecheck）通过
+- 变异验证 3 组均被咬住：来源表磐石 15→14（2 红，漂移检测生效）、元素亲和 flat→percent 误归类（2 红）、觉醒阈值 ≥→>（1 红）
+- 浏览器测试未运行：无场景/UI 改动（与 S4-A 同理）
+
+### 负区因子政策提案（S4-B 只出案，S4-C 接入前定稿报批）
+
+按 PR #77 评审倾向起草：**StatModel 保留数学负值输出（现状已钉）**；权威战斗接入时（S4-C）——
+1. 减伤向属性（defense/tough/resistances）解析出负值时，适配层**显式拒绝（RangeError，快速失败）**，不静默裁剪：负值只可能来自错误来源，沉默处理会把配置错误变成隐形强度变化；
+2. 增伤向映射（typeDamageBonus 等）的负值语义（未来「易伤」类来源）当前不存在，首个负来源落地时单独报批；
+3. 旧快照接口不变，拒绝规则只作用于新解析路径。
+待用户/上游批准后才在 S4-C 实现。
+
+### S4-C 就绪备注
+
+来源表（磐石/铁布衫/致命一击/元素亲和）已是 S4-C「天赋贡献 → 修饰符」的雏形；迁移时将其从 shadow 专用转为天赋声明的权威形态，并按任务书 §4-S4-C 分组迁移（纯 flat 来源先行）、逐组全链路权威来源唯一。
+
+### 上游 PR #89 评审修订（P2×2 + P3，2026-10-25）
+
+1. **P2 来源表补「会心深渊」**：来源 B 新增 critMultiplier flat +0.5/级（max 4，值逐字对照 talents.ts，不引用 talent.f）；新增单级（2.5）/满级（4.0）/与致命一击×8 觉醒组合（3.4，两种 pick 顺序）的权威 critMultiplier 逐位对照。0.5 可精确表示，与任何乘区分组无浮点歧义。
+2. **P2 敌怪对照升级为权威快照比较**：brute/shooter/bomber（普通+精英）与 slime/bat（中性）全部增加 `getEnemyCombatStats(e)` 比较维度；适配器字段漂移变异（defense 兜底 0→1）实测 3 用例红，shadow 对适配器回归有咬合力。
+3. **P3 resolveKeyedMap 危险原型键显式拒绝**：普通对象上 `out.__proto__ = v` 会触发原型 setter——键被静默丢弃且下游 `{ ...map }` 展开会再次丢失，故对 `"__proto__"` 键抛 TypeError（拒绝优于安全容器：游戏数据无合法 __proto__ 键）；`"constructor"` 等非魔键作为自有数据属性正常工作（边界用例固定）。base（JSON 解析自有键）与修饰符 key 两个入口都被覆盖。
+4. S4-A 语义修订（flat base 起始顺序累加）、percent 加算、final 连乘、平衡/RNG/Player/Enemy 全部未动。

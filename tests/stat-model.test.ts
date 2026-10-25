@@ -71,6 +71,19 @@ describe("StatModel 通式与乘区语义（契约冻结）", () => {
     expect(r.attack).not.toBe(13.2);
   });
 
+  it("flat 区 base 起始顺序累加（S4-B shadow 定论：与 recompute 重放逐位一致，非 Σ-先求和）", () => {
+    const r = resolveStats(
+      sheet(
+        { critChance: 0.05 },
+        Array(8).fill(mod("致命一击", "critChance", "flat", 0.1)),
+      ),
+    );
+    // 顺序累加 ((0.05+0.1)+0.1)… 逐位等于重放；Σ-先求和分组会得 0.85
+    expect(r.critChance).toBe(0.8499999999999999);
+    expect(r.critChance).toBe(0.05 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1);
+    expect(r.critChance).not.toBe(0.05 + (0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1));
+  });
+
   it("final 按修饰符数组顺序左结合（确定性契约）", () => {
     const order = (ids: [string, number][]) =>
       resolveStats(
