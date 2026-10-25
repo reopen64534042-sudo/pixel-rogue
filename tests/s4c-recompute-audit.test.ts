@@ -3,7 +3,7 @@ import { fresh, learn } from "./helpers";
 
 /**
  * S4-C C0 属性影响审计：recompute()（当前唯一调用点 SwapSystem.melt）的
- * **现状行为定界**。差异矩阵见 docs/migration.md「D-13」R-1～R-5。
+ * **现状行为定界**。差异矩阵见 docs/migration.md「D-19」R-1～R-5。
  *
  * 这些测试钉住既有语义（含已识别缺陷），用于：
  * 1. 证明 C1 权威迁移未改变非迁移区域的行为；
