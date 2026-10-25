@@ -1260,3 +1260,47 @@ CSS 中字体被重写为 `url(../assets/fonts/press-start-2p.ttf)`，HTML 引�
 2. **P3-2**：本节开头「本批处于未提交状态，留待独立复审」的临时状态表述在交付后失真——改为「经独立代码复审通过（Approved，P3×2 非阻塞已修），按 PR 流程交付上游」。
 
 复审指出的下一步边界维持不变：R-1～R-4 与宝箱键盘缺陷待独立授权；C2-B 合并后先制定 S4-C C3（混合天赋属性贡献与获得时效果分离：生命/护盾/狂热/冲刺）的差异审批方案，不直接进入 RuntimeState 大规模重写。
+
+## D-22 Combat Foundation S4-C C3-0：混合天赋行为契约冻结 + 旧行为基线（2026-10-25）
+
+依据任务书「C3-0 实施任务」，分支 `feat/combat-foundation-s4c-c3-contract`（基线 de37d93 = 上游 PR #93 合并提交）。**只交付审计、基线测试与设计文档，零生产行为变更；C3-A/B/C 生产实现未开始。** 六项行为差异（D-C3-01～06）已经用户批准，属「已批准、待分阶段实施」的冻结契约——生产实现尚不存在，当前 CI 全部断言均为旧行为基线。
+
+### 交付物
+
+- **契约文档** `docs/pixel-rogue-S4C-C3-contract-v1.md`（v1.0 交付、v1.1 经第一轮评审修订，见文末）：四类状态分类框架（Base/Modifiers/EffectiveStats / RuntimeState / OnAcquireEffect / PersistentSource）；D-C3-01～06 逐项定义（现状含缺陷编号、新行为、涉及字段）；四入口（learnTalent/recompute/melt/startNextWave）新旧执行顺序对照与六项不变式映射；C3-A/B/C 最小接口设计（`OnAcquireEffects.ts`/`RuntimeStateProtection.ts` 纯模块草案 + `TalentStatSources` 扩展签名 + GameCore 实例级 `potionMaxHpGrow` 持久来源，不新增 Player 可枚举字段）；边界场景逐条标注所属阶段与推荐方案；Given/When/Then 验收规范 23 条（G-1～G-23，仅验收文档、不进 CI）。
+- **字段所有权矩阵**（契约 §3）：maxhp/hp/potionGrow、shieldMax/shield/shieldCd/tempShield/barrierLv、hasteLv/haste/hasteT/rageLv/rageT、dashLv/dashMax/dashCharges/dashRe/dashT/dashChargeLv、meteorT/nd/ndUsed/orbA/hurtCd/dx/dy 逐一引用实际调用点（文件:行号）。**边外确认**：`fireCd` 不在 statBase、recompute 天然幸存；`slow` 无玩家侧写入者（恒 0，重置无行为影响）；未发现 C0 之外新的「被 Object.assign 覆盖」运行字段。
+- **旧行为基线测试** `tests/s4c-c3-baseline.test.ts` 16 项（B1～B16）：生命卡获得时效果（回满/+30/顺序敏感）、护盾获得赠层与恢复侧（CD 归零恢复、满盾冻结）、狂热首级 Buff 与升级不重触发、击杀叠层上限/受伤扣除/计时衰减、疾影步解锁与 dashMax 逐位序列、二段冲刺前置与充能上限、置换删除生命材料（maxhp 回落 + hp 夹紧 + 恰好 1 次 Math.random）、置换输出卡=能量护盾（一次性效果正常）、换波重置三件套、十三张迁移卡与混合卡交错 recompute 幂等、StatModel 有序 flat 解析等价（B16，v1.1 补充）。R-1～R-5 原样保留未削弱。
+
+### 关键定界与实测发现
+
+- **dashMax 浮点逐位（v1.1/P2-2 修正）**：旧 f 重放序列 2.0 / 1.6 / **1.2000000000000002**（B10 钉住）。三种形态实测：**有序 flat 累加**（base 2.4 + 每级单独 flat −0.4，即 StatModel flat 区语义）**逐位复现旧值**——`2.4−0.4` 按 ties-to-even 恰好舍入为 2.0，此后与旧 f 路径重合（B16 以现有 StatModel 独立验证，StatModel 契约零改动）；折叠式 `2.4−0.4×lv`（先乘后减）不逐位一致（L2 = 1.5999999999999999、L3 = 1.1999999999999997；v1.0 初版把 L3 误记为 1.2，一并更正）。**定案：C3-C 优先有序 flat 来源，查表 `{1: 2.0, 2: 1.6, 3: 1.2000000000000002}` 为备选，禁止折叠式**。v1.0 初版「只能查表、flat 否决」的结论系验证方法错误（只测了折叠式未测逐级累加），已撤回。
+- **可达性备注**：击杀狂热/不屈为 t3 天赋，`selectMaterial` 拒绝 `u.t > 2` 材料——**当前游戏机制无法经置换移除 t3 卡**；「移除最后一级狂热清 Buff」契约仍冻结（面向未来降级路径与 recompute 侧协调，可直接构造 picks 验证）。
+- **不可达入口的行为分叉（B7）**：击杀狂热 `f` 的首级 Buff 条件在真实升级路径（第二级不触发）与 recompute 重放路径（R-3，重新触发）下行为不同——这正是「获得时效果混入 f」缺陷的形态证据。
+- **haste 降级夹紧（v1.1/P2-1 恢复已批准口径）**：hasteLv 降级且仍 >0 时 `haste = min(haste, hasteCap(newHasteLv))`（**不刷新 hasteT**）；从 >0 降为 0 时清除 haste/hasteT。v1.0 初版误推荐「不夹紧」，评审纠正后在契约 §2/§4.2/§5.3/§6/§10 与 G-12 同步恢复。
+- **recompute 的 `max(1, …)` 下限语义**：hp ∈ (0,1)（浮点受击可产生）时 recompute 抬升至 1，随 D-C3-05「保持原夹紧规则」一并冻结，不另立缺陷。
+
+### 测试与验证
+
+- `npm test` **327/327**（C2-B 交付基线 311 + 本批 16）；**parity 26 项原样通过**，未削减/重写/放宽；C0 审计 R-1～R-5 原样通过。
+- `npm run typecheck`、`npm run build` 通过。浏览器测试未运行：无场景/UI/显示改动（符合 C3-0 范围约定；若实际触及场景/UI 应视为超范围并停止）。
+- 零生产改动核对：`git diff --stat` 仅含 `docs/migration.md`、`docs/pixel-rogue-S4C-C3-contract-v1.md`（新增）、`tests/s4c-c3-baseline.test.ts`（新增）。
+
+### 遗留与下一步
+
+- 六项差异（血包成长来源/护盾重放/狂热重放/运行状态保护/HP 夹紧保持/冲刺保留）已批准、**生产实现尚未开始**；C3-A（生命）/C3-B（护盾）/C3-C（狂热+冲刺+其余运行状态）按契约 §9 分批实施，每批停审查节点、由独立复审通过后授权下一批。
+- R-1～R-4 缺陷维持 pin 现状；宝箱模式键盘 1/2/3 快捷键缺陷（C2-A 发现）未修。
+- parity 快照对新 GameCore 字段（`potionMaxHpGrow`）的兼容性需在 C3-A 实施前实证（`potionGrow` 先例佐证，仍需验证）。
+
+### 第一轮评审修订（P2-1 + P2-2 + P3，2026-10-26，未提交状态下修复）
+
+1. **P2-1 恢复已批准的狂热降级夹紧契约**：hasteLv 降级且仍 >0 → `haste = min(haste, hasteCap(newHasteLv))`、**不刷新 hasteT**；从 >0 降为 0 → 清除 haste/hasteT。v1.0 初版把该场景误写为「推荐不夹紧」（偏离审批口径），已在契约 §2（D-C3-03）/§4.2（recompute ⑧）/§5.3（reconcileRuntimeToCaps，`EffectiveCaps.hasteCapLevel` 更名 `hasteCap` 并承载 `3 + hasteLv`）/§6（狂热②③④）/§10.3/G-12 同步恢复批准口径。
+2. **P2-2 纠正 dashMax 计算方案**：验证确认**有序 flat 来源**（base 2.4 + 每级单独 flat −0.4，即 StatModel flat 区「base 起始逐次累加」语义）**逐位复现**旧 f 序列 2.0 / 1.6 / 1.2000000000000002——`2.4−0.4` 按 ties-to-even 恰好舍入为 2.0，此后与旧 f 路径重合。v1.0 初版「flat 解析必须否决、只能查表」的结论系验证方法错误（只测了折叠式 `2.4−0.4×lv` 先乘后减，未测 StatModel 实际的逐级累加），已撤回；折叠式实测 L2 = 1.5999999999999999、L3 = 1.1999999999999997（初版把 L3 误记为 1.2，一并更正），**禁止折叠式**。定案：优先有序 flat 来源（StatModel 契约零改动、负 flat 合法），查表 `{1: 2.0, 2: 1.6, 3: 1.2000000000000002}` 降为备选。B10 旧值基线原样保留；新增 **B16**（tests/s4c-c3-baseline.test.ts）：以白名单内 attack 槽位承载的 StatModel 有序 flat 解析等价验证（1/2/3 级逐位钉子 + 与真实学习路径 `g.player.dashMax` 交叉验证），不接入疾影步生产逻辑、不改动 StatModel。
+3. **P3 统一永久成长来源**：命名统一为 `potionMaxHpGrow`（清除 v1.0 残留的 `potionHpGrow` 混用）；`talentStatModifiers` / `applyTalentStatProjection` 的 `persistent: PersistentStatSources` 由可选参数改为**必传参数**（编译期防线——learnTalent/recompute/melt→learnTalent 三个生产接入点均为 GameCore 方法就地取用，杜绝漏传静默按 0 重建 maxHp 的 R-1 复活路径；C3-A 落地时同步更新 C1/C2 既有直调测试）；新增 **G-23**（血包永久成长后学习无关天赋 maxHp 不丢失，获得路径与 recompute 双入口）。
+4. 本轮验证：聚焦 `tests/s4c-c3-baseline.test.ts` 16/16；`npm test` **327/327**（parity 26 原样）；`npm run typecheck`、`npm run build` 通过；契约/D-22/B·G 编号一致性复查通过（B1～B16、G-1～G-23、potionHpGrow 零残留、生产代码零改动维持）。
+
+### 第二轮复审定向修订（P2 + P3×2，2026-10-26，未提交状态下修复）
+
+1. **P2 `EffectiveCaps.hasteCap` 零级哨兵明确化**（契约 §5.3）：计算表达式 `hasteCap = hasteLv > 0 ? hasteCap(hasteLv) : 0`——hasteLv=0 → 0（未学哨兵）、hasteLv>0 → `3 + hasteLv`（复用 data/talents 既有导出）。0 哨兵使 reconcile 两分支判定互斥完备，附两示例：2→1（before cap=5、after cap=4 → 夹紧分支 `haste = min(haste, 4)`，hasteT 不刷新）；1→0（before cap=4、after cap=0 → 清除分支 `haste=0, hasteT=0`）。
+2. **P3 §3.4 dashLv 行修正**：删除残留的折叠公式 `2.4 − 0.4×dashLv`；明确 dashLv 为 flat +1/级（base 0，整数精确）、dashMax 不由 dashLv 推导，由有序 flat −0.4/级独立解析（base 2.4，折叠公式禁止见 §8.3）。B10/B16 基线不调整。
+3. **P3 §9 验收编号归属修正**：C3-A 为 G-1～G-5 **与 G-23**；C3-C 为 **G-10～G-22**；G 用例实际内容不变。D-22 同型表述检查：无折叠公式残留、无 G 批次归属映射，无需正文修订，仅追加本记录。
+4. 本轮为纯契约与文档修正：生产代码零改动；B16 所在测试文件未变动；修订后实跑 `npm test` **327/327**（parity 26 原样）、`npm run typecheck`、`npm run build` 全部通过。
