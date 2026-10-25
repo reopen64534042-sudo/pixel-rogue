@@ -151,6 +151,12 @@ export class GameCore {
   view: GameView = silentView;
   /** 图鉴：旁路观测状态，不参与模拟，也不在 parity 快照的字段白名单内 */
   codex!: CodexSystem;
+  /**
+   * 图鉴击杀计数（M4）：按**裸类型键**累计本局击杀（如 `slime`、`brute_elite`）。
+   * 由 `CombatSystem.killEnemy` 写入，波末 / 局末由图鉴消费后清空。
+   * 刻意做成普通字段而非图鉴 API —— 战斗系统因此完全不依赖 `CodexSystem`。
+   */
+  killLog: Record<string, number> = {};
   constructor(
     public audio = new AudioService(),
     public storage = new StorageService(),
@@ -222,6 +228,7 @@ export class GameCore {
     this.cam = { x: 0, y: 0 };
     this.time = 0;
     this.kills = 0;
+    this.killLog = {};
     this.spawnCd = 1.2;
     this.shake = 0;
     this.hurtFlash = 0;
@@ -310,6 +317,7 @@ export class GameCore {
       dmg: { ...this.dmgBy },
     });
     // 局末同步图鉴：与战绩写入同一收口，放在 append 之后避免影响其行为。
+    if (this.codex.syncEnemies(this.killLog)) this.killLog = {};
     this.codex.syncTalents(this.player.upCounts);
     this.view.over();
     this.audio.overCue();

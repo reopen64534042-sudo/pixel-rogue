@@ -1,8 +1,11 @@
 import type { RunRecord } from "../../services/StorageService";
 import {
+  ENEMY_ENTRIES,
+  ENEMY_TOTAL,
   TALENT_ENTRIES,
   TALENT_TOTAL,
   codexEntry,
+  enemyId,
   resolveEntryId,
   talentId,
 } from "./codexData";
@@ -14,9 +17,13 @@ export interface CodexGroupProgress {
 }
 
 export interface CodexProgress {
+  /** 天赋已解锁数（保持 v1 语义，UI 与既有测试依赖此字段） */
   unlocked: number;
+  /** 天赋条目总数 */
   total: number;
   byGroup: Record<string, CodexGroupProgress>;
+  /** 敌人分区进度（M4 新增） */
+  enemies: { unlocked: number; total: number };
 }
 
 /**
@@ -88,7 +95,7 @@ export class CodexSystem {
     if (ok) this.load();
   }
 
-  /** 分区进度；分母只统计可见天赋条目。 */
+  /** 分区进度；天赋分母排除隐藏条目，敌人分母为显式登记的条目数。 */
   progress(): CodexProgress {
     const byGroup: Record<string, CodexGroupProgress> = {};
     let unlocked = 0;
@@ -105,14 +112,55 @@ export class CodexSystem {
         unlocked++;
       }
     }
-    return { unlocked, total: TALENT_TOTAL, byGroup };
+    let enemyUnlocked = 0;
+    for (const entry of ENEMY_ENTRIES) {
+      if (this.state.enemies[entry.id]?.kills) enemyUnlocked++;
+    }
+    return {
+      unlocked,
+      total: TALENT_TOTAL,
+      byGroup,
+      enemies: { unlocked: enemyUnlocked, total: ENEMY_TOTAL },
+    };
   }
 
+  /**
+   * 波末 / 局末消费击杀记录。
+   *
+   * `killLog` 由 `CombatSystem.killEnemy` 以**裸类型键**累计（`slime` / `brute_elite`），
+   * 战斗系统只写普通计数、不依赖本类。成功后由调用方清空；
+   * 返回 false 表示存储损坏，**调用方不得清空**，否则丢数据。
+   */
+  syncEnemies(killLog: Record<string, number>, now = Date.now()): boolean {
+    const pending = Object.entries(killLog).filter(([, count]) => count > 0);
+    if (!pending.length) return true;
+    const ok = this.store.update((save) => {
+      for (const [key, count] of pending) {
+        const id = enemyId(key);
+        // 未登记的类型（尚未加入图鉴的敌人）不写入，避免产生无法展示的孤儿条目。
+        if (!codexEntry(id)) continue;
+        const prev = save.enemies[id];
+        save.enemies[id] = {
+          kills: (prev?.kills ?? 0) + count,
+          first: prev?.first ?? now,
+        };
+      }
+    });
+    if (ok) this.load();
+    return ok;
+  }
+
+  /** 天赋与敌人共用：任一分类有记录即视为已解锁。 */
   isUnlocked(id: string): boolean {
-    return Boolean(this.state.talents[id]);
+    return Boolean(this.state.talents[id] || this.state.enemies[id]?.kills);
   }
 
   maxLevel(id: string): number {
     return this.state.talents[id]?.max ?? 0;
+  }
+
+  /** 敌人累计击杀数（跨局）。 */
+  killCount(id: string): number {
+    return this.state.enemies[id]?.kills ?? 0;
   }
 }

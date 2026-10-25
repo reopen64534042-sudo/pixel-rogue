@@ -6,8 +6,8 @@
 #ov-codex {
   /* 必须高于 #ov-pause 的 z-index:60（Issue #68 暂停置顶），否则从暂停打开图鉴会被盖住 */
   z-index: 70;
-  /* 比 .overlay 默认 0.88 更实：从暂停打开时不应透出下层「已暂停」文字 */
-  background: rgba(10, 11, 20, 0.97);
+  /* 完全不透明：图鉴不需要透出下层（曾用 0.97 反而透出下层内容，干扰阅读） */
+  background: #0a0b14;
   justify-content: flex-start;
   gap: 1.2vmin;
   padding: 2.2vmin 2vmin 1.6vmin;
@@ -55,10 +55,15 @@
 }
 .codex-grid {
   display: grid;
-  flex: 1 1 auto;
   gap: 0.9vmin;
   grid-template-columns: repeat(auto-fill, minmax(13vmin, 1fr));
-  min-height: 0;
+  /*
+   * 高度随内容、超出上限才滚动，**不能用 flex:1 拉伸**：
+   * 条目少时（如 6 个敌人只占一行）拉伸出的空白区会被 Chromium 重复绘制，
+   * 表现为卡片下方出现内容残影。上限按舞台高度（约 540px）留出标题/标签/按钮空间。
+   */
+  align-content: start;
+  max-height: 46vh;
   overflow-y: auto;
   padding: 0.4vmin;
   width: min(92vmin, 1080px);
@@ -102,6 +107,16 @@
 .cx-ico {
   font-size: 2.6vmin;
   line-height: 1;
+}
+/* 敌人贴图：放大后保持像素硬边（16×14 放大到约 30px 高） */
+.cx-spr {
+  height: 3.4vmin;
+  image-rendering: pixelated;
+  width: auto;
+}
+.cx-cell.locked .cx-spr {
+  filter: grayscale(1);
+  opacity: 0.35;
 }
 .cx-name {
   font-size: 1.25vmin;

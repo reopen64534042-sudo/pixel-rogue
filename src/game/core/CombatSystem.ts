@@ -153,6 +153,11 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   if (e.dead) return;
   e.dead = true;
   this.kills++;
+  // Issue #82 图鉴：只登记类型与数量，不参与任何战斗计算。
+  // 写普通字段 killLog（不依赖 CodexSystem），波末 / 局末由图鉴消费后清空。
+  // 重构本函数时必须保留：删除后图鉴的敌人击杀数会静默归零（tests/codex.test.ts 会红）。
+  const codexKey = e.elite ? `${e.type}_elite` : e.type;
+  this.killLog[codexKey] = (this.killLog[codexKey] ?? 0) + 1;
   const p = this.player;
   // 击杀狂热
   if (p.hasteLv) {

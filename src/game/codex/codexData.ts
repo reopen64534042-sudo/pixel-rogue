@@ -23,8 +23,10 @@ export interface CodexEntry {
   cat: CodexCategory;
   name: string;
   desc: string;
-  /** 展示图标：天赋复用 `Talent.ico`；敌人 M4 接入后由贴图键派生 */
+  /** 展示图标：天赋复用 `Talent.ico`；敌人不设 emoji，走贴图 */
   icon?: string;
+  /** 逻辑贴图名（敌人用）：经 `assetRegistry.spriteImageSrc()` 取图，换贴图零改动 */
+  spr?: string;
   /** 关联数据键：天赋 = `UPGRADES.n`，敌人 = `ETYPES` 键 */
   link?: string;
   /** 曾用名：改名后旧存档仍能命中同一条目 */
@@ -73,12 +75,79 @@ export const TALENT_ENTRIES: readonly CodexEntry[] = UPGRADES.filter(
   }),
 );
 
+export const ENEMY_ID_PREFIX = "e:";
+
+export function enemyId(key: string): string {
+  return `${ENEMY_ID_PREFIX}${key}`;
+}
+
 /**
- * 敌人条目：M4 接入。
- * 届时由 `ETYPES` 派生基础怪，并**显式**补充精英形态
- * （精英不是独立配置，而是 `spawnEnemy("brute", true)` 的强化标记，无法循环推导）。
+ * 敌人条目。
+ *
+ * **不能靠遍历 `ETYPES` 生成**：精英不是独立配置，而是 `spawnEnemy("brute", true)`
+ * 的强化标记（生命 ×8、伤害 ×1.5、体型 ×1.8），因此精英条目必须显式登记。
+ *
+ * 数据来源与配置保持一致：基础怪的名称/描述对应 `data/enemies.ts` 的数值与抗性；
+ * `spr` 为逻辑贴图名，与绘制层同一套键（精英沿用 `` `${spr}_elite` `` 命名）。
+ * 贴图经 `assetRegistry.spriteImageSrc()` 取得，**换贴图时本文件无需改动**。
  */
-export const ENEMY_ENTRIES: readonly CodexEntry[] = [];
+export const ENEMY_ENTRIES: readonly CodexEntry[] = [
+  {
+    id: enemyId("slime"),
+    cat: "enemy",
+    name: "史莱姆",
+    desc: "最基础的小怪，行动缓慢、数量最多，靠成群压上来。",
+    spr: "slime",
+    link: "slime",
+    status: "live",
+  },
+  {
+    id: enemyId("bat"),
+    cat: "enemy",
+    name: "蝙蝠",
+    desc: "移动最快的小怪，血量最低，容易贴着边角绕过来。",
+    spr: "bat",
+    link: "bat",
+    status: "live",
+  },
+  {
+    id: enemyId("brute"),
+    cat: "enemy",
+    name: "岩石兽",
+    desc: "皮糙肉厚的近战怪，带物理护甲；元素与真实伤害可以绕开护甲。",
+    spr: "brute",
+    link: "brute",
+    status: "live",
+  },
+  {
+    id: enemyId("shooter"),
+    cat: "enemy",
+    name: "射手",
+    desc: "保持距离射击的远程怪，雷电抗性高，连锁闪电对它效率偏低。",
+    spr: "shooter",
+    link: "shooter",
+    status: "live",
+  },
+  {
+    id: enemyId("bomber"),
+    cat: "enemy",
+    name: "火囊虫",
+    desc: "高速逼近后自爆的虫子，火焰抗性高；自毁时不产生掉落。",
+    spr: "bomber",
+    link: "bomber",
+    status: "live",
+  },
+  {
+    id: enemyId("brute_elite"),
+    cat: "enemy",
+    name: "岩石巨兽",
+    desc: "精英形态：生命 8 倍、伤害 1.5 倍、体型放大，倒下必掉特殊宝箱。",
+    spr: "brute_elite",
+    link: "brute",
+    elite: true,
+    status: "live",
+  },
+];
 
 export const CODEX_ENTRIES: readonly CodexEntry[] = [
   ...TALENT_ENTRIES,
@@ -110,3 +179,6 @@ export function resolveEntryId(
 
 /** 天赋图鉴条目总数（已排除隐藏天赋），用作完成度分母。 */
 export const TALENT_TOTAL = TALENT_ENTRIES.length;
+
+/** 敌人图鉴条目总数，用作完成度分母。 */
+export const ENEMY_TOTAL = ENEMY_ENTRIES.length;

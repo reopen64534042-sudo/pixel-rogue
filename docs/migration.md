@@ -872,3 +872,51 @@ Player/Enemy、41 张天赋、敌人配置、波次/RNG、DamageSystem、CombatS
 ### 遗留
 
 - M4（#82）同上；另：全局 `.btn:disabled:hover` 仍是既有缺陷（其他面板的禁用按钮悬停也会变青底），本次只在暂停面板内修正。
+
+## D-14 Issue #82：敌人图鉴——分类、贴图与累计击杀（2026-10-25）
+
+### 交付范围
+
+- `codexData.ts`：`ENEMY_ENTRIES` 显式登记 6 条（5 基础怪 + `brute_elite`），条目新增 `spr` 逻辑贴图名
+- `assetRegistry.ts`：`SpriteEntry` 增加 `src?`；新增 `spriteImageSrc(key)`（覆盖 PNG 优先，否则导出发程序化 Canvas，带缓存）
+- `CombatSystem.killEnemy`：**新增 4 行**（含注释），写入 `killLog[type]` / `killLog[type_elite]`
+- `GameCore`：新增 `killLog` 普通字段（`resetGame` 清空）；局末消费
+- `WaveSystem.enterRest`：波末消费（首行，早退之前）
+- `CodexSystem`：`syncEnemies` / `killCount`；`progress()` 增加 `enemies` 分区；`isUnlocked` 兼容敌人
+- `CodexUI` + `codex.css`：敌人分类 tab、贴图渲染、灰阶剪影、击杀数展示
+
+### 关键决策
+
+1. **击杀接缝做成普通计数，不引入图鉴依赖**：`killEnemy` 只写 `this.killLog`，完全不知道 `CodexSystem` 存在。图鉴以后重构、甚至移除，战斗侧无需改动。
+2. **消费成功才清空**：`syncEnemies` 返回 false（存储损坏）时调用方保留 `killLog`，下次重试，避免丢数据。
+3. **敌人条目必须显式登记**：精英是 `spawnEnemy(type, true)` 的强化标记而非独立配置，无法像天赋那样从 `UPGRADES` 派生。因此加了一条「`ETYPES` 每个键都必须有条目」的测试作为漏配兜底。
+4. **贴图走单一入口**：图鉴只存逻辑贴图名，经 `spriteImageSrc()` 取图。改 manifest 或改程序化像素矩阵，图鉴零改动跟随（本轮已用截图验证贴图正常渲染）。
+
+### 用户要求的三项风险备案
+
+| 风险 | 备案方式 |
+|---|---|
+| 合并冲突（协作者领地） | 改动压缩到 4 行并置于函数最前；PR 前 rebase；`CombatSystem` 在本轮之外零改动 |
+| 技术风险（影响战斗） | `parity` 26 项原样通过；新增「击杀只登记计数、不改敌人 HP/掉落」与「重复击杀不重复计数」两条测试 |
+| 误删风险（未来重构） | 函数内注释写明用途、豁免原因、删除后果；`tests/codex.test.ts` 的接缝用例会在删除后变红 |
+
+### 实现中发现并修复的问题
+
+1. **敌人单行时卡片被拉伸到整屏**：Grid 默认 `align-content` 会拉伸行；改为 `align-content: start` 并去掉 `flex: 1`，高度随内容、超出 `max-height` 才滚动。
+2. **卡片下方出现内容残影**（两次排查）：
+   - 第一次怀疑半透明背景：`#ov-codex` 由 `rgba(...,0.97)` 改纯色 `#0a0b14`，消除下层透出；
+   - 真正根因是**我给 `.cx-cell` 加的 `contain: paint`**：布局变化（详情条出现）时留下旧绘制层，移除后彻底消失。
+   - 结论：`contain: paint` 在 `overflow-y: auto` + 频繁 `innerHTML` 重渲染的面板里不要用。
+3. **脚本化正则替换静默失败**：一次多行 `replace` 未命中但 `tsc` 无感知（函数名改成功、分支没加），已改为编辑器精确替换。教训：类型检查不能替代语义验证，批量替换后必须看结果。
+
+### 验证
+
+- `typecheck` 0 错误；`npm test` **181/181**（原 169 + 12 项敌人测试，**parity 26 项原样**）
+- Playwright **6/6**（含 production 全流程）
+- 浏览器实测：进度 `天赋 1/40 ｜ 敌人 3/6`；tab 合计 `4/46`；敌人 6 格中 3 解锁、**6 张贴图全部渲染**；未解锁显示 `未击杀`；详情显示「累计击杀 37」；「全部」视图 46 条无残影
+- 基线更新留痕：`resolveEntryId("e:slime")` 由「解析为空」改为「解析为条目」，注释标注 Issue #82 依据
+
+### 已知限制
+
+- 未登记的新敌人类型击杀会被跳过（不写孤儿条目）——由条目一致性测试兜底，不静默累积
+- `killLog` 为局内累计、消费后清空；若一局中途崩溃，本波未同步的击杀会丢失（与战绩同语义）
