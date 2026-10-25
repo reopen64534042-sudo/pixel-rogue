@@ -1423,9 +1423,41 @@ M2 因此重排为：**M2-1 横屏引导 + 手势边界（本章）→ M2-2 hove
 - 手机档字号（M2-3）已降级为可选，若后续出现具体读不清的组件再单独处理。
 - 天赋详情仍依赖 `onmouseover`（`GameUI.ts:445-472`），归 M2-2。
 
-## D-26 Combat Foundation S4-C 第三批（C3-A）：生命上限权威迁移 + 获得时治疗分离 + 血包永久成长修复（2026-10-26）
+## D-26 Issue #96（M2-2）：天赋详情点按开关 + hover 规则隔离（2026-10-26）
 
-依据任务书「C3-A 实施任务」与契约 `docs/pixel-rogue-S4C-C3-contract-v1.md`（v1.2，上游 PR #98 合并），分支 `feat/combat-foundation-s4c-c3a-life`（基线 20e737d = 上游 PR #98 合并提交；已合并 upstream/main 972cf42 = PR #99 触控输入 + PR #101 属性面板入口 + PR #103 横屏引导，文档编号顺延 v30/D-26（v28/D-24、v29/D-25 已被上游移动端批次占用））。**只实施 C3-A（生命），完成即停止；R-2/R-3/R-4 维持缺陷 pin，C3-B/C3-C 未开始。** 已批准差异：D-C3-01（血包永久成长持久来源）、D-C3-05（HP 夹紧逐字保留）、两张生命卡获得时治疗与属性贡献分离。
+### 先说一处前期判断的更正
+
+M2 拆分时曾把「天赋详情」记为**触屏上的死功能**。实测（844×390 触屏仿真 + 合成 pointerdown/click）后确认：**点按原本就能展开**——`GameUI` 里早已有 `tl.onclick` 渲染 tooltip。真正的缺陷是另外两条：
+
+1. **展开后关不掉**：触屏没有 `mouseleave`，再点同一条也不会收起，只能靠浏览器补发的 `mouseover` 碰运气；
+2. **`:hover` 粘滞**：卡片点过之后一直保持放大/高亮，按钮一直青底，触屏观感错乱。
+
+因此本章的实际交付是「补关闭路径 + 隔离 hover」，不是「新增点按能力」。结论记在此处，避免后来者按错误前提重做一遍。
+
+### 实现
+
+- **点按开关**（`GameUI` 天赋列表块）：
+  - 鼠标仍走 `onmouseover / onmousemove / onmouseleave`，PC 手感零变化；
+  - 触控/笔走 `pointerdown`：点开、再点同一条收起、点面板空白收起；并置 `skipNextClick` 跳过随后补发的 `click`，避免同一次点按被处理两次；
+  - `shownTag` **只在 pointerdown 与 click 里写，hover 不写**——否则 PC 上「鼠标已展开 + 点击」会立刻命中同一条而被误判成收起（这是第一版实现踩到的真实 bug）；
+  - `#ov-stats` 的 `pointerdown` 兜底关闭，不依赖浏览器补发的 mouseover。
+- **hover 隔离**：19 处交互 `:hover` 规则（game.css 18 + codex.css 1）逐一包裹进 `@media (hover: hover)`，桌面（`hover: hover`）行为不变，触屏不再粘滞。
+- **一个必须拆开的例外**：`.pause-actions .btn:disabled` 原来是 `.btn:disabled, .btn:disabled:hover` 的组合选择器。整条塞进媒体查询会让触屏上的禁用按钮丢掉背景/虚线边框（只剩 `.btn` 基础态），所以拆成「基础禁用样式（媒体查询外）+ `:disabled:hover`（媒体查询内）」。
+
+### 验收
+
+- 新增浏览器用例 2 项：①触屏合成 pointerdown/click 序列 → 展开 → 再点收起 → 再展开 → 点面板空白收起；②**CSS 结构断言**：遍历 `document.styleSheets`，要求 `.btn:hover`、`#bp-cards .card:hover`、`.talent-tag:hover` 等必须在 `@media (hover: hover)` 内，且**顶层不得残留任何 `:hover` 规则**（防止以后新增的 hover 规则漏包）。
+- `npm test` **360/360**（与上一批同数，本批为 UI 行为，未新增单测）；`parity` 26 项原样；`npm run test:browser` **16/16**（14 + 2）；`npm run typecheck`、`npm run build` 通过。
+- 实拍（844×390 DPR 2）：点按「磨刃」标签后详情面板在窄舞台内正常显示、不越界。
+
+### 遗留
+
+- tooltip 位置仍按手指坐标 +16px 偏移，可能与拇指重叠（`pointer-events: none`，不影响点击）。
+- 真机仍未验证（无实机），触屏 `pointerdown` 与补发 `click` 的时序依赖浏览器实现；用例已按 Chrome 的实际顺序模拟，iOS Safari 需在 #97 复核。
+
+## D-27 Combat Foundation S4-C 第三批（C3-A）：生命上限权威迁移 + 获得时治疗分离 + 血包永久成长修复（2026-10-26）
+
+依据任务书「C3-A 实施任务」与契约 `docs/pixel-rogue-S4C-C3-contract-v1.md`（v1.2，上游 PR #98 合并），分支 `feat/combat-foundation-s4c-c3a-life`（基线 20e737d = 上游 PR #98 合并提交；已合并 upstream/main b4d9f32 = PR #99 触控输入 + PR #101 属性面板入口 + PR #103 横屏引导 + PR #104 天赋详情点按，文档编号顺延 v31/D-27（v28/D-24、v29/D-25、v30/D-26 已被上游移动端批次占用））。**只实施 C3-A（生命），完成即停止；R-2/R-3/R-4 维持缺陷 pin，C3-B/C3-C 未开始。** 已批准差异：D-C3-01（血包永久成长持久来源）、D-C3-05（HP 夹紧逐字保留）、两张生命卡获得时治疗与属性贡献分离。
 
 ### 实施范围与权威来源切换
 
@@ -1456,9 +1488,9 @@ M2 因此重排为：**M2-1 横屏引导 + 手势边界（本章）→ M2-2 hove
 - P3 收尾新增真实入口回归：满血血包成长 3 + 生命之泉/巨人血脉（maxhp 153）→ 置换移除两卡 → maxhp 103、HP 按 `max(1, min(hpBefore, 103))` 夹紧、`potionMaxHpGrow` 保留 3；后续 recompute 与无关卡学习维持 103，输出卡恰好学习一次（`upCounts=1`）。
 - C3-0 基线 B1～B16 原样通过（B1/B2/B3/B12/B15 在新路径下行为逐位一致）；C1/C2-A/C2-B 回归通过；`s4c-damage-talent-sources` 直调测试补传显式测试来源（断言未削减）。
 - **parity 26 项原样通过**：生命之泉/巨人血脉加入 `S4C_AUTHORITY_MIGRATED`（基线更新依据已留痕：v8 f 的 maxhp/hp 结果与「投影 + 获得时效果」逐位一致，独立旧版比较由 legacyLife 对照与 B1～B3 咬住，不排除、不归零）；全天赋模拟场景继续包含两卡；wave parity 快照为固定字段清单，`potionMaxHpGrow` 为 GameCore 字段不入 Player 序列化，**无新增 Player 字段**。
-- `npm test` **375/375**（C3-0 基线 327 + 上游 #99 触控 24 + #101 属性面板 6 + #103 横屏 3 + 本批 15）；`npm run typecheck`、`npm run build` 通过；`npm run test:browser` **14/14**（本批原有 7 项 + 上游 #99 触控 4 项 + #101 属性面板 1 项 + #103 横屏 2 项）。
+- `npm test` **375/375**（C3-0 基线 327 + 上游 #99 触控 24 + #101 属性面板 6 + #103 横屏 3 + 本批 15）；`npm run typecheck`、`npm run build` 通过；`npm run test:browser` **16/16**（本批原有 7 项 + 上游 #99 触控 4 项 + #101 属性面板 1 项 + #103 横屏 2 项 + #104 详情点按 2 项）。
 
-### 变异验证（7 组，全部被咬住后逐组还原；表中红数为新增回归测试前的 C3-A 初版 341 基线测量，合并后最终全量 375/375 通过）
+### 变异验证（7 组，全部被咬住后逐组还原；表中红数为新增回归测试前的 C3-A 初版 341 基线测量，合并后最终全量 375/375 通过（#104 未新增单测））
 
 | # | 变异 | 红数 | 检测面 |
 |---|---|---|---|

@@ -23,9 +23,11 @@
   background: #2b365e;
   border: 0.15vmin solid #3d4a7a;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #3c4b82;
-  border-color: #57e6ff;
+@media (hover: hover) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3c4b82;
+    border-color: #57e6ff;
+  }
 }
 ::-webkit-scrollbar-corner {
   background: #0c0f1d;
@@ -98,10 +100,12 @@ p {
   letter-spacing: 0.2vmin;
   transition: all 0.1s;
 }
-.btn:hover {
-  background: #57e6ff;
-  color: #0b0c14;
-  transform: translateY(-0.3vmin);
+@media (hover: hover) {
+  .btn:hover {
+    background: #57e6ff;
+    color: #0b0c14;
+    transform: translateY(-0.3vmin);
+  }
 }
 #cards {
   display: flex;
@@ -120,10 +124,12 @@ p {
   gap: 1.6vmin;
   transition: all 0.12s;
 }
-.card:hover {
-  border-color: #ffd24a;
-  transform: translateY(-0.8vmin) scale(1.03);
-  background: #1c2240;
+@media (hover: hover) {
+  .card:hover {
+    border-color: #ffd24a;
+    transform: translateY(-0.8vmin) scale(1.03);
+    background: #1c2240;
+  }
 }
 .card.new {
   border-color: #ff6b9d;
@@ -197,9 +203,11 @@ p {
   font-size: 1.4vmin;
   padding: 0.5vmin 0.8vmin;
 }
-.refr:hover {
-  border-color: #57e6ff;
-  color: #57e6ff;
+@media (hover: hover) {
+  .refr:hover {
+    border-color: #57e6ff;
+    color: #57e6ff;
+  }
 }
 /* 置换界面 */
 .mcard {
@@ -215,9 +223,11 @@ p {
   gap: 1vmin;
   transition: all 0.12s;
 }
-.mcard:hover {
-  transform: translateY(-0.5vmin);
-  border-color: #ffd24a;
+@media (hover: hover) {
+  .mcard:hover {
+    transform: translateY(-0.5vmin);
+    border-color: #ffd24a;
+  }
 }
 .mcard .ico {
   font-size: 3.2vmin;
@@ -421,9 +431,11 @@ p {
   transition: all 0.12s;
   user-select: none;
 }
-.talent-tag:hover {
-  transform: translateY(-0.2vmin);
-  background: #1c2347;
+@media (hover: hover) {
+  .talent-tag:hover {
+    transform: translateY(-0.2vmin);
+    background: #1c2347;
+  }
 }
 .talent-tag.active {
   box-shadow: 0 0 0.8vmin rgba(255, 255, 255, 0.4);
@@ -685,38 +697,48 @@ p {
   box-sizing: border-box;
   transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
 }
-#bp-cards .card:hover {
-  transform: translateY(-0.8vmin);
-  background: rgba(24, 32, 60, 0.96);
-  box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.2vmin rgba(87, 230, 255, 0.3);
+@media (hover: hover) {
+  #bp-cards .card:hover {
+    transform: translateY(-0.8vmin);
+    background: rgba(24, 32, 60, 0.96);
+    box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.2vmin rgba(87, 230, 255, 0.3);
+  }
 }
 #bp-cards .card.r0 {
   border-color: #8b9bb4;
 }
-#bp-cards .card.r0:hover {
-  border-color: #c7cff2;
-  box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1vmin rgba(232, 232, 240, 0.25);
+@media (hover: hover) {
+  #bp-cards .card.r0:hover {
+    border-color: #c7cff2;
+    box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1vmin rgba(232, 232, 240, 0.25);
+  }
 }
 #bp-cards .card.r1 {
   border-color: #2f9e5f;
 }
-#bp-cards .card.r1:hover {
-  border-color: #4dff88;
-  box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.2vmin rgba(77, 255, 136, 0.3);
+@media (hover: hover) {
+  #bp-cards .card.r1:hover {
+    border-color: #4dff88;
+    box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.2vmin rgba(77, 255, 136, 0.3);
+  }
 }
 #bp-cards .card.r2 {
   border-color: #8a4fd4;
 }
-#bp-cards .card.r2:hover {
-  border-color: #c07bff;
-  box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.4vmin rgba(192, 123, 255, 0.35);
+@media (hover: hover) {
+  #bp-cards .card.r2:hover {
+    border-color: #c07bff;
+    box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.4vmin rgba(192, 123, 255, 0.35);
+  }
 }
 #bp-cards .card.r3 {
   border-color: #c9a227;
 }
-#bp-cards .card.r3:hover {
-  border-color: #ffd24a;
-  box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.6vmin rgba(255, 210, 74, 0.4);
+@media (hover: hover) {
+  #bp-cards .card.r3:hover {
+    border-color: #ffd24a;
+    box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.6vmin rgba(255, 210, 74, 0.4);
+  }
 }
 #bp-cards .card .tier {
   font-size: 1.1vmin;
@@ -740,11 +762,13 @@ p {
   border-radius: 0.2vmin;
   transition: all 0.1s ease;
 }
-#bp-cards .card .refr:hover {
-  border-color: #57e6ff;
-  color: #57e6ff;
-  background: #1c264a;
-  transform: rotate(45deg);
+@media (hover: hover) {
+  #bp-cards .card .refr:hover {
+    border-color: #57e6ff;
+    color: #57e6ff;
+    background: #1c264a;
+    transform: rotate(45deg);
+  }
 }
 #bp-cards .card .ico {
   font-size: 3.2vmin;
@@ -890,11 +914,13 @@ p {
   font-weight: bold;
   box-shadow: 0 0.4vmin 1.6vmin rgba(0, 0, 0, 0.5), 0 0 1vmin rgba(87, 230, 255, 0.3);
 }
-#bp-next:hover {
-  background: #57e6ff;
-  color: #0b0c14;
-  transform: translateY(-0.3vmin);
-  box-shadow: 0 0.6vmin 2vmin rgba(87, 230, 255, 0.5);
+@media (hover: hover) {
+  #bp-next:hover {
+    background: #57e6ff;
+    color: #0b0c14;
+    transform: translateY(-0.3vmin);
+    box-shadow: 0 0.6vmin 2vmin rgba(87, 230, 255, 0.5);
+  }
 }
 #bp-swapbtn {
   font-size: 1.45vmin;
@@ -903,10 +929,12 @@ p {
   background: rgba(26, 22, 10, 0.8);
   color: #ffd24a;
 }
-#bp-swapbtn:hover {
-  background: #ffd24a;
-  color: #0b0c14;
-  transform: translateY(-0.3vmin);
+@media (hover: hover) {
+  #bp-swapbtn:hover {
+    background: #ffd24a;
+    color: #0b0c14;
+    transform: translateY(-0.3vmin);
+  }
 }
 
 /* 置换操作表单 */
@@ -1019,10 +1047,12 @@ p {
   cursor: pointer;
   transition: all 0.1s ease;
 }
-#sw-confirm:hover {
-  background: #ffe37d !important;
-  transform: translateY(-0.25vmin);
-  box-shadow: 0 0.6vmin 2vmin rgba(255, 210, 74, 0.6);
+@media (hover: hover) {
+  #sw-confirm:hover {
+    background: #ffe37d !important;
+    transform: translateY(-0.25vmin);
+    box-shadow: 0 0.6vmin 2vmin rgba(255, 210, 74, 0.6);
+  }
 }
 
 @keyframes popIn {
@@ -1091,8 +1121,10 @@ p {
   cursor: pointer;
   transition: all 0.1s ease;
 }
-#sw-inv span:hover {
-  transform: translateY(-0.2vmin);
+@media (hover: hover) {
+  #sw-inv span:hover {
+    transform: translateY(-0.2vmin);
+  }
 }
 #sw-inv span.sel {
   border-color: #ff6b9d !important;
@@ -1119,10 +1151,12 @@ p {
   font-size: 1.45vmin !important;
   padding: 0.9vmin 2.6vmin !important;
 }
-#sw-melt:hover {
-  background: #ff6b9d;
-  color: #0b0c14;
-  transform: translateY(-0.2vmin);
+@media (hover: hover) {
+  #sw-melt:hover {
+    background: #ff6b9d;
+    color: #0b0c14;
+    transform: translateY(-0.2vmin);
+  }
 }
 /* 屏上按钮 */
 #btn-pause {
@@ -1138,9 +1172,11 @@ p {
   font-size: 1.6vmin;
   padding: 0.8vmin 1.2vmin;
 }
-#btn-pause:hover {
-  border-color: #57e6ff;
-  color: #57e6ff;
+@media (hover: hover) {
+  #btn-pause:hover {
+    border-color: #57e6ff;
+    color: #57e6ff;
+  }
 }
 #game {
   width: 100%;
@@ -1234,8 +1270,7 @@ p {
  * 禁用态必须压过 .btn:hover（:hover 对 disabled 元素依旧生效，
  * 否则鼠标划过时按钮会变成青底可点态，误导玩家）。仅作用于暂停面板，不改全局按钮。
  */
-.pause-actions .btn:disabled,
-.pause-actions .btn:disabled:hover {
+.pause-actions .btn:disabled {
   background: #141a33;
   border-color: #3d4a7a;
   border-style: dashed;
@@ -1243,6 +1278,18 @@ p {
   cursor: not-allowed;
   opacity: 0.6;
   transform: none;
+}
+/* 禁用态还必须压过 hover 悬停态；只在有 hover 能力的设备上需要 */
+@media (hover: hover) {
+  .pause-actions .btn:disabled:hover {
+    background: #141a33;
+    border-color: #3d4a7a;
+    border-style: dashed;
+    color: #7b87ad;
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+  }
 }
 .pause-version {
   color: #5f6b96;
