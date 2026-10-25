@@ -69,8 +69,20 @@ const parityTalents = UPGRADES.filter(
  * 与 v8 f 结果逐字段比较；语义漂移仍由该对照与 S4-C 聚焦测试咬住。
  * 致命一击已在 BASELINE_EXCLUDED、磐石/元素亲和已在 NOT_IN_V8，
  * 全天赋模拟场景（parityTalents）继续包含铁布衫/会心深渊。
+ *
+ * 基线更新依据：Combat Foundation S4-C C2-A（本批）权威来源迁移。
+ * 磨刃/狂怒/毁灭本能的 damage 逐次乘算（×1.1/×1.2/×1.3）同样改由来源表
+ * 以 attack final 修饰符声明，Talent.f 不再写入——加入本清单走
+ * learnTalent 路径对照；学习顺序 = picks 顺序与旧 f 重放一致，
+ * 逐位数值由 S4-C C2-A 聚焦测试的旧实现基准对照咬住。
  */
-const S4C_AUTHORITY_MIGRATED = ["铁布衫", "会心深渊"] as const;
+const S4C_AUTHORITY_MIGRATED = [
+  "铁布衫",
+  "会心深渊",
+  "磨刃",
+  "狂怒",
+  "毁灭本能",
+] as const;
 /**
  * 基线更新依据：Issue #13（用户已批准的近战基础设施建设）。
  * DamageSource 新增 "melee" 分项，而 v8 快照没有该键。对照时把它从两侧摘出单独断言，
@@ -367,13 +379,15 @@ it("every talent effect, cap and tier matches the protected original", () => {
       ),
     );
     const g = fresh();
-    if (S4C_AUTHORITY_MIGRATED.includes(u.n as (typeof S4C_AUTHORITY_MIGRATED)[number])) {
+    if (
+      S4C_AUTHORITY_MIGRATED.includes(
+        u.n as (typeof S4C_AUTHORITY_MIGRATED)[number],
+      )
+    ) {
       // S4-C C1（见上方依据）：属性贡献已迁移，单级效果经真实学习路径对照，
       // 学习记录（upCounts/picks）归一化为 v8 f 不记录的现状后逐字段比较。
       g.learnTalent(u);
-      expect({ ...g.player, upCounts: {}, picks: [] }).toEqual(
-        expected.player,
-      );
+      expect({ ...g.player, upCounts: {}, picks: [] }).toEqual(expected.player);
     } else {
       u.f(g.player);
       expect(g.player).toEqual(expected.player);

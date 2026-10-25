@@ -110,7 +110,9 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
   ).toBe(countBefore - 1);
   await expect(page.locator("#sw-result")).toBeVisible();
   await expect(page.locator("#sw-result-card .sw-name")).toBeVisible();
-  await page.screenshot({ path: "output/playwright/bottombar-swap-result.png" });
+  await page.screenshot({
+    path: "output/playwright/bottombar-swap-result.png",
+  });
   await page.locator("#sw-confirm").click();
   await expect(page.locator("#bp-swap")).toBeHidden();
   await expect(page.locator("#bp-swapbtn")).toBeHidden();
@@ -165,4 +167,50 @@ test("small viewport stays within screen and controls remain reachable", async (
   await page.screenshot({ path: "output/playwright/stats-panel-small.png" });
   await page.locator("#btn-statclose").click();
   await expect(page.locator("#ov-stats")).toBeHidden();
+});
+
+// Combat Foundation S4-C C2-A：宝箱强化走真实 DOM 面板与键盘命令，
+// 磨刃经权威来源投影恰好一次 ×1.1（13.310000000000002 = 11×1.1×1.1）
+test("chest box panel reinforces damage talent with exact projection", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await page.waitForFunction(
+    () => window.__PIXEL_ROGUE__?.core.state === "play",
+  );
+  await page.evaluate(() => {
+    const g = window.__PIXEL_ROGUE__!.core;
+    const UPGRADES = window.__PIXEL_ROGUE__!.talents;
+    g.learnTalent(UPGRADES.find((u) => u.n === "磨刃")!);
+    g.boxPicks = 2;
+    g.openBoxPanel();
+  });
+  await expect(page.locator("#bp-level")).toBeVisible();
+  await expect(page.locator("#bp-level .bp-title")).toContainText("开启宝箱");
+  await page.screenshot({ path: "output/playwright/bottombar-box.png" });
+  // 预置缺陷（C2-A 记录，未修复）：宝箱模式提示键盘 1/2/3，但 GameScene 快捷键
+  // 只对 bpMode === "level" 响应——此处走卡片点击真实 UI 路径
+  const boxCard = page.locator("#bp-cards .card").first();
+  await boxCard.click(); // 池内唯一项 = 磨刃，强化到 2 级
+  await boxCard.click(); // 剩余 1 次 → 再强化一次后关闭
+  await expect(page.locator("#bp-level")).toBeHidden();
+  const after = await page.evaluate(() => {
+    const g = window.__PIXEL_ROGUE__!.core;
+    return {
+      damage: g.player.damage,
+      lv: g.player.upCounts["磨刃"],
+      boxPicks: g.boxPicks,
+      bpMode: g.bpMode,
+    };
+  });
+  // 夹具 1 级 + 宝箱强化 2 次 = 3 级：11×1.1×1.1×1.1
+  expect(after.lv).toBe(3);
+  expect(after.boxPicks).toBe(0);
+  expect(after.bpMode).toBeNull();
+  expect(after.damage).toBe(14.641000000000004);
+  await page.screenshot({ path: "output/playwright/after-box.png" });
+  expect(errors).toEqual([]);
 });
