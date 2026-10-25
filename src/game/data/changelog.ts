@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v28",
+    date: "2026-10-26",
+    title: "移动端属性面板入口：并入暂停界面",
+    items: [
+      "触屏没有 C 键，属性面板改由暂停界面的「角 色 属 性」按钮进入（与图鉴并列）；PC 端 C 键的直开直关行为与文案完全不变",
+      "新增 GameCore.statsFrom 记录来源：从暂停进入的属性面板关闭后回到暂停而非直接恢复战斗；ensurePlay 先复位来源，保持「面板命令强制回战斗态」的既有语义（Issue #34）",
+      "打开顺序有讲究：#ov-stats(30) 低于 #ov-pause(60)，因此点入口时先收起暂停面板再开属性；属性面板底部按钮文案按来源切换「返 回」/「返回战斗 (C)」",
+      "验收：npm test 357/357（新增 6 项）、parity 26 项原样、浏览器 12/12（新增 1 项）、typecheck 与 build 通过",
+    ],
+  },
+  {
     version: "v27",
     date: "2026-10-26",
     title: "移动端八向触控输入层（M1）：虚拟摇杆 + 冲刺键 + 操作设置",

@@ -239,3 +239,39 @@ test("joystick mode is switchable in settings and persists", async ({
     await page.evaluate(() => localStorage.getItem("pixelrogue_joypad")),
   ).toBe(JSON.stringify({ v: 1, mode: "fixed" }));
 });
+
+test("pause panel exposes the stats entry and returns to pause", async ({
+  page,
+}) => {
+  // Issue #100：触屏没有 C 键，属性面板从暂停界面进入；关闭后必须回到暂停
+  await page.goto("/");
+  await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
+  await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await page.waitForFunction(
+    () => window.__PIXEL_ROGUE__!.core.state === "play",
+  );
+  await page.locator("#btn-pause").click();
+  await expect(page.locator("#ov-pause")).toBeVisible();
+
+  await page.locator("#btn-pause-stats").click();
+  await expect(page.locator("#ov-stats")).toBeVisible();
+  // #ov-stats(30) 低于 #ov-pause(60)：暂停面板必须先收起，否则属性被盖住
+  await expect(page.locator("#ov-pause")).toBeHidden();
+  await expect(page.locator("#btn-statclose")).toHaveText("返 回");
+  expect(
+    await page.evaluate(() => window.__PIXEL_ROGUE__!.core.state),
+  ).toBe("stats");
+  await expect(page.locator("#talent-list")).toBeVisible();
+
+  await page.locator("#btn-statclose").click();
+  await expect(page.locator("#ov-stats")).toBeHidden();
+  await expect(page.locator("#ov-pause")).toBeVisible();
+  expect(
+    await page.evaluate(() => window.__PIXEL_ROGUE__!.core.state),
+  ).toBe("pause");
+
+  await page.locator("#btn-resume").click();
+  await page.waitForFunction(
+    () => window.__PIXEL_ROGUE__!.core.state === "play",
+  );
+});

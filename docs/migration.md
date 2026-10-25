@@ -1341,3 +1341,37 @@ CSS 中字体被重写为 `url(../assets/fonts/press-start-2p.ttf)`，HTML 引�
 - 天赋详情仍依赖 `onmouseover`（`GameUI.ts:445-472`），触屏无法展开。
 - 竖屏未做布局：390×844 下舞台仅 390×219，需横屏引导（D2 已定为强制横屏）。
 - 真机未验证（无 iOS/Android 实机），手势边界与多指并发留待 M3。
+
+## D-24 Issue #100：移动端属性面板入口——并入暂停界面（2026-10-26）
+
+### 背景
+
+M1（#95）上线后真机实测发现：属性面板唯一入口是键盘 `C`（`GameScene.ts` 的 keydown 路由），触屏无键盘即无法打开。曾比较「常驻按钮」与「并入暂停界面」两种方案，**采用后者**：
+
+- 属性面板本身就把 `state` 切到 `stats`，此时 `GameScene` 不推进模拟——「边打边看」在机制上不存在，常驻按钮的快捷收益为零；
+- 手机横屏舞台高度仅 390px，已有摇杆（左下）、冲刺（右下）、暂停（右下角）三个控件，再放常驻键必然挤压 HUD；
+- 暂停界面已并列「图鉴」入口，属性并入属同一类「查看信息」操作，且常驻键还需在升级/宝箱/置换/结算面板弹出时逐一门控隐藏。
+
+### 实现
+
+- `GameCore.statsFrom: "play" | "pause"`（默认 `play`）记录来源；新增 `openStatsFromPause()`，**仅在 `state === "pause"` 时接受**，置来源后切 `stats` 并先 `view.paused(false)` 再 `view.stats(true)`。
+- `toggleStats()` 关闭分支按来源分流：`pause` → 回 `pause` 并 `view.paused(true)`；`play` → 原样回 `play`。键盘路径（play↔stats）逐字未变。
+- `ensurePlay()`（Issue #34）在关闭属性前先把来源复位为 `play`，保持「面板命令强制回战斗态」的原语义。
+- UI：暂停面板新增 `#btn-pause-stats`（角色属性，位于继续/图鉴之间）；`view.stats(true)` 时按来源设置底部按钮文案「返 回」/「返回战斗 (C)」。
+- `resetGame()` 复位 `statsFrom`。
+
+### 两处坑（与既有实现冲突的地方）
+
+1. **层级**：`#ov-stats` z-index 30 < `#ov-pause` 60，两者同时可见时属性会被暂停面板盖住 → 必须"先收暂停、再开属性"，而不是把属性提到 70（提到 70 会与图鉴同级，且暂停面板残留在下层的状态更难推理）。
+2. **返回目标**：若沿用 `toggleStats()` 的旧行为，从暂停进入后关闭会直接 `state = "play"` 恢复战斗——玩家只看一眼属性就被丢回战场，属明显体验缺陷。来源字段是必要成本。
+
+### 验收
+
+- 新增 `tests/stats-entry.test.ts` **6 项**：暂停进入并回到暂停、属性打开期间模拟冻结（`time`/`player.x` 不变，且摇杆输入不生效）、非暂停态拒绝进入、键盘 play↔stats 不变、`ensurePlay()` 仍强制回 play、新局复位来源。
+- 新增浏览器用例 1 项（`tests/browser/touch.spec.ts`）：暂停 → 角色属性 → 属性面板可见 / 暂停面板已收起 / 文案为「返 回」/ `state === "stats"` → 返回 → 暂停面板恢复且 `state === "pause"` → 继续战斗。
+- `npm test` **357/357**（上一基线 351 + 6）；`parity` 26 项原样；`npm run test:browser` **12/12**；`npm run typecheck`、`npm run build` 通过。
+
+### 遗留
+
+- 从暂停进入属性后按 `P`（暂停快捷键）无响应——`togglePause()` 只处理 play↔pause，此时可点「返 回」或按 `Esc`。属键鼠边缘路径，未修，记录备查。
+- 手机档字号问题（属性面板内的 34 条天赋列表同样偏小）仍归 #96。
