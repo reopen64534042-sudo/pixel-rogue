@@ -1375,3 +1375,50 @@ M1（#95）上线后真机实测发现：属性面板唯一入口是键盘 `C`�
 
 - 从暂停进入属性后按 `P`（暂停快捷键）无响应——`togglePause()` 只处理 play↔pause，此时可点「返 回」或按 `Esc`。属键鼠边缘路径，未修，记录备查。
 - 手机档字号问题（属性面板内的 34 条天赋列表同样偏小）仍归 #96。
+
+## D-25 Issue #96（M2-1）：竖屏引导与触屏手势边界（2026-10-26）
+
+### 背景与决策变更
+
+M1/M2 上线后用户真机试玩，反馈「升级选卡与属性面板文字**很清楚，没问题**」。此前按 `vmin` 绝对值推算（横屏 390 高时 1.2vmin ≈ 4.7 CSS px）判定不可读，实际真机观感可接受。据此在 #96 留痕调整：
+
+- **`vmin` → `--u` 的 313 处全量替换降级为可选**，不再作为必做项；
+- 后续若局部仍读不清，改为只对该组件做媒体查询放大，不做全局单位迁移；
+- 结论以用户观感为准，不以算术推算为准。
+
+M2 因此重排为：**M2-1 横屏引导 + 手势边界（本章）→ M2-2 hover 改点按 → M2-3 字号（可选）**。
+
+### 实现
+
+- `src/ui/OrientationGate.ts`：`isPortraitSize` 纯谓词（`height > width`，正方形按横屏处理，避免误伤桌面窄窗）+ 闸门类。仅在**触屏设备**启用（与触控层共用 `TouchControls.active` 判定结果，桌面拉窄窗口不会弹提示）。
+- 行为：进入竖屏 → 显示遮罩；若 `state === "play"` 则 `togglePause()`。**转回横屏只收起遮罩，不自动恢复战斗**——玩家可能正在看暂停里的信息，自动恢复会突然开打。
+- 只在朝向真正翻转时动作（比较 `portrait` 前后值），避免 `resize` 抖动反复触发暂停。
+- CSS：遮罩用 `position: fixed; inset: 0`，因为竖屏下 `#stage` 只有 390×219，跟随舞台会变成一条小窄条；标题/副标题另给 `max(20px, 6vmin)` / `max(12px, 3vmin)`，不受全局 `vmin` 字号偏小的影响。
+- 开始界面键位提示在触屏档改写为触控说明（原文案备份并在 `dispose` 还原）。
+
+### 手势边界的关键取舍
+
+**不能对 `#stage` 整体用 `touch-action: none`。** `#ov-stats`、`#changelog-list`、`#bp-cards`、置换库存都是纵向滚动容器，`none` 会把面板内滚动一起禁掉——这是最容易踩的坑。采用：
+
+| 目标 | 规则 | 理由 |
+|---|---|---|
+| `html, body` | `overscroll-behavior: none` | 禁下拉刷新与橡皮筋回弹 |
+| `#stage.touch-mode` | `touch-action: manipulation` | 只禁双击缩放，保留滚动与捏合 |
+| `#stage.touch-mode` | `user-select: none` + `-webkit-touch-callout: none` | 禁长按选中/弹出菜单 |
+| `#game canvas`、`#btn-dash` | `touch-action: none` | 摇杆手势专用禁区（#95 已落地） |
+
+不使用 `user-scalable=no`（牺牲可访问性），缩放控制交给 `touch-action`。
+
+### 验收
+
+- 新增 `tests/orientation.test.ts` **3 项**：竖屏/横屏判定、边长接近时判竖屏、正方形按横屏处理。
+- 新增浏览器用例 **2 项**：①触屏 844×390 起手 → 转 390×844 弹遮罩且 `state === "pause"` → 转回横屏遮罩收起但仍为 pause → 点「继续战斗」恢复；②非触屏设备 420×900 窄窗下遮罩不出现。
+- 既有触控用例补充断言：PC 档开始界面保留 `WASD` 键位提示，触屏档替换为「左半屏拖拽」。
+- `npm test` **360/360**（上一基线 357 + 3）；`parity` 26 项原样；`npm run test:browser` **14/14**；`npm run typecheck`、`npm run build` 通过。
+- 实拍（390×844 DPR 2）：遮罩铺满视口、标题与图标居中；横屏开始界面的键位提示已换成触控文案。
+
+### 遗留
+
+- 真机仍未验证（无 iOS/Android 实机）：iOS Safari 的 `orientationchange` 触发时机与 Android 边缘返回手势留待 #97。
+- 手机档字号（M2-3）已降级为可选，若后续出现具体读不清的组件再单独处理。
+- 天赋详情仍依赖 `onmouseover`（`GameUI.ts:445-472`），归 M2-2。

@@ -64,6 +64,8 @@ test("PC stays keyboard-only: no touch layer, joystick vector untouched", async 
   await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
   await expect(page.locator("#touch-layer")).toBeHidden();
   await expect(page.locator("#btn-dash")).toBeHidden();
+  // 键位提示保持键鼠文案（触屏档才会被改写）
+  await expect(page.locator("#ov-start .keys")).toContainText("WASD");
   // D1/D5：PC 端不提供摇杆设置入口，保持原有的禁用占位
   const entry = page.locator("#btn-pause-settings");
   await expect(entry).toBeDisabled();
@@ -88,6 +90,8 @@ test("touch joystick drives eight directions and releases cleanly", async ({
   await page.goto("/?touch=1");
   await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
   await expect(page.locator("#touch-layer")).toBeVisible();
+  // 触屏档把开始界面的键位提示换成触控操作说明
+  await expect(page.locator("#ov-start .keys")).toContainText("左半屏拖拽");
   await page.getByRole("button", { name: "开 始 冒 险" }).click();
   await page.waitForFunction(
     () => window.__PIXEL_ROGUE__!.core.state === "play",
@@ -274,4 +278,45 @@ test("pause panel exposes the stats entry and returns to pause", async ({
   await page.waitForFunction(
     () => window.__PIXEL_ROGUE__!.core.state === "play",
   );
+});
+
+test("portrait is gated by a rotate prompt, pauses the run, and does not auto-resume", async ({
+  page,
+}) => {
+  // Issue #96（M2-1）：D2 定为强制横屏；竖屏只剩 390×219 窄条，继续跑模拟等于挨打
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto("/?touch=1");
+  await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
+  await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await page.waitForFunction(
+    () => window.__PIXEL_ROGUE__!.core.state === "play",
+  );
+  await expect(page.locator("#ov-orient")).toBeHidden();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("#ov-orient")).toBeVisible();
+  expect(
+    await page.evaluate(() => window.__PIXEL_ROGUE__!.core.state),
+  ).toBe("pause");
+
+  // 转回横屏只收起遮罩，不自动恢复战斗（玩家可能正在看暂停里的信息）
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect(page.locator("#ov-orient")).toBeHidden();
+  expect(
+    await page.evaluate(() => window.__PIXEL_ROGUE__!.core.state),
+  ).toBe("pause");
+
+  await page.locator("#btn-resume").click();
+  await page.waitForFunction(
+    () => window.__PIXEL_ROGUE__!.core.state === "play",
+  );
+});
+
+test("desktop is never blocked by the orientation gate", async ({ page }) => {
+  // 非触屏设备即使窗口很窄也不该被横屏提示拦住
+  await page.setViewportSize({ width: 420, height: 900 });
+  await page.goto("/");
+  await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
+  await expect(page.locator("#ov-orient")).toBeHidden();
+  await expect(page.locator("#touch-layer")).toBeHidden();
 });
