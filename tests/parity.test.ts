@@ -75,6 +75,13 @@ const parityTalents = UPGRADES.filter(
  * 以 attack final 修饰符声明，Talent.f 不再写入——加入本清单走
  * learnTalent 路径对照；学习顺序 = picks 顺序与旧 f 重放一致，
  * 逐位数值由 S4-C C2-A 聚焦测试的旧实现基准对照咬住。
+ *
+ * 基线更新依据：Combat Foundation S4-C C2-B（本批）权威来源迁移。
+ * 强化弹丸/疾速扳机/疾风之靴/磁力护符/广域法印的五字段逐次乘算
+ * （boltDmgMul×1.25 / fireRate×1.18 / speed×1.1 / magnet×1.4 / area×1.2）
+ * 改由来源表以对应 StatId 的 final 修饰符声明（speed ↔ moveSpeed 仅命名差），
+ * Talent.f 不再写入——加入本清单走 learnTalent 路径对照；五字段各自
+ * 只有一张天赋来源，逐位数值由 S4-C C2-B 聚焦测试的旧实现基准对照咬住。
  */
 const S4C_AUTHORITY_MIGRATED = [
   "铁布衫",
@@ -82,6 +89,11 @@ const S4C_AUTHORITY_MIGRATED = [
   "磨刃",
   "狂怒",
   "毁灭本能",
+  "强化弹丸",
+  "疾速扳机",
+  "疾风之靴",
+  "磁力护符",
+  "广域法印",
 ] as const;
 /**
  * 基线更新依据：Issue #13（用户已批准的近战基础设施建设）。

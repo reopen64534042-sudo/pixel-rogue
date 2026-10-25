@@ -7,6 +7,12 @@
 
 ---
 
+## v26 · 2026-10-25 · 战斗基础 S4-C 第二批（C2-B）：五张乘法属性天赋权威迁移
+
+- 强化弹丸/疾速扳机/疾风之靴/磁力护符/广域法印五张卡的逐次乘算（boltDmgMul×1.25 / fireRate×1.18 / speed×1.1 / magnet×1.4 / area×1.2）改由 core/TalentStatSources.ts 权威来源表以对应 StatId 的 final 修饰符声明（按 picks 顺序连乘），对应 Talent.f 不再写入；来源审计确认五字段各自仅此一个天赋写入者
+- StatModel 白名单按需扩展 boltDmgMul/magnet/area（fireRate/moveSpeed 已有）；升级、宝箱强化、置换、重算全链路经既有投影同步；未新增 Player 字段或第二套缓存；击杀狂热/战意沸腾的动态攻速保持在消费点实时乘算，不进属性模型
+- 数值零变化：与旧 f 重放逐位一致（含五卡满级与多级非 percent 折叠钉子）；弹丸尺寸/陨星半径生成时固化、飞刃/爆炸半径实时读取等既有读写时机不变；parity 26 项原样通过，全量测试 311 项与浏览器 7 项通过
+
 ## v25 · 2026-10-25 · 战斗基础 S4-C 第二批（C2-A）：全局基础伤害乘法天赋权威迁移
 
 - 磨刃/狂怒/毁灭本能三张伤害卡的逐次乘算（damage ×1.1/×1.2/×1.3）改由 core/TalentStatSources.ts 权威来源表以 StatModel attack final 修饰符声明（按 picks 顺序连乘），对应 Talent.f 不再写入；来源审计确认三卡外无合法攻击力写入者

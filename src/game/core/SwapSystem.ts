@@ -94,7 +94,7 @@ export function melt(this: GameCore) {
   // S4-C C1：输出卡应用改经 learnTalent——与原三行（f → upCounts → picks）
   // 逐语句等价（f 先执行、记录顺序不变、无随机消耗），且 max 前置条件已由
   // availTalents→canOffer 在抽池时保证（选池与学习之间无状态变更）；学习
-  // 后由 learnTalent 统一同步五张已迁移卡的权威属性投影。
+  // 后由 learnTalent 统一同步已迁移卡（C1/C2-A/C2-B 共十三张）的权威属性投影。
   this.learnTalent(output);
   this.swSel = {};
   this.swTarget = 0;
