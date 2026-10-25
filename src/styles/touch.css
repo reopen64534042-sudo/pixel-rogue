@@ -1,0 +1,144 @@
+/*
+ * Issue #95：触控操作层（八向摇杆 + 冲刺键 + 操作设置）。
+ *
+ * 约定：
+ * - 摇杆与帽子由 JS 按舞台实际像素定位（不依赖 vmin），因此不会随视口比例错位；
+ * - 整层 pointer-events: none，只有冲刺键可点，避免挡住 canvas 的摇杆手势与底部面板；
+ * - 触屏禁用页面滚动/缩放/长按选中，否则拖动摇杆会连带滚动页面。
+ */
+#touch-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#game canvas {
+  touch-action: none;
+}
+
+.joy-base {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(87, 230, 255, 0.38);
+  border-radius: 50%;
+  background: rgba(20, 26, 51, 0.3);
+  pointer-events: none;
+}
+
+.joy-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(87, 230, 255, 0.9);
+  border-radius: 50%;
+  background: rgba(87, 230, 255, 0.24);
+  pointer-events: none;
+}
+
+#btn-dash {
+  position: absolute;
+  right: 4%;
+  bottom: 22%;
+  height: 18%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
+  padding: 0;
+  border: 2px solid #ffd24a;
+  border-radius: 50%;
+  background: rgba(20, 26, 51, 0.62);
+  color: #ffd24a;
+  font-family: inherit;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.dash-label {
+  /* 按钮窄于四个字宽时不允许折行，否则「冲刺」会竖排 */
+  white-space: nowrap;
+}
+
+#btn-dash.pressed {
+  background: rgba(255, 210, 74, 0.28);
+  border-color: #fff0b8;
+  color: #fff0b8;
+}
+
+#btn-dash.empty {
+  opacity: 0.42;
+  border-color: #6b6250;
+  color: #8d8471;
+}
+
+.dash-count {
+  font-size: 0.72em;
+  line-height: 1;
+  color: #9aa3c7;
+}
+
+#btn-dash.empty .dash-count {
+  color: #6b6250;
+}
+
+/*
+ * `#btn-dash` 是 id 选择器且设了 display:flex，特异性高于通用的 `.hidden`
+ * （`display:none`），会被压过去导致「加了 hidden 仍然可见」。
+ * 与本仓库既有的 `.btn:disabled` / `:hover` 特异性问题同源，这里显式补一条同权覆盖。
+ */
+#btn-dash.hidden,
+#joy-base.hidden {
+  display: none;
+}
+
+/*
+ * 触屏模式下的既有控件：暂停键原本按桌面 vmin 排版，在手机上只有几像素、
+ * 基本点不到。这里只给足最小点击区，布局体系统一调整留给 #96（M2）。
+ */
+#stage.touch-mode #btn-pause {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 5px;
+  font-size: 12px;
+}
+
+#ov-input {
+  /* 从暂停界面进入，双层半透明会透出下层文字，这里用纯色兜底 */
+  background: #0a0b14;
+  /* 必须高于 #ov-pause(60) 与图鉴(70)：设置从暂停界面进入，不能被盖住 */
+  z-index: 80;
+}
+
+.input-hint,
+.input-desc {
+  font-size: 1.5vmin;
+  color: #9aa3c7;
+  margin: 0;
+  max-width: 62vmin;
+  line-height: 1.9;
+}
+
+.input-modes {
+  display: flex;
+  gap: 2vmin;
+}
+
+.mode-btn.on,
+.mode-btn.on:hover {
+  background: #57e6ff;
+  border-color: #57e6ff;
+  color: #0b0c14;
+}

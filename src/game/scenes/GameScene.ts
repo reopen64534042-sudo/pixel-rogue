@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GameCore } from "../core/GameCore";
 import { FixedClock } from "../core/FixedClock";
 import { GameUI } from "../../ui/GameUI";
+import { TouchControls } from "../../ui/TouchControls";
 import { PixelPainter } from "../rendering/PixelPainter";
 import { draw } from "../rendering/draw";
 import { SPR } from "../rendering/sprites";
@@ -37,6 +38,8 @@ export class GameScene extends Phaser.Scene {
   readonly core = new GameCore();
   private painter!: PixelPainter;
   private ui!: GameUI;
+  /** Issue #95：触控操作层，非触屏设备下内部不启用（所有方法为空操作） */
+  private touch?: TouchControls;
   private clock = new FixedClock();
   private stars = Array.from({ length: 60 }, () => ({
     x: Math.random() * W,
@@ -51,6 +54,7 @@ export class GameScene extends Phaser.Scene {
     for (const [key, canvas] of Object.entries(SPR))
       this.textures.addCanvas(key, canvas);
     this.painter = new PixelPainter(this);    this.ui = new GameUI(this.core);
+    this.touch = new TouchControls(this.core, this.game.canvas);
     this.cameras.main.setBounds(0, 0, WORLD.w, WORLD.h).setRoundPixels(true);
     const down = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
@@ -92,6 +96,8 @@ export class GameScene extends Phaser.Scene {
     };
     const clear = () => {
       this.core.keys = {};
+      // Issue #95：触控方向同样必须清零，否则失焦回来后角色会继续走
+      this.touch?.reset();
       this.clock.reset();
     };
     const hidden = () => {
@@ -106,6 +112,7 @@ export class GameScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown", down).off("keyup", up);
       window.removeEventListener("blur", clear);
       document.removeEventListener("visibilitychange", hidden);
+      this.touch?.dispose();
       this.ui.dispose();
       this.core.audio.dispose();
       if (import.meta.env.DEV) delete window.__PIXEL_ROGUE__;
@@ -156,6 +163,8 @@ export class GameScene extends Phaser.Scene {
   }
   update(_now: number, delta: number) {
     if (!this.painter) return;
+    // Issue #95：输入在模拟推进前落盘，否则摇杆方向会晚一帧生效
+    this.touch?.sync();
     if (this.core.state === "play")
       this.clock.advance(delta / 1000, (dt) => this.core.step(dt));
     else this.clock.reset();
