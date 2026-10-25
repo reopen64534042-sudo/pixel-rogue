@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fresh, learn, ticks } from "./helpers";
-import { BOX_DROP_CAP, ELITE_XP_STEP } from "../src/game/data/constants";
+import {
+  BOX_DROP_CAP,
+  ELITE_BOX_GAIN,
+  ELITE_BOX_POINT_CAP,
+  ELITE_XP_STEP,
+} from "../src/game/data/constants";
 import type { GameCore } from "../src/game/core/GameCore";
 
 afterEach(() => vi.restoreAllMocks());
@@ -123,5 +128,73 @@ describe("chest drops and elite rewards", () => {
     expect(g.player.xp).toBe(xpBefore + 8);
     // 兜底还送一个血包，满血拾取会转化为最大生命（#12）
     expect(g.player.maxhp).toBe(maxHpBefore + 1);
+  });
+});
+
+/**
+ * Issue #87（用户批准的平衡变更）：特殊宝箱 1 点 + 每波精英宝箱点数上限 2。
+ * 上限只约束精英宝箱，普通宝箱独立计算。
+ */
+describe("elite box gains (#87)", () => {
+  function dropSpecial(g: GameCore) {
+    g.boxes.push({ x: g.player.x, y: g.player.y, special: true });
+    ticks(g, 1);
+  }
+
+  it("single elite box grants exactly one point", () => {
+    const g = fresh();
+    dropSpecial(g);
+    expect(g.boxPicks).toBe(ELITE_BOX_GAIN);
+    expect(g.eliteBoxPointsThisWave).toBe(ELITE_BOX_GAIN);
+  });
+
+  it("two elite boxes reach the per-wave cap", () => {
+    const g = fresh();
+    dropSpecial(g);
+    dropSpecial(g);
+    expect(g.boxPicks).toBe(ELITE_BOX_POINT_CAP);
+    expect(g.eliteBoxPointsThisWave).toBe(ELITE_BOX_POINT_CAP);
+  });
+
+  it("third elite box converts to xp and potion instead of points", () => {
+    const g = fresh();
+    dropSpecial(g);
+    dropSpecial(g);
+    const picksBefore = g.boxPicks;
+    const xpBefore = g.player.xp;
+    const potionsBefore = g.potions.length;
+
+    dropSpecial(g);
+
+    expect(g.boxPicks).toBe(picksBefore);
+    expect(g.player.xp).toBe(xpBefore + 8);
+    expect(g.potions.length).toBe(potionsBefore + 1);
+    expect(g.eliteBoxPointsThisWave).toBe(ELITE_BOX_POINT_CAP);
+  });
+
+  it("normal boxes are unaffected by the elite cap", () => {
+    const g = fresh();
+    dropSpecial(g);
+    dropSpecial(g);
+    expect(g.eliteBoxPointsThisWave).toBe(ELITE_BOX_POINT_CAP);
+
+    g.boxes.push({ x: g.player.x, y: g.player.y });
+    ticks(g, 1);
+    expect(g.boxPicks).toBe(ELITE_BOX_POINT_CAP + 1);
+  });
+
+  it("cap resets on the next wave", () => {
+    const g = fresh();
+    dropSpecial(g);
+    dropSpecial(g);
+    expect(g.eliteBoxPointsThisWave).toBe(ELITE_BOX_POINT_CAP);
+
+    g.wavePhase = "rest";
+    g.pendingLevels = 0;
+    expect(g.startNextWave()).toBe(true);
+    expect(g.eliteBoxPointsThisWave).toBe(0);
+
+    dropSpecial(g);
+    expect(g.eliteBoxPointsThisWave).toBe(ELITE_BOX_GAIN);
   });
 });

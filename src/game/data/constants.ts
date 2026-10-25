@@ -8,6 +8,16 @@ export const POTION_GROW_CAP = 10;
 export const BOX_DROP_CAP = 2;
 /** 普通怪单只掉宝箱概率 */
 export const BOX_DROP_RATE = 0.01;
+/**
+ * Issue #87（用户批准的平衡变更）：特殊宝箱单箱可换取的强化点数。
+ * 原为 2，后期叠加多精英导致天赋成长过快、数值膨胀，下调为 1。
+ */
+export const ELITE_BOX_GAIN = 1;
+/**
+ * 每波**精英**宝箱可贡献的强化点数上限；超出部分转为经验 + 血包。
+ * 只约束精英宝箱，普通宝箱（1% 掉率、每波 BOX_DROP_CAP 个）独立计算、互不挤占。
+ */
+export const ELITE_BOX_POINT_CAP = 2;
 /** 精英经验 = 25 + (波次-1) × 该系数，随难度同步成长 */
 export const ELITE_XP_STEP = 4;
 /**

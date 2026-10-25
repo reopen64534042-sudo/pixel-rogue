@@ -5,7 +5,11 @@ import { fresh, seeded, learn, enemy } from "./helpers";
 import { UPGRADES } from "../src/game/data/talents";
 import { ETYPES } from "../src/game/data/enemies";
 import type { EnemyConfig } from "../src/game/core/types";
-import { ELITE_XP_STEP, POTION_GROW_CAP } from "../src/game/data/constants";
+import {
+  ELITE_BOX_GAIN,
+  ELITE_XP_STEP,
+  POTION_GROW_CAP,
+} from "../src/game/data/constants";
 afterEach(() => vi.restoreAllMocks());
 /**
  * 基线更新依据：Issue #1（用户已批准的平衡变更）。
@@ -621,7 +625,10 @@ it.each([
   expect(g.enemies.filter((e) => e.elite).length).toBe(expected);
 });
 
-it("D-04 BOSS 掉落特殊宝箱：+2 宝箱点数，不占普通掉落上限", () => {
+it("D-04 BOSS 掉落特殊宝箱：按 ELITE_BOX_GAIN 计点，不占普通掉落上限", () => {
+  // 基线更新依据：Issue #87（用户已批准的平衡变更）。
+  // 特殊宝箱由「固定 +2 点」改为「ELITE_BOX_GAIN 点 + 每波精英总点数上限 ELITE_BOX_POINT_CAP」。
+  // 此处把原来的 +2 改为按常量显式断言，保留回归能力；上限行为由 tests/chest.test.ts 覆盖。
   const g = fresh();
   const e = enemy(g);
   e.elite = true;
@@ -633,7 +640,7 @@ it("D-04 BOSS 掉落特殊宝箱：+2 宝箱点数，不占普通掉落上限", 
   g.player.x = box.x;
   g.player.y = box.y;
   g.update(1 / 60);
-  expect(g.boxPicks).toBe(before + 2);
+  expect(g.boxPicks).toBe(before + ELITE_BOX_GAIN);
 });
 /**
  * 基线更新依据：Issue #36（用户已批准的手感变更）。

@@ -1,4 +1,8 @@
-import { POTION_GROW_CAP } from "../data/constants";
+import {
+  ELITE_BOX_GAIN,
+  ELITE_BOX_POINT_CAP,
+  POTION_GROW_CAP,
+} from "../data/constants";
 import type { GameCore } from "./GameCore";
 
 export function updateProgression(this: GameCore, dt: number) {
@@ -76,16 +80,29 @@ export function updateProgression(this: GameCore, dt: number) {
       b.y += (dy / d) * 300 * dt;
     }
     if (dx * dx + dy * dy < 64) {
-      // Issue #48：特殊宝箱 +2
-      const gain = b.special ? 2 : 1;
-      this.boxPicks += gain;
       this.boxes.splice(i, 1);
-      this.addText(
-        p.x,
-        p.y - 14,
-        b.special ? "特殊宝箱 +2" : "宝箱 +1",
-        b.special ? "#ffd24a" : "#ffc23d",
-      );
+      if (!b.special) {
+        // 普通宝箱：固定 1 点，不受精英上限约束
+        this.boxPicks += 1;
+        this.addText(p.x, p.y - 14, "宝箱 +1", "#ffc23d");
+      } else {
+        // Issue #87（用户批准的平衡变更）：特殊宝箱 1 点 + 每波精英点数上限 2，
+        // 超出部分转为经验 + 血包（沿用 Issue #71 的兜底口径），避免后期多精英导致数值膨胀。
+        const room = Math.max(
+          0,
+          ELITE_BOX_POINT_CAP - this.eliteBoxPointsThisWave,
+        );
+        const gain = Math.min(ELITE_BOX_GAIN, room);
+        if (gain > 0) {
+          this.eliteBoxPointsThisWave += gain;
+          this.boxPicks += gain;
+          this.addText(p.x, p.y - 14, `特殊宝箱 +${gain}`, "#ffd24a");
+        } else {
+          this.player.xp += 8;
+          this.potions.push({ x: p.x, y: p.y });
+          this.addText(p.x, p.y - 14, "精英宝箱已满 · 转经验 + 血包", "#9aa3c7");
+        }
+      }
       this.audio.beep(1046, 0.1, "triangle", 0.05, 200);
     }
   }
