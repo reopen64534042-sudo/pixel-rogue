@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "@playwright/test";
 
 /**
  * Issue #95：触控层端到端。
@@ -319,4 +319,120 @@ test("desktop is never blocked by the orientation gate", async ({ page }) => {
   await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
   await expect(page.locator("#ov-orient")).toBeHidden();
   await expect(page.locator("#touch-layer")).toBeHidden();
+});
+
+/** 合成一次触控点按：pointerdown(touch) + click，复刻真机的事件顺序 */
+async function tapByTouch(page: Page, target: Locator) {
+  // 属性面板内部可滚动，标签可能在折叠区外；先滚进视口再取坐标
+  await target.scrollIntoViewIfNeeded();
+  const box = await target.boundingBox();
+  if (!box) throw new Error("目标不可见");
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.evaluate(
+    ({ x, y }) => {
+      const el = document.elementFromPoint(x, y);
+      if (!el || !el.closest("span[data-n]"))
+        throw new Error("命中点不在天赋标签上");
+      el.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          pointerId: 21,
+          pointerType: "touch",
+          isPrimary: true,
+          clientX: x,
+          clientY: y,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      el.dispatchEvent(
+        new MouseEvent("click", {
+          clientX: x,
+          clientY: y,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    },
+    { x, y },
+  );
+}
+
+test("talent tooltip opens, toggles closed on re-tap, and closes on outside tap", async ({
+  page,
+}) => {
+  // Issue #96（M2-2）：触屏没有 mouseleave，原本点开就关不掉
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto("/?touch=1");
+  await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
+  await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await page.waitForFunction(
+    () => window.__PIXEL_ROGUE__!.core.state === "play",
+  );
+  await page.evaluate(() => {
+    const bridge = window.__PIXEL_ROGUE__!;
+    for (const name of ["疾影步", "磨刃", "铁布衫"]) {
+      const talent = bridge.talents.find((t) => t.n === name);
+      if (!talent) throw new Error(`缺少天赋：${name}`);
+      bridge.core.learnTalent(talent);
+    }
+  });
+  await page.locator("#btn-pause").click();
+  await page.locator("#btn-pause-stats").click();
+
+  const tag = page.locator("#talent-list span[data-n]").first();
+  const tip = page.locator("#talent-tooltip");
+
+  await tapByTouch(page, tag);
+  await expect(tip).toBeVisible();
+  // 触屏最需要的能力：再点同一标签可以收起
+  await tapByTouch(page, tag);
+  await expect(tip).toBeHidden();
+
+  await tapByTouch(page, tag);
+  await expect(tip).toBeVisible();
+  // 点面板空白处也收起（不依赖浏览器补发的 mouseover）
+  await page.locator("#stat-combat").click();
+  await expect(tip).toBeHidden();
+});
+
+test("hover-only rules are gated behind @media (hover: hover)", async ({
+  page,
+}) => {
+  // 触屏上 :hover 会粘住（卡片放大、按钮变青底），因此这些规则必须被媒体查询包住
+  await page.goto("/");
+  await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
+  const result = await page.evaluate(() => {
+    const gated: string[] = [];
+    const topLevel: string[] = [];
+    const walk = (rules: CSSRuleList, inHover: boolean) => {
+      for (const rule of Array.from(rules)) {
+        if (rule instanceof CSSMediaRule) {
+          walk(
+            rule.cssRules,
+            inHover || rule.conditionText.includes("hover"),
+          );
+        } else if (rule instanceof CSSStyleRule && rule.selectorText.includes(":hover")) {
+          if (inHover) gated.push(rule.selectorText);
+          else topLevel.push(rule.selectorText);
+        }
+      }
+    };
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        walk(sheet.cssRules, false);
+      } catch {
+        // 跨域样式表（若未来引入）忽略
+      }
+    }
+    return { gated, topLevel };
+  });
+  expect(result.gated).toEqual(
+    expect.arrayContaining([
+      ".btn:hover",
+      "#bp-cards .card:hover",
+      ".talent-tag:hover",
+    ]),
+  );
+  expect(result.topLevel).toEqual([]);
 });

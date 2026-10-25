@@ -136,8 +136,8 @@
   gap: 2vmin;
 }
 
-.mode-btn.on,
-.mode-btn.on:hover {
+.mode-btn.on {
+  /* 选中态用单一选择器即可：touch.css 在 game.css 之后加载，同权重下胜出 */
   background: #57e6ff;
   border-color: #57e6ff;
   color: #0b0c14;

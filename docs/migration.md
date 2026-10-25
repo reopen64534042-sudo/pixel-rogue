@@ -1422,3 +1422,35 @@ M2 因此重排为：**M2-1 横屏引导 + 手势边界（本章）→ M2-2 hove
 - 真机仍未验证（无 iOS/Android 实机）：iOS Safari 的 `orientationchange` 触发时机与 Android 边缘返回手势留待 #97。
 - 手机档字号（M2-3）已降级为可选，若后续出现具体读不清的组件再单独处理。
 - 天赋详情仍依赖 `onmouseover`（`GameUI.ts:445-472`），归 M2-2。
+
+## D-26 Issue #96（M2-2）：天赋详情点按开关 + hover 规则隔离（2026-10-26）
+
+### 先说一处前期判断的更正
+
+M2 拆分时曾把「天赋详情」记为**触屏上的死功能**。实测（844×390 触屏仿真 + 合成 pointerdown/click）后确认：**点按原本就能展开**——`GameUI` 里早已有 `tl.onclick` 渲染 tooltip。真正的缺陷是另外两条：
+
+1. **展开后关不掉**：触屏没有 `mouseleave`，再点同一条也不会收起，只能靠浏览器补发的 `mouseover` 碰运气；
+2. **`:hover` 粘滞**：卡片点过之后一直保持放大/高亮，按钮一直青底，触屏观感错乱。
+
+因此本章的实际交付是「补关闭路径 + 隔离 hover」，不是「新增点按能力」。结论记在此处，避免后来者按错误前提重做一遍。
+
+### 实现
+
+- **点按开关**（`GameUI` 天赋列表块）：
+  - 鼠标仍走 `onmouseover / onmousemove / onmouseleave`，PC 手感零变化；
+  - 触控/笔走 `pointerdown`：点开、再点同一条收起、点面板空白收起；并置 `skipNextClick` 跳过随后补发的 `click`，避免同一次点按被处理两次；
+  - `shownTag` **只在 pointerdown 与 click 里写，hover 不写**——否则 PC 上「鼠标已展开 + 点击」会立刻命中同一条而被误判成收起（这是第一版实现踩到的真实 bug）；
+  - `#ov-stats` 的 `pointerdown` 兜底关闭，不依赖浏览器补发的 mouseover。
+- **hover 隔离**：19 处交互 `:hover` 规则（game.css 18 + codex.css 1）逐一包裹进 `@media (hover: hover)`，桌面（`hover: hover`）行为不变，触屏不再粘滞。
+- **一个必须拆开的例外**：`.pause-actions .btn:disabled` 原来是 `.btn:disabled, .btn:disabled:hover` 的组合选择器。整条塞进媒体查询会让触屏上的禁用按钮丢掉背景/虚线边框（只剩 `.btn` 基础态），所以拆成「基础禁用样式（媒体查询外）+ `:disabled:hover`（媒体查询内）」。
+
+### 验收
+
+- 新增浏览器用例 2 项：①触屏合成 pointerdown/click 序列 → 展开 → 再点收起 → 再展开 → 点面板空白收起；②**CSS 结构断言**：遍历 `document.styleSheets`，要求 `.btn:hover`、`#bp-cards .card:hover`、`.talent-tag:hover` 等必须在 `@media (hover: hover)` 内，且**顶层不得残留任何 `:hover` 规则**（防止以后新增的 hover 规则漏包）。
+- `npm test` **360/360**（与上一批同数，本批为 UI 行为，未新增单测）；`parity` 26 项原样；`npm run test:browser` **16/16**（14 + 2）；`npm run typecheck`、`npm run build` 通过。
+- 实拍（844×390 DPR 2）：点按「磨刃」标签后详情面板在窄舞台内正常显示、不越界。
+
+### 遗留
+
+- tooltip 位置仍按手指坐标 +16px 偏移，可能与拇指重叠（`pointer-events: none`，不影响点击）。
+- 真机仍未验证（无实机），触屏 `pointerdown` 与补发 `click` 的时序依赖浏览器实现；用例已按 Chrome 的实际顺序模拟，iOS Safari 需在 #97 复核。
