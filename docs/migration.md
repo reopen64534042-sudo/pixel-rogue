@@ -1062,3 +1062,60 @@ Player/Enemy、41 张天赋、敌人配置、波次/RNG、DamageSystem、CombatS
 2. **P2 敌怪对照升级为权威快照比较**：brute/shooter/bomber（普通+精英）与 slime/bat（中性）全部增加 `getEnemyCombatStats(e)` 比较维度；适配器字段漂移变异（defense 兜底 0→1）实测 3 用例红，shadow 对适配器回归有咬合力。
 3. **P3 resolveKeyedMap 危险原型键显式拒绝**：普通对象上 `out.__proto__ = v` 会触发原型 setter——键被静默丢弃且下游 `{ ...map }` 展开会再次丢失，故对 `"__proto__"` 键抛 TypeError（拒绝优于安全容器：游戏数据无合法 __proto__ 键）；`"constructor"` 等非魔键作为自有数据属性正常工作（边界用例固定）。base（JSON 解析自有键）与修饰符 key 两个入口都被覆盖。
 4. S4-A 语义修订（flat base 起始顺序累加）、percent 加算、final 连乘、平衡/RNG/Player/Enemy 全部未动。
+
+## D-13 Combat Foundation S4-C 第一批：C0 属性来源审计 + C1 纯 flat 权威迁移（2026-10-25）
+
+依据 `docs/pixel-rogue-S4-implementation-brief.md` §4-S4-C 与任务书「第一批 C0+C1」，分支 `feat/combat-foundation-s4c`（基线 f35bfd1，PR #89 合并后上游无冲突性新提交）。**只完成 C0+C1，停在校审节点；C2/C3/C4 未开始。**
+
+### C0：41 张天赋属性影响清单（分类矩阵）
+
+全部 41 张天赋逐一审计后的六类划分（`recompute()` 现状 = Object.assign(statBase) → 清六个 S3 可选键 → 按 picks 顺序重放 talent.f → hp 夹紧；当前唯一调用点 SwapSystem.melt）：
+
+- **A 纯 flat 属性贡献、无获得时效果**——本批迁移 5 张：磐石（defense +15/级）、铁布衫（tough +0.1/级）、致命一击（crit +0.1/级 + 条件觉醒来源：upCounts≥8 读时有效暴伤 +0.4）、会心深渊（critMul +0.5/级）、元素亲和（typeDamageBonus 火/雷各 +0.1/级）。同类未迁移：修复微光（regen +0.6）、雷霆连锁（chain 计数 + chainDmg +0.15）、屠戮之欲（explode 计数 + explodeDmg +0.5）、吸血獠牙（lifesteal +0.008）、荆棘护甲（thorns +6）、闪避本能（dodge +0.08）、灼热易伤（scorchVuln +0.1）。
+- **B 逐次乘算（final 语义，暂缓）**：磨刃 damage×1.1、狂怒 ×1.2、毁灭本能 ×1.3、疾速扳机 fireRate×1.18、疾风之靴 speed×1.1、磁力护符 magnet×1.4、广域法印 area×1.2、强化弹丸 boltDmgMul×1.25（技能特化倍率，非伤害乘区）。重放顺序=picks 顺序，与逐次学习运算序列一致。
+- **C flat 属性 + 获得时即时效果（暂缓）**：生命之泉（maxhp+20 且回满）、巨人血脉（maxhp+30 且 hp+30）、能量护盾（shieldMax+1 且 shield+1）。
+- **D 运行状态/层数/计时（暂缓）**：击杀狂热（hasteLv 上限成长 + 首次获取 haste=1/hasteT=3）、战意沸腾（rageLv，rageT 受伤触发）、壁垒（barrierLv → 每波开始 tempShield）、疾影步（dashLv/dashMax + dashT/dashCharges/dashRe）、不屈（nd + ndUsed 每波重置）。
+- **E 机制解锁/条件/计数（不涉属性模型）**：分裂射击、穿透之矢、守护之刃、弹射魔符、烈焰印记、冰霜之力、雷霆连锁、星辰坠落、幸运之星、二段冲刺（req 疾影步）、烈焰蔓延（req）、天眼制导、焦土燃烧、魔刃回旋、不屈（hidden）。
+- **F 非天赋持久来源**：满血血包 maxhp+1（ProgressionSystem，每波 potionGrow≤10 上限）——属性重算必须为其提供持久来源（现状缺失，见 R-1）。
+
+**关键调用语义确认**：`learnTalent` 先 f 后写 upCounts/picks；`melt` 删材料 → recompute → output.f → 记录输出卡（输出卡即时效果正常生效，不被 hp 夹紧中和）；`recompute` 的 hp 夹紧 min(hpBefore, maxhp) 恰好中和了重放型治疗（生命之泉/巨人血脉重放补血不生效）。
+
+### 新旧模型差异矩阵（recompute 现状缺陷，复现测试已定界、未修复）
+
+| # | 现状行为 | 新模型预期 | 复现 |
+|---|---|---|---|
+| R-1 | **缺陷**：满血血包 maxhp 成长无来源，recompute 后丢失（statBase 重置） | 血包成长作为持久来源参与解析 | s4c-recompute-audit R-1 |
+| R-2 | **缺陷**：能量护盾重放 shield++ → 已耗盾层恢复满值 | 当前护盾属 RuntimeState，不重放 | s4c-recompute-audit R-2 |
+| R-3 | **缺陷**：击杀狂热重放 haste=1/hasteT=3 → 休整期 buff 重新触发 | 获得时效果不重放 | s4c-recompute-audit R-3 |
+| R-4 | **缺陷**：dashT/dashCharges/dashRe/meteorT/tempShield/ndUsed/orbA/hurtCd 等被 statBase 覆盖重置 | RuntimeState 与属性分离（S4-D 范围） | s4c-recompute-audit R-4 |
+| R-5 | **保护语义**（非缺陷）：hp 夹紧中和重放治疗，recompute 不改当前 HP（除上限夹紧） | 保持 | s4c-recompute-audit R-5 |
+
+### C1：单一权威来源接入方式（权威来源切换图）
+
+- **切换图**：`picks 序列 → talentStatModifiers()（core/TalentStatSources.ts 来源表，值逐字声明、不引用 talent.f）→ StatModel.resolveStats → applyTalentStatProjection() → Player 兼容字段（defense/tough/crit/critMul/typeDamageBonus）`。接入点三处：`learnTalent` 记录后、`recompute` 重放后（hp 夹紧前）、`melt` 输出卡应用（改经 learnTalent）。**Talent.f 对五张卡改空操作——旧 f 累加与新 Modifier 不并行，无双算。**
+- **melt 执行次序不变证明**：输出卡应用由原三行（f → upCounts++ → picks.push）改为 `this.learnTalent(output)`——f 先执行、记录顺序不变、零随机消耗；max 前置条件由 `availTalents→canOffer` 在抽池时保证，抽池与学习之间无状态变更，校验必然通过。材料删除 → recompute → 输出卡学习 → 收尾的次序与 RNG 消耗数逐位不变（RNG 变异验证：melt 恰好 1 次 Math.random）。
+- **五张 f 空操作无损证明**：审计确认五张卡均无获得时即时效果（A 类定义）；学习路径的属性生效改由投影承接，时序上仍发生在 learnTalent 返回前（pv/cur/UI 读数时点不变）。
+- **浮点语义**：flat 区 base 起始、按修饰符顺序（=picks 顺序）逐次累加，与旧重放的 IEEE-754 运算序列逐位一致；逐位钉子：tough×4=0.4、crit×8=0.8499999999999999（≠ Σ 分组 0.8500000000000001）、tdb×3=0.30000000000000004。
+- **觉醒**：保持 `DamageMath.critMultiplier()` 读时按 upCounts 现值判定，+0.4 不烘焙进 p.critMul 字段——置换移除层级后自动失效（测试覆盖 7/8 边界与两种组合顺序）。
+- **可选键存在性**：defense 键仅在磐石来源存在时写入、无来源删键；typeDamageBonus 为键级所有权（第一轮评审 P2 修订，见下）——与旧 f 的序列化形状一致（parity 逐字段对照原样通过）。
+- **负区因子**：政策未批准，本表全部来源为正 flat，未实施任何新的拒绝/裁剪（StatModel 保持 S4-B 语义，遵守暂缓项）。
+
+### 测试与验证
+
+- `npm test` **229 项通过**（上游基线 206 + C1 聚焦 18 + C0 审计 5）；parity 26 项原样通过（「every talent effect」裸 f 对照对铁布衫/会心深渊改经真实学习路径 learnTalent 并归一化记录字段——基线更新依据已留痕于 S4C_AUTHORITY_MIGRATED；全天赋模拟场景继续包含两张卡，未缩减对照范围）；`npm run typecheck`、`npm run build` 通过。
+- 变异验证 6 组全部被咬住：① 来源表磐石 15→14（7 红，基线钉子+shadow 对照）② learnTalent 移除投影（31 红，含 parity 裸 f 对照）③ recompute 移除投影（4 红，含 D-08）④ melt 退回手动应用无投影（4 红）⑤ StatModel flat 区改回 Σ 分组（2 红，0.8499999999999999 顺序钉子）⑥ 觉醒阈值 ≥→>（6 红）。
+- S4-B shadow 双源对照保持独立：playerShadowFromPicks（来源 B 独立重述）与 playerShadowFromEntity（来源 A 实体恒等）仍不被运行时引用，与投影字段逐位互证（resolveKeyedMap/键控修饰符类型自 C1 起被权威路径复用，模块说明已同步）。
+- 浏览器测试未运行：无场景/UI/显示改动；伤害行为由「火雷单次乘区」「弹丸发射时快照不回溯」与 parity 逐位钉子覆盖。
+
+### 已知风险与后续批次边界
+
+- R-1～R-4 为既有缺陷 pin，纠正需独立授权（RuntimeState 分离属 S4-D/后续批次范围）。
+- tdb 键级所有权兼容边界（第一轮评审 P2 定界，见下「评审修订」）：fire/lightning 为投影所有权键，外部写入者须避开；recompute/melt 路径沿用历史行为，外部键在该路径不保留。
+- 铁布衫 0.6 上限、暴击无上限等夹紧仍在消费点（DamageSystem/UI），模型不裁剪，与 S4-B 定基线一致。
+
+### 第一轮评审修订（P2 + P3×2，2026-10-25，未提交状态下修复）
+
+1. **P2 typeDamageBonus 键级来源所有权**：首版投影把映射整体替换/删除，学习无关天赋会清空非迁移增伤键（如手工预置的 physical）——旧测试还把这个清空误钉为预期。修订：投影只拥有 `ELEMENT_TDB_KEYS = [fire, lightning]`（即来源表声明的全部映射键，与 talentStatModifiers 共用单一声明）——有来源时以解析结果**绝对覆写**（每次从 picks 全量解析，不与旧值相加，无重复叠加），无来源时删这两键（映射因此为空才连映射删除）；其余键属未知外部来源，学习任何天赋都保持不动。**兼容边界（明示不猜测）**：外部来源若也写 fire/lightning，与元素亲和贡献无法区分，投影覆写为权威值（当前无此类运行时写入者）；recompute/melt 沿用历史行为——recompute 先整体删键再重放（S3-B 语义），外部键在该路径不保留。测试：新增 4 项边界用例 + 快照用例断言修正（physical 保留且弹丸不回溯）；针对性变异（重新引入整映射替换）4 用例红确认咬合。
+2. **P3 Mock 卫生**：`tests/s4c-talent-stat-sources.test.ts` 新增 `afterEach(vi.restoreAllMocks)`（vitest 配置无自动 restore）；单文件单独/重复运行与全量运行均通过，无跨测试污染。
+3. **P3 真实升级面板路径**：新增经 `openLevelPanel`（恒定随机 0.92 确定性产出 [磐石, 疾影步, 狂怒]）+ `chooseSlot` 的完整升级路径测试——获得磐石、defense 立即投影为 15、upCounts/picks/pendingLevels/bpMode/slots 全部正确、学习步骤零额外 RNG（抽卡 RNG 只发生在 openLevelPanel）。
+4. 本轮验证：`npm test` **234/234**（229 + 5 新增；parity 26 原样）；typecheck/build 通过；浏览器冒烟 `npm run test:browser` **6/6**（真实输入升级选择、熔炉/置换、生产构建首波自然通关）。单一权威来源不变：五张 Talent.f 仍为空操作，StatModel flat/percent/final 语义未动。

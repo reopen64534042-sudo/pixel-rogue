@@ -91,9 +91,11 @@ export function melt(this: GameCore) {
     if (!this.player.upCounts[name]) delete this.player.upCounts[name];
   }
   this.recompute();
-  output.f(this.player);
-  this.player.upCounts[output.n] = (this.player.upCounts[output.n] || 0) + 1;
-  this.player.picks.push(output.n);
+  // S4-C C1：输出卡应用改经 learnTalent——与原三行（f → upCounts → picks）
+  // 逐语句等价（f 先执行、记录顺序不变、无随机消耗），且 max 前置条件已由
+  // availTalents→canOffer 在抽池时保证（选池与学习之间无状态变更）；学习
+  // 后由 learnTalent 统一同步五张已迁移卡的权威属性投影。
+  this.learnTalent(output);
   this.swSel = {};
   this.swTarget = 0;
   this.swapOpen = false;

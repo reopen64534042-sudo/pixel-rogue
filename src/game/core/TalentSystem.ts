@@ -2,6 +2,7 @@ import { hash01 } from "../data/constants";
 import { statBase } from "../data/stats";
 import { DMG_POOL, RAMP, UPGRADES } from "../data/talents";
 import type { GameCore } from "./GameCore";
+import { applyTalentStatProjection } from "./TalentStatSources";
 import type { Talent } from "./types";
 export function tierWeights(this: GameCore) {
   let w = RAMP[0].w;
@@ -49,6 +50,10 @@ export function recompute(this: GameCore) {
     if (!talent) throw new Error(`未知天赋: ${n}`);
     talent.f(this.player);
   }
+  // Combat Foundation S4-C C1：五张已迁移纯 flat 卡（磐石/铁布衫/致命一击/
+  // 会心深渊/元素亲和）的属性由权威来源表解析投影，不经 talent.f 累积
+  // （它们的 f 是空操作）——单一权威来源，重算幂等零重复叠加
+  applyTalentStatProjection(this.player);
   this.player.hp = Math.max(1, Math.min(hpBefore, this.player.maxhp));
 }
 
@@ -58,6 +63,8 @@ export function learnTalent(this: GameCore, u: Talent) {
   u.f(this.player);
   this.player.upCounts[u.n] = (this.player.upCounts[u.n] || 0) + 1;
   this.player.picks.push(u.n);
+  // S4-C C1：学习后同步五张已迁移卡的权威属性投影（幂等，只取决于 picks）
+  applyTalentStatProjection(this.player);
   return true;
 }
 export function openLevelPanel(this: GameCore) {
