@@ -1019,3 +1019,35 @@ Player/Enemy、41 张天赋、敌人配置、波次/RNG、DamageSystem、CombatS
 
 - `typecheck` 0 错误；`npm test` **186/186**（原 181 + 5）
 - 普通宝箱的掉落名额与价值行为未变（既有 9 项宝箱测试原样通过）
+
+## D-17 工程配置：GitHub Pages 自动部署（2026-10-25）
+
+### 动机
+
+此前只能本地 `npm run dev` 试玩；而 `dist/` 是构建产物、被 `.gitignore` 忽略，`git pull` 不会更新它，
+曾导致长时间在玩旧版本（`dist` 停留在 02:40，`main` 已到 13:36）。协作方也面临同一问题。
+
+### 交付
+
+- `.github/workflows/deploy.yml`：push `main` 或手动触发 → `npm ci` → `npm run build`
+  （内含 `tsc --noEmit`）→ `upload-pages-artifact` → `deploy-pages`
+- 权限：`pages: write` + `id-token: write`；并发组 `pages` 防止多次部署互相覆盖
+- `README.md`：第 10 节改为「发布到静态托管」，新增方式 C，并写明两个易踩的坑
+  （`dist` 不随 `git pull` 更新、`dist/index.html` 双击会因 ES module 的 CORS 限制而无法运行）
+
+### 路径适配（无需改代码）
+
+`vite.config.ts` 已是 `base: "./"`。实测构建产物：
+CSS 中字体被重写为 `url(../assets/fonts/press-start-2p.ttf)`，HTML 引用为 `./assets/...`，
+在 `/pixel-rogue/` 子路径下均能正确解析，不存在 404 风险。
+
+### 启用步骤与验证
+
+1. 仓库 Settings → Pages → Source 选择 **GitHub Actions**（或 `POST /repos/{owner}/{repo}/pages`，`build_type=workflow`）
+2. 合并后 workflow 自动运行；完成后打开 `https://reopen64534042-sudo.github.io/pixel-rogue/`，
+   确认开始界面版本号与 `main` 一致
+3. 此后每次合并到 `main` 自动更新，无需手动操作
+
+### 注意
+
+部署配置不改变游戏内容，因此**不占用 changelog 版本号**；本文件记录即可。
