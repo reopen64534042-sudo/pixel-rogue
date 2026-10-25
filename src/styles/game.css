@@ -1207,3 +1207,45 @@ p {
 #ov-stats {
   z-index: 30;
 }
+
+/* Issue #81：完备暂停界面（进度摘要 + 继续/图鉴/设置占位/重新开始） */
+.pause-stats {
+  color: #c7cff2;
+  font-size: 1.5vmin;
+  margin: 0;
+  line-height: 1.9;
+}
+.pause-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1vmin;
+  width: min(46vmin, 340px);
+}
+.pause-actions .btn {
+  width: 100%;
+}
+/* 重新开始的二次确认态：与普通按钮区分，避免误认为可直接点击 */
+.pause-actions .btn.armed {
+  border-color: #ff6b9d;
+  color: #ff6b9d;
+  background: #2a1424;
+}
+/*
+ * 禁用态必须压过 .btn:hover（:hover 对 disabled 元素依旧生效，
+ * 否则鼠标划过时按钮会变成青底可点态，误导玩家）。仅作用于暂停面板，不改全局按钮。
+ */
+.pause-actions .btn:disabled,
+.pause-actions .btn:disabled:hover {
+  background: #141a33;
+  border-color: #3d4a7a;
+  border-style: dashed;
+  color: #7b87ad;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+.pause-version {
+  color: #5f6b96;
+  font-size: 1.2vmin;
+  margin: 0;
+}

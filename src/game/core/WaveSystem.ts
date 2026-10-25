@@ -49,6 +49,8 @@ export function cardsOfTier(this: GameCore, t: number) {
 }
 
 export function enterRest(this: GameCore) {
+  // 图鉴同步：放在两个早退之前，保证升级 / 宝箱面板还没走完时，本次进度也已记录。
+  this.codex.syncTalents(this.player.upCounts);
   this.wavePhase = "rest";
   this.bpMode = "rest";
   this.swapUsedThisRest = false;

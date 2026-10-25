@@ -11,6 +11,7 @@ import { fmtTime } from "../game/data/constants";
 import { boltDamage, critMultiplier } from "../game/core/DamageMath";
 import { COMBAT_BALANCE } from "../game/data/combatBalance";
 import { element, elementWithin } from "./dom";
+import { CodexUI } from "./CodexUI";
 const DMG_NAMES: Record<string, string> = {
   bullet: "🏹魔弹",
   orbit: "🗡️飞刃",
@@ -25,13 +26,28 @@ const DMG_NAMES: Record<string, string> = {
 const show = (id: string) => element(id).classList.remove("hidden");
 const hide = (id: string) => element(id).classList.add("hidden");
 export class GameUI {
+  /** 图鉴面板：开始界面与暂停界面共用同一实例（Issue #78） */
+  readonly codex: CodexUI;
+  /** 重新开始的二次确认态（Issue #81） */
+  private restartArmed = false;
+  private restartTimer: number | undefined;
   constructor(public core: GameCore) {
+    this.codex = new CodexUI(core);
     core.view = {
       reset: () => this.reset(),
       started: () => {
         ["ov-start", "ov-over", "ov-pause", "ov-stats"].forEach(hide);
       },
-      paused: (p) => (p ? show("ov-pause") : hide("ov-pause")),
+      paused: (p) => {
+        if (p) {
+          this.renderPause();
+          show("ov-pause");
+        } else {
+          // 防御：恢复游戏时若图鉴仍开着，一并收起，避免盖住战斗画面
+          this.codex.close();
+          hide("ov-pause");
+        }
+      },
       stats: (open) => {
         if (open) {
           this.buildStats();
@@ -70,6 +86,16 @@ export class GameUI {
     element("btn-changelog-close").onclick = () => hide("ov-changelog");
     element("btn-retry").onclick = () => this.core.startGame();
     element("btn-resume").onclick = () => this.core.togglePause();
+    element("btn-pause-codex").onclick = () => this.codex.open();
+    // 设置入口本期只占位：保持 disabled，不绑空的 onclick（避免出现死按钮）
+    element("btn-restart").onclick = () => {
+      if (!this.restartArmed) {
+        this.armRestart();
+        return;
+      }
+      this.disarmRestart();
+      this.core.startGame();
+    };
     element("btn-statclose").onclick = () => this.core.toggleStats();
     element("btn-pause").onclick = () => {
       element("btn-pause").blur();
@@ -597,5 +623,47 @@ export class GameUI {
     hint.textContent = `可随机熔出 1 张${TIERS[this.core.swTarget]}天赋 · 点击熔炼确认`;
     mb.disabled = !this.core.availTalents(this.core.swTarget).length;
     mb.style.opacity = mb.disabled ? "0.4" : "1";
+  }
+
+  /** 关闭最上层覆盖面板；返回是否关闭了某层（键位路由据此决定是否继续处理）。 */
+  dismissOverlay(): boolean {
+    if (this.codex.isOpen) {
+      this.codex.close();
+      return true;
+    }
+    return false;
+  }
+
+  /** 是否有覆盖面板打开：用于屏蔽 C 键等战斗内快捷键。 */
+  hasOverlay(): boolean {
+    return this.codex.isOpen;
+  }
+
+  private renderPause(): void {
+    this.disarmRestart();
+    const core = this.core;
+    const talentCount = Object.keys(core.player.upCounts).length;
+    element("pause-stats").textContent =
+      `第 ${core.waveN} 波 · ${fmtTime(core.time)} · Lv.${core.player.lvl} ｜ 击杀 ${core.kills} · 天赋 ${talentCount}`;
+    element("pause-version").textContent = `Pixel Rogue · ${CURRENT_VERSION}`;
+  }
+
+  /** 重新开始需二次确认：首次点击只改按钮文案，4 秒内没有第二次点击则自动复原。 */
+  private armRestart(): void {
+    this.restartArmed = true;
+    const button = element("btn-restart");
+    button.textContent = "再点一次确认";
+    button.classList.add("armed");
+    window.clearTimeout(this.restartTimer);
+    this.restartTimer = window.setTimeout(() => this.disarmRestart(), 4000);
+  }
+
+  private disarmRestart(): void {
+    this.restartArmed = false;
+    window.clearTimeout(this.restartTimer);
+    this.restartTimer = undefined;
+    const button = element("btn-restart");
+    button.textContent = "重 新 开 始";
+    button.classList.remove("armed");
   }
 }
