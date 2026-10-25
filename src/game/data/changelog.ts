@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v23",
+    date: "2026-10-25",
+    title: "战斗基础 S4-B：只读属性 shadow 对照基建",
+    items: [
+      "新增 core/StatSheets.ts：双来源（实体值构造 / picks 与怪物配置独立推导）属性表构建器与类型化映射逐 key 解析，未接入任何运行时结算路径",
+      "StatModel 加性扩展：通用映射族槽位（typeDamageBonus/resistance，类型名保持 key，不硬编码组合）；flat 区改为 base 起始顺序累加（与既有重放逐位一致，shadow 对照定论）",
+      "本批零行为变化：旧快照仍是唯一权威出口，全部波次 parity 原样通过",
+    ],
+  },
+  {
     version: "v22",
     date: "2026-10-25",
     title: "平衡：精英宝箱收益下调与文案修正",
