@@ -1,4 +1,5 @@
 import "./styles/game.css";
+import "./styles/codex.css";
 import Phaser from "phaser";
 import { GameScene } from "./game/scenes/GameScene";
 import { W, H } from "./game/data/constants";

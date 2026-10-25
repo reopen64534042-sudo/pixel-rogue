@@ -805,3 +805,70 @@ Player/Enemy、41 张天赋、敌人配置、波次/RNG、DamageSystem、CombatS
 - **P2**：输入逐项有限不代表聚合结果有限——flat/percent 求和、base+flat、各阶段乘积都可能在全合法输入下溢出为 ±Infinity（NaN 同样被守卫覆盖）。修复：`resolveStats` 在 flat 聚合/flat 阶段/percent 聚合/percent 阶段/final 阶段五处校验结果有限性，溢出抛 **RangeError**（区别于输入非法的 TypeError），不静默返回非有限数。新增 4 组回归：两 flat 求和溢出、base+flat 溢出（评审原始样例 MAX_VALUE+MAX_VALUE）、两 percent 求和溢出、base×final 乘积溢出。变异验证：移除溢出守卫 → 4 用例红；还原 26/26。
 - **P3（不改变行为）**：多项合法负 percent 合计可 < -1，产生负区因子。任务书仅明确允许因子为 0。按评审建议本批**不裁剪**，在契约 JSDoc 明示「负区因子当前允许，政策须在 S4-B 正式读取前明确」，并新增钉住现状的回归（-0.6×2 → 负因子，与实现同序表达式逐位相等），防止后续被静默更改。
 - 测试 26 项（+5）；`npm test` **149/149**（parity 26 原样）；build/typecheck 通过；架构与运行时边界零改动。
+
+## D-12 Issue #78：图鉴体系 M1–M2——天赋图鉴与跨局收集进度（2026-10-25）
+
+### 交付范围
+
+- `src/game/codex/codexData.ts`：条目模型与 id 规则；条目**由 `UPGRADES` 派生**，不手工罗列
+- `src/game/codex/CodexStore.ts`：独立存档 `pixelrogue_codex` v1，读写与损坏保护
+- `src/game/codex/CodexSystem.ts`：`syncTalents` / `backfill` / `progress`，只增不减、幂等
+- `src/ui/CodexUI.ts` + `src/styles/codex.css`：只读面板（分类筛选、剪影、详情、完成度）
+- `index.html`：追加 `#ov-codex` 与开始界面「图鉴」按钮（纯追加，未移动既有节点）
+- 接线共 11 行：`GameCore` 旁路字段 + 构造注入 + 局末同步；`WaveSystem.enterRest()` 首行同步
+
+### 架构决策
+
+1. **旁路观测**：图鉴状态不进 `Player`，独立 `core.codex`。`tests/parity.test.ts` 的快照是 19 字段显式白名单且不含 codex，故该对照无需改动，也没有新增排除项。
+2. **主键用名字而非下标**：实测在 `UPGRADES` 索引 5 处插入一条新卡，下标键错位 36/41，名字键 41/41 命中。名字键失效是「单条丢失且加 alias 可修」，下标键失效是「全局静默错位且不可反推」。
+3. **条目派生**：新增天赋自动进入图鉴，不存在条目漏配；因此不设「条目 ↔ 天赋」对照表，只保留名字唯一性与基线数量断言。
+4. **批量同步**：波末（`enterRest` 首行，位于两个早退之前）与局末各同步一次，不侵入 `TalentSystem` / `EnemySystem`。代价是解锁非实时，可接受。
+5. **补档**：打开图鉴时只读 `records.up` 回填，`first` 记 0 表示来源为战绩；只补不覆盖。
+6. **异常隔离**：`CodexStore.update` 吞掉 `mutate` 异常并记 `lastError`——图鉴运行在主循环调用链上，不允许因自身异常打断 `updateWave`。
+
+### 未触碰
+
+`DamageMath` / `CombatStats` / `StatModel` / `DamageSystem` / `CombatSystem` / `combatBalance` / `talents.ts` 数值 / `enemies.ts` 数值 / `tests/parity.test.ts` / `src/styles/game.css`（改为新增 `codex.css` 并在 `main.ts` 引入）。
+
+### 验证
+
+- `npm run typecheck` 0 错误；`npm test` **169/169**（原 149 + 新增 20，parity 26 原样）
+- `tests/codex.test.ts` 20 项：条目派生/隐藏过滤/名字唯一/改名解析、解锁幂等与 max 取大、置换后保留、损坏不覆盖、回调抛错中止、键名固定、补档只补不覆盖、进度分区合计、以及 **GameCore 接线真实性**（局末写入、波末写入、早退路径已同步、重开不清空）
+- `npm run build` 通过；Playwright **6/6**（含 production 产物完整流程）
+- 浏览器实测四态：空档 `0/40`、注入后 `4/40`、详情文案、分类计数（攻击 2/9 · 增幅 1/7 · 技能 1/15 · 防御 0/9）；隐藏天赋在整个面板出现 **0 次**；仅存战绩时打开图鉴得 `2/40`（补档生效）
+
+### 遗留
+
+- M3（#81）：完备暂停界面。届时需引入 `pauseSub` 子面板概念，P/Esc 先关子面板再退暂停；**重新开始不写战绩**（本文件已登记该语义：战绩 = 阵亡记录）。
+- M4（#82）：敌人图鉴。需 `assetRegistry.SpriteEntry` 增加图片来源，并重新确认是否接受 `CombatSystem.killEnemy` 的一行接缝。
+
+## D-13 Issue #81：完备暂停界面——图鉴入口与重新开始确认（2026-10-25）
+
+### 交付范围
+
+- `index.html`：`#ov-pause` 追加进度行、按钮组与版本号（纯追加）
+- `GameUI`：`renderPause` / `armRestart` / `disarmRestart` / `dismissOverlay` / `hasOverlay` + 按钮绑定
+- `GameScene`：P / Esc 键位路由改为「先关覆盖面板，再切暂停」
+- `src/styles/game.css` 末尾追加暂停面板样式（`game.css` 本就是 overlay 与按钮样式的归属处）
+
+### 关键决策
+
+1. **不加 `pauseSub` 状态**：issue 原计划给 `GameCore` 增加暂停子面板字段，实际实现中删除。图鉴是独立 overlay，关闭时下层面板天然还在，只需 UI 层的「覆盖层优先」路由即可，**核心状态机零改动**。
+2. **重新开始不写战绩**：复用既有 `startGame()`；`storage.append` 仍只在 `state = "over"` 执行。战绩语义 = 阵亡记录，中途放弃不计。
+3. **二次确认原地变文案**而非新弹窗：首次点击只改按钮文案与样式，4 秒后自动复原；每次打开暂停面板也会复原，避免"一进来就是确认态"。
+4. **设置按钮保持 `disabled` 且不绑 onclick**：杜绝死按钮（#69 的教训）。
+
+### 实现中发现的两个真实冲突
+
+- **z-index**：`#ov-pause` 为 60（Issue #68 置顶所有 UI），图鉴原设 20 会被完全盖住。已改为 70，并用 `elementFromPoint` 实测中心点最上层确为图鉴。
+- **`:hover` 压过 `:disabled`**：`.btn:hover` 设青底黑字且特异性低于 `.btn:disabled` 之外无背景覆盖，disabled 按钮悬停时仍显示为可点态。已在 `.pause-actions` 范围内用 `:disabled:hover` 钉死（虚线框 + 灰字），并保留全局既有行为不动。
+
+### 验证
+
+- `typecheck` 0 错误；`npm test` **169/169**（无新增单测：本层为 DOM 交互，vitest 无 DOM 环境）
+- Playwright **6/6**（含 production 完整流程）。注意：`test-results/` 累积 728 个 artifacts 后，Playwright 启动清空会触发本机安全删除守卫，须用 `--output=output/pw-run` 指向新目录绕过，属环境限制而非代码问题
+- 浏览器实测：暂停摘要与版本号正确、设置 `disabled` 且 idle/hover 计算样式均为 `rgb(20,26,51)`/虚线、图鉴层级 70>60、Esc 关图鉴后仍在暂停、P 才恢复、重开二次确认生效且 `records` 长度不变（0→0）、重开后面板再次暂停时按钮已复原
+
+### 遗留
+
+- M4（#82）同上；另：全局 `.btn:disabled:hover` 仍是既有缺陷（其他面板的禁用按钮悬停也会变青底），本次只在暂停面板内修正。

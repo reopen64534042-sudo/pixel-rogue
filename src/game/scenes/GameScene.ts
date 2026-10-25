@@ -60,9 +60,16 @@ export class GameScene extends Phaser.Scene {
         event.preventDefault();
       this.core.keys[key] = true;
       if (event.repeat) return;
-      if (key === "p") this.core.togglePause();
-      if (key === "c" || (key === "escape" && this.core.state === "stats"))
-        this.core.toggleStats();
+      // 覆盖层优先：图鉴打开时 P / Esc 只关闭图鉴，不恢复游戏（Issue #78 / #81）
+      if (key === "p" || key === "escape") {
+        if (this.ui.dismissOverlay()) return;
+        if (key === "p") this.core.togglePause();
+        else if (this.core.state === "stats") this.core.toggleStats();
+        else if (this.core.state === "pause") this.core.togglePause();
+        return;
+      }
+      // 图鉴打开时不响应属性面板，避免两层 overlay 互相遮挡
+      if (key === "c" && !this.ui.hasOverlay()) this.core.toggleStats();
       if (key === "m") {
         this.core.audio.muted = !this.core.audio.muted;
         this.core.addText(

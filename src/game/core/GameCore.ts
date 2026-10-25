@@ -1,5 +1,7 @@
 import { AudioService } from "../../services/AudioService";
 import { StorageService } from "../../services/StorageService";
+import { CodexStore, type CodexStorage } from "../codex/CodexStore";
+import { CodexSystem } from "../codex/CodexSystem";
 import { WORLD } from "../data/constants";
 import { statBase } from "../data/stats";
 import {
@@ -147,10 +149,15 @@ export class GameCore {
   swSel: Record<string, number> = {};
   keys: Record<string, boolean> = {};
   view: GameView = silentView;
+  /** 图鉴：旁路观测状态，不参与模拟，也不在 parity 快照的字段白名单内 */
+  codex!: CodexSystem;
   constructor(
     public audio = new AudioService(),
     public storage = new StorageService(),
+    codexStore?: CodexStorage,
   ) {
+    this.codex = new CodexSystem(new CodexStore(codexStore));
+    this.codex.load();
     this.resetGame();
   }
   tierWeights = tierWeights.bind(this);
@@ -302,6 +309,8 @@ export class GameCore {
       up: { ...this.player.upCounts },
       dmg: { ...this.dmgBy },
     });
+    // 局末同步图鉴：与战绩写入同一收口，放在 append 之后避免影响其行为。
+    this.codex.syncTalents(this.player.upCounts);
     this.view.over();
     this.audio.overCue();
   }

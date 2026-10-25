@@ -75,12 +75,23 @@
     <p style="font-size:1.3vmin">敌潮一波接一波，波与波之间有休整时间 · 地图四周有边界</p>
     <button class="btn" id="btn-start" disabled aria-busy="true">开 始 冒 险</button>
     <button class="btn" id="btn-changelog" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">📜 更新日志</button>
+    <button class="btn" id="btn-codex" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">图 鉴</button>
   </div>
 
   <div id="ov-changelog" class="overlay hidden">
     <h2>📜 更新日志</h2>
     <div id="changelog-list"></div>
     <button class="btn" id="btn-changelog-close">返 回</button>
+  </div>
+
+  <!-- 图鉴（Issue #78 M2）：只读收集进度，不参与战斗 -->
+  <div id="ov-codex" class="overlay hidden">
+    <h2>图 鉴</h2>
+    <p id="codex-progress" class="codex-progress"></p>
+    <div id="codex-tabs" class="codex-tabs"></div>
+    <div id="codex-grid" class="codex-grid"></div>
+    <div id="codex-detail" class="codex-detail hidden"></div>
+    <button class="btn" id="btn-codex-close">返 回</button>
   </div>
 
   <!-- 属性面板 -->
@@ -105,11 +116,17 @@
     <button class="btn" id="btn-statclose">返回战斗 (C)</button>
   </div>
 
-  <!-- 暂停 -->
+  <!-- 暂停（Issue #81：完备暂停界面） -->
   <div id="ov-pause" class="overlay hidden">
     <h2>已暂停</h2>
-    <p>按 P 或点击下方按钮继续</p>
-    <button class="btn" id="btn-resume">继 续 战 斗</button>
+    <p id="pause-stats" class="pause-stats"></p>
+    <div class="pause-actions">
+      <button class="btn" id="btn-resume">继 续 战 斗</button>
+      <button class="btn" id="btn-pause-codex">图 鉴</button>
+      <button class="btn" id="btn-pause-settings" disabled>设 置 · 敬请期待</button>
+      <button class="btn" id="btn-restart">重 新 开 始</button>
+    </div>
+    <p id="pause-version" class="pause-version"></p>
   </div>
 
   <!-- 结算 -->
