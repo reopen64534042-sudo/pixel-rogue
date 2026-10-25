@@ -12,6 +12,15 @@
   <div id="game" aria-label="像素秘境游戏画面"></div>
   <button id="btn-pause">⏸ 暂停 (P)</button>
 
+  <!-- Issue #95：触控操作层（仅触屏设备启用；非触屏设备整层不绑定、不渲染） -->
+  <div id="touch-layer" class="hidden" aria-hidden="true">
+    <div id="joy-base" class="joy-base hidden"><div id="joy-knob" class="joy-knob"></div></div>
+    <button id="btn-dash" class="touch-btn hidden" type="button" aria-label="冲刺">
+      <span class="dash-label">冲刺</span>
+      <span id="dash-count" class="dash-count"></span>
+    </button>
+  </div>
+
   <!-- 底部非打断面板: 升级 / 休整统计 / 置换 (游戏不暂停) -->
   <!-- 升级选择面板 (独立组件，专注升级选卡，居于中下方) -->
   <div id="bp-level" class="level-panel hidden">
@@ -127,6 +136,18 @@
       <button class="btn" id="btn-restart">重 新 开 始</button>
     </div>
     <p id="pause-version" class="pause-version"></p>
+  </div>
+
+  <!-- 操作设置（Issue #95 / D1：摇杆模式，仅触屏设备可进入） -->
+  <div id="ov-input" class="overlay hidden">
+    <h2>操 作 设 置</h2>
+    <p class="input-hint">摇杆模式（仅影响触屏操作，键鼠不受影响）</p>
+    <div class="input-modes">
+      <button class="btn mode-btn" id="joy-mode-float" type="button">浮 动 摇 杆</button>
+      <button class="btn mode-btn" id="joy-mode-fixed" type="button">固 定 摇 杆</button>
+    </div>
+    <p class="input-desc" id="joy-mode-desc"></p>
+    <button class="btn" id="btn-input-close">返 回</button>
   </div>
 
   <!-- 结算 -->

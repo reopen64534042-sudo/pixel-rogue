@@ -1,0 +1,241 @@
+import { test, expect, type Page } from "@playwright/test";
+
+/**
+ * Issue #95：触控层端到端。
+ *
+ * 用 `?touch=1`（DEV 专用开关，生产构建被摇树消除）在桌面 Chrome 上模拟触屏设备，
+ * 通过合成 PointerEvent 驱动摇杆——与真机走的是同一条事件链，
+ * 只是省掉了「手指」这一层。
+ */
+async function drag(
+  page: Page,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  pointerId = 1,
+) {
+  await page.evaluate(
+    ({ from, to, pointerId }) => {
+      const canvas = document.querySelector("#game canvas");
+      if (!canvas) throw new Error("缺少 canvas");
+      const event = (type: string, x: number, y: number) =>
+        new PointerEvent(type, {
+          pointerId,
+          pointerType: "touch",
+          isPrimary: true,
+          clientX: x,
+          clientY: y,
+          bubbles: true,
+          cancelable: true,
+        });
+      canvas.dispatchEvent(event("pointerdown", from.x, from.y));
+      canvas.dispatchEvent(event("pointermove", to.x, to.y));
+    },
+    { from, to, pointerId },
+  );
+}
+
+async function release(
+  page: Page,
+  at: { x: number; y: number },
+  pointerId = 1,
+) {
+  await page.evaluate(
+    ({ at, pointerId }) => {
+      const canvas = document.querySelector("#game canvas");
+      canvas?.dispatchEvent(
+        new PointerEvent("pointerup", {
+          pointerId,
+          pointerType: "touch",
+          isPrimary: true,
+          clientX: at.x,
+          clientY: at.y,
+          bubbles: true,
+        }),
+      );
+    },
+    { at, pointerId },
+  );
+}
+
+test("PC stays keyboard-only: no touch layer, joystick vector untouched", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
+  await expect(page.locator("#touch-layer")).toBeHidden();
+  await expect(page.locator("#btn-dash")).toBeHidden();
+  // D1/D5：PC 端不提供摇杆设置入口，保持原有的禁用占位
+  const entry = page.locator("#btn-pause-settings");
+  await expect(entry).toBeDisabled();
+  await expect(entry).toHaveText(/敬请期待/);
+  await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  const start = await page.evaluate(() => {
+    const core = window.__PIXEL_ROGUE__!.core;
+    return { x: core.player.x, mx: core.moveX, my: core.moveY };
+  });
+  expect([start.mx, start.my]).toEqual([0, 0]);
+  await page.keyboard.down("d");
+  await page.waitForTimeout(300);
+  await page.keyboard.up("d");
+  expect(
+    await page.evaluate(() => window.__PIXEL_ROGUE__!.core.player.x),
+  ).toBeGreaterThan(start.x + 10);
+});
+
+test("touch joystick drives eight directions and releases cleanly", async ({
+  page,
+}) => {
+  await page.goto("/?touch=1");
+  await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
+  await expect(page.locator("#touch-layer")).toBeVisible();
+  await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await page.waitForFunction(
+    () => window.__PIXEL_ROGUE__!.core.state === "play",
+  );
+  const canvas = page.locator("#game canvas");
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("canvas 不可见");
+  const origin = { x: box.x + box.width * 0.28, y: box.y + box.height * 0.62 };
+
+  // 上：手指上移超过死区即吸附到正上方
+  await drag(page, origin, { x: origin.x, y: origin.y - 80 });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const core = window.__PIXEL_ROGUE__!.core;
+        return [core.moveX, core.moveY];
+      }),
+    )
+    .toEqual([0, -1]);
+  const y0 = await page.evaluate(() => window.__PIXEL_ROGUE__!.core.player.y);
+  await page.waitForTimeout(300);
+  expect(
+    await page.evaluate(() => window.__PIXEL_ROGUE__!.core.player.y),
+  ).toBeLessThan(y0);
+
+  // 右下：仍是八向（不会出现模拟量）
+  await page.evaluate(
+    ({ origin }) => {
+      const canvas = document.querySelector("#game canvas")!;
+      canvas.dispatchEvent(
+        new PointerEvent("pointermove", {
+          pointerId: 1,
+          pointerType: "touch",
+          clientX: origin.x + 70,
+          clientY: origin.y + 70,
+          bubbles: true,
+        }),
+      );
+    },
+    { origin },
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const core = window.__PIXEL_ROGUE__!.core;
+        return [core.moveX, core.moveY];
+      }),
+    )
+    .toEqual([1, 1]);
+
+  // 松手立即回中
+  await release(page, { x: origin.x + 70, y: origin.y + 70 });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const core = window.__PIXEL_ROGUE__!.core;
+        return [core.moveX, core.moveY];
+      }),
+    )
+    .toEqual([0, 0]);
+  const stillY = await page.evaluate(
+    () => window.__PIXEL_ROGUE__!.core.player.y,
+  );
+  await page.waitForTimeout(250);
+  expect(
+    await page.evaluate(() => window.__PIXEL_ROGUE__!.core.player.y),
+  ).toBe(stillY);
+});
+
+test("dash button appears only after the dash talent and fires on hold", async ({
+  page,
+}) => {
+  await page.goto("/?touch=1");
+  await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
+  await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await page.waitForFunction(
+    () => window.__PIXEL_ROGUE__!.core.state === "play",
+  );
+  // D4：未解锁冲刺天赋时按钮不出现
+  await expect(page.locator("#btn-dash")).toBeHidden();
+
+  await page.evaluate(() => {
+    const bridge = window.__PIXEL_ROGUE__!;
+    const talent = bridge.talents.find((t) => t.n === "疾影步");
+    if (!talent) throw new Error("缺少天赋：疾影步");
+    bridge.core.learnTalent(talent);
+  });
+  await expect(page.locator("#btn-dash")).toBeVisible();
+
+  await page.evaluate(() => {
+    const button = document.getElementById("btn-dash");
+    button?.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        pointerId: 9,
+        pointerType: "touch",
+        isPrimary: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.__PIXEL_ROGUE__!.core.player.dashT > 0),
+    )
+    .toBe(true);
+  await page.evaluate(() => {
+    document.getElementById("btn-dash")?.dispatchEvent(
+      new PointerEvent("pointerup", {
+        pointerId: 9,
+        pointerType: "touch",
+        isPrimary: true,
+        bubbles: true,
+      }),
+    );
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.__PIXEL_ROGUE__!.core.dashHeld),
+    )
+    .toBe(false);
+});
+
+test("joystick mode is switchable in settings and persists", async ({
+  page,
+}) => {
+  await page.goto("/?touch=1");
+  await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
+  await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await page.waitForFunction(
+    () => window.__PIXEL_ROGUE__!.core.state === "play",
+  );
+  await page.locator("#btn-pause").click();
+  await expect(page.locator("#ov-pause")).toBeVisible();
+  await page.locator("#btn-pause-settings").click();
+  await expect(page.locator("#ov-input")).toBeVisible();
+  await page.locator("#joy-mode-fixed").click();
+  expect(
+    await page.evaluate(() => localStorage.getItem("pixelrogue_joypad")),
+  ).toBe(JSON.stringify({ v: 1, mode: "fixed" }));
+  await page.locator("#btn-input-close").click();
+  await expect(page.locator("#ov-input")).toBeHidden();
+
+  await page.reload();
+  await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
+  // 固定模式重启后常显锚点，说明持久化生效
+  await expect(page.locator("#joy-base")).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("pixelrogue_joypad")),
+  ).toBe(JSON.stringify({ v: 1, mode: "fixed" }));
+});
