@@ -1151,3 +1151,53 @@ CSS 中字体被重写为 `url(../assets/fonts/press-start-2p.ttf)`，HTML 引�
 2. **P3 Mock 卫生**：`tests/s4c-talent-stat-sources.test.ts` 新增 `afterEach(vi.restoreAllMocks)`（vitest 配置无自动 restore）；单文件单独/重复运行与全量运行均通过，无跨测试污染。
 3. **P3 真实升级面板路径**：新增经 `openLevelPanel`（恒定随机 0.92 确定性产出 [磐石, 疾影步, 狂怒]）+ `chooseSlot` 的完整升级路径测试——获得磐石、defense 立即投影为 15、upCounts/picks/pendingLevels/bpMode/slots 全部正确、学习步骤零额外 RNG（抽卡 RNG 只发生在 openLevelPanel）。
 4. 本轮验证：`npm test` **234/234**（229 + 5 新增；parity 26 原样）；typecheck/build 通过；浏览器冒烟 `npm run test:browser` **6/6**（真实输入升级选择、熔炉/置换、生产构建首波自然通关）。单一权威来源不变：五张 Talent.f 仍为空操作，StatModel flat/percent/final 语义未动。
+
+## D-20 Combat Foundation S4-C 第二批（C2-A）：全局基础伤害乘法天赋权威迁移（2026-10-25）
+
+依据任务书「S4-C 第二批第一阶段」，分支 `feat/combat-foundation-s4c-c2a`（基线 a333d7f = 上游 PR #91 合并提交）。**只迁移三张伤害卡（磨刃/狂怒/毁灭本能），完成 C2-A 即停止；C2-B（强化弹丸/攻速/移速/拾取/技能范围）、C3/C4、S4-D 未开始。**
+
+### 实施范围与权威来源切换
+
+- **切换图（复用 C1 管线）**：`picks 序列 → talentStatModifiers() 新增三 case（attack final 1.1/1.2/1.3）→ StatModel.resolveStats final 区 → applyTalentStatProjection() → 既有 p.damage 字段`。接入点不变（learnTalent 记录后 / recompute 重放后 / melt 经 learnTalent）；三张卡 `Talent.f` 改空操作，旧乘算与新 Modifier 不并行。
+- **来源所有权审计（任务书 §二.1/§二.7）**：全仓 grep `player.damage` 写入点——运行期唯一写入者为三张卡的旧 `f`（本批取消）+ 本投影；基础值 `damage: 11` 唯一来自 `statBase()`（数据层初始值，recompute 经 Object.assign 重置）。**三卡之外无合法攻击力写入者**，投影以 picks 结果覆写不存在覆盖冲突；若未来出现外部写入者，须先在来源表登记为独立来源（模块头注已声明该边界）。
+- **语义选择**：使用既有 `attack` StatId 与 `final` 乘区——多级 = ×1.1² 的逐次连乘（IEEE-754 左结合、按修饰符数组顺序=picks 顺序），**不得折叠成 percent**（磨刃×2 = 13.310000000000002 ≠ percent 折叠 13.2 ≠ 预乘 1.21 的 13.309999999999999）。StatModel 公式与固定白名单未修改；未引入第二套 attack 累加缓存或新 Player 可枚举字段（投影写回既有 `p.damage`）。
+- **单一乘区纪律**：`p.damage` 经 CombatStats.attack 随 rawAmount 进 DamageSystem 管线（S1 冻结），globalDamageBonus 等乘区不重复乘 attack；本批未改动任何技能伤害公式（boltDamage/meteorDamage/burnStackDps/burnGroundDps/shieldShockDamage 及近战/飞刃/反弹/弹丸入口全部零改动）。
+
+### 新旧计算对照（逐位，Object.is/toBe 级）
+
+| 场景 | 旧实现（f 重放） | 新实现（final 连乘） |
+|---|---|---|
+| 磨刃×1 | 12.100000000000001 | 12.100000000000001 |
+| 磨刃×2 | 13.310000000000002 | 13.310000000000002 |
+| 磨刃×99（满级） | 137806.12339822375 | 137806.12339822375 |
+| 狂怒×1 / ×5 | 13.2 / 27.37151999999999 | 13.2 / 27.37151999999999 |
+| 毁灭本能×1 / ×3 | 14.3 / 24.167 | 14.3 / 24.167 |
+| 交错 磨刃→狂怒→磨刃→毁灭本能 | 20.763600000000004 | 20.763600000000004 |
+| 交错 毁灭本能→磨刃→狂怒→磨刃 | 20.763600000000004 | 20.763600000000004 |
+| **顺序敏感** 磨刃→狂怒 | 14.520000000000001 | 14.520000000000001 |
+| **顺序敏感** 狂怒→磨刃 | 14.52 | 14.52 |
+| **顺序敏感** 磨刃→毁灭×2 | 20.449000000000005 | 20.449000000000005 |
+| **顺序敏感** 毁灭×2→磨刃 | 20.449 | 20.449 |
+
+测试基线为 `legacyDamage()`（迁移前 f 语义的独立重述：statBase().damage 起始、picks 顺序逐次 `*=`），全部场景与投影结果 `toBe` 逐位一致；浮点由 IEEE-754 非结合性证明「同层数不同顺序」的顺序敏感对（磨刃+狂怒、磨刃+毁灭×2）确实不同——顺序被这两个用例咬住。
+
+### 测试与验证
+
+- 新增 `tests/s4c-damage-talent-sources.test.ts` 30 项：单级/满级/多级重复乘算钉子（含满级 99 连乘）、交错学习、顺序敏感对、无关天赋不重复增强、recompute×3 幂等、置换五场景（移除全部/保留部分/获得狂怒/获得毁灭本能/交错移除）、pv/cur 显示口径逐字钉子、全伤害链路（boltDamage 单次乘区、meteorDamage 加法顺序、burn/shock 公式、真实弹丸/陨星/灼烧/飞刃/近战路径）、发射时快照不回溯 + 陨星命中时取值、RuntimeState 与 RNG 纪律（学习零随机消耗）、f 空操作结构钉子。
+- parity「every talent effect」裸 f 对照对三卡改经真实学习路径（`S4C_AUTHORITY_MIGRATED` 追加磨刃/狂怒/毁灭本能，基线更新依据已留痕）；全天赋模拟场景继续包含三卡，**parity 26 项原样通过，未缩减对照范围**。
+- `npm test` **264/264**（C1 交付基线 234 + 本批 30）；S4-C C1（23）与 S4-B shadow（19）测试原样通过；`npm run typecheck`、`npm run build` 通过。
+- `npm run test:browser` **7/7**：原有 6 项 + 新增宝箱强化面板测试（真实 DOM 卡片点击强化磨刃两次 → damage = 14.641000000000004 逐位钉子）。覆盖任务书要求的真实升级、宝箱强化、置换与首波战斗（生产构建自然通关）。
+
+### 变异验证（4 组，全部被咬住后还原）
+
+1. **倍率遗漏**（注释磨刃 final 修饰符）：20 红——聚焦基线钉子 + parity 双暴露。
+2a. **旧 f 恢复写入**（talents.ts 恢复 `p.damage *= 1.1` 与投影并行）：**初版 0 红**——投影为绝对覆写语义，learnTalent 内 f 的乘算总在投影前被覆写，行为上不可区分。修订：新增「三卡 f 空操作结构钉子」（直接调用 f 后 Player 全字段 JSON 不变）使该变异可被咬住（1 红）。「f 不写入」本身是单一权威来源交付契约的一部分，不能因投影覆写而放弃。
+2b. **投影重复应用**（覆写改累乘 `p.damage *= resolved.attack`）：32 红（含 parity）。
+3. **final 顺序错误**（修饰符数组反转）：2 红——恰好是两个顺序敏感对用例（14.520000000000001 vs 14.52、20.449000000000005 vs 20.449），其余浮点钉子对顺序不敏感（multiset 特性，符合预期）。
+
+### 遗留问题与新发现
+
+- **新发现预置缺陷（本批不修复，待独立授权）**：宝箱强化面板提示「键盘 1 / 2 / 3 快捷选取」（GameUI.ts box 分支 hint），但 GameScene 键盘快捷键只对 `bpMode === "level"` 响应——宝箱模式下按 1/2/3 无效，仅卡片点击可用。与 R-1～R-4（recompute 审计）无关，为 C2-A 浏览器验证中发现的 UI 缺陷。
+- R-1～R-4（满血血包 maxhp 丢失/能量护盾重放/击杀狂热重放/RuntimeState 重置）维持 C0 审计 pin，纠正需独立授权。
+- 铁布衫 0.6 上限等夹紧仍在消费点，模型不裁剪（S4-B 定基线不变）。
+- 强化弹丸（boltDmgMul）、疾速扳机（fireRate）、疾风之靴（speed）、磁力护符（magnet）、广域法印（area）留待 C2-B；StatModel final 区已验证可承载逐次乘算语义。

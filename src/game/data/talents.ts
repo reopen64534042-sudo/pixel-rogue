@@ -357,7 +357,10 @@ export const UPGRADES: Talent[] = [
     d: "伤害 +10%",
     max: 99,
     pv: (p) => `伤害 ${p.damage.toFixed(1)} → ${(p.damage * 1.1).toFixed(1)}`,
-    f: (p) => (p.damage *= 1.1),
+    // S4-C C2-A：damage ×1.1/级 由权威来源表声明（core/TalentStatSources.ts，
+    // attack final 逐次连乘），learnTalent/recompute/melt 统一经投影写入；
+    // 本卡无获得时即时效果。
+    f: () => {},
     cur: (p) => `当前伤害 ${p.damage.toFixed(1)}`,
   },
   {
@@ -368,7 +371,9 @@ export const UPGRADES: Talent[] = [
     d: "伤害 +20%",
     max: 5,
     pv: (p) => `伤害 ${p.damage.toFixed(1)} → ${(p.damage * 1.2).toFixed(1)}`,
-    f: (p) => (p.damage *= 1.2),
+    // S4-C C2-A：damage ×1.2/级 由权威来源表声明（core/TalentStatSources.ts），
+    // 本卡无获得时即时效果。
+    f: () => {},
     cur: (p) => `当前伤害 ${p.damage.toFixed(1)}`,
   },
   {
@@ -379,7 +384,9 @@ export const UPGRADES: Talent[] = [
     d: "伤害 +30%",
     max: 3,
     pv: (p) => `伤害 ${p.damage.toFixed(1)} → ${(p.damage * 1.3).toFixed(1)}`,
-    f: (p) => (p.damage *= 1.3),
+    // S4-C C2-A：damage ×1.3/级 由权威来源表声明（core/TalentStatSources.ts），
+    // 本卡无获得时即时效果。
+    f: () => {},
     cur: (p) => `当前伤害 ${p.damage.toFixed(1)}`,
   },
   // ---- 防御/生存扩展 ----

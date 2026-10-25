@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v25",
+    date: "2026-10-25",
+    title: "战斗基础 S4-C 第二批（C2-A）：全局基础伤害乘法天赋权威迁移",
+    items: [
+      "磨刃/狂怒/毁灭本能三张伤害卡的逐次乘算（damage ×1.1/×1.2/×1.3）改由 core/TalentStatSources.ts 权威来源表以 StatModel attack final 修饰符声明（按 picks 顺序连乘），对应 Talent.f 不再写入；来源审计确认三卡外无合法攻击力写入者",
+      "升级、宝箱强化、置换、重算全链路经既有投影同步；未引入第二套 attack 缓存或新 Player 字段；伤害管线 rawAmount 语义不变，globalDamageBonus 等乘区不重复乘 attack，全部技能伤害公式零改动",
+      "数值零变化：与旧 f 重放逐位一致（含磨刃×99 满级、交错顺序、同层数不同顺序的浮点差异）；parity 26 项原样通过；新增宝箱强化面板浏览器测试，另发现宝箱模式键盘 1/2/3 快捷键不响应的预置缺陷（已记录，未修复）",
+    ],
+  },
+  {
     version: "v24",
     date: "2026-10-25",
     title: "战斗基础 S4-C 第一批：纯 flat 天赋属性权威迁移",

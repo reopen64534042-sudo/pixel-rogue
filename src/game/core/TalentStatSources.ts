@@ -1,37 +1,52 @@
 /**
- * Combat Foundation S4-C（C1）：五张纯 flat 天赋的属性权威来源表。
+ * Combat Foundation S4-C（C1 + C2-A）：八张天赋的属性权威来源表。
  *
  * 职责（任务书 §4-S4-C「全链路权威来源唯一」）：
- * - 「磐石/铁布衫/致命一击/会心深渊/元素亲和」的属性贡献在此**声明一次**，
- *   由 StatModel 从 picks 序列解析；data/talents.ts 中这五张卡的 `f` 不再
- *   写入属性字段（无获得时即时效果，f 为空操作）。旧 `Talent.f` 累加与
- *   新 Modifier 不并行生效——learnTalent/recompute/melt 统一收敛到
- *   applyTalentStatProjection 写出的投影值。
- * - Player 上的 `defense/tough/crit/critMul/typeDamageBonus` 是兼容投影：
- *   字段保留（消费点 CombatStats/UI/pv·cur 不变），但唯一来源是本表解析。
+ * - C1 五张纯 flat：「磐石/铁布衫/致命一击/会心深渊/元素亲和」的属性贡献
+ *   在此**声明一次**，由 StatModel 从 picks 序列解析；C2-A 三张逐次乘算：
+ *   「磨刃/狂怒/毁灭本能」的 attack final 倍率同样在此声明。data/talents.ts
+ *   中这八张卡的 `f` 不再写入属性字段（无获得时即时效果，f 为空操作）。
+ *   旧 `Talent.f` 累加/乘算与新 Modifier 不并行生效——learnTalent/recompute/
+ *   melt 统一收敛到 applyTalentStatProjection 写出的投影值。
+ * - Player 上的 `defense/tough/crit/critMul/typeDamageBonus/damage` 是兼容
+ *   投影：字段保留（消费点 CombatStats/UI/pv·cur 不变），但唯一来源是本表
+ *   解析。damage 的 base = statBase().damage（数据层初始值），映射到
+ *   StatModel 的既有 `attack` StatId——projected 值仍写回既有 `p.damage`
+ *   字段，不新增 Player 可枚举字段、不引入第二套累加缓存；伤害管线侧
+ *   rawAmount 已含该值（CombatStats.attack = p.damage），DamageSystem 的
+ *   globalDamageBonus 等乘区不重复乘 attack。
+ * - 来源所有权（C2-A 审计定界）：`p.damage` 的运行期写入者**只有**三张
+ *   伤害卡的旧 f（本批已取消）+ 本投影；statBase().damage 是唯一基础值
+ *   来源。若未来出现三卡外的合法攻击力写入者，不得被本投影以 picks 结果
+ *   直接覆盖——须先在来源表登记为独立来源并设计兼容方案（任务书 §二.7）。
  * - 「致命一击」觉醒（upCounts ≥ critMaxLevel → 有效暴伤 +0.4）是**条件
  *   来源**：判定时机保持读时进行（DamageMath.critMultiplier 按 upCounts
  *   现值叠加），不烘焙进 p.critMul 字段——与旧语义逐位一致，置换移除层级
  *   后觉醒自动失效。
  *
+ * final 语义（C2-A）：StatModel 的 final 区按修饰符数组顺序（=picks 顺序）
+ * 对 base 连乘、IEEE-754 左结合——与旧 `p.damage *= m` 逐次学习/重放的
+ * 运算序列逐位一致（多级 = ×1.1² 的逐次乘算，不得折叠成 percent +0.2，
+ * 见 StatModel 头注）。同 percent 区不同：final 无分组求和步骤，不存在
+ * 浮点分组歧义。
+ *
  * flat 语义：resolveStats 的 flat 区为 base 起始、按修饰符顺序（即 picks
  * 顺序）逐次累加，与旧 recompute 重放的 IEEE-754 运算序列逐位一致
- * （S4-B 定论）。负区因子政策未批准，本表全部来源为正 flat，不涉及。
+ * （S4-B 定论）。负区因子政策未批准，本表全部来源为正 flat / >1 final，
+ * 不涉及。
  *
  * 纯函数：不引用 talent.f / GameCore / DOM / Phaser、不掷随机数、无持久
  * 缓存。值与 data/talents.ts 的历史 f 语义逐字一致；漂移由基线钉子测试
- * （磐石 45 / tough 0.4 / 暴击 0.8499999999999999 / 火雷 0.30000000000000004）
- * 与 S4-B shadow 独立重述（playerShadowFromPicks）双重暴露。
+ * （磐石 45 / tough 0.4 / 暴击 0.8499999999999999 / 火雷 0.30000000000000004
+ * / 磨刃×2 13.310000000000002）与 S4-B shadow 独立重述
+ * （playerShadowFromPicks，flat 五卡）双重暴露。
  */
 import { statBase } from "../data/stats";
 import { resolveStats, type StatModifier } from "./StatModel";
-import {
-  resolveKeyedMap,
-  type TypeDamageBonusModifier,
-} from "./StatSheets";
+import { resolveKeyedMap, type TypeDamageBonusModifier } from "./StatSheets";
 import type { Player } from "./types";
 
-/** 五张已迁移卡的来源贡献：标量区 + 类型化火雷增伤区 */
+/** 八张已迁移卡的来源贡献：标量区（含 attack final）+ 类型化火雷增伤区 */
 export interface TalentStatContribution {
   scalars: StatModifier[];
   typeDamageBonus: TypeDamageBonusModifier[];
@@ -45,7 +60,7 @@ export interface TalentStatContribution {
 const ELEMENT_TDB_KEYS = ["fire", "lightning"] as const;
 
 /**
- * 把 picks 序列翻译为修饰符（C1 批次范围外的 pick 忽略）。
+ * 把 picks 序列翻译为修饰符（未迁移批次的 pick 忽略）。
  * 顺序即 picks 顺序——同一张卡重复学习按次数展开，与旧重放逐位一致。
  */
 export function talentStatModifiers(
@@ -97,7 +112,32 @@ export function talentStatModifiers(
             key,
           });
         break;
-      default: // C1 范围外的天赋不进属性表（其余 36 张仍由 talent.f 重放）
+      // ---- C2-A：全局基础伤害乘法（final 逐次连乘，非 percent 加算）----
+      case "磨刃": // data/talents.ts：p.damage *= 1.1/级（max 99）
+        scalars.push({
+          sourceId: "天赋:磨刃",
+          stat: "attack",
+          stage: "final",
+          value: 1.1,
+        });
+        break;
+      case "狂怒": // data/talents.ts：p.damage *= 1.2/级（max 5）
+        scalars.push({
+          sourceId: "天赋:狂怒",
+          stat: "attack",
+          stage: "final",
+          value: 1.2,
+        });
+        break;
+      case "毁灭本能": // data/talents.ts：p.damage *= 1.3/级（max 3）
+        scalars.push({
+          sourceId: "天赋:毁灭本能",
+          stat: "attack",
+          stage: "final",
+          value: 1.3,
+        });
+        break;
+      default: // 未迁移批次的天赋不进属性表（其余 33 张仍由 talent.f 重放）
         break;
     }
   }
@@ -105,7 +145,7 @@ export function talentStatModifiers(
 }
 
 /**
- * 把五张已迁移卡的权威解析结果写回 Player 兼容投影。幂等：可重复调用，
+ * 把已迁移卡的权威解析结果写回 Player 兼容投影。幂等：可重复调用，
  * 结果只取决于 picks 当前内容。写入点 = 旧 f 的全部生效点
  * （learnTalent / recompute / melt 经 learnTalent），不存在第二套累积来源。
  *
@@ -115,6 +155,11 @@ export function talentStatModifiers(
  * **绝对覆写**（每次从 picks 全量解析，不与旧值相加，无重复叠加），无来源
  * 时删除这两键（映射因此为空则连映射一并删除）；其余键（physical 等）属
  * 未知外部来源，不在所有权内，学习任何天赋都保持不动。
+ *
+ * `damage`（C2-A）为必写字段：字段由 statBase 提供（与 tough/crit/critMul
+ * 同类的必填投影），投影以 statBase().damage 为 base 全量解析 attack 后
+ * 覆写——无伤害卡时写回 base 值（与旧 f 无乘算时的字段值一致）。来源
+ * 所有权见模块头注：三卡外写入者出现前不得以本投影覆盖。
  *
  * 兼容边界（明示，不猜测恢复）：
  * - 外部来源若也写 fire/lightning，与元素亲和贡献无法区分，投影覆写为
@@ -127,6 +172,7 @@ export function applyTalentStatProjection(p: Player): void {
   const { scalars, typeDamageBonus } = talentStatModifiers(p.picks);
   const resolved = resolveStats({
     base: {
+      attack: base.damage,
       tough: base.tough,
       critChance: base.crit,
       critMultiplier: base.critMul,
@@ -137,6 +183,9 @@ export function applyTalentStatProjection(p: Player): void {
   p.crit = resolved.critChance ?? base.crit;
   // 不含觉醒：DamageMath.critMultiplier 在读取时按 upCounts 现值叠加 0.4
   p.critMul = resolved.critMultiplier ?? base.critMul;
+  // C2-A：attack 解析结果写回既有 damage 字段（base=statBase().damage，
+  // final 区按 picks 顺序连乘——与旧 f 重放运算序列逐位一致）
+  p.damage = resolved.attack ?? base.damage;
   // defense 无 base（键缺席 = 0），有来源才出现——与旧 f 的键存在性一致
   if (resolved.defense !== undefined) p.defense = resolved.defense;
   else delete p.defense;
@@ -151,7 +200,6 @@ export function applyTalentStatProjection(p: Player): void {
     }
   } else if (p.typeDamageBonus) {
     for (const key of ELEMENT_TDB_KEYS) delete p.typeDamageBonus[key];
-    if (Object.keys(p.typeDamageBonus).length === 0)
-      delete p.typeDamageBonus;
+    if (Object.keys(p.typeDamageBonus).length === 0) delete p.typeDamageBonus;
   }
 }
