@@ -3,6 +3,9 @@
  *
  * 把「基础值 + 修正符列表」解析为有效属性，通式：
  *   effective = (base + Σflat) × (1 + Σpercent) × Πfinal
+ * flat 区运算语义（S4-B shadow 定论，取代初版 Σ-先求和分组）：**base 起始、
+ * 按修饰符顺序逐次累加**——与既有 recompute 重放逐位一致，先求和分组在
+ * 浮点上会产生 1 ulp 级偏差（0.05+0.1×8：0.8499999999999999 vs 0.85）。
  * 同 percent 区加算（Σ 先求和再乘一次）；final 连乘（按修饰符数组顺序、
  * IEEE754 左结合，逐位确定）。历史卡的多级逐次乘算（如 p.damage *= 1.1
  * 两级 = ×1.1²）必须映射为两条 final，不得折叠成 percent +0.2。
@@ -43,7 +46,18 @@ export const STAT_IDS = [
   "critMultiplier",
   "tough",
 ] as const;
-export type StatId = (typeof STAT_IDS)[number];
+
+/**
+ * S4-B：结构化映射的通用属性族。类型化映射（typeDamageBonus/resistances
+ * 等 Partial<Record<键, 数值>>）按「族 + 键」解析：族是这里的通用槽位，
+ * 类型/形态名永远是 key，不把火/雷/冰等组合硬编码成独立 StatId（评审
+ * 定基线）。逐 key 解析在适配层完成（见 core/StatSheets.ts）：
+ * 每个 key 构造一张以该族为槽位的子属性表走 resolveStats，映射本身
+ * 在适配层保持类型化结构。已有 8 个标量槽位与解析语义不变（契约加性扩展）。
+ */
+export const KEYED_STAT_FAMILIES = ["typeDamageBonus", "resistance"] as const;
+export type KeyedStatFamily = (typeof KEYED_STAT_FAMILIES)[number];
+export type StatId = (typeof STAT_IDS)[number] | KeyedStatFamily;
 
 /** 修正阶段：固定加成 → 百分比（同区加算）→ 最终倍率（连乘） */
 export type ModifierStage = "flat" | "percent" | "final";
@@ -62,7 +76,10 @@ export interface StatSheet {
   readonly modifiers: readonly StatModifier[];
 }
 
-const STAT_ID_SET: ReadonlySet<string> = new Set(STAT_IDS);
+const STAT_ID_SET: ReadonlySet<string> = new Set([
+  ...STAT_IDS,
+  ...KEYED_STAT_FAMILIES,
+]);
 
 function requireFinite(value: number, what: string): number {
   if (!Number.isFinite(value))
@@ -99,7 +116,7 @@ export function resolveStats(
     touched.add(stat as StatId);
   }
 
-  const flatSum = new Map<StatId, number>();
+  const flats = new Map<StatId, number[]>();
   const percentSum = new Map<StatId, number>();
   const finals = new Map<StatId, number[]>();
 
@@ -112,9 +129,12 @@ export function resolveStats(
     requireFinite(m.value, `修饰符 ${m.sourceId} → ${m.stat}`);
     touched.add(m.stat);
     switch (m.stage) {
-      case "flat":
-        flatSum.set(m.stat, (flatSum.get(m.stat) ?? 0) + m.value);
+      case "flat": {
+        const list = flats.get(m.stat);
+        if (list) list.push(m.value);
+        else flats.set(m.stat, [m.value]);
         break;
+      }
       case "percent":
         if (m.value <= -1)
           throw new RangeError(
@@ -141,12 +161,16 @@ export function resolveStats(
 
   const result: Partial<Record<StatId, number>> = {};
   for (const stat of touched) {
+    // flat 区：base 起始、按修饰符顺序逐次累加（S4-B shadow 定论——与既有
+    // recompute 重放逐位一致；(base + Σflat) 的先求和分组在浮点上会产生
+    // 1 ulp 级偏差，如 0.05+0.1×8：0.8499999999999999 vs 0.85）
     let v = sheet.base[stat] ?? 0;
-    const flat = flatSum.get(stat);
-    if (flat !== undefined) {
-      requireFiniteResult(flat, `flat 聚合 ${stat}`);
-      v = v + flat;
-      requireFiniteResult(v, `flat 阶段 ${stat}`);
+    const flatList = flats.get(stat);
+    if (flatList) {
+      for (const f of flatList) {
+        v = v + f;
+        requireFiniteResult(v, `flat 阶段 ${stat}`);
+      }
     }
     const percent = percentSum.get(stat);
     if (percent !== undefined) {

@@ -2,7 +2,7 @@
 
 > 生成基线：上游 `reopen64534042-sudo/pixel-rogue` 的 `main`，`cd9c8b6cac4df32ffd2c2612dab3aac812ace318`（已合并 PR #76，2026-10-25）。
 > 来源：上游 Issue #32、`docs/pixel-rogue-combat-foundation-v1.md`、当前 `AGENTS.md` 及已合并的 S3 实现。
-> 状态：**S4-A 已实施（分支 feat/combat-foundation-s4a，纯 StatModel + 单元测试，未接入运行时，记录见 docs/migration.md「D-11」）；S4-B/C/D 未开始。**
+> 状态：**S4-A 已并入上游（#77）；S4-B 已实施（分支 feat/combat-foundation-s4b，只读 shadow 基建，未接入运行时，记录见 docs/migration.md「D-12」）；S4-C/D 未开始。**
 
 ## 1. 目标与禁止事项
 
