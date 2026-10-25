@@ -503,7 +503,7 @@ export class GameUI {
     const title = document.querySelector<HTMLElement>("#bp-level .bp-title");
     if (title)
       title.textContent = box
-        ? `🎁 开启宝箱 · 剩余 ${this.core.boxPicks} 个 · 强化一项已学天赋`
+        ? `🎁 开启宝箱 · 剩余 ${this.core.boxPicks} 次强化 · 强化一项已学天赋`
         : "⬆ 等级提升！选择一项天赋强化";
     const hint = document.querySelector<HTMLElement>(
       "#bp-level .level-subhint",

@@ -106,6 +106,8 @@ export class GameCore {
   potionGrow = 0;
   /** 本波普通怪已掉落的宝箱数（精英宝箱不占此名额） */
   boxDropsThisWave = 0;
+  /** 本波精英宝箱已贡献的强化点数（Issue #87：上限 ELITE_BOX_POINT_CAP，换波清零） */
+  eliteBoxPointsThisWave = 0;
   /** 已拾取、待开启的宝箱数 */
   boxPicks = 0;
   dmgBy: DamageTotals = {
@@ -240,6 +242,7 @@ export class GameCore {
     this.spawnedThisWave = 0;
     this.potionGrow = 0;
     this.boxDropsThisWave = 0;
+    this.eliteBoxPointsThisWave = 0;
     this.boxPicks = 0;
     this.dmgBy = {
       bullet: 0,
