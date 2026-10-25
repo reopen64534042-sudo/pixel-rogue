@@ -17,8 +17,10 @@
  * 逐 key 构造以通用族为槽位的子属性表走 resolveStats（StatModel S4-B
  * 加性扩展 KEYED_STAT_FAMILIES），类型名永远只作为 key 存在。
  *
- * 纯函数：不改写任何输入、无持久缓存、无副作用；本模块不被任何
- * 运行时结算路径引用（S4-C 起按审查节奏切换）。
+ * 纯函数：不改写任何输入、无持久缓存、无副作用。S4-C C1 起，通用解析件
+ * resolveKeyedMap 与键控修饰符类型被权威路径（core/TalentStatSources.ts）
+ * 复用；本模块的 shadow 构建器（playerShadowFromEntity/playerShadowFromPicks/
+ * enemyShadow*）仍是独立重述的对照侧，不被任何运行时结算路径引用。
  */
 import { COMBAT_BALANCE } from "../data/combatBalance";
 import type { DamageTypeId } from "../data/damageTypes";

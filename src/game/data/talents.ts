@@ -110,7 +110,10 @@ export const UPGRADES: Talent[] = [
     max: 8,
     pv: (p) =>
       `暴击 ${(p.crit * 100).toFixed(0)}% → ${((p.crit + 0.1) * 100).toFixed(0)}%${p.crit + 0.1 >= 0.8 ? "（觉醒!）" : ""}`,
-    f: (p) => (p.crit += 0.1),
+    // S4-C C1：crit +0.1/级 由权威来源表声明（core/TalentStatSources.ts），
+    // learnTalent/recompute/melt 统一经投影写入；本卡无获得时即时效果。
+    // 觉醒暴伤 +0.4 保持读时判定（DamageMath.critMultiplier）。
+    f: () => {},
     cur: (p) =>
       `当前暴击率 ${(p.crit * 100).toFixed(0)}% · 爆伤 ×${critMultiplier(p).toFixed(1)}${
         (p.upCounts["致命一击"] || 0) >= 8 ? "（觉醒）" : ""
@@ -161,7 +164,9 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) =>
       `暴伤 ×${p.critMul.toFixed(1)} → ×${(p.critMul + 0.5).toFixed(1)}`,
-    f: (p) => (p.critMul += 0.5),
+    // S4-C C1：critMul +0.5/级 由权威来源表声明（core/TalentStatSources.ts），
+    // learnTalent/recompute/melt 统一经投影写入；本卡无获得时即时效果。
+    f: () => {},
     cur: (p) => `暴击伤害倍率 ×${p.critMul.toFixed(1)}`,
   },
   {
@@ -401,7 +406,9 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) =>
       `减伤 ${(p.tough * 100).toFixed(0)}% → ${((p.tough + 0.1) * 100).toFixed(0)}%`,
-    f: (p) => (p.tough += 0.1),
+    // S4-C C1：tough +0.1/级 由权威来源表声明（core/TalentStatSources.ts），
+    // learnTalent/recompute/melt 统一经投影写入；本卡无获得时即时效果。
+    f: () => {},
     cur: (p) =>
       `减伤 ${(Math.min(0.6, p.tough) * 100).toFixed(0)}%${p.tough >= 0.6 ? " (已达上限)" : ""}`,
   },
@@ -548,9 +555,9 @@ export const UPGRADES: Talent[] = [
       const cur = p.defense ?? 0;
       return `物理减伤 ${physMitPct(cur)}% → ${physMitPct(cur + 15)}%`;
     },
-    // recompute() 会先清除可选战斗属性键再按 picks 逐次重放（见 TalentSystem），
-    // 因此 f 用增量写法；learnTalent 单次调用同样成立
-    f: (p) => (p.defense = (p.defense ?? 0) + 15),
+    // S4-C C1：defense +15/级 由权威来源表声明（core/TalentStatSources.ts），
+    // learnTalent/recompute/melt 统一经投影写入；本卡无获得时即时效果。
+    f: () => {},
     cur: (p) => {
       const def = p.defense ?? 0;
       return `护甲 ${def}（物理 -${physMitPct(def)}%，与减伤乘算）`;
@@ -567,12 +574,10 @@ export const UPGRADES: Talent[] = [
       const cur = ((p.typeDamageBonus?.fire ?? 0) * 100).toFixed(0);
       return `火/雷增伤 +${cur}% → +${Number(cur) + 10}%`;
     },
-    // 同磐石：增量写法，recompute 清键后重放安全；S4 Modifier 化时改为聚合来源
-    f: (p) => {
-      const tdb = p.typeDamageBonus ?? (p.typeDamageBonus = {});
-      tdb.fire = (tdb.fire ?? 0) + 0.1;
-      tdb.lightning = (tdb.lightning ?? 0) + 0.1;
-    },
+    // S4-C C1：火/雷 typeDamageBonus 各 +0.1/级 由权威来源表声明
+    //（core/TalentStatSources.ts），learnTalent/recompute/melt 统一经投影
+    // 写入；本卡无获得时即时效果。
+    f: () => {},
     cur: (p) =>
       `火焰/雷电伤害 +${((p.typeDamageBonus?.fire ?? 0) * 100).toFixed(0)}%`,
   },

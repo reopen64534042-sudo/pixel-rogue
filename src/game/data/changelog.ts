@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v24",
+    date: "2026-10-25",
+    title: "战斗基础 S4-C 第一批：纯 flat 天赋属性权威迁移",
+    items: [
+      "新增 core/TalentStatSources.ts：磐石/铁布衫/致命一击/会心深渊/元素亲和五张卡的属性贡献改为权威来源表声明，经 StatModel 解析后投影到 Player 兼容字段；对应 Talent.f 不再写入属性（单一权威来源，无双算）",
+      "升级、宝箱强化、置换、重算全链路同步更新有效属性；置换输出卡应用改经 learnTalent（与原语句序列等价）；重算幂等零重复叠加",
+      "数值零变化：flat 按来源顺序逐位累加（与旧重放 IEEE-754 一致）；致命一击觉醒保持读时判定，置换移除层级后自动失效；RNG 消耗与显示口径不变",
+    ],
+  },
+  {
     version: "v23",
     date: "2026-10-25",
     title: "战斗基础 S4-B：只读属性 shadow 对照基建",
