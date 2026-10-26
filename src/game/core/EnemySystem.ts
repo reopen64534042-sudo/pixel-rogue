@@ -1,6 +1,7 @@
 import { WORLD, clamp } from "../data/constants";
 import { ETYPES } from "../data/enemies";
 import { getEnemyCombatStats } from "./CombatStats";
+import { resolveEnemyDefense } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
 import type { Enemy } from "./types";
@@ -28,6 +29,8 @@ export function spawnEnemy(
     if (!type) type = "slime";
   }
   const T = ETYPES[type];
+  // 防御属性只在生成时解析一次；伤害/快照路径继续读取实体字段。
+  const defenseStats = resolveEnemyDefense(T);
   // 在世界内、远离玩家的位置生成
   let sx = this.player.x,
     sy = this.player.y;
@@ -68,14 +71,16 @@ export function spawnEnemy(
     shootCd: 1 + Math.random() * 1.5,
     fuse: 0,
     noDrop: false,
-    // Combat Foundation S3-A：EnemyConfig 可选战斗属性存在时才拷贝（条件展开），
-    // 既有敌人配置不带这些键 → 实体形状与 v8/parity 逐字段对照一致。
-    // S3-A 默认不随波次/精英缩放 DEF/RES；成长规则待 S3-B 批准。
-    ...(T.defense !== undefined ? { defense: T.defense } : {}),
-    ...(T.resistances !== undefined
-      ? { resistances: { ...T.resistances } }
+    // S4-D1：防御侧三项经 StatModel 权威解析；缺省配置仍不物化键。
+    ...(defenseStats.defense !== undefined
+      ? { defense: defenseStats.defense }
       : {}),
-    ...(T.tough !== undefined ? { tough: T.tough } : {}),
+    ...(defenseStats.resistances !== undefined
+      ? { resistances: { ...defenseStats.resistances } }
+      : {}),
+    ...(defenseStats.tough !== undefined
+      ? { tough: defenseStats.tough }
+      : {}),
     ...(T.globalDamageBonus !== undefined
       ? { globalDamageBonus: T.globalDamageBonus }
       : {}),

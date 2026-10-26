@@ -16,6 +16,13 @@
 - **不影响规则**：纯渲染层改动，parity 26 项原样通过；Vitest 411 项、浏览器 16 项通过
 - **遗留**：max 仍有偶发 12~38ms 尖峰（疑似 GC），本次未处理
 
+## v37 · 2026-10-27 · 战斗基础 S4-D 第一批（D1）：敌人防御属性权威迁移
+
+- 新增 `EnemyStatSources`，敌人 `defense`、`resistances`、`tough` 经 StatModel 权威解析；每次 `spawnEnemy()` 仅在生成时解析一次，伤害路径读取实体值，不引入逐帧重算。
+- 三项防御属性保持原有数值与可选字段形状；通用 `resolveKeyedMap` 抽至 `StatKeyedMap`，并保留 `StatSheets` 原导出兼容。
+- Q1 拒绝负防御属性并显式报错非法抗性映射；Q2 保留超上限抗性与 tough 来源值，由 `DamageSystem` 消费点裁剪。
+- RNG、精英倍率、伤害快照时机与原版 Parity 不变；新增 21 项测试，全量 Vitest 432 项通过，浏览器 16 项通过。
+
 ## v35 · 2026-10-26 · 战斗基础 S4-C 第三批（C3-C）：等级属性权威迁移与全量运行状态保护
 
 - 击杀狂热/疾影步/二段冲刺/壁垒/不屈/战意沸腾六张卡的等级属性改由权威来源表声明（hasteLv/dashLv/dashChargeLv/barrierLv/nd/rageLv flat +1 每级、dashMax 有序 flat −0.4 每级逐位复现旧冷却序列 2.0/1.6/1.2000000000000002），对应 `Talent.f` 不再写入属性；击杀狂热「首级 Buff（haste=1/hasteT=3）」分离为获得时效果（OnAcquireEffects 按 lvBefore===0 判定），仅在成功学习时触发一次，升级不刷新、重算不重放

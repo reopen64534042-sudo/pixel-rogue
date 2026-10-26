@@ -21,6 +21,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
   {
+    version: "v37",
+    date: "2026-10-27",
+    title: "战斗基础 S4-D 第一批（D1）：敌人防御属性权威迁移",
+    items: [
+      "新增 EnemyStatSources，使敌人 defense、resistances、tough 经 StatModel 权威解析；spawnEnemy 每次生成仅解析一次，伤害路径继续读取实体值。",
+      "防御数值与可选字段形状保持不变；resolveKeyedMap 独立为 StatKeyedMap 并保留 StatSheets 导出兼容。Q1 拒绝负值及非法抗性映射，Q2 保持由 DamageSystem 消费点裁剪上限。",
+      "RNG、精英倍率、伤害快照时机与 Parity 不变；新增 21 项测试，全量 Vitest 432 项通过，浏览器 16 项通过。",
+    ],
+  },
+  {
     version: "v35",
     date: "2026-10-26",
     title: "战斗基础 S4-C 第三批（C3-C）：等级属性权威迁移与全量运行状态保护",
