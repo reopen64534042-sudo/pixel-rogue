@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v34",
+    date: "2026-10-26",
+    title: "性能：修复文字纹理每帧无效重建（#106）",
+    items: [
+      "根因：PixelPainter.fillText() 每帧对每个文字对象依次调用 setText/setFontFamily/setFontSize/setColor/setResolution。Phaser 的 Text 是 canvas 重建型对象，每次属性写入都会重绘内部 canvas 并重新上传 GPU 纹理。CPU profile（160 敌人、6x 降速）显示 texImage2D 占 17%，syncFont + measureText + updateText + fillText 再占约 9%，而规则计算仅 0.4ms/帧",
+      "修复：fontFamily/resolution 改为对象创建时设置一次（本来就恒定）；setText/setFontSize/setColor 加槽位缓存，仅在值真正变化时才写入",
+      "实测（160 敌人灌满、CPU 6x 降速模拟中端移动端，scene.update 完整帧）：p50 4.90ms → 1.00ms（-80%）；1x 下 0.40 → 0.20ms",
+      "不影响规则：纯渲染层改动，未触碰敌人上限、配额曲线、生成速率；parity 26 项原样通过，Vitest 389 项、浏览器 16 项通过（含 HUD 字体尺寸的视觉断言）",
+      "遗留：p95 仍有约 9ms 尖峰（疑似 GC 与纹理批次切换），本次未处理；需真机（iPhone 14 Pro / iQOO Z9 Turbo+）复测确认第 5 波体感",
+    ],
+  },
+  {
     version: "v33",
     date: "2026-10-26",
     title: "UI：天赋刷新按钮改为卡片下方文字按钮（#107）",

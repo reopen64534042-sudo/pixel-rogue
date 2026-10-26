@@ -1583,3 +1583,80 @@ M2 拆分时曾把「天赋详情」记为**触屏上的死功能**。实测（8
 - **验收**：Vitest **389** 项全绿、浏览器 **16/16**。`game.spec.ts` 新增位置断言：
   按钮须位于卡片下半部、水平偏移 < 1px、文字为「刷 新」，防止将来 CSS 回退成右上角
 - 未改变任何规则行为（parity 26 项原样通过）；宝箱面板仍不显示刷新按钮
+
+## D-30 Issue #106：手机端后期掉帧——文字纹理每帧无效重建（2026-10-26）
+
+### 现象与证据链
+
+用户反馈：iPhone 14 Pro + iQOO Z9 Turbo+ **两台机器在第 5 波后都掉帧**。
+
+**假设演进**（记录以免重走）：
+
+| 假设 | 结论 |
+|---|---|
+| DPR 3 导致像素量 9 倍膨胀 | **排除**：`Scale.NONE` + 固定 px stage，canvas 逻辑尺寸恒为 480×270 |
+| ProMotion 120Hz 每帧预算只有 8.3ms | **排除**：用户开「限制帧速率」锁 60Hz 后**依然掉帧**；且安卓机同样掉帧 |
+| 规则计算量（敌人分离 O(n²)） | **排除**：`core.update` 实测 0.05ms（1x）/ 0.69ms（10x 降速） |
+| 渲染管线 | **确认** |
+
+### 测量方法（可复现）
+
+桌面 Chrome + CDP `Emulation.setCPUThrottlingRate` 模拟移动端算力：
+
+1. 灌满 160 敌人（`player.damage = 0` 保持数量恒定）
+2. 规则单帧耗时：直接连调 `core.update(1/60)` 取均值
+3. 完整帧耗时：连调 `scene.update(now, 1000/60)` 取 p50/p95
+4. CPU profile：`Profiler.start` 采样 4 秒，按 self time 排序
+
+**关键**：不能只看 `requestAnimationFrame` 间隔——headless Chrome 不限帧，
+实测 delta 只有 5ms（200fps），完全没有参考价值。必须测 `scene.update` 的 CPU 时长。
+
+### 根因
+
+CPU profile（6x 降速、160 敌人）热点：
+
+```
+17.0%  texImage2D          ← 纹理上传 GPU
+14.1%  (program)           ← 着色器
+ 5.0%  batch (phaser)
+ 4.0%  draw (draw.ts)
+ 3.4%  syncFont (phaser)   ← 字体同步
+ 2.3%  measureText
+ 1.8%  GraphicsWebGLRenderer
+ 1.6%  updateText (phaser)
+ 1.5%  fillText
+```
+
+`PixelPainter.fillText()` 每帧对每个文字对象调用 **5 个属性写入**：
+
+```ts
+label.setText(value)
+  .setFontFamily('"Press Start 2P", monospace')   // 恒定值，每帧重设
+  .setFontSize(size)
+  .setColor(this.fillStyle)
+  .setResolution(1);                              // 恒定值，每帧重设
+```
+
+Phaser 的 `Text` 是 **canvas 重建型**对象：属性写入 → 标记 dirty → `updateText()` 重绘内部 canvas →
+`texImage2D` 重新上传纹理。**HUD 那一行数值没变，也照样每帧重建一整张纹理。**
+
+### 修复
+
+- `fontFamily` / `resolution` 移到对象创建时设置一次（本来就恒定）
+- `setText` / `setFontSize` / `setColor` 各加槽位缓存数组，值未变则跳过
+
+### 效果
+
+| 条件 | 优化前 p50 | 优化后 p50 | 降幅 |
+|---|---|---|---|
+| 6x 降速 + 160 敌人聚集 | 4.90ms | **1.00ms** | **-80%** |
+| 1x（桌面原生） | 0.40ms | 0.20ms | -50% |
+
+**遗留**：p95 仍约 9ms，尖峰疑似来自 GC 与纹理批次切换，本次未处理。
+
+### 验收
+
+- parity 26 项原样通过；Vitest **389** 项、浏览器 **16/16**（含 `visual.spec.ts` 的 HUD 字体尺寸断言）
+- 截图确认 HUD 与伤害飘字渲染正常（`output/perf-texts.png`）
+- **未触碰**敌人上限、配额曲线、生成速率——这是渲染问题，不是平衡问题
+- 真机复测待用户确认（本次数据来自桌面降速模拟，非实机）
