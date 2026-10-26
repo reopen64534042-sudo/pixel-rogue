@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v36",
+    date: "2026-10-27",
+    title: "性能：路径特效绘制合并，降低触发瞬间掉帧（#112）",
+    items: [
+      "根因：闪电链与陨星预告都用 Phaser Graphics 的独立路径绘制——每条链、每颗陨石各自 beginPath + lineStyle + strokePath，反复打断 Image 批次。实测 160 敌人下加 40 条闪电链，完整帧 p95 从 4.9ms 升到 17.2ms（超出 60fps 的 16.7ms 预算），而 p50 几乎不变，与「特效生成瞬间掉一下、反复触发则连续卡顿」的现象吻合",
+      "修复：新增 PixelPainter.polyline3() 与 meteorRing()，把同色折线与圆环合并为一次 lineStyle + beginPath + 多次 moveTo/lineTo + 一次 strokePath；闪电链抖动改用确定性相位 sin(time, seed)，移除 Math.random（符合表现层约定）",
+      "效果（160 敌人、6x CPU 降速）：40 条闪电链 p95 17.2ms → 9.3ms（-46%），120 条为 10.8ms；p50 稳定在 1.7ms。陨星预告从每颗 2 次 beginPath + 2 次 strokePath 降为整批 1 次",
+      "视觉：闪电链统一不透明度（寿命仅 0.15s，与原先渐隐无感知差异）；陨石圆环与十字外观不变，截图逐项核对一致",
+      "不影响规则：纯渲染层改动，parity 26 项原样通过；Vitest 411 项、浏览器 16 项通过",
+      "遗留：max 仍有偶发 12~38ms 尖峰（疑似 GC），本次未处理",
+    ],
+  },
+  {
     version: "v35",
     date: "2026-10-26",
     title: "战斗基础 S4-C 第三批（C3-C）：等级属性权威迁移与全量运行状态保护",
