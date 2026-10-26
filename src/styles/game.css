@@ -191,10 +191,8 @@ p {
 .card {
   position: relative;
 }
+/* 刷新按钮基样式（#107）：流式元素，具体位置由所在容器决定，不再绝对定位 */
 .refr {
-  position: absolute;
-  top: 0.5vmin;
-  right: 0.5vmin;
   cursor: pointer;
   background: #141a33;
   border: 0.25vmin solid #3d4a7a;
@@ -748,26 +746,39 @@ p {
 #bp-cards .card .cat {
   font-size: 1.1vmin;
 }
+/* 刷新按钮（#107）：卡片底部、三分之一宽度居中。
+   卡片本身是 flex column + align-items:center，margin-top:auto 把按钮推到底部。
+   字体、字号、字重刻意对齐卡片内的 .nm/.up —— 原先是 inherit + weight 400，
+   比周围文字细一档，放在深色块里显得飘。 */
 #bp-cards .card .refr {
-  position: absolute;
-  top: 0.6vmin;
-  right: 0.6vmin;
+  width: 33%;
+  margin-top: auto;
   cursor: pointer;
   background: rgba(14, 18, 36, 0.9);
-  border: 0.2vmin solid #3d4a7a;
+  border: 0.15vmin solid #3d4a7a;
   color: #9aa3c7;
-  font-size: 1.2vmin;
-  padding: 0.3vmin 0.5vmin;
-  line-height: 1;
-  border-radius: 0.2vmin;
-  transition: all 0.1s ease;
+  font-family: "Press Start 2P", "Microsoft YaHei", monospace;
+  font-size: 1.15vmin;
+  font-weight: bold;
+  padding: 0;
+  line-height: 1.2;
+  border-radius: 0.25vmin;
+  transition: border-color 0.1s ease, color 0.1s ease, background 0.1s ease;
+}
+/* 触屏单独放大：vmin 在手机上过小（844×390 时 1vmin≈3.9px），
+   按桌面比例渲染的按钮会小到点不中，因此用 max() 给字号兜底。 */
+@media (pointer: coarse) {
+  #bp-cards .card .refr {
+    font-size: max(8px, 1.7vmin);
+    line-height: 1.3;
+    min-height: 13px;
+  }
 }
 @media (hover: hover) {
   #bp-cards .card .refr:hover {
     border-color: #57e6ff;
     color: #57e6ff;
     background: #1c264a;
-    transform: rotate(45deg);
   }
 }
 #bp-cards .card .ico {
