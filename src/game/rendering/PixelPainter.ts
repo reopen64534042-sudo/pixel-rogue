@@ -9,6 +9,10 @@ export class PixelPainter {
   private graphics: Phaser.GameObjects.Graphics[] = [];
   private images: Phaser.GameObjects.Image[] = [];
   private labels: Phaser.GameObjects.Text[] = [];
+  /** 每个 label 槽位上次写入的内容/字号/颜色，用于跳过无效重建（#106 性能） */
+  private labelVal: string[] = [];
+  private labelSize: number[] = [];
+  private labelColor: string[] = [];
   private gi = 0;
   private ii = 0;
   private ti = 0;
@@ -113,15 +117,32 @@ export class PixelPainter {
   }
   fillText(value: string, x: number, y: number) {
     this.active = null;
-    const label = this.labels[this.ti] ?? this.scene.add.text(0, 0, "");
-    this.labels[this.ti++] = label;
+    const i = this.ti;
+    let label = this.labels[i];
+    if (!label) {
+      label = this.scene.add.text(0, 0, "", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: 8,
+        resolution: 1,
+      });
+      this.labels[i] = label;
+    }
+    this.ti++;
     const size = Number.parseInt(this.font, 10);
-    label
-      .setText(value)
-      .setFontFamily('"Press Start 2P", monospace')
-      .setFontSize(size)
-      .setColor(this.fillStyle)
-      .setResolution(1);
+    // 只在真正变化时写属性：每次 setText/setFontSize/setColor 都会让 Phaser
+    // 重建文字 canvas 并重新上传纹理（texImage2D），HUD 值不变时纯属浪费。
+    if (this.labelVal[i] !== value) {
+      label.setText(value);
+      this.labelVal[i] = value;
+    }
+    if (this.labelSize[i] !== size) {
+      label.setFontSize(size);
+      this.labelSize[i] = size;
+    }
+    if (this.labelColor[i] !== this.fillStyle) {
+      label.setColor(this.fillStyle);
+      this.labelColor[i] = this.fillStyle;
+    }
     label.setOrigin(
       this.textAlign === "center" ? 0.5 : this.textAlign === "right" ? 1 : 0,
       0.8,
