@@ -26,13 +26,15 @@ import { COMBAT_BALANCE } from "../data/combatBalance";
 import type { DamageTypeId } from "../data/damageTypes";
 import { statBase } from "../data/stats";
 import { critMultiplier } from "./DamageMath";
+import { resolveKeyedMap } from "./StatKeyedMap";
 import {
   resolveStats,
   type KeyedStatFamily,
   type StatModifier,
-  type StatSheet,
 } from "./StatModel";
 import type { Enemy, EnemyConfig, Player } from "./types";
+
+export { resolveKeyedMap } from "./StatKeyedMap";
 
 /** 键控修饰符：族槽位 + 结构化键（类型/形态名），构成类型化映射的来源 */
 export type KeyedModifier<F extends KeyedStatFamily> = StatModifier & {
@@ -45,39 +47,6 @@ export type TypeDamageBonusModifier = KeyedModifier<"typeDamageBonus"> & {
 export type ResistanceModifier = KeyedModifier<"resistance"> & {
   key: DamageTypeId;
 };
-
-/**
- * 类型化映射解析：每个 key 一张子属性表（槽位 = 族，修饰符 = 该 key 的
- * 全部来源）走 resolveStats，再装配回平面映射。base 的键也参与（空映射
- * + 无修饰符的 key 不会出现在结果里，与 resolveStats 的 Partial 语义一致）。
- * 纯函数：不改写 base/mods，返回新对象。
- */
-export function resolveKeyedMap<F extends KeyedStatFamily>(
-  family: F,
-  base: Readonly<Partial<Record<string, number>>>,
-  mods: readonly (StatModifier & { stat: F; key: string })[],
-): Record<string, number> {
-  const keys = new Set<string>([
-    ...Object.keys(base),
-    ...mods.map((m) => m.key),
-  ]);
-  const out: Record<string, number> = {};
-  for (const key of keys) {
-    // 危险原型键显式拒绝（PR #89 评审 P3）：普通对象上 out.__proto__ = v
-    // 会触发原型 setter 而非自有属性——键被静默丢弃且可能污染原型链；
-    // 且下游 { ...map } 展开会再次丢失。游戏数据无合法 __proto__ 键，
-    // 拒绝优于安全容器（其他自有键如 constructor 无 setter 魔法，不受限）。
-    if (key === "__proto__")
-      throw new TypeError('类型化映射不允许危险原型键 "__proto__"');
-    const sheet: StatSheet = {
-      base: { [family]: base[key] ?? 0 },
-      modifiers: mods.filter((m) => m.key === key),
-    };
-    const v = resolveStats(sheet)[family];
-    if (v !== undefined) out[key] = v;
-  }
-  return out;
-}
 
 /** shadow 首批字段（评审定基线：DEF/tough/暴击率暴伤/火雷增伤；不含 attack/maxHp） */
 export interface PlayerShadowStats {
@@ -214,21 +183,24 @@ export function playerShadowFromPicks(
   );
 }
 
-/** 敌人 shadow 首批字段：护甲与抗性映射（方案甲不随波次/精英缩放） */
+/** 敌人 shadow 首批字段：护甲、抗性映射与 tough（均不随波次/精英缩放） */
 export interface EnemyShadowStats {
   defense: number;
   resistances: Partial<Record<DamageTypeId, number>>;
+  tough: number;
 }
 
 /** 来源 A（敌人）：实体当前值打包 */
 export function enemyShadowFromEntity(
-  e: Pick<Enemy, "defense" | "resistances">,
+  e: Pick<Enemy, "defense" | "resistances" | "tough">,
 ): EnemyShadowStats {
   return {
     defense:
       resolveStats({ base: { defense: e.defense ?? 0 }, modifiers: [] })
         .defense ?? 0,
     resistances: resolveKeyedMap("resistance", { ...e.resistances }, []),
+    tough:
+      resolveStats({ base: { tough: e.tough ?? 0 }, modifiers: [] }).tough ?? 0,
   };
 }
 
@@ -247,5 +219,8 @@ export function enemyShadowFromConfig(cfg: EnemyConfig): EnemyShadowStats {
       cfg.resistances ? { ...cfg.resistances } : {},
       [],
     ),
+    tough:
+      resolveStats({ base: { tough: cfg.tough ?? 0 }, modifiers: [] }).tough ??
+      0,
   };
 }

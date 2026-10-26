@@ -1719,3 +1719,28 @@ Phaser 的 `Text` 是 **canvas 重建型**对象：属性写入 → 标记 dirty
 - C3 混合天赋批次（C3-A/B/C）全部完成；契约冻结的六项已批准差异全部落地。未迁移卡（multishot/pierce/orbit/regen/luck/chain/explode/thorns/lifesteal/dodge/burn 等）全部为可由 picks 重建的纯属性，按 C0 审计维持 f 重放，无运行状态混入。
 - 宝箱模式键盘 1/2/3 快捷键缺陷（C2-A 发现）未修（历批任务书明示不夹带）。
 - S4-D（怪物侧 StatModel 迁移、负区因子政策、RuntimeState 大规模重写）未开始，不在本批授权范围；本批的 RuntimeStateProtection 白名单机制为其提供骨架。
+
+## D-32 Combat Foundation S4-D 第一批（D1）：敌人防御属性权威迁移（2026-10-27）
+
+依据 D0 冻结契约 `docs/pixel-rogue-S4D-D0-contract-v1.md`（v1.0），基线为上游 PR #111 合并提交 `0470f59618989c701019ff5fb34bdee0f35920ce`，分支 `feat/combat-foundation-s4d-d1-defense`。本批只切换敌人防御来源权威，不调整战斗平衡；D2/D3 尚未开始。
+
+### 实施范围与调用链
+
+- 调用链：`EnemyConfig → EnemyStatSources → StatModel → Enemy → CombatStatsSnapshot`。`enemyDefenseSheet(cfg)` 与 `resolveEnemyDefense(cfg)` 提供纯来源解析接口；`spawnEnemy()` 每次生成只解析一次，快照和伤害路径继续从实体读取。
+- 仅迁移 `defense`、`resistances`、`tough`。配置未声明的可选字段仍不写入实体；已声明的抗性映射独立浅拷贝。`getEnemyCombatStats()` 签名、默认值和快照语义不变。
+- 五个 D1 文件：新增 `src/game/core/EnemyStatSources.ts` 与 `src/game/core/StatKeyedMap.ts`；修改 `src/game/core/EnemySystem.ts`、`src/game/core/StatSheets.ts`；新增 `tests/s4d-d1-enemy-defense.test.ts`。`StatSheets` 保留原 `resolveKeyedMap` 导出，四类攻击侧映射未迁移。
+- `StatKeyedMap` 承载通用逐 key 解析，抗性继续使用 `resistance` 类型化族，不硬编码 fire/lightning。属性解析不进入每帧更新、碰撞或伤害结算。
+
+### Q1/Q2 边界与行为保持
+
+- **Q1**：负 `defense`、`tough` 或任意抗性由 StatModel 路径抛 `RangeError`。第一轮独立复审发现显式 `fire: undefined` 会被通用 `resolveKeyedMap` 的 `?? 0` 变为 `fire: 0`，使 JSON 从 `{}` 变成 `{"fire":0}`；修复在 `EnemyStatSources` 权威边界先检查抗性值，`undefined`、`null`、NaN、Infinity 等非法值抛 `TypeError`，不改变通用映射解析器既有行为。有效 `0` 保留为显式键和值。
+- **Q2**：合法 `resistance > 0.75` 与 `tough > 0.6` 在来源层不裁剪；原上限仍只由 `DamageSystem` 消费点应用。
+- 验收覆盖五类敌人与精英形态、可选字段键集合、配置/实体/快照映射隔离、普通/物理/火/雷/真实伤害、临时 `tough=0.2` 的物理 100→80 与真实 100→100，以及强制/自然抽取 RNG 次数。精英防御值不变；brute 物理 11→7、shooter 雷伤 10→7、bomber 火伤 10→6。
+- 生成 RNG 次数保持强制类型首试/五次重试 4/8 次，自然抽取首试/一次重试/五次重试 5/6/9 次；精英倍率、伤害快照时机、受伤 HP 与原版 Parity 均未改变。
+
+### 独立复审与验证
+
+- 第一轮独立复审发现显式 undefined 抗性归零和真实生成入口负值拒绝覆盖不足；以上已在来源边界和真实 `spawnEnemy()` 测试中修复。第二轮独立复审结论：P1=0、P2=0。
+- 新增 D1 测试 21 项；全量 Vitest **432/432**，Parity **26/26**，Typecheck 与 Build 通过，Playwright **16/16**（第一轮独立复审运行）。构建有 Vite chunk 大于 500 KB 提醒，不影响构建成功。
+- D1 已完成并等待最终交付复审；**D2 与 D3 尚未开始**。
+- 敌人侧无属性重算入口，D1 不引入 RuntimeStateProtection 快照/恢复机制；D3 仅进行运行状态边界与不变项验收，不照搬玩家侧重算保护骨架。
