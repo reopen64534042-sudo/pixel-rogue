@@ -100,6 +100,22 @@ const parityTalents = UPGRADES.filter(
  * s4c-c3-baseline B4/B13 与 s4c-c3b-shield 的 legacyShield 对照继续咬住，
  * 不排除、不删减字段、不放宽比较）；全天赋模拟场景（parityTalents）继续
  * 包含该卡（learnTalent 路径不变）。
+ *
+ * 基线更新依据：Combat Foundation S4-C C3-C（D-C3-03/D-C3-04/D-C3-06，
+ * 用户已批准）。六张等级型机制卡的等级属性改由来源表声明——击杀狂热
+ * hasteLv +1/级（首级 Buff haste=1/hasteT=3 分离至 OnAcquireEffects 的
+ * lvBefore===0 判定；注意该卡本就在 BASELINE_EXCLUDED（Issue #1 攻速分叉），
+ * v8 逐字段对照原本就跳过、由文件末尾 D-01 显式公式断言保护，加入本清单
+ * 仅保持迁移登记一致）、疾影步 dashLv +1/级 + dashMax 有序 flat −0.4/级
+ * （base 2.4 逐次累加逐位复现旧 f 序列 2.0/1.6/1.2000000000000002，独立
+ * 浮点对照由 s4c-c3-baseline B10/B16 与 s4c-c3c-runtime G-16 咬住）、
+ * 二段冲刺 dashChargeLv +1/级、壁垒 barrierLv +1/级、不屈 nd +1（数字
+ * 0/1，与 v8 f `p.nd = 1` 一致）、战意沸腾 rageLv +1/级——全部走
+ * learnTalent 路径对照；对应运行状态（haste/hasteT/rageT/dashT/dashCharges/
+ * dashRe/tempShield/ndUsed）由 RuntimeStateProtection 快照保留，recompute
+ * 绝不重放（旧行为对照由 s4c-c3-baseline B7~B11/B14 与 s4c-c3c-runtime
+ * G-10~G-22 咬住，不排除、不删减字段、不放宽比较）；全天赋模拟场景
+ * （parityTalents）继续包含这些卡（learnTalent 路径不变）。
  */
 const S4C_AUTHORITY_MIGRATED = [
   "铁布衫",
@@ -115,6 +131,12 @@ const S4C_AUTHORITY_MIGRATED = [
   "生命之泉",
   "巨人血脉",
   "能量护盾",
+  "击杀狂热",
+  "疾影步",
+  "二段冲刺",
+  "壁垒",
+  "不屈",
+  "战意沸腾",
 ] as const;
 /**
  * 基线更新依据：Issue #13（用户已批准的近战基础设施建设）。

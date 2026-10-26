@@ -299,15 +299,11 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) =>
       `冲刺冷却 ${p.dashLv ? p.dashMax.toFixed(1) + "s" : "未解锁"} → ${(p.dashLv === 0 ? 2.0 : p.dashMax - 0.4).toFixed(1)}s`,
-    f: (p) => {
-      if (p.dashLv === 0) {
-        p.dashLv = 1;
-        p.dashMax = 2.0;
-      } else {
-        p.dashLv++;
-        p.dashMax -= 0.4;
-      }
-    },
+    // S4-C C3-C：dashLv +1/级 与 dashMax 有序 flat −0.4/级 由权威来源表声明
+    //（core/TalentStatSources.ts，base 2.4 逐次累加逐位复现旧 f 序列，禁止
+    // 折叠式）；dashT/dashCharges/dashRe 属运行状态，recompute 由
+    // RuntimeStateProtection 快照保留（D-C3-06）。
+    f: () => {},
     cur: (p) =>
       `冲刺冷却 ${p.dashMax.toFixed(1)}s · 充能上限 ${1 + p.dashChargeLv} 次`,
   },
@@ -338,13 +334,12 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) =>
       `上限 ${hasteCap(p.hasteLv)}→${hasteCap(p.hasteLv + 1)} 层 · 持续 ${(2 + p.hasteLv).toFixed(0)}→${(3 + p.hasteLv).toFixed(0)}s`,
-    f: (p) => {
-      p.hasteLv++;
-      if (p.hasteLv === 1) {
-        p.haste = 1;
-        p.hasteT = 3;
-      }
-    },
+    // S4-C C3-C：hasteLv +1/级 由权威来源表声明（core/TalentStatSources.ts，
+    // hasteLv flat）；「首级 Buff（haste=1/hasteT=3）」为获得时效果
+    //（core/OnAcquireEffects.ts，lvBefore===0 判定），仅在 learnTalent 成功
+    // 获得时执行一次，recompute 绝不重放（D-C3-03：重算不触发、降级夹紧、
+    // 末级移除清除——RuntimeStateProtection.reconcileRuntimeToCaps）。
+    f: () => {},
     cur: (p) => `上限 3 层(+30% 攻速) · 持续 ${(2 + p.hasteLv).toFixed(0)}s`,
   },
   {
@@ -455,7 +450,10 @@ export const UPGRADES: Talent[] = [
     max: 2,
     mech: 1,
     pv: (p) => `攻速加成 ${p.rageLv * 20}% → ${(p.rageLv + 1) * 20}%`,
-    f: (p) => p.rageLv++,
+    // S4-C C3-C：rageLv +1/级 由权威来源表声明（core/TalentStatSources.ts，
+    // rageLv flat）；rageT 属运行状态（受击触发/独立衰减），recompute 由
+    // RuntimeStateProtection 快照保留（D-C3-04）。
+    f: () => {},
     cur: (p) => `受伤后攻速 +${p.rageLv * 20}% (持续 3 秒)`,
   },
   {
@@ -467,7 +465,11 @@ export const UPGRADES: Talent[] = [
     max: 2,
     mech: 1,
     pv: (p) => `每波护盾 ${p.barrierLv} → ${p.barrierLv + 1} 层`,
-    f: (p) => p.barrierLv++,
+    // S4-C C3-C：barrierLv +1/级 由权威来源表声明（core/TalentStatSources.ts，
+    // barrierLv flat）；tempShield 每波按 barrierLv 重建属换波显式语义
+    //（WaveSystem，D-C3-04 例外面），recompute 由 RuntimeStateProtection
+    // 快照保留现值。
+    f: () => {},
     cur: (p) => `每波临时护盾 ${p.barrierLv} 层`,
   },
   {
@@ -480,7 +482,10 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     req: (p) => p.dashLv > 0,
     pv: (p) => `充能 ${1 + p.dashChargeLv} → ${2 + p.dashChargeLv} 段`,
-    f: (p) => p.dashChargeLv++,
+    // S4-C C3-C：dashChargeLv +1/级 由权威来源表声明（core/TalentStatSources.ts，
+    // dashChargeLv flat）；dashCharges/dashRe 属运行状态（消耗/充能/倒计时），
+    // recompute 由 RuntimeStateProtection 快照保留、上限降低时夹紧（D-C3-06）。
+    f: () => {},
     cur: (p) => `冲刺充能上限 ${1 + p.dashChargeLv} 段`,
   },
   {
@@ -493,7 +498,10 @@ export const UPGRADES: Talent[] = [
     mech: 1,
     hidden: 1,
     pv: (p) => (p.nd ? "已解锁" : "解锁: 每波一次免死"),
-    f: (p) => (p.nd = 1),
+    // S4-C C3-C：nd = 1（max=1）由权威来源表声明（core/TalentStatSources.ts，
+    // nd flat +1，保持数字 0/1 形状）；ndUsed 属运行状态（触发置 true/换波
+    // 重置），recompute 由 RuntimeStateProtection 快照保留（D-C3-04）。
+    f: () => {},
     cur: (p) => `每波一次致命免死 · ${p.ndUsed ? "本波已触发" : "本波可用"}`,
   },
   {

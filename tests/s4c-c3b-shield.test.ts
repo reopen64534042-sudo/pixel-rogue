@@ -266,14 +266,15 @@ describe("S4-C C3-B · 结构契约（防绝对投影掩盖重复写入）", () 
     expect(JSON.stringify(g.player)).toBe(before);
   });
 
-  it("OnAcquireEffects 对未登记卡 no-op（狂热/疾影步等仍走旧 f，不误伤）", () => {
+  it("OnAcquireEffects 对未登记卡 no-op（星辰坠落等仍走旧 f，不误伤）", () => {
     const g = fresh();
     const before = JSON.stringify(g.player);
-    applyOnAcquireEffect("击杀狂热", g.player, 0);
+    // C3-C 起击杀狂热已登记（首级 Buff，见 tests/s4c-c3c-runtime.test.ts），
+    // 未登记样本改用仍走旧 f 的星辰坠落/磨刃（无获得时效果）
+    applyOnAcquireEffect("星辰坠落", g.player, 0);
     applyOnAcquireEffect("疾影步", g.player, 0);
     applyOnAcquireEffect("磨刃", g.player, 0);
-    applyOnAcquireEffect("壁垒", g.player, 0); // P3-1（复审）：样本须为确实未登记卡——
-    // 生命之泉已登记（回满），满血实体上其效果数值上恰为 no-op，会掩盖登记状态
+    applyOnAcquireEffect("壁垒", g.player, 0);
     expect(JSON.stringify(g.player)).toBe(before);
   });
 });

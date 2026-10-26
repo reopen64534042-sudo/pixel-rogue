@@ -44,6 +44,18 @@ export const STAT_IDS = [
   // 对应 Player 字段 p.shieldMax，base=statBase().shieldMax=0）。当前护盾
   // shield 与恢复倒计时 shieldCd 是 RuntimeState，不进属性模型。
   "shieldMax",
+  // S4-C C3-C：六张等级型机制卡的等级属性（旧 f 的等级写入 → flat 修饰符，
+  // 对应既有 Player 字段，base=statBase() 初始值）。对应运行状态——haste/
+  // hasteT（狂热 Buff）、rageT（战意剩余）、dashT/dashCharges/dashRe（冲刺
+  // 充能与冷却）、tempShield（壁垒临时盾）、ndUsed（不屈本波已触发）——
+  // 不进属性模型，由 RuntimeStateProtection 快照保留。
+  "hasteLv",
+  "dashLv",
+  "dashMax",
+  "dashChargeLv",
+  "barrierLv",
+  "nd",
+  "rageLv",
   "moveSpeed",
   "fireRate",
   "critChance",

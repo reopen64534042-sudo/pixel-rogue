@@ -40,9 +40,12 @@ export function canOffer(this: GameCore, u: Talent) {
 
 export function recompute(this: GameCore) {
   const hpBefore = this.player.hp;
-  // Combat Foundation S4-C C3-B（D-C3-02/04）：重建前捕获有效上限协调面
-  // （本批仅 shieldMax）与 RuntimeState 白名单快照——shield/shieldCd 是运行
-  // 状态，重算保留现值、不恢复已消耗盾层、不清零恢复倒计时（R-2 修复载体）
+  // Combat Foundation S4-C C3-B/C3-C（D-C3-02/03/04/06）：重建前捕获有效
+  // 上限协调面（shieldMax/dashChargeMax/hasteCap——hasteCap 零级哨兵见模块）
+  // 与 RuntimeState 全量白名单快照（15 字段）——运行状态重算保留现值：
+  // 盾层/恢复倒计时（R-2 修复）、狂热 Buff（R-3 修复）、冲刺充能/冷却/
+  // 进行中冲刺（D-C3-06）、meteorT/tempShield/ndUsed/orbA/hurtCd/dx/dy
+  // （R-4 修复）
   const capsBefore = effectiveCaps(this.player);
   const runtime = captureRuntimeState(this.player);
   Object.assign(this.player, statBase());
@@ -62,18 +65,19 @@ export function recompute(this: GameCore) {
     if (!talent) throw new Error(`未知天赋: ${n}`);
     talent.f(this.player);
   }
-  // Combat Foundation S4-C C1/C2-A/C2-B/C3-A/C3-B：已迁移天赋卡（C1 纯 flat
+  // Combat Foundation S4-C C1/C2-A/C2-B/C3-A/C3-B/C3-C：已迁移天赋卡（C1 纯 flat
   // 五张 + C2-A 全局伤害三张 + C2-B 乘法属性五张 + C3-A 生命 flat 两张 +
-  // C3-B 护盾容量一张）的属性由权威来源表解析投影，不经 talent.f 累积
-  // （这些卡的 f 是空操作）——单一权威来源，重算幂等零重复叠加。C3-A（契约
-  // v1.2 §10.8）：persistent **必传**当前实例的持久来源（potionMaxHpGrow），
-  // 杜绝漏传静默按 0 重建 maxHp 的 R-1 复活路径
+  // C3-B 护盾容量一张 + C3-C 等级型六张）的属性由权威来源表解析投影，不经
+  // talent.f 累积（这些卡的 f 是空操作）——单一权威来源，重算幂等零重复叠加。
+  // C3-A（契约 v1.2 §10.8）：persistent **必传**当前实例的持久来源
+  // （potionMaxHpGrow），杜绝漏传静默按 0 重建 maxHp 的 R-1 复活路径
   applyTalentStatProjection(this.player, {
     potionMaxHpGrow: this.potionMaxHpGrow,
   });
-  // C3-B：属性重建完成后原样回写 shield/shieldCd（不恢复资源、不刷新倒计时），
-  // 再按「上限降低」方向协调——置换移除层级使 shieldMax 下降时夹紧
-  // shield = min(shield, 新上限)；上限升高或不变时为无操作
+  // C3-B/C3-C：属性重建完成后原样回写全部运行状态（不恢复资源、不刷新
+  // 倒计时、不重放获得时效果），再按「上限降低」方向协调——置换移除层级
+  // 使 shieldMax/dashChargeMax/hasteCap 下降时向下夹紧（haste 部分降级不
+  // 刷新 hasteT、末级移除清空 Buff）；上限升高或不变时为无操作
   restoreRuntimeState(this.player, runtime);
   reconcileRuntimeToCaps(this.player, capsBefore, effectiveCaps(this.player));
   this.player.hp = Math.max(1, Math.min(hpBefore, this.player.maxhp));
