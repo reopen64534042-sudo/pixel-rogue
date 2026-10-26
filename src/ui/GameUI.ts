@@ -210,10 +210,11 @@ export class GameUI {
       elementWithin(el, ".up").textContent = u.pv(this.core.player); // 动态数值预览
       elementWithin(el, ".lv").textContent = `Lv.${lv} → ${lv + 1}`;
       if (!s.used && this.core.bpMode === "level") {
-        // 每张卡独立刷新 1 次（阻止冒泡，避免误触发"选卡"）；宝箱不提供刷新
+        // 每张卡独立刷新 1 次（阻止冒泡，避免误触发"选卡"）；宝箱不提供刷新。
+        // 用文字而非 🔄：Press Start 2P 不含 emoji，部分环境会渲染成方块。
         const rb = document.createElement("button");
         rb.className = "refr";
-        rb.textContent = "🔄";
+        rb.textContent = "刷 新";
         rb.setAttribute("aria-label", `刷新第 ${i + 1} 张卡片（限一次）`);
         rb.onclick = (e) => {
           e.stopPropagation();
@@ -573,7 +574,7 @@ export class GameUI {
     if (hint)
       hint.textContent = box
         ? "只强化已学天赋 · 键盘 1 / 2 / 3 快捷选取"
-        : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片右上角 🔄 单独刷新";
+        : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷 新」换一张";
     this.drawCards();
     element("bp-level").classList.remove("hidden");
     element("bp-rest").classList.add("hidden");

@@ -1556,3 +1556,23 @@ M2 拆分时曾把「天赋详情」记为**触屏上的死功能**。实测（8
 - R-3（狂热重放触发）/R-4（dash/meteor/tempShield/ndUsed/orbA/hurtCd/dx/dy 等被 statBase 覆盖）维持 C0 审计 pin，属 C3-C 范围；RuntimeStateProtection 白名单与 EffectiveCaps 已为其预留扩充位（契约 §5.3 全量清单）。
 - 击杀狂热/疾影步/二段冲刺/壁垒/不屈/战意沸腾的属性迁移（hasteLv/dashLv/dashMax/dashChargeLv/barrierLv/nd/rageLv）未开始；能量护盾旧 f 已空操作，其余混合卡 f 仍按旧语义重放。
 - 宝箱模式键盘 1/2/3 快捷键缺陷（C2-A 发现）未修（任务书明示不夹带）。
+
+## D-29 Issue #107：天赋刷新按钮改为卡片下方文字按钮（2026-10-26）
+
+- **需求**：刷新按钮从卡片右上角移到卡片下方居中（对齐《金铲铲之战》选强化布局），PC 与手机同步
+- **定位改动**：`.refr` 去掉 `position: absolute` 与 `top/right`，改为流式；`#bp-cards .card .refr` 用
+  `width: 100%` + `margin-top: auto` 撑满并贴底 —— 卡片本身已是 `flex column + align-items: center`，
+  故水平居中无需额外设置。实测桌面 132.8×21.6（贴底间距 13.2px）、手机 64.7×30（间距 6.5px），
+  水平偏移均为 **0.00px**
+- **emoji 隐患**：原按钮用 `🔄`，而「Press Start 2P」不含 emoji，部分环境渲染为方块（历史已知问题）。
+  改用文字「刷 新」彻底绕开字体覆盖范围，顺带与站内「继 续 战 斗」等按钮风格统一
+- **手机档必须单独放大**：`vmin` 在手机上极小（844×390 时 1vmin≈3.9px），按桌面比例渲染的按钮只有约 10px 高，
+  点不中。故加 `@media (pointer: coarse)`：字号 `max(10px, 2.4vmin)`、`min-height: 30px`。
+  取 30px 而非 44px，是因为手机档卡片本身仅 76×86 CSS px，塞 44px 会挤掉描述区
+- **踩坑：文案有两份**。`index.html` 的 `.level-subhint` 与 `GameUI.openLevelPanel()` 里各硬编码一份，
+  后者每次开面板都会覆盖前者 —— 只改 HTML 会在运行时被改回旧文案，两处必须同步
+- **卡片增高**：手机卡片 86 → 124px（按钮 30px + 间距），面板 266×160 仍在 390 高视口内，无溢出；
+  桌面面板 545×287，无溢出
+- **验收**：Vitest **389** 项全绿、浏览器 **16/16**。`game.spec.ts` 新增位置断言：
+  按钮须位于卡片下半部、水平偏移 < 1px、文字为「刷 新」，防止将来 CSS 回退成右上角
+- 未改变任何规则行为（parity 26 项原样通过）；宝箱面板仍不显示刷新按钮

@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v33",
+    date: "2026-10-26",
+    title: "UI：天赋刷新按钮改为卡片下方文字按钮（#107）",
+    items: [
+      "刷新按钮从卡片右上角的 🔄 图标改为卡片底部的「刷 新」文字按钮，宽度撑满卡片内容区并水平居中；电脑端与手机端同步（Issue #107）",
+      "移除 emoji 依赖：「Press Start 2P」字体不含 emoji，原 🔄 在部分环境会渲染成方块，改为文字后不受字体覆盖范围影响",
+      "触屏档单独放大（@media (pointer: coarse)）：字号 max(10px, 2.4vmin)、最小高度 30px。手机横屏 844×390 下 1vmin 仅约 3.9px，按桌面比例渲染的按钮会小到点不中",
+      "副标题文案同步改为「点击卡片下方『刷 新』换一张」，并移除 GameUI.openLevelPanel 内硬编码的旧文案副本，避免覆盖 index.html",
+      "验收：按钮水平偏移 0.00px 且位于卡片下半部；桌面面板 545×287、手机面板 266×160 均不溢出视口；Vitest 389 项、浏览器 16 项通过（新增位置断言，防止回退成右上角）",
+    ],
+  },
+  {
     version: "v32",
     date: "2026-10-26",
     title: "战斗基础 S4-C 第三批（C3-B）：护盾容量权威迁移与运行状态保护",
