@@ -72,6 +72,50 @@ export class PixelPainter {
   stroke() {
     this.batch().strokePath();
   }
+  /**
+   * 批量绘制陨石预警：圆环 + 十字（#112）。
+   * 原先每个陨石要 2 次 beginPath + 2 次 strokePath，多个陨石时会反复打断批次；
+   * 合并为一次 lineStyle + 一次 strokePath。pts 为扁平数组 [x,y,r, ...]。
+   */
+  meteorRing(pts: readonly number[], color: string, alpha: number) {
+    if (pts.length < 3) return;
+    this.active = null;
+    const g = this.batch();
+    g.lineStyle(1, this.color(color), alpha);
+    g.beginPath();
+    for (let i = 0; i + 2 < pts.length; i += 3) {
+      const x = pts[i],
+        y = pts[i + 1],
+        r = pts[i + 2];
+      // arc 会从上一条子路径的终点连线过来，先 moveTo 到弧起点断开
+      g.moveTo(x + r, y);
+      g.arc(x, y, r, 0, Math.PI * 2);
+      g.moveTo(x - 6, y);
+      g.lineTo(x + 6, y);
+      g.moveTo(x, y - 6);
+      g.lineTo(x, y + 6);
+    }
+    g.strokePath();
+  }
+  /**
+   * 批量绘制三点折线（#112）。
+   * 同色同 alpha 的折线合并到一次 lineStyle + beginPath + strokePath，
+   * 避免每条线都走一遍 Path 生命周期而反复打断 Image 批次。
+   * pts 为扁平数组 [x1,y1,mx,my,x2,y2, ...]，避免为每条线新建对象。
+   */
+  polyline3(pts: readonly number[], color: string, alpha: number) {
+    if (pts.length < 6) return;
+    this.active = null;
+    const g = this.batch();
+    g.lineStyle(1, this.color(color), alpha);
+    g.beginPath();
+    for (let i = 0; i + 5 < pts.length; i += 6) {
+      g.moveTo(pts[i], pts[i + 1]);
+      g.lineTo(pts[i + 2], pts[i + 3]);
+      g.lineTo(pts[i + 4], pts[i + 5]);
+    }
+    g.strokePath();
+  }
   sprite(key: string, x: number, y: number, w?: number, h?: number) {
     this.active = null;
     const img =
