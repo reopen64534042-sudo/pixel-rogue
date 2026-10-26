@@ -746,29 +746,32 @@ p {
 #bp-cards .card .cat {
   font-size: 1.1vmin;
 }
-/* 刷新按钮（#107）：卡片底部、半宽居中。
-   卡片本身是 flex column + align-items:center，margin-top:auto 把按钮推到底部，
-   width:50% 只占内容区一半，文字由按钮自身 text-align 居中。 */
+/* 刷新按钮（#107）：卡片底部、三分之一宽度居中。
+   卡片本身是 flex column + align-items:center，margin-top:auto 把按钮推到底部。
+   字体、字号、字重刻意对齐卡片内的 .nm/.up —— 原先是 inherit + weight 400，
+   比周围文字细一档，放在深色块里显得飘。 */
 #bp-cards .card .refr {
-  width: 50%;
+  width: 33%;
   margin-top: auto;
   cursor: pointer;
   background: rgba(14, 18, 36, 0.9);
-  border: 0.2vmin solid #3d4a7a;
+  border: 0.15vmin solid #3d4a7a;
   color: #9aa3c7;
-  font-size: 1.1vmin;
-  padding: 0.3vmin 0;
-  line-height: 1;
-  border-radius: 0.3vmin;
+  font-family: "Press Start 2P", "Microsoft YaHei", monospace;
+  font-size: 1.15vmin;
+  font-weight: bold;
+  padding: 0;
+  line-height: 1.2;
+  border-radius: 0.25vmin;
   transition: border-color 0.1s ease, color 0.1s ease, background 0.1s ease;
 }
 /* 触屏单独放大：vmin 在手机上过小（844×390 时 1vmin≈3.9px），
-   按桌面比例渲染的按钮会小到点不中，因此用 max() 给字号与高度兜底。 */
+   按桌面比例渲染的按钮会小到点不中，因此用 max() 给字号兜底。 */
 @media (pointer: coarse) {
   #bp-cards .card .refr {
-    font-size: max(9px, 2vmin);
-    padding: 0.6vmin 0;
-    min-height: 15px;
+    font-size: max(8px, 1.7vmin);
+    line-height: 1.3;
+    min-height: 13px;
   }
 }
 @media (hover: hover) {

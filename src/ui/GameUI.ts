@@ -214,7 +214,7 @@ export class GameUI {
         // 用文字而非 🔄：Press Start 2P 不含 emoji，部分环境会渲染成方块。
         const rb = document.createElement("button");
         rb.className = "refr";
-        rb.textContent = "刷 新";
+        rb.textContent = "刷新";
         rb.setAttribute("aria-label", `刷新第 ${i + 1} 张卡片（限一次）`);
         rb.onclick = (e) => {
           e.stopPropagation();
@@ -574,7 +574,7 @@ export class GameUI {
     if (hint)
       hint.textContent = box
         ? "只强化已学天赋 · 键盘 1 / 2 / 3 快捷选取"
-        : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷 新」换一张";
+        : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷新」换一张";
     this.drawCards();
     element("bp-level").classList.remove("hidden");
     element("bp-rest").classList.add("hidden");

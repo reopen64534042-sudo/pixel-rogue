@@ -50,7 +50,7 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
   expect(
     Math.abs(refrBox.x + refrBox.width / 2 - (cardBox.x + cardBox.width / 2)),
   ).toBeLessThan(1);
-  await expect(first.locator(".refr")).toHaveText("刷 新");
+  await expect(first.locator(".refr")).toHaveText("刷新");
   await first.locator(".refr").click();
   await expect(page.locator("#bp-cards .refr")).toHaveCount(2);
   const picksBefore = await page.evaluate(
