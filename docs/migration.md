@@ -1556,3 +1556,62 @@ M2 拆分时曾把「天赋详情」记为**触屏上的死功能**。实测（8
 - R-3（狂热重放触发）/R-4（dash/meteor/tempShield/ndUsed/orbA/hurtCd/dx/dy 等被 statBase 覆盖）维持 C0 审计 pin，属 C3-C 范围；RuntimeStateProtection 白名单与 EffectiveCaps 已为其预留扩充位（契约 §5.3 全量清单）。
 - 击杀狂热/疾影步/二段冲刺/壁垒/不屈/战意沸腾的属性迁移（hasteLv/dashLv/dashMax/dashChargeLv/barrierLv/nd/rageLv）未开始；能量护盾旧 f 已空操作，其余混合卡 f 仍按旧语义重放。
 - 宝箱模式键盘 1/2/3 快捷键缺陷（C2-A 发现）未修（任务书明示不夹带）。
+
+## D-30 Combat Foundation S4-C 第三批（C3-C）：等级属性权威迁移 + 全量运行状态保护 + 上限协调（2026-10-26）
+
+依据任务书「C3-C 最终批实施任务」与契约 `docs/pixel-rogue-S4C-C3-contract-v1.md`（v1.2），分支 `feat/combat-foundation-s4c-c3c-runtime`（基线 3b0e198 = 上游 PR #105 C3-B 合并提交）。**编号顺延说明**：实施期间上游推进至 `cff96f1`（PR #108 天赋刷新按钮 #107，占用 v33/D-29），本批因此使用 **v34/D-30**；上游 #108 仅触及样式/UI 与浏览器测试，与本批代码文件无重叠（三处文档将在交付同步时合并）。**只实施 C3-C，完成即停止。** 已批准差异：D-C3-03（狂热不因重算重触发/降级夹紧/末级清除）、D-C3-04 完整部分（剩余 RuntimeState 全量保护）、D-C3-06（冲刺充能/剩余冷却/进行中冲刺保留）；D-C3-01/02/05 生命、护盾与 HP 语义保持不变。C3-0 冻结的混合天赋阶段至此实施完毕（S4-D 敌人侧/负区因子政策不在本批范围）。
+
+### 实施范围与权威来源切换
+
+- **七个等级属性字段来源映射（六张卡）**：击杀狂热 → hasteLv flat +1/级；疾影步 → dashLv flat +1/级 **且** dashMax 有序 flat −0.4/级（每级一条独立修饰符，base 2.4 起始逐次累加，逐位复现旧 f 序列 2.0/1.6/**1.2000000000000002**——B10/B16/G-16 三重钉子；**禁止折叠式** 2.4−0.4×lv）；二段冲刺 → dashChargeLv flat +1/级；壁垒 → barrierLv flat +1/级；不屈 → nd flat +1（max=1，保持数字 0/1 与旧 f `p.nd = 1` 形状）；战意沸腾 → rageLv flat +1/级。StatModel 白名单新增 hasteLv/dashLv/dashMax/dashChargeLv/barrierLv/nd/rageLv 七个 StatId；投影必写回七个既有 Player 字段（无来源写回 statBase 基础值：dashMax=2.4 未解锁占位、其余 0）。
+- **六卡 Talent.f 改空操作**；两张生命卡、能量护盾已迁移实现不变；「星辰坠落」的 meteor 等未迁移卡保持 f 重放。
+- **击杀狂热获得时效果（OnAcquireEffects 登记）**：lvBefore===0（upCounts 递增前捕获的首级判定）→ `haste=1, hasteT=3`（与旧 f 条件分支逐字一致）；lvBefore>0 → 不改变当前 Buff（B7 语义）；max 校验失败在校验处早退零副作用；recompute 绝不调用。
+- **RuntimeStateProtection 全量 15 字段**：C3-B 的 shield/shieldCd 基础上追加 haste/hasteT/rageT/dashT/dashCharges/dashRe/meteorT/tempShield/ndUsed/orbA/hurtCd/dx/dy。快照接口**逐字段显式声明真实类型**（ndUsed 为 boolean，其余 number，无 any/统一强转）——C3-B 的 Partial<Record> 联合键循环在混合类型下无法类型安全地回写（写入目标为各属性类型交集），改为显式枚举：新增字段漂移由 typecheck 咬住。快照为模块局部对象、不写 Player、无全局缓存；hp 不入白名单（D-C3-05 夹紧承接）；fireCd 天然幸存不保护。
+- **EffectiveCaps 三面**：shieldMax（沿用 C3-B）、dashChargeMax = 1 + dashChargeLv（与 PlayerSystem 消费点同式）、hasteCap = **hasteLv > 0 ? 3 + hasteLv : 0**（零级哨兵——复用 data/talents.ts 既有 hasteCap 导出；不得把 hasteCap(0)=3 当作未学习的有效上限，哨兵 0 使 reconcile 两分支互斥完备）。
+- **reconcileRuntimeToCaps 规则**：护盾容量下降 → `shield = min(shield, 新容量)`（升高/不变无操作）；狂热——部分降级（after cap > 0 且 < before）→ `haste = min(haste, 新 cap)`、**hasteT 不刷新**，末级移除（after cap === 0 且 before > 0）→ 清空 haste/hasteT，等级不变/升高原样保持（含已过期 Buff）；冲刺——充能上限下降 → `dashCharges = min(dashCharges, 新上限)`，不补回已消耗、dashRe 不按 dashMax 缩放、dashT 不中断。rageT/meteorT/tempShield/ndUsed/orbA/hurtCd/dx/dy 只快照恢复，无任何清零/刷新/奖励行为。
+- **recompute 编排保持 10 步**（C3-B 结构，捕获/快照在 Object.assign 前、恢复/协调在投影后、HP 夹紧逐字保留）；learnTalent 时序不变；melt 材料删除/抽池/恰好 1 次随机/recompute→learnTalent 时序不变；startNextWave 显式重置面不变（potionGrow=0、tempShield=barrierLv 重建、ndUsed=false、potionMaxHpGrow 保留、其余运行状态不动）。
+
+### 修复前后对照（D-C3-03/04/06 / R-3/R-4 反转）
+
+| 场景 | 修复前（基线 3b0e198） | 修复后（本批） |
+|---|---|---|
+| 狂热 Buff 过期 → recompute | 重放 f 首级分支 → Buff 重触发（R-3） | 过期态保持；hasteLv 按 picks 重建（G-10） |
+| 狂热 Lv.2→1（防御性构造）→ recompute | 重放 hasteLv=1 且首级分支重放 | haste 5→4 夹紧至新 cap、hasteT 不刷新（G-12）；Lv→0 清空（G-13） |
+| dashCharges=0/dashRe=0.8/dashT=-0.3 → recompute | 重置 1/0/-1（补满清零） | 三值原样保留（G-15/R-4） |
+| 熔掉二段冲刺（charges=2） | dashCharges 重置 1 | 上限夹紧 min(2,1)=1、dashRe 保留（G-17） |
+| dashT=0.1 冲刺中 → recompute | dashT 重置 -1，位移截断 | 原样保留、冲刺自然完成（G-18） |
+| ndUsed=true → recompute | 重置 false（同波二次免死） | 保留 true，同波只能免死一次（真实 damagePlayer 验证） |
+| meteorT=0.5 / tempShield=1 / orbA/hurtCd/dx/dy 非默认 → recompute | 全部被 statBase 覆盖（R-4） | 逐字段保留；tempShield 仅换波按 barrierLv 重建 |
+
+学习路径数值与旧 f 逐位一致（legacyLevels 三顺序对照含 dashMax 浮点序列 + B7~B11 + parity learnTalent 对照）；重放路径自本批起不再触发狂热 Buff/不再覆盖运行状态（旧行为为重放触发 + statBase 重置，D-C3-03/04/06 批准差异）。
+
+### 测试与验证
+
+- **反转**：R-3（狂热不重触发，含 hasteLv 属性面断言）、R-4（六字段保留，含 dashLv/dashMax 重建对照）——旧行为注释与批准编号留痕；R-1/R-2/R-5 不变。
+- **保持通过**：B7~B11/B14/B16 断言不变（B7 注释更新为两入口行为一致、B15 断言值不变注释更新为保留语义）；C3-A/C3-B 全部 29 项通过；C1/C2-A/C2-B 的 RuntimeState 隔离测试继续通过（成为变异⑪ 检测面）。
+- **新增** `tests/s4c-c3c-runtime.test.ts` 22 项：G-10~G-22 全部落地（G-12/G-13 防御性路径以 picks/upCounts 一致构造 + 真实 recompute，文件头注明可达性边界；G-18 测试态构造说明；G-17/G-19 真实置换链路）+ 额外重点 7 项（不屈致死单次、tempShield 消耗后重算不补/换波重建、meteorT 在途保留、攻速 Buff 与疾速扳机乘区互不污染、六卡满级失败零副作用、真实宝箱 chooseSlot 链路、未迁移卡 f 重放不变）+ legacyLevels 三顺序对照与六卡 f 空操作结构钉子。
+- **Parity 26 项原样通过**：六卡加入 `S4C_AUTHORITY_MIGRATED`（击杀狂热本就在 BASELINE_EXCLUDED——Issue #1 攻速分叉，v8 对照原被跳过、由 D-01 公式断言保护，加入清单仅为登记一致；不屈 nd 数字形状与 v8 f 一致；dashMax 逐位由 B10/B16/G-16 咬住），全部走真实 learnTalent 对照，不排除、不删减、不放宽。
+- `npm test` **411/411**（C3-B 合并后上游基线 389 + 本批 22）；`npm run typecheck`、`npm run build` 通过；`npm run test:browser` **16/16**。游戏内显示已验证（一次性 Playwright 手动脚本，用后即删）：学习疾影步/击杀狂热/壁垒/不屈后——属性面板攻速行「2.64/秒（狂热 +20%）」、冲刺行「充能 1/1 · 冷却 2.0s」、壁垒行「每波 1 层临时盾」、不屈行、已学天赋四卡等级；世界内冲刺充能菱形格（Issue #51）随充能恢复显示（截图 output/playwright/c3c-stats-panel.png、c3c-dash-diamond.png，output/ 不入库）。
+
+### 变异验证（12 组，全部被咬住后逐组还原；红数为 411 基线下的全量失败数）
+
+| # | 变异 | 红数 | 检测面 |
+|---|---|---|---|
+| ① | 删除击杀狂热 hasteLv 来源 | 12 | D-01 公式、B7/B8/B15、G-10~G-13/G-21、攻速污染、legacy、R-3 |
+| ② | 恢复击杀狂热旧 f Buff 写入 | **1（恰为结构钉子）** | 行为面被「绝对投影 + 同值 OnAcquire」掩盖（C2-A 变异⑤/C3-A 变异⑤先例复现）；recompute 侧重放由 G-10 咬住 |
+| ③ | 去掉 lvBefore===0 判定 | 2 | B7、G-11 |
+| ④ | hasteCap 零级哨兵改 3 | 1 | G-13（末级走夹紧分支而非清除） |
+| ⑤ | 删除部分降级夹紧 | 1 | G-12 |
+| ⑥ | 删除末级 Buff 清零 | 1 | G-13 |
+| ⑦ | dashMax 改折叠公式 | 6 | B10/B16/G-16/G-21/宝箱/legacy——逐位浮点钉子 |
+| ⑧ | 去掉 dashCharges 夹紧 | 1 | G-17 |
+| ⑨ | 去掉 dashT/dashRe 恢复 | 6 | G-15~G-18/G-21/R-4 |
+| ⑩ | 去掉 tempShield/ndUsed/meteorT 恢复 | 4 | G-21、不屈单次免死、meteorT、R-4 |
+| ⑪ | rageT 误入属性投影 | 6 | C1/C2-A/C2-B RuntimeState 隔离测试 + parity 3 项（recompute 路径被快照恢复掩盖，检测面在学习路径——学习路径无恢复步骤） |
+| ⑫ | OnAcquire 时机提前到投影前 | 16 | B1/B3/B12/B15、G-1/G-4、legacyLife、C3-A 交错/宝箱、parity 4 项——泉回满依赖新 maxhp 的时序约束 |
+
+### 遗留问题与下一步
+
+- C3 混合天赋批次（C3-A/B/C）全部完成；契约冻结的六项已批准差异全部落地。未迁移卡（multishot/pierce/orbit/regen/luck/chain/explode/thorns/lifesteal/dodge/burn 等）全部为可由 picks 重建的纯属性，按 C0 审计维持 f 重放，无运行状态混入。
+- 宝箱模式键盘 1/2/3 快捷键缺陷（C2-A 发现）未修（历批任务书明示不夹带）。
+- S4-D（怪物侧 StatModel 迁移、负区因子政策、RuntimeState 大规模重写）未开始，不在本批授权范围；本批的 RuntimeStateProtection 白名单机制为其提供骨架。

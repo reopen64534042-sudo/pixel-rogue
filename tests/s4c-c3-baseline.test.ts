@@ -126,8 +126,9 @@ describe("S4-C C3-0 · 击杀狂热/战意沸腾消费点（旧行为基线）",
     expect(g.player.hasteLv).toBe(1);
     expect(g.player.haste).toBe(1);
     expect(g.player.hasteT).toBe(3);
-    // 真实升级路径：hasteLv 已 ≥1 → f 的首级分支不成立（对照 R-3：recompute
-    // 重放会重新触发——同一 f 在两种入口下行为分叉，正是缺陷形态）
+    // 真实升级路径：hasteLv 已 ≥1 → OnAcquire 首级条件不成立 → 不刷新、
+    // 不重触发（C3-C 起 recompute 路径同样保留现值——D-C3-03 修复后两种
+    // 入口行为一致，分叉缺陷已消除；对照 s4c-c3c-runtime G-10/G-11）
     g.player.haste = 0;
     g.player.hasteT = 0;
     learn(g, "击杀狂热");
@@ -289,7 +290,9 @@ describe("S4-C C3-0 · 置换与换波入口（旧行为基线）", () => {
     expect(g.player.damage).toBe(12.100000000000001);
     expect(g.player.hasteLv).toBe(1);
     expect(g.player.hp).toBe(120);
-    // 运行状态面（现状缺陷在交错场景同样成立，R-3 语义）：重放重新触发首级 Buff
+    // 运行状态面（C3-C 保留语义，原 R-3 缺陷已修复）：Buff 生效中重算，
+    // haste/hasteT 原样保留（不重放首级条件、不清除）——数值与旧行为一致，
+    // 机制差异由 s4c-c3c-runtime G-10（过期态）与 G-12/G-13（降级/移除）咬住
     expect(g.player.haste).toBe(1);
     expect(g.player.hasteT).toBe(3);
   });

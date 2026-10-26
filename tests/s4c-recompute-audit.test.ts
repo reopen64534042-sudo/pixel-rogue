@@ -14,14 +14,20 @@ import { fresh, learn } from "./helpers";
  * R-1 由「缺陷存在」反转为「永久成长正确保留」——血包永久 maxhp 成长进入
  * GameCore 实例级持久来源 potionMaxHpGrow，recompute 后由权威投影重建；
  * 旧行为（成长丢失回 100）的对照依据保留在用例注释中（契约 v1.2 §2）。
- * R-5 的断言保持不变（夹紧语义逐字保留，D-C3-05）；R-3/R-4 维持缺陷
- * pin，留给 C3-C。
+ * R-5 的断言保持不变（夹紧语义逐字保留，D-C3-05）。
  *
  * 基线更新依据：Combat Foundation S4-C C3-B（D-C3-02/D-C3-04 护盾部分，
  * 用户已批准）。R-2 由「缺陷存在」反转为「已消耗盾层与恢复倒计时正确保留」
  * ——shield/shieldCd 进入 RuntimeStateProtection 白名单，recompute 快照
  * 保留现值、绝不重放赠层/清零倒计时；旧行为（重放回满 + shieldCd 清 0）
  * 的对照依据保留在用例注释中（契约 v1.2 §2）。
+ *
+ * 基线更新依据：Combat Foundation S4-C C3-C（D-C3-03/D-C3-04/D-C3-06，
+ * 用户已批准）。R-3 由「缺陷存在」反转为「狂热 Buff 不因重算重触发」；
+ * R-4 由「缺陷存在」反转为「冲刺/陨星/临时盾/免死标记保留」——运行状态
+ * 白名单扩充至 15 字段（C3-C 完成全量保护），旧行为（重放首级 Buff、
+ * statBase 覆盖运行状态）的对照依据保留在用例注释中。R-1/R-2/R-5 修复
+ * 断言保持不变。
  */
 describe("C3 差异审计与分阶段修复验证", () => {
   it("R-1 修复（D-C3-01）：满血血包永久 maxhp 成长在 recompute 后保留", () => {
@@ -58,7 +64,7 @@ describe("C3 差异审计与分阶段修复验证", () => {
     expect(g.player.shieldMax).toBe(1);
   });
 
-  it("R-3 缺陷：击杀狂热首次获取的即时 buff 在 recompute 中重新触发", () => {
+  it("R-3 修复（D-C3-03）：狂热首级 Buff 不因 recompute 重触发——过期态保持", () => {
     const g = fresh();
     learn(g, "击杀狂热");
     expect(g.player.haste).toBe(1);
@@ -67,11 +73,15 @@ describe("C3 差异审计与分阶段修复验证", () => {
     g.player.haste = 0;
     g.player.hasteT = 0;
     g.recompute();
-    expect(g.player.haste).toBe(1); // 获得时效果被重放
-    expect(g.player.hasteT).toBe(3);
+    // 旧行为（C3-0 pin，基线 3b0e198）：重放 f 的首级条件分支 → Buff 重新
+    // 触发（haste=1/hasteT=3）。C3-C（D-C3-03）：haste/hasteT 属 RuntimeState，
+    // 重算保留现值——已过期 Buff 保持过期；等级属性 hasteLv 按 picks 重建
+    expect(g.player.haste).toBe(0);
+    expect(g.player.hasteT).toBe(0);
+    expect(g.player.hasteLv).toBe(1);
   });
 
-  it("R-4 缺陷：冲刺充能/冷却、陨星计时、临时盾、免死标记被 statBase 覆盖重置", () => {
+  it("R-4 修复（D-C3-04/06）：冲刺充能/冷却、陨星计时、临时盾、免死标记在 recompute 后保留", () => {
     const g = fresh();
     learn(g, "疾影步");
     learn(g, "星辰坠落");
@@ -84,12 +94,17 @@ describe("C3 差异审计与分阶段修复验证", () => {
     g.player.tempShield = 1; // 壁垒临时盾未消耗
     g.player.ndUsed = true; // 不屈本波已触发
     g.recompute();
-    expect(g.player.dashT).toBe(-1);
-    expect(g.player.dashCharges).toBe(1);
-    expect(g.player.dashRe).toBe(0);
-    expect(g.player.meteorT).toBe(4);
-    expect(g.player.tempShield).toBe(0);
-    expect(g.player.ndUsed).toBe(false);
+    // 旧行为（C3-0 pin，基线 3b0e198）：全部被 statBase 重置（dashT=-1、
+    // dashCharges=1、dashRe=0、meteorT=4、tempShield=0、ndUsed=false）。
+    // C3-C（D-C3-04/06）：全部属 RuntimeState，重算原样保留——不补回已消耗
+    // 充能、不重置陨星在途计时、不重发临时盾（换波才按 barrierLv 重建）、
+    // 不复活免死标记
+    expect(g.player.dashT).toBe(1.5);
+    expect(g.player.dashCharges).toBe(0);
+    expect(g.player.dashRe).toBe(0.3);
+    expect(g.player.meteorT).toBe(0.5);
+    expect(g.player.tempShield).toBe(1);
+    expect(g.player.ndUsed).toBe(true);
     // 天赋数值本身重建正确（对照项）：dashMax 首级 2.0
     expect(g.player.dashLv).toBe(1);
     expect(g.player.dashMax).toBe(2);

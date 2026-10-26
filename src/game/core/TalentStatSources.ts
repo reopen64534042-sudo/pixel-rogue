@@ -1,5 +1,5 @@
 /**
- * Combat Foundation S4-C（C1 + C2-A + C2-B + C3-A + C3-B）：十六张天赋的属性权威来源表。
+ * Combat Foundation S4-C（C1 + C2-A + C2-B + C3-A + C3-B + C3-C）：二十二张天赋的属性权威来源表。
  *
  * 职责（任务书 §4-S4-C「全链路权威来源唯一」）：
  * - C1 五张纯 flat：「磐石/铁布衫/致命一击/会心深渊/元素亲和」的属性贡献
@@ -14,7 +14,16 @@
  *   白名单新增 shieldMax）；「当前护盾 +1」是获得时效果，分离至
  *   core/OnAcquireEffects.ts——本表不声明 shield/shieldCd（RuntimeState，
  *   D-C3-02/04：重算保留现值、绝不重放赠层）。
- *   data/talents.ts 中这十六张卡的 `f` 不再写入属性字段（C1/C2 卡无获得时
+ *   C3-C 六张等级型机制卡：「击杀狂热」hasteLv flat +1/级、「疾影步」dashLv
+ *   flat +1/级 且 dashMax 有序 flat −0.4/级（每级一条独立修饰符，base 2.4
+ *   逐次累加逐位复现旧 f 序列 2.0/1.6/1.2000000000000002，B16 验证；**禁止**
+ *   折叠式 2.4−0.4×lv）、「二段冲刺」dashChargeLv flat +1/级、「壁垒」
+ *   barrierLv flat +1/级、「不屈」nd flat +1（max=1，保持数字 0/1 与旧 f
+ *   `p.nd = 1` 一致）、「战意沸腾」rageLv flat +1/级。对应运行状态
+ *   （haste/hasteT、rageT、dashT/dashCharges/dashRe、tempShield、ndUsed）
+ *   由 RuntimeStateProtection 快照保留；击杀狂热的「首级 Buff」是获得时
+ *   效果（OnAcquireEffects，lvBefore===0 判定），recompute 绝不重放。
+ *   data/talents.ts 中这二十二张卡的 `f` 不再写入属性字段（C1/C2 卡无获得时
  *   即时效果，f 为空操作；生命两卡的治疗、能量护盾的赠层分离至
  *   core/OnAcquireEffects.ts，仅在 learnTalent 成功获得时执行、recompute
  *   绝不重放）。旧 `Talent.f`
@@ -50,6 +59,16 @@
  *   与获得时赠层（OnAcquireEffects，仅 learnTalent 路径）——本表与投影
  *   **不声明、不写回**这两个字段，recompute 侧由 core/RuntimeStateProtection
  *   快照保留（D-C3-02/04）。
+ * - 来源所有权（C3-C 审计定界）：`hasteLv/dashLv/dashMax/dashChargeLv/
+ *   barrierLv/nd/rageLv` 的运行期写入者**只有**对应六张卡的旧 f（本批
+ *   取消）+ 本投影；基础值唯一来自 `statBase()`（dashMax base=2.4，其余
+ *   base=0）。对应运行状态写入者不变：haste/hasteT（killEnemy 叠层/受伤
+ *   扣层/衰减 + OnAcquire 首级 Buff）、rageT（受击触发/衰减）、dashT/
+ *   dashCharges/dashRe（PlayerSystem 充能/消耗/倒计时）、tempShield
+ *   （startNextWave 重建/受击消耗）、ndUsed（不屈触发/换波重置）——本表
+ *   与投影**不声明、不写回**这些字段。击杀狂热的 haste/hasteT 获得时效果
+ *   归 OnAcquireEffects；上限协调（haste 降级夹紧/末级清除、dashCharges
+ *   夹紧）归 RuntimeStateProtection.reconcileRuntimeToCaps。
  * - 「致命一击」觉醒（upCounts ≥ critMaxLevel → 有效暴伤 +0.4）是**条件
  *   来源**：判定时机保持读时进行（DamageMath.critMultiplier 按 upCounts
  *   现值叠加），不烘焙进 p.critMul 字段——与旧语义逐位一致，置换移除层级
@@ -264,6 +283,73 @@ export function talentStatModifiers(
           value: 1,
         });
         break;
+      // ---- C3-C：六张等级型机制卡（等级属性 = flat 修饰符；对应运行状态
+      // 不在此声明，由 RuntimeStateProtection 快照保留）。疾影步每级声明
+      // 两条独立修饰符（dashLv +1、dashMax −0.4）——dashMax 走 StatModel
+      // flat 区「base 起始、按修饰符顺序逐次累加」语义逐位复现旧 f 序列
+      // 2.0/1.6/1.2000000000000002（B16 验证），禁止折叠式 2.4−0.4×lv
+      //（先乘后减在 L2/L3 产生 1 ulp 级偏差，契约 §8.3）。----
+      case "击杀狂热": // data/talents.ts：hasteLv++（max 5）；旧 f 的首级
+        // Buff（haste=1/hasteT=3）分离至 OnAcquireEffects（lvBefore===0），
+        // recompute 绝不重放（D-C3-03）
+        scalars.push({
+          sourceId: "天赋:击杀狂热",
+          stat: "hasteLv",
+          stage: "flat",
+          value: 1,
+        });
+        break;
+      case "疾影步": // data/talents.ts：首级 dashLv=1/dashMax=2.0，后续
+        // dashLv++/dashMax−=0.4（max 3）；解锁等级 dashLv 与冷却时长
+        // dashMax 是两个独立属性，各自声明
+        scalars.push({
+          sourceId: "天赋:疾影步",
+          stat: "dashLv",
+          stage: "flat",
+          value: 1,
+        });
+        scalars.push({
+          sourceId: "天赋:疾影步",
+          stat: "dashMax",
+          stage: "flat",
+          value: -0.4,
+        });
+        break;
+      case "二段冲刺": // data/talents.ts：dashChargeLv++（max 1）
+        scalars.push({
+          sourceId: "天赋:二段冲刺",
+          stat: "dashChargeLv",
+          stage: "flat",
+          value: 1,
+        });
+        break;
+      case "壁垒": // data/talents.ts：barrierLv++（max 2）；tempShield
+        // 每波重建属换波语义（WaveSystem），不在本表
+        scalars.push({
+          sourceId: "天赋:壁垒",
+          stat: "barrierLv",
+          stage: "flat",
+          value: 1,
+        });
+        break;
+      case "不屈": // data/talents.ts：p.nd = 1（max 1，hidden）；保持数字
+        // 0/1 与旧 f 写入形状一致，不布尔化；ndUsed 属运行状态不在本表
+        scalars.push({
+          sourceId: "天赋:不屈",
+          stat: "nd",
+          stage: "flat",
+          value: 1,
+        });
+        break;
+      case "战意沸腾": // data/talents.ts：rageLv++（max 2）；rageT 属
+        // 运行状态不在本表
+        scalars.push({
+          sourceId: "天赋:战意沸腾",
+          stat: "rageLv",
+          stage: "flat",
+          value: 1,
+        });
+        break;
       default: // 未迁移批次的天赋不进属性表（仍由 talent.f 重放，不在此维护张数）
         break;
     }
@@ -292,13 +378,18 @@ export function talentStatModifiers(
  * 未知外部来源，不在所有权内，学习任何天赋都保持不动。
  *
  * `damage`（C2-A）、`boltDmgMul/fireRate/speed/magnet/area`（C2-B）与
- * `maxhp`（C3-A）、`shieldMax`（C3-B）为必写字段：字段由 statBase 提供
+ * `maxhp`（C3-A）、`shieldMax`（C3-B）、`hasteLv/dashLv/dashMax/dashChargeLv/
+ * barrierLv/nd/rageLv`（C3-C）为必写字段：字段由 statBase 提供
  * （与 tough/crit/critMul 同类的必填投影），投影以对应 base 全量解析后
  * 覆写——无来源时写回 base 值（maxHp 无生命卡来源时 = 100 + 血包永久成长，
- * shieldMax 无能量护盾来源时 = 0）。来源所有权见模块头注：卡外写入者
- * 出现前不得以本投影覆盖。`p.shield`/`p.shieldCd`（C3-B）**不在投影内**：
- * RuntimeState 由 RuntimeStateProtection 在 recompute 快照保留，获得时
- * 赠层只发生在 OnAcquireEffects（learnTalent 路径）。
+ * shieldMax 无能量护盾来源时 = 0，dashMax 无疾影步来源时 = 2.4，nd 保持
+ * 数字 0/1）。来源所有权见模块头注：卡外写入者
+ * 出现前不得以本投影覆盖。`p.shield`/`p.shieldCd`（C3-B）与 `p.haste`/
+ * `p.hasteT`/`p.rageT`/`p.dashT`/`p.dashCharges`/`p.dashRe`/`p.tempShield`/
+ * `p.ndUsed`（C3-C）**不在投影内**：RuntimeState 由 RuntimeStateProtection
+ * 在 recompute 快照保留，获得时效果只发生在 OnAcquireEffects（learnTalent
+ * 路径）。haste 的临时攻速增益（AttackSystem 消费点动态乘算）不进本投影、
+ * 不烘焙进 fireRate（C2-B 纪律延续）。
  *
  * 兼容边界（明示，不猜测恢复）：
  * - 外部来源若也写 fire/lightning，与元素亲和贡献无法区分，投影覆写为
@@ -324,6 +415,16 @@ export function applyTalentStatProjection(
       // C3-B：护盾容量 base = 数据层初始值 0，recompute 经 Object.assign
       // 重置后由本投影全量解析，无来源时写回 base 值
       shieldMax: base.shieldMax,
+      // C3-C：六张等级型机制卡的等级属性 base = 数据层初始值（dashMax
+      // 2.4 为未解锁占位——消费点由 dashLv>0 门控，不消费该值；nd 保持
+      // 数字与旧 f `p.nd = 1` 形状一致），recompute 重置后由本投影重建
+      hasteLv: base.hasteLv,
+      dashLv: base.dashLv,
+      dashMax: base.dashMax,
+      dashChargeLv: base.dashChargeLv,
+      barrierLv: base.barrierLv,
+      nd: base.nd,
+      rageLv: base.rageLv,
       // C2-B：五字段 base = statBase 数据层初始值（fireRate 2.2 / speed 62 /
       // magnet 36 / boltDmgMul 1 / area 1），recompute 经 Object.assign 重置
       // 后由本投影全量解析，无来源时写回 base 值
@@ -345,6 +446,17 @@ export function applyTalentStatProjection(
   // C3-B：shieldMax 解析结果写回既有字段（每级 flat +1，整数精确）；shield/
   // shieldCd 不在此写回（RuntimeState，见函数说明与 RuntimeStateProtection）
   p.shieldMax = resolved.shieldMax ?? base.shieldMax;
+  // C3-C：六张等级型属性解析结果写回既有字段（整数 flat 精确；dashMax 走
+  // 有序 flat 逐位复现旧 f 序列，见来源表疾影步 case 注释）；haste/hasteT/
+  // rageT/dashT/dashCharges/dashRe/tempShield/ndUsed 不在此写回
+  //（RuntimeState，见函数说明与 RuntimeStateProtection）
+  p.hasteLv = resolved.hasteLv ?? base.hasteLv;
+  p.dashLv = resolved.dashLv ?? base.dashLv;
+  p.dashMax = resolved.dashMax ?? base.dashMax;
+  p.dashChargeLv = resolved.dashChargeLv ?? base.dashChargeLv;
+  p.barrierLv = resolved.barrierLv ?? base.barrierLv;
+  p.nd = resolved.nd ?? base.nd;
+  p.rageLv = resolved.rageLv ?? base.rageLv;
   // C2-A：attack 解析结果写回既有 damage 字段（base=statBase().damage，
   // final 区按 picks 顺序连乘——与旧 f 重放运算序列逐位一致）
   p.damage = resolved.attack ?? base.damage;
