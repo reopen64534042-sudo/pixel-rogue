@@ -8,13 +8,25 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "v34",
+    version: "v35",
     date: "2026-10-26",
     title: "战斗基础 S4-C 第三批（C3-C）：等级属性权威迁移与全量运行状态保护",
     items: [
       "击杀狂热/疾影步/二段冲刺/壁垒/不屈/战意沸腾六张卡的等级属性改由权威来源表声明（hasteLv/dashLv/dashChargeLv/barrierLv/nd/rageLv flat +1 每级、dashMax 有序 flat −0.4 每级逐位复现旧冷却序列 2.0/1.6/1.2000000000000002），对应 Talent.f 不再写入属性；击杀狂热「首级 Buff（haste=1/hasteT=3）」分离为获得时效果（OnAcquireEffects 按 lvBefore===0 判定），仅在成功学习时触发一次，升级不刷新、重算不重放",
       "扩充 core/RuntimeStateProtection.ts 至全量运行状态保护（D-C3-03/04/06）：recompute 快照保留 15 个运行字段——狂热 Buff 层数与时长（R-3 反转修复）、战意剩余、冲刺充能/恢复/进行中冲刺（不补充能、不缩放剩余时间、不中断位移）、陨星计时/壁垒临时盾/不屈免死标记/飞刃相位/受击帧/方向记忆（R-4 反转修复）；上限协调只做「上限降低」方向——护盾容量夹紧（C3-B 语义）、狂热部分降级夹紧层数不刷新时长、移除末级清空 Buff（hasteCap 零级哨兵防未学习误判）、冲刺充能上限夹紧",
       "换波显式重置语义不变（tempShield 按 barrierLv 重建、ndUsed/potionGrow 清零、持久成长保留）；HP 夹紧公式逐字保留；学习零随机、置换恰好 1 次随机；parity 26 项原样通过（六卡走真实学习路径对照，dashMax 逐位浮点由 B10/B16/G-16 咬住）；全量 Vitest 411 项、浏览器 16 项通过；C3-0 冻结的混合天赋阶段至此实施完毕",
+    ],
+  },
+  {
+    version: "v34",
+    date: "2026-10-26",
+    title: "性能：修复文字纹理每帧无效重建（#106）",
+    items: [
+      "根因：PixelPainter.fillText() 每帧对每个文字对象依次调用 setText/setFontFamily/setFontSize/setColor/setResolution。Phaser 的 Text 是 canvas 重建型对象，每次属性写入都会重绘内部 canvas 并重新上传 GPU 纹理。CPU profile（160 敌人、6x 降速）显示 texImage2D 占 17%，syncFont + measureText + updateText + fillText 再占约 9%，而规则计算仅 0.4ms/帧",
+      "修复：fontFamily/resolution 改为对象创建时设置一次（本来就恒定）；setText/setFontSize/setColor 加槽位缓存，仅在值真正变化时才写入",
+      "实测（160 敌人灌满、CPU 6x 降速模拟中端移动端，scene.update 完整帧）：p50 4.90ms → 1.00ms（-80%）；1x 下 0.40 → 0.20ms",
+      "不影响规则：纯渲染层改动，未触碰敌人上限、配额曲线、生成速率；parity 26 项原样通过，Vitest 389 项、浏览器 16 项通过（含 HUD 字体尺寸的视觉断言）",
+      "遗留：p95 仍有约 9ms 尖峰（疑似 GC 与纹理批次切换），本次未处理；需真机（iPhone 14 Pro / iQOO Z9 Turbo+）复测确认第 5 波体感",
     ],
   },
   {

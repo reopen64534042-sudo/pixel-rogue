@@ -1584,9 +1584,86 @@ M2 拆分时曾把「天赋详情」记为**触屏上的死功能**。实测（8
   按钮须位于卡片下半部、水平偏移 < 1px、文字为「刷 新」，防止将来 CSS 回退成右上角
 - 未改变任何规则行为（parity 26 项原样通过）；宝箱面板仍不显示刷新按钮
 
-## D-30 Combat Foundation S4-C 第三批（C3-C）：等级属性权威迁移 + 全量运行状态保护 + 上限协调（2026-10-26）
+## D-30 Issue #106：手机端后期掉帧——文字纹理每帧无效重建（2026-10-26）
 
-依据任务书「C3-C 最终批实施任务」与契约 `docs/pixel-rogue-S4C-C3-contract-v1.md`（v1.2），分支 `feat/combat-foundation-s4c-c3c-runtime`（基线 3b0e198 = 上游 PR #105 C3-B 合并提交）。**编号顺延说明**：实施期间上游推进至 `cff96f1`（PR #108 天赋刷新按钮 #107，占用 v33/D-29），本批因此使用 **v34/D-30**；交付前已 merge `cff96f1` 同步 #108（仅样式/UI 与浏览器测试，与本批代码文件无重叠），文档三处冲突按「上游 D-29 在前、本批 D-30 在后」解决。**编号竞争提示**：PR #109（性能 #106）同样使用 v34/D-30 且当前仍 Open——若其先合并，本批须顺延 v35/D-31，不得重复编号。**只实施 C3-C，完成即停止。** 已批准差异：D-C3-03（狂热不因重算重触发/降级夹紧/末级清除）、D-C3-04 完整部分（剩余 RuntimeState 全量保护）、D-C3-06（冲刺充能/剩余冷却/进行中冲刺保留）；D-C3-01/02/05 生命、护盾与 HP 语义保持不变。C3-0 冻结的混合天赋阶段至此实施完毕（S4-D 敌人侧/负区因子政策不在本批范围）。
+### 现象与证据链
+
+用户反馈：iPhone 14 Pro + iQOO Z9 Turbo+ **两台机器在第 5 波后都掉帧**。
+
+**假设演进**（记录以免重走）：
+
+| 假设 | 结论 |
+|---|---|
+| DPR 3 导致像素量 9 倍膨胀 | **排除**：`Scale.NONE` + 固定 px stage，canvas 逻辑尺寸恒为 480×270 |
+| ProMotion 120Hz 每帧预算只有 8.3ms | **排除**：用户开「限制帧速率」锁 60Hz 后**依然掉帧**；且安卓机同样掉帧 |
+| 规则计算量（敌人分离 O(n²)） | **排除**：`core.update` 实测 0.05ms（1x）/ 0.69ms（10x 降速） |
+| 渲染管线 | **确认** |
+
+### 测量方法（可复现）
+
+桌面 Chrome + CDP `Emulation.setCPUThrottlingRate` 模拟移动端算力：
+
+1. 灌满 160 敌人（`player.damage = 0` 保持数量恒定）
+2. 规则单帧耗时：直接连调 `core.update(1/60)` 取均值
+3. 完整帧耗时：连调 `scene.update(now, 1000/60)` 取 p50/p95
+4. CPU profile：`Profiler.start` 采样 4 秒，按 self time 排序
+
+**关键**：不能只看 `requestAnimationFrame` 间隔——headless Chrome 不限帧，
+实测 delta 只有 5ms（200fps），完全没有参考价值。必须测 `scene.update` 的 CPU 时长。
+
+### 根因
+
+CPU profile（6x 降速、160 敌人）热点：
+
+```
+17.0%  texImage2D          ← 纹理上传 GPU
+14.1%  (program)           ← 着色器
+ 5.0%  batch (phaser)
+ 4.0%  draw (draw.ts)
+ 3.4%  syncFont (phaser)   ← 字体同步
+ 2.3%  measureText
+ 1.8%  GraphicsWebGLRenderer
+ 1.6%  updateText (phaser)
+ 1.5%  fillText
+```
+
+`PixelPainter.fillText()` 每帧对每个文字对象调用 **5 个属性写入**：
+
+```ts
+label.setText(value)
+  .setFontFamily('"Press Start 2P", monospace')   // 恒定值，每帧重设
+  .setFontSize(size)
+  .setColor(this.fillStyle)
+  .setResolution(1);                              // 恒定值，每帧重设
+```
+
+Phaser 的 `Text` 是 **canvas 重建型**对象：属性写入 → 标记 dirty → `updateText()` 重绘内部 canvas →
+`texImage2D` 重新上传纹理。**HUD 那一行数值没变，也照样每帧重建一整张纹理。**
+
+### 修复
+
+- `fontFamily` / `resolution` 移到对象创建时设置一次（本来就恒定）
+- `setText` / `setFontSize` / `setColor` 各加槽位缓存数组，值未变则跳过
+
+### 效果
+
+| 条件 | 优化前 p50 | 优化后 p50 | 降幅 |
+|---|---|---|---|
+| 6x 降速 + 160 敌人聚集 | 4.90ms | **1.00ms** | **-80%** |
+| 1x（桌面原生） | 0.40ms | 0.20ms | -50% |
+
+**遗留**：p95 仍约 9ms，尖峰疑似来自 GC 与纹理批次切换，本次未处理。
+
+### 验收
+
+- parity 26 项原样通过；Vitest **389** 项、浏览器 **16/16**（含 `visual.spec.ts` 的 HUD 字体尺寸断言）
+- 截图确认 HUD 与伤害飘字渲染正常（`output/perf-texts.png`）
+- **未触碰**敌人上限、配额曲线、生成速率——这是渲染问题，不是平衡问题
+- 真机复测待用户确认（本次数据来自桌面降速模拟，非实机）
+
+## D-31 Combat Foundation S4-C 第三批（C3-C）：等级属性权威迁移 + 全量运行状态保护 + 上限协调（2026-10-26）
+
+依据任务书「C3-C 最终批实施任务」与契约 `docs/pixel-rogue-S4C-C3-contract-v1.md`（v1.2），分支 `feat/combat-foundation-s4c-c3c-runtime`（基线 3b0e198 = 上游 PR #105 C3-B 合并提交）。**编号顺延说明**：本批初版在 C3-B（`3b0e198`）上实施时，上游已用 v33/D-29 落地 PR #108（天赋刷新按钮 #107），故顺延为 v34/D-30；交付期间上游 PR #109（性能 #106）合并并以 v34/D-30 落地，本批据此再顺延为 **v35/D-31**，不重复编号。当前同步基线 `6e58c96`（PR #109 合并提交，含 #108/#109）——上游性能优化仅触及 `PixelPainter.ts` 渲染缓存与两份 Changelog/migration 文档，与本批代码文件无重叠，三处文档冲突按「上游 D-29/D-30 在前、本批 D-31 在后」解决。**只实施 C3-C，完成即停止。** 已批准差异：D-C3-03（狂热不因重算重触发/降级夹紧/末级清除）、D-C3-04 完整部分（剩余 RuntimeState 全量保护）、D-C3-06（冲刺充能/剩余冷却/进行中冲刺保留）；D-C3-01/02/05 生命、护盾与 HP 语义保持不变。C3-0 冻结的混合天赋阶段至此实施完毕（S4-D 敌人侧/负区因子政策不在本批范围）。
 
 ### 实施范围与权威来源切换
 
