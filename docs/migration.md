@@ -1841,3 +1841,10 @@ ctx.stroke();      // → strokePath()
 - 生产文件：`src/game/core/StatModel.ts`、`StatKeyedMap.ts`、`EnemyStatSources.ts`、`EnemySystem.ts`。测试及配置：`tests/s4d-d2b-enemy-attack.test.ts`、`tests/s4d-d2b-b2-shape.test.ts`、`tests/browser/d2b-acceptance.spec.ts`、`playwright.config.ts`。
 - B0 最终复审通过并获用户政策批准；B1 首次复审一项 P2 覆盖缺口，补充真实配置到战斗链路测试后复审通过；B2 独立复审通过。B2 Vitest 518/518、Parity 26/26，用户提供的独立复审记录最终配置 Playwright 一次性 17/17（core-ui 16、production 1），含生产自然首波；证据和可核对边界见 `docs/pixel-rogue-S4D-D2B-B2-acceptance.md`。
 - 限制：性能采样缺同环境历史版本基线；浏览器普通 `console.error` 未独立收集，其他浏览器、移动实机及高波自然试玩未全部验证。`DamageSystem` 对缺失的原型同名键读取继承属性是独立后续事项，本批未修复；Vite 主 chunk 超过 500 kB 为既有构建警告。
+
+## D-36 DamageSystem 原型键修复与数值系统图解（2026-10-28）
+
+- 基于上游已合并的 S4-D2-B PR #116。`DamageSystem` 的 `resistances`、`typeDamageBonus`、`formDamageBonus` 和 `skillDamageBonus` 改为按 `Object.hasOwn` 读取映射；未配置的 `constructor`、`toString` 等原型链同名键按中性 0 处理，显式 nullish → 0 规则保持；四乘区公式与顺序不变。
+- 新增 `docs/combat-numerics-explained.html`：可离线打开的可视化介绍，包括固定/百分比/final 属性计算、四乘区伤害演示、护甲曲线、怪物波次/等级成长、公式库及常见误区；保留旧版 `docs/combat-numerics-explained.md` 参考。
+- 新增 `docs/combat-numerics-agent-guide.md` 提供开发者模块/接口速查、扩展伤害类型和新怪物的步骤，`AGENTS.md` 建立阅读指引。
+- 按用户要求优先推进底层开发：**本批未新增测试、未执行 Vitest/Parity/Playwright 或完整验收**，后续集中验证；本记录不宣称测试通过。
