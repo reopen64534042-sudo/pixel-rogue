@@ -38,6 +38,7 @@ import type { CombatStatsSnapshot } from "./types";
 /** S4-A 固定白名单：只覆盖现有实体已存在的标量属性，S4-B/C 按需扩展 */
 export const STAT_IDS = [
   "attack",
+  "globalDamageBonus",
   "defense",
   "maxHp",
   // S4-C C3-B：能量护盾容量（旧 f 的 shieldMax++ 每级 +1 → flat 修饰符；
@@ -78,7 +79,7 @@ export const STAT_IDS = [
  * 每个 key 构造一张以该族为槽位的子属性表走 resolveStats，映射本身
  * 在适配层保持类型化结构。已有 8 个标量槽位与解析语义不变（契约加性扩展）。
  */
-export const KEYED_STAT_FAMILIES = ["typeDamageBonus", "resistance"] as const;
+export const KEYED_STAT_FAMILIES = ["typeDamageBonus", "resistance", "formDamageBonus", "skillDamageBonus"] as const;
 export type KeyedStatFamily = (typeof KEYED_STAT_FAMILIES)[number];
 export type StatId = (typeof STAT_IDS)[number] | KeyedStatFamily;
 

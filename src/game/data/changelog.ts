@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v39",
+    date: "2026-10-27",
+    title: "战斗基础 S4-D 第二批（D2-B）：敌人攻击增伤权威迁移",
+    items: [
+      "敌人 globalDamageBonus、typeDamageBonus、formDamageBonus、skillDamageBonus 在生成时经 EnemyStatSources 与 StatModel 权威解析；扩展独立标量及键控族，攻击基值与四个增伤乘区保持独立。",
+      "通用键控解析器以自有键判断修复 modifier-only 的 constructor/toString 原型读取，保留公共 nullish → 0；敌人来源按已批准政策在生成期拒绝非有限值、非数字、非法容器和映射项及自有可枚举 __proto__。合法 Symbol 键和 ±0 符号保留；有限 -1.1 在实际消费时才由 DamageSystem 抛 RangeError。",
+      "不改伤害公式和乘区顺序；正常配置的 RNG、浮点顺序、实体形状及射手发射、自爆引爆和接触实时读取时机保持。Vitest 518/518、Parity 26/26、Playwright 17/17；TypeScript 和生产构建通过。",
+    ],
+  },
+  {
     version: "v38",
     date: "2026-10-27",
     title: "战斗基础 S4-D 第二批（D2-A）：敌人生成属性权威迁移",

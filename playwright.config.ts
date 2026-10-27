@@ -16,6 +16,7 @@ export default defineConfig({
       name: "core-ui",
       testMatch: [
         "game.spec.ts",
+        "d2b-acceptance.spec.ts",
         "performance.spec.ts",
         "original.spec.ts",
         "visual.spec.ts",

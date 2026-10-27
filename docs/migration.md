@@ -1829,3 +1829,15 @@ ctx.stroke();      // → strokePath()
 - 已批准 D2-A 非法生成输入快速失败：负基础属性与不合法 final 抛 `RangeError`，传至 StatModel 的非有限值抛 `TypeError`，合法有限输入计算溢出抛 `RangeError`；例如负无穷等级先变成零倍率，再因 final 不大于零抛 `RangeError`。这是生成期行为与旧算术结果/失败时机的已批准差异；不改变 StatModel 校验，不自动修复或夹紧非法值，也不扩大到 D2-B 政策。
 - 最终代码验收时 Vitest **478/478**、Parity **26/26**、Playwright **16/16**、Typecheck 与 Build 通过。构建仍提示 chunk 超过 500 KB。既有 G-18 在一次独立复审全量运行中偶发失败，后续全量与多轮聚焦复跑通过；本批全量通过，原因未确认，作为 P3 观察保留，不宣称已修复。
 - D2-B 的四类攻击增伤来源权威迁移、公共键控族扩展与特殊键政策尚未实施，也未获得全部独立授权；不修改 `DamageSystem`，不进入 D2-B/D3。
+
+## D-35 Combat Foundation S4-D2-B：敌人攻击增伤权威迁移（2026-10-27）
+
+上游 PR #115 已合并 D2-A；本批基线为 `d2fa35cc43dce6b9c41cf00627dd61c69a24c7c7`，沿用 D1/D2-A，不重新实现。依据 D0 冻结契约、D2 接口审计及 `docs/pixel-rogue-S4D-D2B-B0-design.md`。D-34 保留 D2-A 当时的历史状态，不代表本批当前状态。
+
+- 实际调用链：`EnemyConfig → EnemyStatSources.resolveEnemyAttackBonuses → StatModel / StatKeyedMap → Enemy → CombatStatsSnapshot → DamageSystem`。StatModel 是生成来源解析权威，DamageSystem 仍负责最终乘区消费与校验；四区独立，global 不预乘 attack，不改公式。
+- 正数及 ±0 用 base、负数用 base=0 加有序 flat，-0 保号；-1 合法且消费倍率为零，有限 -1.1 来源解析成功、实际消费时才抛 `RangeError`。配置、实体与快照的映射独立单层拷贝；合法可枚举 Symbol 键保留，自有可枚举 `__proto__` 拒绝。
+- 用户批准的差异：非有限、非数字、非法映射容器和非法映射项在生成期抛 `TypeError`，异常类型和时机可与旧展开不同；getter/Proxy 不保证完整副作用兼容。公共 `StatKeyedMap` 用自有键判断修复 modifier-only `constructor`/`toString`，保留公共 nullish → 0；敌人来源单独严格校验。
+- 正常配置的 RNG 次数和序列、IEEE754 左结合、实体可选字段形状及射手发射/自爆引爆/接触实时读取的时机均保持；不改变 D1、防御公式、r/xp、玩家 S4-C 或 D0 契约。
+- 生产文件：`src/game/core/StatModel.ts`、`StatKeyedMap.ts`、`EnemyStatSources.ts`、`EnemySystem.ts`。测试及配置：`tests/s4d-d2b-enemy-attack.test.ts`、`tests/s4d-d2b-b2-shape.test.ts`、`tests/browser/d2b-acceptance.spec.ts`、`playwright.config.ts`。
+- B0 最终复审通过并获用户政策批准；B1 首次复审一项 P2 覆盖缺口，补充真实配置到战斗链路测试后复审通过；B2 独立复审通过。B2 Vitest 518/518、Parity 26/26，用户提供的独立复审记录最终配置 Playwright 一次性 17/17（core-ui 16、production 1），含生产自然首波；证据和可核对边界见 `docs/pixel-rogue-S4D-D2B-B2-acceptance.md`。
+- 限制：性能采样缺同环境历史版本基线；浏览器普通 `console.error` 未独立收集，其他浏览器、移动实机及高波自然试玩未全部验证。`DamageSystem` 对缺失的原型同名键读取继承属性是独立后续事项，本批未修复；Vite 主 chunk 超过 500 kB 为既有构建警告。

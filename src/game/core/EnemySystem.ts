@@ -1,7 +1,7 @@
 import { WORLD, clamp } from "../data/constants";
 import { ETYPES } from "../data/enemies";
 import { getEnemyCombatStats } from "./CombatStats";
-import { resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
+import { resolveEnemyAttackBonuses, resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
 import type { Enemy } from "./types";
@@ -83,18 +83,7 @@ export function spawnEnemy(
     ...(defenseStats.tough !== undefined
       ? { tough: defenseStats.tough }
       : {}),
-    ...(T.globalDamageBonus !== undefined
-      ? { globalDamageBonus: T.globalDamageBonus }
-      : {}),
-    ...(T.typeDamageBonus !== undefined
-      ? { typeDamageBonus: { ...T.typeDamageBonus } }
-      : {}),
-    ...(T.formDamageBonus !== undefined
-      ? { formDamageBonus: { ...T.formDamageBonus } }
-      : {}),
-    ...(T.skillDamageBonus !== undefined
-      ? { skillDamageBonus: { ...T.skillDamageBonus } }
-      : {}),
+    ...resolveEnemyAttackBonuses(T),
   });
 }
 

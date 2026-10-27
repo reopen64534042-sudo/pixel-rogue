@@ -28,8 +28,9 @@ export function resolveKeyedMap<F extends KeyedStatFamily>(
     // 拒绝优于安全容器（其他自有键如 constructor 无 setter 魔法，不受限）。
     if (key === "__proto__")
       throw new TypeError('类型化映射不允许危险原型键 "__proto__"');
+    const ownValue = Object.hasOwn(base, key) ? base[key] : undefined;
     const sheet: StatSheet = {
-      base: { [family]: base[key] ?? 0 },
+      base: { [family]: ownValue ?? 0 },
       modifiers: mods.filter((m) => m.key === key),
     };
     const v = resolveStats(sheet)[family];
