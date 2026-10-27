@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v40",
+    date: "2026-10-28",
+    title: "战斗数值：映射自有键修复与交互式数值图解",
+    items: [
+      "DamageSystem 的抗性、属性增伤、攻击方式增伤与技能增伤映射改为仅读取对象自有键；缺失 constructor/toString 等原型同名键时视为中性 0，保留既有 nullish → 0 兼容语义，不改变伤害公式或乘区顺序。",
+      "新增离线单 HTML 数值图解，提供公式速查、滑块计算器、护甲曲线、怪物成长趋势及常见误区说明；同时提供 Coding Agent 的数值架构与接口开发指南，并在 AGENTS.md 中建立入口。",
+      "本批按用户要求代码优先，暂不新增测试或执行完整验收；后续统一验证。",
+    ],
+  },
+  {
     version: "v39",
     date: "2026-10-27",
     title: "战斗基础 S4-D 第二批（D2-B）：敌人攻击增伤权威迁移",

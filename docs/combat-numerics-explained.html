@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="不用懂代码，也能看懂《像素秘境》的属性、伤害乘区、护甲、怪物成长和战斗数值。自带可互动的计算演示。">
+<title>像素秘境 · 数值系统图解</title>
+<style>
+:root{--bg:#0b1120;--bg2:#101b30;--panel:#151f33;--panel2:#1b2a42;--border:#31425b;--text:#eff5ff;--muted:#9eafc7;--mint:#6beac3;--blue:#91c5ff;--gold:#ffd38c;--rose:#ff9d9b;--violet:#c8b3ff;--shadow:0 20px 60px #0003}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 18% -10%,#18375c 0,transparent 37%),radial-gradient(ellipse at 100% 30%,#242047 0,transparent 30%),var(--bg);color:var(--text);font:16px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
+a{color:var(--mint);text-decoration:none}a:hover{text-decoration:underline}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--mint);outline-offset:3px}
+.shell{max-width:1230px;margin:auto;padding:0 28px}.topbar{position:sticky;top:0;z-index:20;background:#0b1120ed;border-bottom:1px solid #32445b;backdrop-filter:blur(12px)}.topbar .shell{display:flex;align-items:center;gap:22px;min-height:60px;flex-wrap:wrap}.brand{font-size:14px;letter-spacing:.08em;font-weight:800;color:var(--text);white-space:nowrap}.brand span{color:var(--mint)}nav{display:flex;flex-wrap:wrap;gap:4px}nav a{padding:6px 11px;border-radius:9px;color:var(--muted);font-size:13px}nav a:hover{background:var(--panel2);color:var(--text);text-decoration:none}
+.hero{padding:74px 0 65px}.eyebrow{display:inline-flex;gap:9px;align-items:center;color:var(--mint);font-size:13px;letter-spacing:.14em;font-weight:750}.eyebrow:before{content:"";width:9px;height:9px;background:var(--mint);box-shadow:0 0 0 5px #6beac326;transform:rotate(45deg)}h1{font-size:clamp(38px,6vw,72px);line-height:1.17;letter-spacing:-.05em;margin:24px 0 18px;font-weight:850}h1 em{font-style:normal;color:var(--mint)}.lead{font-size:clamp(17px,2vw,21px);color:#becce0;max-width:810px;margin:0}.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.btn{display:inline-flex;justify-content:center;align-items:center;border:1px solid var(--border);padding:11px 19px;border-radius:12px;font-weight:700;font-size:14px;color:var(--text);background:#243149}.btn.primary{background:var(--mint);border-color:var(--mint);color:#102535}.btn:hover{filter:brightness(1.1);text-decoration:none}.hero-note{display:flex;gap:10px;align-items:center;color:var(--muted);margin-top:23px;font-size:13px}
+.section{padding:54px 0;scroll-margin-top:85px}.section-head{margin-bottom:24px}.kicker{color:var(--mint);font-size:12px;font-weight:850;letter-spacing:.18em}.section h2{font-size:clamp(27px,3.6vw,38px);line-height:1.3;letter-spacing:-.035em;margin:8px 0 12px}.sub{color:var(--muted);max-width:840px;margin:0}.card{background:linear-gradient(150deg,#1a2940,#141f31);border:1px solid var(--border);border-radius:20px;padding:24px;box-shadow:var(--shadow)}.panel{background:#111b2c;border:1px solid var(--border);border-radius:16px;padding:19px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.muted{color:var(--muted)}.small{font-size:13px}.strong{color:var(--text);font-weight:800}.highlight{color:var(--mint);font-weight:750}.amber{color:var(--gold)}.pink{color:var(--rose)}
+.story{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.story-step{position:relative;min-height:178px}.step-num{display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:11px;background:#243d52;color:var(--mint);font-size:14px;font-weight:850}.story-step h3{font-size:17px;margin:13px 0 5px}.story-step p{font-size:14px;color:var(--muted);margin:0}.story-step:not(:last-child):after{content:"›";color:var(--mint);font-size:27px;position:absolute;top:19px;right:-17px;z-index:3}.note{border-left:3px solid var(--mint);background:#6beac30c;padding:14px 18px;border-radius:0 12px 12px 0;color:#d7e6f6;font-size:14px;margin-top:18px}.note.warn{border-left-color:var(--gold);background:#ffd38c0b}
+.mini-title{font-weight:850;font-size:18px;margin:0 0 10px}.stat-label{font-size:12px;color:var(--muted);letter-spacing:.08em}.stat-big{font-size:clamp(26px,3vw,38px);line-height:1.25;font-variant-numeric:tabular-nums;font-weight:850}.chip{display:inline-block;padding:3px 10px;border-radius:99px;background:#25364c;color:#caddf1;font-size:12px;font-weight:750;white-space:nowrap}.chip.mint{background:#164d46;color:#82f1d0}.chip.gold{background:#624b2a;color:#ffe0a5}.chip.rose{background:#593641;color:#ffc2c2}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:23px;row-gap:15px}.control{min-width:0}.control label{display:flex;justify-content:space-between;gap:9px;font-size:14px;font-weight:650;margin-bottom:5px}.control output{color:var(--mint);font-variant-numeric:tabular-nums}.control input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:7px;background:#31445f;border-radius:20px;cursor:pointer;vertical-align:middle}.control input[type=range]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border:3px solid #f2ffff;background:var(--mint);border-radius:50%;box-shadow:0 0 0 2px #3c8c83}.control input[type=range]::-moz-range-thumb{width:13px;height:13px;border:3px solid #f2ffff;background:var(--mint);border-radius:50%}
+.select{background:#101a2a;color:var(--text);border:1px solid #415673;border-radius:10px;padding:10px 13px;width:100%;min-height:43px}.switch-line{display:flex;align-items:center;gap:12px;min-height:46px}.switch-line input{accent-color:#62e9c1;width:19px;height:19px}.switch-line label{cursor:pointer}.split{display:grid;grid-template-columns:minmax(0,.93fr) minmax(0,1.07fr);gap:18px}.unit{font-size:13px;color:var(--muted)}.result-surface{background:radial-gradient(circle at top right,#244a54,#121d31 57%);border:1px solid #396c72;border-radius:17px;padding:24px}.damage-number{font-weight:900;font-size:clamp(44px,5.7vw,66px);line-height:1.15;color:var(--mint);letter-spacing:-.04em;font-variant-numeric:tabular-nums}.formula{display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted);margin:11px 0}.formula .op{background:#253954;border:1px solid #39506c;border-radius:7px;padding:3px 7px;color:var(--text);font-weight:750}.steps{display:grid;gap:10px;margin-top:19px}.calc-step{display:grid;grid-template-columns:80px minmax(0,1fr) 70px;gap:10px;align-items:center;font-size:13px}.calc-step .label{color:#c5d7ed}.track{height:10px;background:#2a3b52;border-radius:99px;overflow:hidden}.fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#57c5c9,#83efc8);width:2%;transition:width .25s}.calc-step .val{text-align:right;font-variant-numeric:tabular-nums;font-weight:750}.detailbox{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;font-size:13px;color:var(--muted)}
+.diagram{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:18px 0}.diagram-node{padding:14px 17px;min-width:120px;flex:1;background:#253650;border:1px solid #425976;border-radius:12px;text-align:center}.diagram-node b{display:block;font-size:15px}.diagram-node span{font-size:12px;color:#b7c7de}.arrow{font-weight:900;color:var(--mint);font-size:22px}
+.banner{background:linear-gradient(100deg,#1a4949,#1d3352);border:1px solid #39726b;border-radius:17px;padding:19px 22px}.banner strong{color:var(--mint)}
+.graph{width:100%;height:auto;display:block;background:#111b2b;border-radius:12px;border:1px solid #304359}.chart-legend{display:flex;gap:15px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted);margin-top:9px}.dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px}.num{font-variant-numeric:tabular-nums}.pill-value{font-size:29px;font-weight:900;line-height:1.2;margin-top:5px}.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px}.compare>div{background:#101c2e;padding:17px;border-radius:12px;border:1px solid #2e4259}.compare b{font-size:23px;display:block;color:var(--blue)}
+details{background:#111b2b;border:1px solid var(--border);border-radius:13px;padding:12px 16px}details summary{cursor:pointer;font-weight:800;color:#dceaff}details[open] summary{margin-bottom:13px}details p{margin:7px 0;color:var(--muted);font-size:14px}.ribbon{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.numbered{display:grid;gap:12px}.numbered>div{display:grid;grid-template-columns:36px 1fr;gap:12px}.numbered .round{display:grid;place-items:center;width:33px;height:33px;border-radius:50%;background:#25425b;color:var(--mint);font-weight:900}.numbered h3{margin:0;font-size:17px}.numbered p{margin:2px 0 0;color:var(--muted);font-size:14px}.taglist{display:flex;flex-wrap:wrap;gap:9px;margin:10px 0}
+.footer{border-top:1px solid var(--border);margin-top:52px;padding:30px 0 55px;color:var(--muted);font-size:13px}.footer .shell{display:flex;gap:14px;justify-content:space-between;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;background:#25364d;color:#e6f1ff}th,td{padding:10px 12px;border-bottom:1px solid #34465e;vertical-align:top}td{color:#bed0e6}td b{color:#fff}.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+.separator{height:1px;background:var(--border);margin:18px 0}.big-quote{font-size:20px;line-height:1.6;color:#e5f3ff;font-weight:650}.example{border:1px dashed #52747a;border-radius:12px;padding:15px;margin-top:12px;background:#172c39}.tiny{font-size:12px;color:var(--muted)}.wave-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.wave-card{background:#101a2b;border-radius:13px;border:1px solid #30445d;padding:16px}.wave-card b{display:block;font-size:25px;font-variant-numeric:tabular-nums}.image-like{border:1px solid #3c5370;border-radius:20px;background:linear-gradient(145deg,#1c304d,#101a2c);padding:20px;position:relative;overflow:hidden}
+.formula-card{background:linear-gradient(155deg,#182a40,#111e32);border:1px solid #39546b;border-radius:17px;padding:20px;min-width:0}.formula-kicker{font-size:12px;color:var(--mint);letter-spacing:.1em;font-weight:850;margin-bottom:9px}.mathline{font-family:Georgia,"Cambria Math","STIX Two Math","Microsoft YaHei",serif;font-size:clamp(17px,2vw,22px);line-height:1.9;color:#eff9ff;overflow-wrap:anywhere;word-break:break-word}.mathline strong{color:var(--mint);font-weight:750}.mathline .sym{font-style:italic;color:var(--gold)}.mathline .minor{color:#a7bed8}.mathline sub{font-size:.64em}.mathline sup{font-size:.65em}.math-read{font-size:14px;color:#b6cce5;margin-top:10px}.formula-gloss{margin:14px 0 0;display:flex;flex-wrap:wrap;gap:7px}.formula-gloss span{border:1px solid #354b65;background:#23364c;padding:4px 8px;border-radius:8px;font-size:12px;color:#c7d9ea}.live-equation{border:1px solid #436b72;border-radius:12px;padding:13px 15px;margin-top:14px;background:#132934;min-width:0}.live-equation .mathline{font-size:19px}.eq-value{font-size:14px;line-height:1.7;color:#90eacb;overflow-wrap:anywhere}.formula-intro{font-size:15px;color:#c7d6e9;margin:0 0 8px}.faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.faq-grid details{height:100%}.source-line{font-size:12px;color:#93afc6;margin-top:10px}.formula-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.formula-card p{margin-top:9px;margin-bottom:0;color:#b6c9df;font-size:14px}.live-equation .muted{font-size:12px}.math-eval{font-size:14px;color:#8cedc9;line-height:1.8;overflow-wrap:anywhere}
+@media(max-width:980px){.story{grid-template-columns:repeat(2,1fr)}.story-step:nth-child(2):after{display:none}.grid4{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}.topbar .shell{gap:6px}.hero{padding:56px 0}}
+@media(max-width:660px){.formula-row,.faq-grid{grid-template-columns:1fr}.shell{padding:0 16px}.topbar .shell{padding-top:8px;padding-bottom:8px}.topbar nav{overflow:auto;white-space:nowrap;flex-wrap:nowrap;width:100%}.hero{padding:45px 0}.grid2,.grid3,.grid4,.story,.controls,.wave-grid{grid-template-columns:1fr}.story-step{min-height:0}.story-step:after{display:none}.card{padding:18px}.section{padding:36px 0}.diagram{display:grid;grid-template-columns:1fr;gap:7px}.arrow{text-align:center;transform:rotate(90deg)}.calc-step{grid-template-columns:67px 1fr 67px}.compare{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="shell">
+    <div class="brand">◆ PIXEL <span>ROGUE</span> / 数值图鉴</div>
+    <nav aria-label="本页导航">
+      <a href="#start">从零开始</a><a href="#formula-library">公式总览</a><a href="#stat">属性怎么加</a><a href="#damage">伤害实验室</a><a href="#armor">防御与抗性</a><a href="#enemy">怪物成长</a><a href="#more">其他数字</a><a href="#faq">常见误区</a>
+    </nav>
+  </div>
+</header>
+<main>
+<section class="hero shell">
+  <div class="eyebrow">一份不要求你懂代码的游戏数值说明书</div>
+  <h1>为什么攻击力是 100，<br><em>打出去却不是 100？</em></h1>
+  <p class="lead">伤害不是直接拿攻击力减护甲那么简单。但你不用学编程，也不用背公式。这里把《像素秘境》的数值变成可以看、可以拖动、可以试验的图解。</p>
+  <div class="hero-actions"><a class="btn primary" href="#start">从第一分钟开始了解</a><a class="btn" href="#damage">直接玩伤害计算器</a></div>
+  <p class="hero-note"><span class="chip mint">离线单 HTML</span> 双击文件就能看 · 所有图表和计算都在本机运行</p>
+</section>
+
+<section class="section shell" id="start">
+  <div class="section-head"><div class="kicker">01 / 一分钟看懂</div><h2>一发子弹的伤害，要过四道关</h2><p class="sub">把它想象成做一道菜：先准备材料，加入各种调味，遇到敌人的防护，最后才真正扣血。</p></div>
+  <div class="story">
+    <div class="panel story-step"><span class="step-num">1</span><h3>先决定基础威力</h3><p>角色攻击力、武器/技能自己的倍率，合在一起得到“这一下原本有多疼”。</p></div>
+    <div class="panel story-step"><span class="step-num">2</span><h3>再享受各种增伤</h3><p>所有伤害加成、火焰加成、远程加成、特定技能加成，一层层乘上去。</p></div>
+    <div class="panel story-step"><span class="step-num">3</span><h3>敌人尝试抵挡</h3><p>物理伤害吃护甲，火/雷看对应抗性；普通伤害还会受到韧性影响。</p></div>
+    <div class="panel story-step"><span class="step-num">4</span><h3>真的扣血</h3><p>可能先被闪避或护盾挡住；如果命中成功，才把计算结果用于扣血、击杀等。</p></div>
+  </div>
+  <div class="note"><b>最重要的一句话：</b>“攻击力”只是起点，“最终伤害”是经过增伤、暴击和减伤之后的结果。还有一种叫“当前生命值”的数字，它是战斗中会变化的，不等同于“最大生命值”。</div>
+</section>
+
+<section class="section shell" id="formula-library">
+  <div class="section-head"><div class="kicker">公式小抄 / 随时回来看</div><h2>先把公式摆出来，再解释它在做什么</h2><p class="sub">公式不是编程代码，只是“把数字怎么组合”写清楚。每个颜色标记都是一种数字；读不懂字母时，先看下面的中文翻译，然后去滑块区试一试。</p></div>
+  <div class="formula-row">
+    <article class="formula-card">
+      <div class="formula-kicker">01 / 角色属性怎么合成</div>
+      <div class="mathline"><strong>最终属性</strong> =（<span class="sym">基础值</span> + Σ固定加成）×（1 + Σ百分比）× ∏最终倍率</div>
+      <div class="formula-gloss"><span>Σ：把同类数逐个加起来</span><span>∏：把倍率一个个乘起来</span></div>
+      <p>比如原来 100，固定 +20，再有 +10%，额外 ×1.5：<b class="highlight">(100 + 20) × 1.1 × 1.5 = 198</b>。这是在算“属性面板里的数”。</p>
+      <div class="source-line">实际：按顺序加固定值 → 同阶段百分比求和 → 按顺序乘最终倍率。</div>
+    </article>
+    <article class="formula-card">
+      <div class="formula-kicker">02 / 一次攻击最后多疼</div>
+      <div class="mathline"><strong>伤害</strong> = <span class="sym">原始威力</span> × <span class="sym">全局</span> × <span class="sym">属性</span> × <span class="sym">方式</span> × <span class="sym">技能</span> × <span class="sym">暴击</span> × <span class="sym">属性减伤</span> × <span class="sym">韧性减伤</span></div>
+      <p>每个“+20%”要先换成倍率 ×1.2；没触发的那一项是 ×1。<b>四种增伤彼此相乘，不是简单相加。</b></p>
+      <div class="formula-gloss"><span>全局：所有伤害</span><span>属性：物理/火/雷等</span><span>方式：近/远程</span><span>技能：需明确技能标识</span></div>
+    </article>
+    <article class="formula-card">
+      <div class="formula-kicker">03 / 物理护甲</div>
+      <div class="mathline"><strong>护甲后保留比例</strong> = <span class="sym">50</span> /（<span class="sym">50</span> + max(0，护甲)）</div>
+      <p>护甲 50 时，伤害只保留 50%；护甲 100 时，保留约 33.3%。<b>不是把护甲点数直接从伤害里减掉。</b></p>
+      <div class="formula-gloss"><span>50：游戏当前护甲系数 K</span><span>max(0, x)：不低于 0</span></div>
+    </article>
+    <article class="formula-card">
+      <div class="formula-kicker">04 / 元素抗性与韧性</div>
+      <div class="mathline"><strong>元素保留</strong> = 1 − clamp(抗性, 0, 0.75)</div>
+      <div class="mathline"><strong>韧性保留</strong> = 1 − clamp(韧性, 0, 0.60)</div>
+      <p>火抗 30%、韧性 20%，则火焰伤害最终保留 <b class="highlight">0.7 × 0.8 = 56%</b>。这里 1 代表 100%。真实伤害会跳过这两层减伤。</p>
+      <div class="formula-gloss"><span>clamp：限制在上下限之间</span><span>75%：元素抗性上限</span><span>60%：韧性上限</span></div>
+    </article>
+    <article class="formula-card">
+      <div class="formula-kicker">05 / 怪物最大生命随波次增长</div>
+      <div class="mathline"><strong>怪物 HP</strong> = <span class="sym">基础HP</span> × [1 + (波次−1)×0.18 + max(0,波次−15)<sup>2</sup>×0.06] × 1.03<sup>floor(玩家等级/5)</sup> × 精英倍率</div>
+      <p>越到后面波次成长越快；玩家每进入一个新的 5 级档，怪物 HP 再提高 3%。精英的 HP 倍率是 ×8。</p>
+      <div class="formula-gloss"><span>平方²：一个数乘自己</span><span>floor：向下取整</span></div>
+    </article>
+    <article class="formula-card">
+      <div class="formula-kicker">06 / 怪物攻击与速度</div>
+      <div class="mathline"><strong>攻击</strong> = <span class="sym">基础攻击</span> × [1 + (波次−1)×0.05 + max(0,波次−15)<sup>2</sup>×0.012] × 精英攻击倍率</div>
+      <div class="mathline"><strong>速度</strong> = <span class="sym">基础速度</span> × 精英速度倍率 × 随机系数</div>
+      <p>普通倍率均为 ×1；精英攻击 ×1.5，精英速度 ×0.8。随机系数约为 0.9～1.1，所以同类型怪物的速度也可能略有不同。</p>
+    </article>
+    <article class="formula-card">
+      <div class="formula-kicker">07 / 攻速、持续伤害与技能</div>
+      <div class="mathline"><strong>开火间隔</strong> = 1 ÷ [射速 × (1 + 狂热层数×0.1 + 激活战意时等级×0.2)]</div>
+      <div class="mathline"><strong>灼烧每秒</strong> = 层数 × 攻击力 × 0.1</div>
+      <p>射速是“每秒几发”；开火间隔是“每发隔几秒”。持续伤害按时间累积，不能每帧保底扣 1 点。</p>
+    </article>
+    <article class="formula-card">
+      <div class="formula-kicker">08 / 伤害结算：最后才取整</div>
+      <div class="mathline"><strong>打怪的单次命中</strong> = D &gt; 0 ? max(1, round(D)) : D</div>
+      <div class="mathline"><strong>玩家受击或持续伤害</strong> = D（保留小数）</div>
+      <p>D 是上面全部乘区算完的结果。正数 0.4 打怪时可结算为 1；如果 D 本来就是 0，依然是 0。持续伤害不暴击。</p>
+      <div class="formula-gloss"><span>round：四舍五入</span><span>? … : …：如果…否则…</span></div>
+    </article>
+  </div>
+  <div class="note">不需要一次记住所有公式。建议先用下面的<strong>属性模拟器</strong>和<strong>伤害实验室</strong>，再回来对照公式，就能分清“加在面板上的”和“结算这一击才乘的”两种数值。</div>
+</section>
+
+<section class="section shell" id="stat">
+  <div class="section-head"><div class="kicker">02 / 属性成长</div><h2>拿到天赋后，数字怎样长大？</h2><p class="sub">想象你的初始攻击力是 100。升级可能给你固定的 +20，也可能给 +10%，还可能让这个数再乘 1.5。下面动一动，马上能看到区别。</p></div>
+  <div class="split">
+    <div class="card">
+      <h3 class="mini-title">自己搭一套属性加成</h3>
+      <div class="controls">
+        <div class="control"><label for="sb">初始数值 <output id="sbv">100</output></label><input id="sb" type="range" min="0" max="200" step="5" value="100"></div>
+        <div class="control"><label for="sf1">固定加成 A <output id="sf1v">+20</output></label><input id="sf1" type="range" min="-50" max="100" step="5" value="20"></div>
+        <div class="control"><label for="sf2">固定加成 B <output id="sf2v">+10</output></label><input id="sf2" type="range" min="-50" max="100" step="5" value="10"></div>
+        <div class="control"><label for="sp1">百分比 A <output id="sp1v">+10%</output></label><input id="sp1" type="range" min="0" max="100" step="5" value="10"></div>
+        <div class="control"><label for="sp2">百分比 B <output id="sp2v">+20%</output></label><input id="sp2" type="range" min="0" max="100" step="5" value="20"></div>
+        <div class="control"><label for="sm1">额外倍率 A <output id="sm1v">×1.50</output></label><input id="sm1" type="range" min="0.5" max="3" step=".1" value="1.5"></div>
+        <div class="control"><label for="sm2">额外倍率 B <output id="sm2v">×1.10</output></label><input id="sm2" type="range" min="0.5" max="3" step=".1" value="1.1"></div>
+      </div>
+      <button class="btn" type="button" id="resetStat" style="margin-top:18px">恢复示例</button>
+      <p class="tiny">这是通用“属性合成”的教学工具，非角色编辑器，不会修改游戏存档。百分比和倍率按引擎现有公式计算。</p>
+    </div>
+    <div class="card">
+      <div class="stat-label">算完后，你的属性是</div><div class="damage-number" id="statFinal">278.85</div><div class="live-equation"><div class="formula-kicker">实时公式 · 你刚设置的数字</div><div class="mathline"><strong>最终属性</strong> = (基础值 + 固定A + 固定B) × (1 + 百分比A + 百分比B) × 倍率A × 倍率B</div><div class="eq-value" id="statLive" aria-live="polite"></div></div>
+      <div class="steps" id="statSteps" aria-live="polite"></div>
+      <div class="separator"></div>
+      <p class="mini-title">三种常见词语，别混淆</p>
+      <div class="numbered">
+        <div><span class="round">＋</span><div><h3>固定加成：直接加数字</h3><p>100 + 20 = 120。比如“护甲 +15 点”。</p></div></div>
+        <div><span class="round">％</span><div><h3>百分比：同一层先合在一起</h3><p>+10% 和 +20%，在这个计算阶段合成 ×1.30，而不是 ×1.1×1.2。</p></div></div>
+        <div><span class="round">×</span><div><h3>最终倍率：一个一个相乘</h3><p>×1.5 后再 ×1.1；这是另一层运算。</p></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="note warn">这里讲的是“生成角色属性”的三个阶段。下一节的“四类伤害增伤乘区”不是这里的四个额外天赋，千万不要把两组公式混成一套。</div>
+</section>
+
+<section class="section shell" id="damage">
+  <div class="section-head"><div class="kicker">03 / 伤害实验室</div><h2>把每一层伤害亲手调出来</h2><p class="sub">这里默认模拟“一次打中怪物的物理远程攻击”，从原始伤害 100 开始。调整数值后，右边会显示经过每一层时还剩多少。</p></div>
+  <div class="split">
+    <div class="card">
+      <h3 class="mini-title">设置这次攻击</h3>
+      <div class="controls">
+        <div class="control"><label for="raw">原始威力 <output id="rawv">100</output></label><input id="raw" type="range" min="0" max="300" step="5" value="100"></div>
+        <div class="control"><label for="global">全局增伤 <output id="globalv">+20%</output></label><input id="global" type="range" min="-100" max="150" step="5" value="20"></div>
+        <div class="control"><label for="typebonus">属性增伤 <output id="typebonusv">+30%</output></label><input id="typebonus" type="range" min="-100" max="150" step="5" value="30"></div>
+        <div class="control"><label for="formbonus">攻击方式增伤 <output id="formbonusv">+10%</output></label><input id="formbonus" type="range" min="-100" max="150" step="5" value="10"></div>
+        <div class="control"><label for="skillbonus">技能增伤 <output id="skillbonusv">+25%</output></label><input id="skillbonus" type="range" min="-100" max="150" step="5" value="25"></div>
+        <div class="control"><label for="critmul">暴击伤害倍率 <output id="critmulv">×2.00</output></label><input id="critmul" type="range" min="1" max="4" step=".25" value="2"></div>
+      </div>
+      <div class="separator"></div>
+      <div class="controls">
+        <div class="control"><label for="dtype">本次伤害是什么属性？</label><select class="select" id="dtype"><option value="physical">物理（吃护甲）</option><option value="fire">火焰（吃火抗）</option><option value="lightning">雷电（吃雷抗）</option><option value="true">真实（忽略减伤）</option></select></div>
+        <div class="control"><label for="dform">这次攻击是什么方式？</label><select class="select" id="dform"><option value="ranged">远程</option><option value="melee">近战</option><option value="other">其他</option></select></div>
+        <div class="control"><label for="armor">目标的护甲 <output id="armorv">50</output></label><input id="armor" type="range" min="0" max="250" step="5" value="50"></div>
+        <div class="control"><label for="resist">目标对应元素抗性 <output id="resistv">30%</output></label><input id="resist" type="range" min="0" max="100" step="5" value="30"></div>
+        <div class="control"><label for="tough">目标韧性 <output id="toughv">20%</output></label><input id="tough" type="range" min="0" max="100" step="5" value="20"></div>
+        <div class="control"><label for="precision">伤害如何处理小数？</label><select class="select" id="precision"><option value="round">打怪：取整，正数至少 1</option><option value="float">玩家受击 / 持续伤害：保留小数</option></select></div>
+      </div>
+      <div class="separator"></div>
+      <div class="switch-line"><input type="checkbox" id="crit" checked><label for="crit"><b>假设这一下触发了暴击</b>（不是“暴击率”）</label></div>
+      <div class="switch-line"><input type="checkbox" id="skill" checked><label for="skill"><b>假设攻击传入了技能标识</b>，启用技能增伤</label></div>
+      <button class="btn" id="resetDamage" type="button" style="margin-top:9px">恢复示例</button>
+    </div>
+    <div>
+      <div class="result-surface">
+        <div class="stat-label" id="damageHeading">这一击最终造成的伤害</div>
+        <div class="damage-number" id="damageFinal">172</div>
+        <div class="ribbon" id="damageInfo" style="margin-top:8px"></div>
+        <div class="live-equation"><div class="formula-kicker">实时伤害公式 · 从左到右乘</div><div class="mathline"><strong>D</strong> = 原始威力 × 全局 × 属性 × 方式 × 技能 × 暴击 × 属性减伤 × 韧性减伤</div><div class="math-eval" id="damageLive" aria-live="polite"></div></div><div class="formula" id="damageFormula"></div>
+        <div class="steps" id="damageSteps" aria-live="polite"></div>
+        <div class="detailbox" id="damageExplanation"></div>
+      </div>
+      <div class="note warn"><b>关于“技能增伤”：</b>底层计算器已经会算它，但当前游戏常规命中入口还没有普遍传递“技能标识”。上面勾选时是在演示“接口接通以后会怎样算”，不代表游戏里所有技能已经自动享受这项加成。</div>
+      <div class="note"><b>还有一道“攻击命中之前”的门：</b>闪避、次数型护盾、受击无敌时间等可能让攻击直接失效。上面的计算器演示的是<span class="highlight">进入正式伤害计算后</span>的数字。</div>
+    </div>
+  </div>
+</section>
+
+<section class="section shell" id="armor">
+  <div class="section-head"><div class="kicker">04 / 防御为什么有用</div><h2>护甲不是“减去 50 点伤害”</h2><p class="sub">护甲是按比例降低物理伤害的。护甲越高，挡住的伤害越多，但继续堆更多护甲时，收益不会按同样百分比增加。</p></div>
+  <div class="split">
+    <div class="card">
+      <div class="ribbon"><span class="chip mint">护甲专用</span><span class="chip">K = 50（当前游戏）</span></div>
+      <h3 class="mini-title" style="margin-top:12px">假设敌人打过来 100 点物理伤害</h3>
+      <div class="control"><label for="curveDef">你的护甲值 <output id="curveDefv">50</output></label><input id="curveDef" type="range" min="0" max="250" step="5" value="50"></div>
+      <div class="compare" style="margin-top:15px">
+        <div><div class="stat-label">穿过护甲后还剩</div><b id="armorKeep">50</b><div class="unit">伤害 / 原来 100</div></div>
+        <div><div class="stat-label">被护甲挡住</div><b id="armorBlock" style="color:var(--mint)">50%</b><div class="unit">比例，而不是固定点数</div></div>
+      </div>
+      <p class="small muted">通俗公式：<b style="color:var(--text)">伤害保留比例 = 50 ÷（50 + 护甲）</b></p><div class="live-equation"><div class="formula-kicker">当前护甲数值代入</div><div class="mathline">100 × 50 /（50 + <span class="sym" id="armorInput">50</span>）= <strong id="armorLive">50</strong></div><p class="tiny" style="margin:6px 0 0">这是只计算护甲、还没计算韧性的结果。</p></div>
+      <svg id="armorChart" class="graph" viewBox="0 0 550 230" role="img" aria-label="护甲越高伤害保留比例越低的交互曲线"></svg>
+      <div class="chart-legend"><span><i class="dot" style="background:var(--mint)"></i>受到的伤害比例</span><span><i class="dot" style="background:var(--gold)"></i>当前护甲位置</span></div>
+    </div>
+    <div class="card">
+      <h3 class="mini-title">物理、火焰、雷电、真实：防护方法不一样</h3>
+      <div class="grid2" style="margin-top:17px">
+        <div class="panel"><span class="chip">物理</span><h3>看护甲</h3><p class="small muted">护甲高，保留的物理伤害比例低。再乘韧性减伤。</p></div>
+        <div class="panel"><span class="chip gold">火焰</span><h3>看火抗</h3><p class="small muted">40% 火抗 → 这层保留 60% 火焰伤害，再算韧性。</p></div>
+        <div class="panel"><span class="chip mint">雷电</span><h3>看雷抗</h3><p class="small muted">与火焰一样，但读取的是雷电抗性，不是火抗。</p></div>
+        <div class="panel"><span class="chip rose">真实</span><h3>无视普通减伤</h3><p class="small muted">不吃护甲、元素抗性、韧性；但仍可能被闪避或护盾抵挡。</p></div>
+      </div>
+      <div class="note"><b>韧性是什么？</b>它是护甲/元素抗性之后的<span class="highlight">另一层通用减伤</span>。比如火抗 30%、韧性 20%，会依次 ×0.7 再 ×0.8，最终保留 56%，不是简单减掉 50%。</div>
+      <div class="note warn">当前抗性最多在伤害计算时算作 <b>75%</b>，韧性最多算作 <b>60%</b>。给角色填更高数字不会让这两层继续突破上限；真实伤害不吃这两层。</div>
+    </div>
+  </div>
+</section>
+
+<section class="section shell" id="enemy">
+  <div class="section-head"><div class="kicker">05 / 怪物为什么越打越强</div><h2>一只小怪，到了第 20 波会变多强？</h2><p class="sub">怪物不是每波手动配置一套数字。游戏先读它的“出厂数值”，再按波次、玩家等级、精英状态计算。下面用当前游戏里的五类敌人展示。</p></div>
+  <div class="split">
+    <div class="card">
+      <div class="controls">
+        <div class="control"><label for="enemyType">选择一种怪物</label><select id="enemyType" class="select"><option value="slime">史莱姆（基础 HP 14）</option><option value="bat">蝙蝠（基础 HP 9）</option><option value="brute">重甲怪（基础 HP 65）</option><option value="shooter">射手（基础 HP 16）</option><option value="bomber">自爆虫（基础 HP 12）</option></select></div>
+        <div class="control"><label for="wave">第几波 <output id="wavev">1</output></label><input id="wave" type="range" min="1" max="30" step="1" value="1"></div>
+        <div class="control"><label for="level">玩家等级 <output id="levelv">1</output></label><input id="level" type="range" min="1" max="40" step="1" value="1"></div>
+        <div class="control"><div class="stat-label">精英状态</div><div class="switch-line"><input id="elite" type="checkbox"><label for="elite"><b>让它变成精英</b></label></div></div>
+      </div>
+      <div class="note">速度存在一个随机小幅波动，所以这里展示的是不带抖动的<strong>参考速度</strong>。真实生成会再乘一个约 0.9～1.1 的随机系数。</div>
+      <div class="separator"></div>
+      <div class="wave-grid">
+        <div class="wave-card"><span class="stat-label">生成时的最大 HP</span><b id="enemyHp">14</b><span class="unit" id="hpRatio">初始的 ×1</span></div>
+        <div class="wave-card"><span class="stat-label">碰撞/攻击基础威力</span><b id="enemyDmg">8</b><span class="unit" id="dmgRatio">初始的 ×1</span></div>
+        <div class="wave-card"><span class="stat-label">参考移动速度</span><b id="enemySpeed">30</b><span class="unit">像素/秒 × 随机系数</span></div>
+      </div>
+      <div class="live-equation"><div class="formula-kicker">当前怪物成长公式 · 代入后的数值</div><div class="math-eval" id="enemyLiveHp"></div><div class="math-eval" id="enemyLiveDmg"></div><div class="math-eval" id="enemyLiveSpeed"></div></div><div class="chart-legend" style="margin-top:15px"><span><i class="dot" style="background:var(--mint)"></i>HP 趋势</span><span><i class="dot" style="background:var(--gold)"></i>攻击趋势</span><span>纵轴分别按各自比例显示</span></div>
+      <svg id="enemyChart" class="graph" viewBox="0 0 560 205" role="img" aria-label="从第1波到30波的生命与攻击成长趋势"></svg>
+    </div>
+    <div class="card">
+      <h3 class="mini-title">这只怪物的数字从哪来？</h3>
+      <div class="numbered" style="margin-top:13px">
+        <div><span class="round">1</span><div><h3>先有基础配置</h3><p id="enemyBaseText">史莱姆基础 HP 14，攻击 8，速度 30。</p></div></div>
+        <div><span class="round">2</span><div><h3>波次提高 HP 和攻击</h3><p>前期按波次线性上涨；第 15 波之后还有额外的二次增长，后期会明显更硬。</p></div></div>
+        <div><span class="round">3</span><div><h3>玩家等级影响怪物 HP</h3><p>每达到 5 的一个完整等级档（5/10/15…），HP 再乘 1.03。</p></div></div>
+        <div><span class="round">4</span><div><h3>精英倍率与小幅随机速度</h3><p>精英 HP ×8、攻击 ×1.5、速度 ×0.8；正常速度还带随机抖动。</p></div></div>
+      </div>
+      <div class="note warn"><b>注意：</b>这是新生成怪物的数值，不是“怪物每过一波自动加一次血”。你现在看到的数值是按选择的波次和等级计算出的生成结果。</div>
+      <details style="margin-top:16px"><summary>想看更精确的怪物成长公式？</summary><p>HP = 基础 HP × [1 + (波次−1)×0.18 + max(0,波次−15)²×0.06] × 1.03 的 floor(玩家等级/5) 次方 × (精英?8:1)。</p><p>攻击 = 基础攻击 × [1 + (波次−1)×0.05 + max(0,波次−15)²×0.012] × (精英?1.5:1)。</p><p>速度 = 基础速度 × (精英?0.8:1) × 随机抖动（0.9～1.1）。</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="section shell" id="more">
+  <div class="section-head"><div class="kicker">06 / 不止伤害</div><h2>游戏里还有哪些数字在背后运转？</h2><p class="sub">你看到的开火速度、陨星、燃烧、冲刺、护盾和波次，都有自己的计算规则。下面只讲“玩家能感觉到的结果”，不塞函数和代码。</p></div>
+  <div class="grid3">
+    <div class="panel"><span class="chip mint">魔弹</span><h3>子弹的初始威力</h3><p class="big-quote">人物攻击力 × 魔弹专属倍率</p><p class="small muted">比如攻击 11、魔弹倍率 1.25，则子弹带着 13.75 的原始威力出去，之后再算增伤与敌人防御。</p></div>
+    <div class="panel"><span class="chip gold">暴击</span><h3>概率与倍率是两回事</h3><p class="big-quote">是否暴击靠概率；暴击了才乘倍率</p><p class="small muted">初始暴击率 5%，暴击倍率 2。致命一击满 8 级还会额外提高有效暴伤倍率 0.4。</p></div>
+    <div class="panel"><span class="chip">攻速</span><h3>攻速越快，间隔越短</h3><p class="big-quote">发射间隔 = 1 ÷ 有效每秒发射次数</p><p class="small muted">角色基础射速 2.2/s；狂热和战意是战斗中临时改变射速的 Buff，不是永久写回攻速。</p></div>
+    <div class="panel"><span class="chip rose">燃烧 / 焦土</span><h3>伤害按时间持续发生</h3><p class="big-quote">每秒伤害 × 经过的秒数</p><p class="small muted">单层灼烧每秒伤害为人物攻击力的 10%；焦土地面每秒 20%。这种伤害保留小数，不会每帧都强行扣至少 1 点。</p></div>
+    <div class="panel"><span class="chip">陨星 / 护盾反震</span><h3>技能先造出原始威力</h3><p class="big-quote">陨星：攻击×3 + 等级×8</p><p class="small muted">护盾破碎反震为攻击×2。它们不是把“火焰增伤”预先写进基础攻击，而是另有技能自己的系数。</p></div>
+    <div class="panel"><span class="chip mint">冲刺 / 护盾</span><h3>等级上限与当前存量分开</h3><p class="big-quote">护盾上限 ≠ 目前有几层盾</p><p class="small muted">冲刺次数、剩余冷却、盾层、受击无敌时间都属于运行状态，重算属性时不能凭空恢复或清空。</p></div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <h3 class="mini-title">问：如果我想“调一下平衡”，大概要找哪里？</h3>
+    <div class="table-wrap"><table><thead><tr><th>你想改变</th><th>游戏里会发生什么</th><th>主要位置（仅供定位）</th></tr></thead><tbody>
+      <tr><td>初始攻击力、跑速、血量</td><td>新开一局时角色更强/更弱</td><td>基础角色数值表</td></tr>
+      <tr><td>天赋每级加多少</td><td>获得该天赋后成长速度变化</td><td>天赋属性来源表、天赋描述</td></tr>
+      <tr><td>怪物护甲、火抗、雷抗</td><td>某些攻击对该怪物更有效或更低效</td><td>怪物配置表</td></tr>
+      <tr><td>护甲计算系数 / 抗性上限</td><td>整个游戏里减伤的强弱关系变化</td><td>战斗平衡常量表</td></tr>
+      <tr><td>新冰霜伤害、新怪物</td><td>需要新增属性类型或怪物数据，有时还要新技能和新表现</td><td>伤害类型注册表、怪物表及行为系统</td></tr>
+    </tbody></table></div>
+  </div>
+</section>
+
+<section class="section shell" id="faq">
+  <div class="section-head"><div class="kicker">07 / 这些疑问最容易搞混</div><h2>常见问题：真正玩游戏时会遇到什么？</h2><p class="sub">下面是公式背后的实际规则，有些比数学本身还重要。点击问题可展开解释。</p></div>
+  <div class="faq-grid">
+    <details><summary>“攻击力 +20%”与“所有伤害 +20%”不是一回事？</summary><p>不一样。前者通常让角色面板上的攻击值变大，进而影响魔弹、陨星等用到攻击力的技能；后者是命中结算时额外 ×1.2 的“全局增伤乘区”。如果这两层都生效，就会叠乘，不能算成只多了 20%。</p></details>
+    <details><summary>两项 +20% 增伤为什么有时是 +40%，有时是 +44%？</summary><p>同一属性模型的 percent 阶段，+20% 和 +20% 先加成 +40%，也就是 ×1.4。如果分别落在“全局”和“火焰”两个伤害乘区，就会 ×1.2 ×1.2 = ×1.44。要先看属于哪个阶段/哪个乘区。</p></details>
+    <details><summary>暴击率是 50%，就会打出 1.5 倍伤害吗？</summary><p>不是。暴击率决定这一下有没有触发暴击；暴击倍率决定触发时伤害乘几。比如暴击率 50%、暴击倍率 2：某一击要么正常 ×1，要么触发 ×2。不要把“平均期望 1.5 倍”当成每次命中的真实数值。</p></details>
+    <details><summary>真实伤害是不是一定能伤害敌人？</summary><p>真实伤害绕过的是护甲、元素抗性和韧性这三种数值减伤，并不代表无视碰撞、闪避、护盾、无敌时间或其他战斗门控。它也不是“不会触发暴击”；是否能暴击取决于此次伤害的请求规则。</p></details>
+    <details><summary>攻击力 0.5 为什么有时打出了 1 点？</summary><p>针对敌人的离散命中，完整伤害算完后如果结果大于 0，会四舍五入且至少为 1；但结果严格等于 0 就不会突然冒出 1。玩家受击和燃烧等持续伤害则会保留小数，避免每帧“白送”1点伤害。</p></details>
+    <details><summary>为什么改了角色属性，飞出去的子弹没有立刻变化？</summary><p>因为发射那一刻会保存攻击相关的“属性照片”，后续属性变化不会修改那发已经在飞的子弹。自爆虫是引爆时拍照，接触攻击是接触时取最新属性。不同攻击不能随意换快照时机。</p></details>
+    <details><summary>怪物被我打残，再提升波次会自动满血吗？</summary><p>不会。波次与玩家等级公式主要用于新生成的敌人，已有怪物的当前 HP 是运行状态。类似地，角色改变天赋时会重新计算最大 HP，但不能因此把当前 HP、护盾和技能冷却随便重置。</p></details>
+    <details><summary>新增“冰霜伤害”就会自动出现冻结效果吗？</summary><p>不会。伤害类型注册表只让伤害计算器知道这次是冰霜、该用什么减伤方式。发射冰弹、造成冻结、播放特效和显示图标是另外的游戏规则，需要后续实现。技能专属增伤同理，目前部分普通攻击入口还没有把技能标识传到底层。</p></details>
+  </div>
+  <div class="note"><b>想验证一条自己的规则？</b>先想好“这是基础属性、技能自身威力、伤害增伤，还是减伤/运行状态”，再去对应的滑块调整。这样不会把两个不同系统的数字混在一起。</div>
+</section>
+
+<section class="section shell" id="summary">
+  <div class="banner">
+    <h2 style="margin-top:0">最后，用五句话记住整套系统</h2>
+    <div class="numbered">
+      <div><span class="round">1</span><div><h3>角色属性先由基础值和天赋算出来。</h3><p>不是每次打怪都重新抽一次天赋效果。</p></div></div>
+      <div><span class="round">2</span><div><h3>攻击先产生原始威力，再经过四类增伤。</h3><p>全局、属性、近远程方式、特定技能，彼此相乘。</p></div></div>
+      <div><span class="round">3</span><div><h3>物理看护甲，元素看抗性，真实伤害绕过减伤。</h3><p>普通伤害另外还会受“韧性”影响。</p></div></div>
+      <div><span class="round">4</span><div><h3>算出伤害，不等于必定扣这么多血。</h3><p>闪避、护盾、生命上限、免死和死亡流程是另外一部分。</p></div></div>
+      <div><span class="round">5</span><div><h3>运行中的状态和永久属性要分开。</h3><p>最大 HP 可以被重算，当前 HP 和技能剩余时间不能被错误重置。</p></div></div>
+    </div>
+  </div>
+  <p class="small muted" style="margin-top:18px">内容依据当前 Pixel Rogue S4 战斗底层源码整理。互动公式使用浏览器本地 JavaScript 模拟真实数值规则，但不会读取存档、操纵游戏进程或改变平衡配置；部分带技能标识的乘区属于已支持的计算能力，普通攻击入口尚未全部接线。</p>
+</section>
+</main>
+<footer class="footer"><div class="shell"><span>PIXEL ROGUE · 数值系统可视化手册 / 单文件离线版</span><span>供理解游戏底层使用 · 开发接口请参考 combat-numerics-agent-guide.md</span></div></footer>
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id);};
+var fmt=function(v){if(!Number.isFinite(v))return "—"; if(Object.is(v,-0))return "-0"; if(Math.abs(v)>=10000)return Math.round(v).toLocaleString("zh-CN");return (Math.round(v*10000)/10000).toLocaleString("zh-CN",{maximumFractionDigits:4});};
+var num=function(id){return Number($(id).value);};
+var signed=function(n){return (n>0?"+":"")+fmt(n);};
+var stepsHtml=function(steps,unit){var max=Math.max(1,...steps.map(function(s){return Math.max(0,s.v);}));return steps.map(function(s){return '<div class="calc-step"><span class="label">'+s.label+'</span><div class="track"><div class="fill" style="width:'+Math.max(0,Math.min(100,(Math.max(0,s.v)/max)*100))+'%;background:'+ (s.color||'linear-gradient(90deg,#57c5c9,#83efc8)') +'"></div></div><span class="val">'+fmt(s.v)+(unit||'')+'</span></div>';}).join('');};
+var pct=function(n){return signed(n)+'%';};
+function updateStat(){
+  var ids=["sb","sf1","sf2","sp1","sp2","sm1","sm2"], vals=ids.map(num);
+  ids.forEach(function(id,i){$(id+"v").textContent=id.indexOf("sf")===0?signed(vals[i]):id.indexOf("sp")===0?pct(vals[i]):id.indexOf("sm")===0?"×"+vals[i].toFixed(2):fmt(vals[i]);});
+  var v=vals[0],steps=[{label:"初始",v:v}];v+=vals[1];steps.push({label:"加成 A",v:v});v+=vals[2];steps.push({label:"加成 B",v:v});v*=1+(vals[3]+vals[4])/100;steps.push({label:"百分比",v:v});v*=vals[5];steps.push({label:"倍率 A",v:v});v*=vals[6];steps.push({label:"倍率 B",v:v});
+  $("statFinal").textContent=fmt(v);$("statSteps").innerHTML=stepsHtml(steps);
+  $("statLive").textContent="("+fmt(vals[0])+" "+signed(vals[1])+" "+signed(vals[2])+") × (1 "+signed(vals[3]/100)+" "+signed(vals[4]/100)+") × "+fmt(vals[5])+" × "+fmt(vals[6])+" = "+fmt(v);
+}
+function reset(ids,values){ids.forEach(function(id,i){var el=$(id);if(el.type==="checkbox")el.checked=!!values[i];else el.value=values[i];});}
+var statIds=["sb","sf1","sf2","sp1","sp2","sm1","sm2"];
+var statDefaults=[100,20,10,10,20,1.5,1.1];
+statIds.forEach(function(id){$(id).addEventListener("input",updateStat);});
+$("resetStat").addEventListener("click",function(){reset(statIds,statDefaults);updateStat();});
+function updateDamage(){
+  var ids=["raw","global","typebonus","formbonus","skillbonus","critmul","armor","resist","tough"];
+  ids.forEach(function(id){var v=num(id);$(id+"v").textContent=["global","typebonus","formbonus","skillbonus","resist","tough"].includes(id)?pct(v):id==="critmul"?"×"+v.toFixed(2):fmt(v);});
+  var raw=num("raw"),g=num("global"),ty=num("typebonus"),fo=num("formbonus"),sk=num("skillbonus"),crit=num("critmul"),arm=num("armor"),res=num("resist"),tough=num("tough"),dType=$("dtype").value,form=$("dform").value;
+  var skillOn=$("skill").checked,critOn=$("crit").checked;
+  var v=raw,steps=[{label:"原始威力",v:v}];
+  v*=1+g/100;steps.push({label:"全局增伤",v:v});
+  v*=1+ty/100;steps.push({label:"属性增伤",v:v});
+  v*=1+fo/100;steps.push({label:"方式增伤",v:v});
+  v*=1+(skillOn?sk:0)/100;steps.push({label:"技能增伤",v:v});
+  v*=critOn?crit:1;steps.push({label:"暴击判定",v:v,color:"linear-gradient(90deg,#ffcb78,#ffe49c)"});
+  var mitigation=dType==="physical"?50/(50+Math.max(0,arm)):dType==="true"?1:1-Math.min(75,Math.max(0,res))/100;
+  var general=dType==="true"?1:1-Math.min(60,Math.max(0,tough))/100;
+  v*=mitigation;steps.push({label:"属性减伤",v:v,color:"linear-gradient(90deg,#8aa5ff,#c5b3ff)"});
+  v*=general;steps.push({label:"韧性减伤",v:v,color:"linear-gradient(90deg,#8aa5ff,#c5b3ff)"});
+  var final=$("precision").value==="round"?(v>0?Math.max(1,Math.round(v)):v):v;
+  steps.push({label:"最终数值",v:final,color:"linear-gradient(90deg,#39bead,#6beac3)"});
+  $("damageFinal").textContent=fmt(final);
+  $("damageLive").textContent=
+    fmt(raw)+" × "+fmt(1+g/100)+"（全局） × "+fmt(1+ty/100)+"（属性） × "+
+    fmt(1+fo/100)+"（方式） × "+fmt(1+(skillOn?sk:0)/100)+"（技能） × "+
+    fmt(critOn?crit:1)+"（暴击） × "+fmt(mitigation)+"（属性减伤） × "+
+    fmt(general)+"（韧性） = "+fmt(v)+"；"+($("precision").value==="round"?"末尾取整 → ":"保留小数 → ")+fmt(final);
+  $("damageSteps").innerHTML=stepsHtml(steps);
+  $("damageFormula").innerHTML=[
+    raw, "×"+(1+g/100).toFixed(2), "×"+(1+ty/100).toFixed(2), "×"+(1+fo/100).toFixed(2),
+    "×"+(1+(skillOn?sk:0)/100).toFixed(2), "×"+(critOn?crit:1).toFixed(2),
+    "×"+fmt(mitigation), "×"+fmt(general)
+  ].map(function(s){return '<span class="op">'+s+'</span>';}).join('');
+  $("damageInfo").innerHTML='<span class="chip mint">'+(dType==="physical"?"物理：护甲":dType==="fire"?"火焰：火抗":dType==="lightning"?"雷电：雷抗":"真实：无减伤")+'</span>'+
+    '<span class="chip">'+(form==="ranged"?"远程":form==="melee"?"近战":"其他方式")+'</span>'+
+    '<span class="chip '+(critOn?"gold":"")+'">'+(critOn?"发生暴击":"未暴击")+'</span>'+
+    '<span class="chip">'+(skillOn?"模拟传入技能标识":"无技能标识，技能加成为0")+'</span>';
+  $("damageExplanation").textContent='目标减伤：'+(dType==="physical"?'护甲让伤害保留 '+fmt(mitigation*100)+'%':dType==="true"?'真实伤害不吃护甲、抗性和韧性':'该元素抗性让伤害保留 '+fmt(mitigation*100)+'%')+
+  '；韧性保留 '+fmt(general*100)+'%。最后采用'+($("precision").value==="round"?"打怪的末尾取整（仅正数保底 1）":"保留浮点的小数规则")+'。';
+}
+var damageIds=["raw","global","typebonus","formbonus","skillbonus","critmul","armor","resist","tough","dtype","dform","precision","crit","skill"];
+var damageDefaults=[100,20,30,10,25,2,50,30,20,"physical","ranged","round",true,true];
+damageIds.forEach(function(id){$(id).addEventListener("input",updateDamage);$(id).addEventListener("change",updateDamage);});
+$("resetDamage").addEventListener("click",function(){reset(damageIds,damageDefaults);updateDamage();});
+function updateArmor(){
+  var def=num("curveDef"),keep=50/(50+def),svg=$("armorChart");
+  $("curveDefv").textContent=fmt(def);$("armorKeep").textContent=fmt(100*keep);$("armorBlock").textContent=fmt((1-keep)*100)+"%";$("armorInput").textContent=fmt(def);$("armorLive").textContent=fmt(100*keep);
+  var x0=46,y0=22,w=475,h=171;
+  var x=function(a){return x0+a/250*w;}, y=function(a){return y0+(1-a)*h;};
+  var out='<g stroke="#31445c" stroke-width="1">';
+  [0,.25,.5,.75,1].forEach(function(v){out+='<line x1="'+x0+'" y1="'+y(v)+'" x2="'+(x0+w)+'" y2="'+y(v)+'" opacity=".6"/>';});
+  [0,50,100,150,200,250].forEach(function(d){out+='<line x1="'+x(d)+'" y1="'+y0+'" x2="'+x(d)+'" y2="'+(y0+h)+'" opacity=".3"/>';});
+  out+='</g><g font-size="11" fill="#9eb2cb"><text x="8" y="18">100%</text><text x="8" y="111">50%</text><text x="20" y="196">0%</text><text x="46" y="215">0</text><text x="226" y="215">100</text><text x="490" y="215">护甲250</text></g>';
+  var points=[];for(var d=0;d<=250;d+=2.5){points.push(x(d)+','+y(50/(50+d)));}
+  out+='<polyline points="'+points.join(" ")+'" stroke="#6beac3" stroke-width="4" fill="none" stroke-linecap="round"/>';
+  out+='<line x1="'+x(def)+'" y1="'+y0+'" x2="'+x(def)+'" y2="'+(y0+h)+'" stroke="#ffd38c" stroke-dasharray="5 5" opacity=".85"/>';
+  out+='<circle cx="'+x(def)+'" cy="'+y(keep)+'" r="8" fill="#ffd38c" stroke="#0c1929" stroke-width="3"/>';
+  svg.innerHTML=out;
+}
+$("curveDef").addEventListener("input",updateArmor);
+var mobs={
+ slime:{name:"史莱姆",hp:14,dmg:8,speed:30,w0:1},
+ bat:{name:"蝙蝠",hp:9,dmg:6,speed:62,w0:3},
+ brute:{name:"重甲怪",hp:65,dmg:15,speed:20,w0:5},
+ shooter:{name:"射手",hp:16,dmg:10,speed:38,w0:6},
+ bomber:{name:"自爆虫",hp:12,dmg:16,speed:72,w0:8}
+};
+function calculateEnemy(cfg,w,l,elite){
+  var over=Math.max(0,w-15), hpScale=1+(w-1)*.18+over*over*.06, dmgScale=1+(w-1)*.05+over*over*.012, levelScale=Math.pow(1.03,Math.floor(l/5));
+  return {hp:cfg.hp*hpScale*levelScale*(elite?8:1),dmg:cfg.dmg*dmgScale*(elite?1.5:1),speed:cfg.speed*(elite?.8:1)};
+}
+function enemyLine(values,stroke,max){
+  var pts=values.map(function(v,i){return (42+i/29*478)+","+(169-(v/max)*140);});
+  return '<polyline points="'+pts.join(" ")+'" stroke="'+stroke+'" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>';
+}
+function updateEnemy(){
+  var id=$("enemyType").value,cfg=mobs[id],w=num("wave"),lv=num("level"),elite=$("elite").checked,e=calculateEnemy(cfg,w,lv,elite),base=calculateEnemy(cfg,1,1,false);
+  $("wavev").textContent=w;$("levelv").textContent=lv;
+  $("enemyHp").textContent=fmt(e.hp);$("enemyDmg").textContent=fmt(e.dmg);$("enemySpeed").textContent=fmt(e.speed);
+  $("hpRatio").textContent="相比初始 ×"+fmt(e.hp/base.hp);$("dmgRatio").textContent="相比初始 ×"+fmt(e.dmg/base.dmg);
+  var over=Math.max(0,w-15),hpFactor=1+(w-1)*.18+over*over*.06,dmgFactor=1+(w-1)*.05+over*over*.012,lvlFactor=Math.pow(1.03,Math.floor(lv/5));
+  $("enemyLiveHp").textContent="HP = "+fmt(cfg.hp)+"（基础） × "+fmt(hpFactor)+"（波次） × "+fmt(lvlFactor)+"（玩家等级） × "+(elite?8:1)+"（精英） = "+fmt(e.hp);
+  $("enemyLiveDmg").textContent="攻击 = "+fmt(cfg.dmg)+"（基础） × "+fmt(dmgFactor)+"（波次） × "+(elite?1.5:1)+"（精英） = "+fmt(e.dmg);
+  $("enemyLiveSpeed").textContent="参考速度 = "+fmt(cfg.speed)+" × "+(elite?.8:1)+"（精英） × 1.0（暂不含随机抖动） = "+fmt(e.speed);
+  $("enemyBaseText").textContent=cfg.name+"基础 HP "+cfg.hp+"、攻击 "+cfg.dmg+"、速度 "+cfg.speed+"；从第 "+cfg.w0+" 波开始可自然刷出。";
+  var waveValues=Array.from({length:30},function(_,i){return calculateEnemy(cfg,i+1,lv,elite);}),hp=waveValues.map(function(x){return x.hp;}),dmg=waveValues.map(function(x){return x.dmg;});
+  var out='<g stroke="#34465d" stroke-width="1" opacity=".7"><line x1="42" y1="169" x2="520" y2="169"/><line x1="42" y1="100" x2="520" y2="100"/><line x1="42" y1="30" x2="520" y2="30"/></g>';
+  out+='<g fill="#92a9c2" font-size="12"><text x="40" y="189">第1波</text><text x="470" y="189">第30波</text><text x="6" y="38">高</text><text x="6" y="168">低</text></g>';
+  out+=enemyLine(hp,"#6beac3",Math.max(...hp))+enemyLine(dmg,"#ffd38c",Math.max(...dmg));
+  var ix=42+(w-1)/29*478;
+  out+='<line x1="'+ix+'" y1="22" x2="'+ix+'" y2="173" stroke="#fff" stroke-dasharray="4 5" opacity=".4"/>';
+  out+='<circle cx="'+ix+'" cy="'+(169-e.hp/Math.max(...hp)*140)+'" r="5" fill="#6beac3"/><circle cx="'+ix+'" cy="'+(169-e.dmg/Math.max(...dmg)*140)+'" r="5" fill="#ffd38c"/>';
+  $("enemyChart").innerHTML=out;
+}
+["enemyType","wave","level","elite"].forEach(function(id){$(id).addEventListener("input",updateEnemy);$(id).addEventListener("change",updateEnemy);});
+updateStat();updateDamage();updateArmor();updateEnemy();
+})();
+</script>
+</body></html>

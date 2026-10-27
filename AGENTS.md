@@ -73,6 +73,13 @@
 - **天赋/平衡行为变更**必须同步更新 `tests/parity.test.ts` 基线：排除表 `BASELINE_EXCLUDED`、新卡桩注入（`__stub`）、玩家/敌人新字段注入、按名查找的对齐替换，并留痕"基线更新依据：Issue #N"（先例 D-01~D-05）。
 - 伤害公式新增/修改时**只改 `data/combatBalance.ts` 系数或 `core/DamageMath.ts` 纯函数**，调用点通过函数引用保持稳定；不要在系统文件里内联新公式。
 
+## 战斗数值开发资料
+
+- 面向非程序员的交互图解（优先阅读）：`docs/combat-numerics-explained.html`，离线浏览器直接打开，可动态演示属性、伤害、护甲与怪物成长。
+- 原始 Markdown 文字版：`docs/combat-numerics-explained.md`（保留供历史参考）。
+- 后续 Coding Agent 开发数值、伤害属性、天赋、怪物前必须先读：`docs/combat-numerics-agent-guide.md`（接口、数据所有权、修改入口与已知缺口）。
+- 当前迭代按用户要求代码优先；除非另有授权，暂缓新增测试与自行完整验收，统一留待底层完成后进行。
+
 ## 文档维护
 本文件应简洁、准确、可执行；新增/修改结构和命令后同步。临时报告写 docs/migration.md，不堆入本文件。README 记录运行、操作和静态部署。交付时核对规则、文档、测试和产物一致性。
 
