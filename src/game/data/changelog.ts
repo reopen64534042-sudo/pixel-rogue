@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v38",
+    date: "2026-10-27",
+    title: "战斗基础 S4-D 第二批（D2-A）：敌人生成属性权威迁移",
+    items: [
+      "敌人 maxHp、attack、moveSpeed 在生成时经 EnemyStatSources 与 StatModel 权威解析；波次、等级、精英倍率和速度抖动保持原有浮点运算顺序，RNG 次数与序列不变。",
+      "当前 HP 仅在生成时以 maxHp 初始化，受伤状态不被属性解析回写；D1 防御属性、攻击增伤、r、xp 与伤害快照时机保持不变。",
+      "非法基础属性、非有限输入及计算溢出按已批准政策在生成解析时快速失败；D2-01～28 验收通过，Vitest 478 项、Parity 26 项、浏览器测试 16 项通过。",
+    ],
+  },
+  {
     version: "v36",
     date: "2026-10-27",
     title: "性能：路径特效绘制合并，降低触发瞬间掉帧（#112）",

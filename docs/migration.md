@@ -1811,3 +1811,21 @@ ctx.stroke();      // → strokePath()
 - 新增 D1 测试 21 项；全量 Vitest **432/432**，Parity **26/26**，Typecheck 与 Build 通过，Playwright **16/16**（第一轮独立复审运行）。构建有 Vite chunk 大于 500 KB 提醒，不影响构建成功。
 - D1 已完成并等待最终交付复审；**D2 与 D3 尚未开始**。
 - 敌人侧无属性重算入口，D1 不引入 RuntimeStateProtection 快照/恢复机制；D3 仅进行运行状态边界与不变项验收，不照搬玩家侧重算保护骨架。
+
+## D-34 Combat Foundation S4-D2-A：敌人生成属性权威迁移（2026-10-27）
+
+依据 `docs/pixel-rogue-S4D-D0-contract-v1.md` FROZEN v1.0，D1 已由 PR #114 合并；本批基线为上游 `2cd1a51572dfbbdebf44b6ea00fdf020da2c17b9`。D2-0 接口审计和设计复审见 `docs/pixel-rogue-S4D-D2-interface-review.md`。
+
+### 权威来源与不变项
+
+- `EnemyConfig → EnemyStatSources.resolveEnemySpawnStats → StatModel.resolveStats → spawnEnemy → Enemy`：每次生成一次解析 `maxHp`、`attack`、`moveSpeed`；当前 HP 只在新实体生成时初始化，不因其他生成或属性解析恢复受伤值，不新增每帧解析。
+- 保持 IEEE-754 左结合：HP 的 final 为 `[hpScale, lvlPow, elite?8:1]`；攻击为 `[dmgScale, elite?1.5:1]`；速度为 `[elite?0.8:1, speedJitter]`。不合并倍率、不改 percent，`lvlPow` 只作用于 HP。wave 3、等级 10 精英 brute HP 为 `750.2684799999998`，预组合反例为 `750.26848`。
+- `spawnEnemy` 在位置抽样后按原顺序抽取 jitter 并传给纯解析器；自然类型抽取、位置尝试、jitter、seed、shootCd 的 RNG 次数和序列不变。首试强制/自然分别 4/5 次，自然一次重试 6 次，五次位置尝试强制/自然分别 8/9 次。
+- D1 防御属性、实体可选键形状、四类攻击增伤的原有条件展开、`r`/`xp` 原式不变；射手发射和自爆引爆快照、接触伤害实时读取的时机不变。
+
+### 验收与批准边界
+
+- D0 §8.3 D2-01～28 及子项验收通过：`tests/s4d-d2a-enemy-spawn.test.ts` 覆盖生成矩阵、浮点关联、RNG、受伤状态、发射快照和燃烧到期；`tests/s4d-d2a-acceptance.test.ts` 补充等级 1 冻结字面量、真实伤害与运行状态、四层燃烧来源到消费及精英血条绘制。`tests/parity.test.ts` 保持原有 26 项和排除范围；相关既有战斗与近战测试保留。
+- 已批准 D2-A 非法生成输入快速失败：负基础属性与不合法 final 抛 `RangeError`，传至 StatModel 的非有限值抛 `TypeError`，合法有限输入计算溢出抛 `RangeError`；例如负无穷等级先变成零倍率，再因 final 不大于零抛 `RangeError`。这是生成期行为与旧算术结果/失败时机的已批准差异；不改变 StatModel 校验，不自动修复或夹紧非法值，也不扩大到 D2-B 政策。
+- 最终代码验收时 Vitest **478/478**、Parity **26/26**、Playwright **16/16**、Typecheck 与 Build 通过。构建仍提示 chunk 超过 500 KB。既有 G-18 在一次独立复审全量运行中偶发失败，后续全量与多轮聚焦复跑通过；本批全量通过，原因未确认，作为 P3 观察保留，不宣称已修复。
+- D2-B 的四类攻击增伤来源权威迁移、公共键控族扩展与特殊键政策尚未实施，也未获得全部独立授权；不修改 `DamageSystem`，不进入 D2-B/D3。

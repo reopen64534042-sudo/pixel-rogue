@@ -1,7 +1,7 @@
 import { WORLD, clamp } from "../data/constants";
 import { ETYPES } from "../data/enemies";
 import { getEnemyCombatStats } from "./CombatStats";
-import { resolveEnemyDefense } from "./EnemyStatSources";
+import { resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
 import type { Enemy } from "./types";
@@ -40,20 +40,22 @@ export function spawnEnemy(
     sy = clamp(this.player.y + Math.sin(a) * 300, 30, WORLD.h - 30);
     if (Math.hypot(sx - this.player.x, sy - this.player.y) > 150) break;
   }
-  // Issue #47：15 波起难度超线性增长（平方项），后期压力陡增
-  const over = Math.max(0, this.waveN - 15);
-  const hpScale = 1 + (this.waveN - 1) * 0.18 + over * over * 0.06;
-  const dmgScale = 1 + (this.waveN - 1) * 0.05 + over * over * 0.012;
-  const lvlPow = Math.pow(1.03, Math.floor(this.player.lvl / 5)); // 玩家每5级，怪物全属性+3%
+  const speedJitter = 0.9 + Math.random() * 0.2;
+  const spawnStats = resolveEnemySpawnStats(T, {
+    wave: this.waveN,
+    playerLevel: this.player.lvl,
+    elite,
+    speedJitter,
+  });
   this.enemies.push({
     type,
     spr: T.spr,
     x: sx,
     y: sy,
-    hp: T.hp * hpScale * lvlPow * (elite ? 8 : 1),
-    maxhp: T.hp * hpScale * lvlPow * (elite ? 8 : 1),
-    speed: T.speed * (elite ? 0.8 : 1) * (0.9 + Math.random() * 0.2),
-    dmg: T.dmg * dmgScale * (elite ? 1.5 : 1),
+    hp: spawnStats.maxHp,
+    maxhp: spawnStats.maxHp,
+    speed: spawnStats.moveSpeed,
+    dmg: spawnStats.attack,
     r: T.r * (elite ? 1.8 : 1),
     xp: elite ? 25 : T.xp,
     elite: !!elite,
