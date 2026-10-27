@@ -49,6 +49,15 @@ function requireZone(field: string, bonus: number): void {
 
 const clampMin0 = (v: number, max: number) => Math.max(0, Math.min(max, v));
 
+/** 只读取映射自有键。缺失键为中性 0，不能意外消费 Object.prototype 的
+ * constructor/toString/__proto__ 等成员。显式 nullish 仍沿用旧的 ?? 0 语义。 */
+function ownValueOrZero<K extends string>(
+  values: Readonly<Partial<Record<K, number>>> | undefined,
+  key: K,
+): number {
+  return values && Object.hasOwn(values, key) ? values[key] ?? 0 : 0;
+}
+
 /** §3.2 属性减伤系数：armor=K/(K+max(0,DEF))；resistance=1-clamp(res,0,上限)；none=1 */
 export function typeMitigationFactor(
   registry: DamageTypeRegistry,
@@ -63,7 +72,7 @@ export function typeMitigationFactor(
       return balance.armorK / (balance.armorK + Math.max(0, defender.defense));
     }
     case "resistance": {
-      const res = defender.resistances[type] ?? 0;
+      const res = ownValueOrZero(defender.resistances, type);
       requireFinite(res, `defenderStats.resistances[${type}]`);
       return 1 - clampMin0(res, balance.resistanceCap);
     }
@@ -126,13 +135,13 @@ export function calculateDamage<R extends DamageTypeRegistry>(
 
   const a = request.attackerStats;
   requireZone("attackerStats.globalDamageBonus", a.globalDamageBonus);
-  const typeBonus = a.typeDamageBonus[type] ?? 0;
+  const typeBonus = ownValueOrZero(a.typeDamageBonus, type);
   requireZone(`attackerStats.typeDamageBonus[${type}]`, typeBonus);
-  const formBonus = a.formDamageBonus[request.form] ?? 0;
+  const formBonus = ownValueOrZero(a.formDamageBonus, request.form);
   requireZone(`attackerStats.formDamageBonus[${request.form}]`, formBonus);
   let skillBonus = 0;
   if (request.skillId !== undefined) {
-    skillBonus = a.skillDamageBonus?.[request.skillId] ?? 0;
+    skillBonus = ownValueOrZero(a.skillDamageBonus, request.skillId);
     requireZone(
       `attackerStats.skillDamageBonus[${request.skillId}]`,
       skillBonus,
