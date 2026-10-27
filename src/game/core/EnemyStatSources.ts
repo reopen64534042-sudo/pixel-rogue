@@ -2,6 +2,47 @@ import { resolveKeyedMap } from "./StatKeyedMap";
 import { resolveStats, type StatId, type StatSheet } from "./StatModel";
 import type { EnemyConfig } from "./types";
 
+export interface EnemySpawnContext {
+  readonly wave: number;
+  readonly playerLevel: number;
+  readonly elite: boolean;
+  readonly speedJitter: number;
+}
+
+export interface EnemySpawnStats {
+  readonly maxHp: number;
+  readonly attack: number;
+  readonly moveSpeed: number;
+}
+
+/** 生成时解析一次；倍率顺序与旧表达式的左结合顺序一致。 */
+export function resolveEnemySpawnStats(
+  cfg: EnemyConfig,
+  ctx: EnemySpawnContext,
+): EnemySpawnStats {
+  const over = Math.max(0, ctx.wave - 15);
+  const hpScale = 1 + (ctx.wave - 1) * 0.18 + over * over * 0.06;
+  const dmgScale = 1 + (ctx.wave - 1) * 0.05 + over * over * 0.012;
+  const lvlPow = Math.pow(1.03, Math.floor(ctx.playerLevel / 5));
+  const result = resolveStats({
+    base: { maxHp: cfg.hp, attack: cfg.dmg, moveSpeed: cfg.speed },
+    modifiers: [
+      { sourceId: "wave", stat: "maxHp", stage: "final", value: hpScale },
+      { sourceId: "level", stat: "maxHp", stage: "final", value: lvlPow },
+      { sourceId: "elite", stat: "maxHp", stage: "final", value: ctx.elite ? 8 : 1 },
+      { sourceId: "wave", stat: "attack", stage: "final", value: dmgScale },
+      { sourceId: "elite", stat: "attack", stage: "final", value: ctx.elite ? 1.5 : 1 },
+      { sourceId: "elite", stat: "moveSpeed", stage: "final", value: ctx.elite ? 0.8 : 1 },
+      { sourceId: "jitter", stat: "moveSpeed", stage: "final", value: ctx.speedJitter },
+    ],
+  });
+  const { maxHp, attack, moveSpeed } = result;
+  if (maxHp === undefined || attack === undefined || moveSpeed === undefined) {
+    throw new TypeError("EnemyStatSources: 生成属性解析不完整");
+  }
+  return { maxHp, attack, moveSpeed };
+}
+
 /** 生成时一次性解析的防御属性；仅输出配置声明过的字段。 */
 export interface EnemyDefenseStats {
   readonly defense?: number;
