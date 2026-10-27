@@ -1,6 +1,80 @@
 import { resolveKeyedMap } from "./StatKeyedMap";
-import { resolveStats, type StatId, type StatSheet } from "./StatModel";
-import type { EnemyConfig } from "./types";
+import { resolveStats, type KeyedStatFamily, type StatId, type StatModifier, type StatSheet } from "./StatModel";
+import type { DamageTypeId } from "../data/damageTypes";
+import type { AttackForm, EnemyConfig } from "./types";
+
+export interface EnemyAttackBonusStats {
+  readonly globalDamageBonus?: number;
+  readonly typeDamageBonus?: Readonly<Partial<Record<DamageTypeId, number>>>;
+  readonly formDamageBonus?: Readonly<Partial<Record<AttackForm, number>>>;
+  readonly skillDamageBonus?: Readonly<Record<string, number>>;
+}
+
+function bonusValue(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new TypeError(`${field} 必须为有限数字`);
+  }
+  return value;
+}
+
+function bonusSheet(stat: StatId, value: number): StatSheet {
+  return value < 0
+    ? { base: { [stat]: 0 }, modifiers: [{ sourceId: "enemy-config", stat, stage: "flat", value }] }
+    : { base: { [stat]: value }, modifiers: [] };
+}
+
+function resolveBonusMap(family: KeyedStatFamily, source: unknown): Record<string, number> {
+  if (source === null || typeof source !== "object" || Array.isArray(source)) {
+    throw new TypeError(`EnemyConfig.${family} 必须是数值映射`);
+  }
+  const base: Record<string, number> = {};
+  const mods: (StatModifier & { stat: KeyedStatFamily; key: string })[] = [];
+  const symbols: [symbol, number][] = [];
+  for (const key of Reflect.ownKeys(source)) {
+    if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
+    if (key === "__proto__") throw new TypeError('类型化映射不允许危险原型键 "__proto__"');
+    const value = bonusValue(Reflect.get(source, key), `EnemyConfig.${family}[${String(key)}]`);
+    if (typeof key === "symbol") {
+      symbols.push([key, value]);
+    } else if (value < 0) {
+      Object.defineProperty(base, key, { value: 0, enumerable: true, configurable: true, writable: true });
+      mods.push({ sourceId: "enemy-config", stat: family, key, stage: "flat", value });
+    } else {
+      Object.defineProperty(base, key, { value, enumerable: true, configurable: true, writable: true });
+    }
+  }
+  const result = resolveKeyedMap(family, base, mods);
+  for (const [key, value] of symbols) {
+    const resolved = resolveStats(bonusSheet(family, value))[family];
+    if (resolved === undefined) throw new TypeError(`EnemyConfig.${family} 解析不完整`);
+    Object.defineProperty(result, key, { value: resolved, enumerable: true, configurable: true, writable: true });
+  }
+  return result;
+}
+
+/** 在生成时依次解析四个独立攻击乘区；不执行消费点的范围检查。 */
+export function resolveEnemyAttackBonuses(cfg: EnemyConfig): EnemyAttackBonusStats {
+  const out: {
+    globalDamageBonus?: number;
+    typeDamageBonus?: Readonly<Partial<Record<DamageTypeId, number>>>;
+    formDamageBonus?: Readonly<Partial<Record<AttackForm, number>>>;
+    skillDamageBonus?: Readonly<Record<string, number>>;
+  } = {};
+  const global = cfg.globalDamageBonus;
+  if (global !== undefined) {
+    const value = bonusValue(global, "EnemyConfig.globalDamageBonus");
+    const resolved = resolveStats(bonusSheet("globalDamageBonus", value)).globalDamageBonus;
+    if (resolved === undefined) throw new TypeError("EnemyConfig.globalDamageBonus 解析不完整");
+    out.globalDamageBonus = resolved;
+  }
+  const type = cfg.typeDamageBonus;
+  if (type !== undefined) out.typeDamageBonus = resolveBonusMap("typeDamageBonus", type);
+  const form = cfg.formDamageBonus;
+  if (form !== undefined) out.formDamageBonus = resolveBonusMap("formDamageBonus", form);
+  const skill = cfg.skillDamageBonus;
+  if (skill !== undefined) out.skillDamageBonus = resolveBonusMap("skillDamageBonus", skill);
+  return out;
+}
 
 export interface EnemySpawnContext {
   readonly wave: number;
