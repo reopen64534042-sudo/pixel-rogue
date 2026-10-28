@@ -2,7 +2,7 @@ export function statBase() {
   return {
     maxhp: 100,
     speed: 62,
-    projSpeed: 170,
+    projSpeed: 260,
     damage: 11,
     boltDmgMul: 1,
     frostLv: 0,

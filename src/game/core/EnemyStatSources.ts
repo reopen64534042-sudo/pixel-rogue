@@ -96,16 +96,16 @@ export function resolveEnemySpawnStats(
 ): EnemySpawnStats {
   const over = Math.max(0, ctx.wave - 15);
   const hpScale = 1 + (ctx.wave - 1) * 0.18 + over * over * 0.06;
-  const dmgScale = 1 + (ctx.wave - 1) * 0.05 + over * over * 0.012;
+  const dmgScale = 1 + (ctx.wave - 1) * 0.055 + over * over * 0.012;
   const lvlPow = Math.pow(1.03, Math.floor(ctx.playerLevel / 5));
   const result = resolveStats({
     base: { maxHp: cfg.hp, attack: cfg.dmg, moveSpeed: cfg.speed },
     modifiers: [
       { sourceId: "wave", stat: "maxHp", stage: "final", value: hpScale },
       { sourceId: "level", stat: "maxHp", stage: "final", value: lvlPow },
-      { sourceId: "elite", stat: "maxHp", stage: "final", value: ctx.elite ? 8 : 1 },
+      { sourceId: "elite", stat: "maxHp", stage: "final", value: ctx.elite ? 7 : 1 },
       { sourceId: "wave", stat: "attack", stage: "final", value: dmgScale },
-      { sourceId: "elite", stat: "attack", stage: "final", value: ctx.elite ? 1.5 : 1 },
+      { sourceId: "elite", stat: "attack", stage: "final", value: ctx.elite ? 1.6 : 1 },
       { sourceId: "elite", stat: "moveSpeed", stage: "final", value: ctx.elite ? 0.8 : 1 },
       { sourceId: "jitter", stat: "moveSpeed", stage: "final", value: ctx.speedJitter },
     ],
@@ -125,11 +125,14 @@ export interface EnemyDefenseStats {
 }
 
 /** 将配置声明的标量防御值放入 StatModel 的基础区，不物化缺省字段。 */
-export function enemyDefenseSheet(cfg: EnemyConfig): StatSheet {
+export function enemyDefenseSheet(cfg: EnemyConfig, wave = 1): StatSheet {
   const base: Partial<Record<StatId, number>> = {};
   if (cfg.defense !== undefined) base.defense = cfg.defense;
   if (cfg.tough !== undefined) base.tough = cfg.tough;
-  return { base, modifiers: [] };
+  const modifiers: StatModifier[] = cfg.defense === undefined ? [] : [
+    { sourceId: "wave-defense", stat: "defense", stage: "flat", value: Math.min(24, Math.max(0, wave - 8) * 1.2) },
+  ];
+  return { base, modifiers };
 }
 
 function requireNonNegative(value: number, field: string): void {
@@ -161,8 +164,9 @@ function requireFiniteResistanceMap(
  */
 export function resolveEnemyDefense(
   cfg: EnemyConfig,
+  wave = 1,
 ): EnemyDefenseStats {
-  const resolved = resolveStats(enemyDefenseSheet(cfg));
+  const resolved = resolveStats(enemyDefenseSheet(cfg, wave));
   const out: {
     defense?: number;
     resistances?: Readonly<Record<string, number>>;

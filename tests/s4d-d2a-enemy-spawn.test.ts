@@ -9,7 +9,7 @@ import { fresh } from "./helpers";
 afterEach(() => vi.restoreAllMocks());
 
 describe("S4-D2-A enemy spawn", () => {
-  it("matches the independent legacy formula for every enemy, wave, elite and level threshold", () => {
+  it("matches the independent current formula for every enemy, wave, elite and level threshold", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.25);
     for (const kind of ["slime", "bat", "brute", "shooter", "bomber"]) {
       const cfg = ETYPES[kind];
@@ -23,9 +23,9 @@ describe("S4-D2-A enemy spawn", () => {
             const e = g.enemies.at(-1)!;
             const over = Math.max(0, wave - 15);
             const hpScale = 1 + (wave - 1) * 0.18 + over * over * 0.06;
-            const dmgScale = 1 + (wave - 1) * 0.05 + over * over * 0.012;
-            const hp = cfg.hp * hpScale * Math.pow(1.03, Math.floor(level / 5)) * (elite ? 8 : 1);
-            const dmg = cfg.dmg * dmgScale * (elite ? 1.5 : 1);
+            const dmgScale = 1 + (wave - 1) * 0.055 + over * over * 0.012;
+            const hp = cfg.hp * hpScale * Math.pow(1.03, Math.floor(level / 5)) * (elite ? 7 : 1);
+            const dmg = cfg.dmg * dmgScale * (elite ? 1.6 : 1);
             const speed = cfg.speed * (elite ? 0.8 : 1) * (0.9 + 0.25 * 0.2);
             expect(e.hp).toBe(hp);
             expect(e.maxhp).toBe(hp);
@@ -34,7 +34,7 @@ describe("S4-D2-A enemy spawn", () => {
             expect(e.speed).toBe(speed);
             expect(e.r).toBe(cfg.r * (elite ? 1.8 : 1));
             expect(e.xp).toBe(elite ? 25 : cfg.xp);
-            expect(e.defense).toBe(cfg.defense);
+            expect(e.defense).toBe(cfg.defense! + Math.min(24, Math.max(0, wave - 8) * 1.2));
             expect(e.resistances).toEqual(cfg.resistances);
             expect(e.tough).toBe(cfg.tough);
           }
@@ -46,20 +46,20 @@ describe("S4-D2-A enemy spawn", () => {
   it("preserves the floating point order and does not draw randomness in the resolver", () => {
     const random = vi.spyOn(Math, "random");
     const result = resolveEnemySpawnStats(ETYPES.brute, { wave: 3, playerLevel: 10, elite: true, speedJitter: 0.95 });
-    expect(result.maxHp).toBe(750.2684799999998);
-    expect(result.maxHp).not.toBe(65 * ((1 + 2 * 0.18) * Math.pow(1.03, 2) * 8));
-    expect(result.moveSpeed).toBe(20 * 0.8 * 0.95);
+    expect(result.maxHp).toBe(656.4849199999999);
+    expect(result.maxHp).not.toBe(65 * ((1 + 2 * 0.18) * Math.pow(1.03, 2) * 7));
+    expect(result.moveSpeed).toBe(22 * 0.8 * 0.95);
     expect(30 * 0.8 * 0.95).not.toBe(30 * (0.8 * 0.95));
     expect(random).not.toHaveBeenCalled();
   });
 
   it.each([
-    { forced: false, corner: false, values: [0.625, 0, 0.25, 0.5, 0.75], x: 996, y: 520, speed: 28.500000000000004, seed: 5, cd: 2.125 },
-    { forced: true, corner: false, values: [0.625, 0, 0.25, 0.5], x: 483.86796564403573, y: 307.86796564403573, speed: 27, seed: 2.5, cd: 1.75 },
-    { forced: true, corner: true, values: [0.6, 0.6, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5], x: 30, y: 30, speed: 30, seed: 5, cd: 1.75 },
-    { forced: false, corner: true, values: [0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5], x: 30, y: 30, speed: 30, seed: 5, cd: 1.75 },
-    { forced: true, corner: true, values: [0.125, 0.5, 0.5, 0.5], x: 242.13203435596427, y: 242.13203435596424, speed: 30, seed: 5, cd: 1.75 },
-    { forced: false, corner: true, values: [0.625, 0.6, 0.125, 0.5, 0.5, 0.5], x: 242.13203435596427, y: 242.13203435596424, speed: 30, seed: 5, cd: 1.75 },
+    { forced: false, corner: false, values: [0.625, 0, 0.25, 0.5, 0.75], x: 996, y: 520, speed: 52.25000000000001, seed: 5, cd: 2.125 },
+    { forced: true, corner: false, values: [0.625, 0, 0.25, 0.5], x: 483.86796564403573, y: 307.86796564403573, speed: 49.5, seed: 2.5, cd: 1.75 },
+    { forced: true, corner: true, values: [0.6, 0.6, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5], x: 30, y: 30, speed: 55, seed: 5, cd: 1.75 },
+    { forced: false, corner: true, values: [0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5], x: 30, y: 30, speed: 55, seed: 5, cd: 1.75 },
+    { forced: true, corner: true, values: [0.125, 0.5, 0.5, 0.5], x: 242.13203435596427, y: 242.13203435596424, speed: 55, seed: 5, cd: 1.75 },
+    { forced: false, corner: true, values: [0.625, 0.6, 0.125, 0.5, 0.5, 0.5], x: 242.13203435596427, y: 242.13203435596424, speed: 55, seed: 5, cd: 1.75 },
   ])("preserves RNG sequence %#", ({ forced, corner, values, x, y, speed, seed, cd }) => {
     let index = 0;
     const random = vi.spyOn(Math, "random").mockImplementation(() => {
@@ -105,8 +105,33 @@ describe("S4-D2-A enemy spawn", () => {
     const e = g.enemies.at(-1)!;
     expect(random).toHaveBeenCalledTimes(5);
     expect([e.type, e.hp, e.dmg, e.speed, e.seed, e.shootCd]).toEqual([
-      "bat", 20.339999999999996, 8.100000000000001, 62, 5, 1.75,
+      "bat", 29.379999999999995, 11.08, 62, 5, 1.75,
     ]);
+  });
+
+  // 怪物数值强化 v1：真实抽取路径覆盖阶段边界、解锁与 RNG 次数。
+  it.each([
+    [1, [40], ["slime"]],
+    [3, [40, 18], ["slime", "bat"]],
+    [4, [40, 18, 16], ["slime", "bat", "shooter"]],
+    [7, [40, 18, 12, 16], ["slime", "bat", "brute", "shooter"]],
+    [8, [35, 20, 15, 18, 12], ["slime", "bat", "brute", "shooter", "bomber"]],
+    [14, [35, 20, 15, 18, 12], ["slime", "bat", "brute", "shooter", "bomber"]],
+    [15, [28, 22, 15, 22, 13], ["slime", "bat", "brute", "shooter", "bomber"]],
+    [24, [28, 22, 15, 22, 13], ["slime", "bat", "brute", "shooter", "bomber"]],
+    [25, [25, 22, 18, 22, 13], ["slime", "bat", "brute", "shooter", "bomber"]],
+  ])("wave %i uses the authorized unlocked weights", (wave, weights, types) => {
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    let lower = 0;
+    for (let i = 0; i < weights.length; i++) {
+      const roll = (lower + weights[i] / 2) / total;
+      const random = vi.spyOn(Math, "random").mockReturnValueOnce(roll).mockReturnValue(0.5);
+      const g = fresh(); g.waveN = wave; g.spawnEnemy();
+      expect(g.enemies[0].type).toBe(types[i]);
+      expect(random).toHaveBeenCalledTimes(5);
+      random.mockRestore();
+      lower += weights[i];
+    }
   });
 
   it("bomber snapshots current attack at detonation through the real update path", () => {
@@ -154,8 +179,8 @@ describe("S4-D2-A enemy spawn", () => {
     g.player.lvl = 10;
     g.spawnEnemy("brute", true);
     const scale = 1 + (wave - 1) * 0.18;
-    expect(g.enemies[0].hp).toBe(65 * scale * 1.0609 * 8);
-    expect(g.enemies[0].hp).not.toBe(65 * (scale * 1.0609 * 8));
+    expect(g.enemies[0].hp).toBe(65 * scale * 1.0609 * 7);
+    if (wave === 3) expect(g.enemies[0].hp).not.toBe(65 * (scale * 1.0609 * 7));
   });
 
   it("D2-24 burn resolves 121 frames and clears on frame 122", () => {
@@ -164,6 +189,7 @@ describe("S4-D2-A enemy spawn", () => {
     g.spawnEnemy("slime");
     const e = g.enemies[0];
     e.hp = e.maxhp = 1_000_000;
+    e.resistances = {}; // 此测试验证中性持续伤害的计时与累计。
     e.burnT = 2;
     e.burnDps = 10;
     e.burnStacks = 2;
