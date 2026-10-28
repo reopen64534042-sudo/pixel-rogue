@@ -96,11 +96,20 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
   await expect(page.locator("#ov-stats")).toBeHidden();
   await expect(tooltip).toBeHidden();
   // Automatic collection may open more genuine level selections.
+  // S1：休整链变为「属性 → 天赋 → 宝箱 → 报告」，所以两种面板都要点掉。
   await expect(async () => {
+    if (await page.locator("#bp-attr").isVisible())
+      await page.keyboard.press("1");
     if (await page.locator("#bp-level").isVisible())
       await page.keyboard.press("1");
     await expect(page.locator("#bp-rest")).toBeVisible({ timeout: 500 });
   }).toPass({ timeout: 15000 });
+  // S1 验收：属性面板确实写进了来源列表（不是只有界面）
+  expect(
+    await page.evaluate(
+      () => window.__PIXEL_ROGUE__!.core.attributePicks.length,
+    ),
+  ).toBeGreaterThan(0);
   await page.screenshot({ path: "output/playwright/bottombar-rest.png" });
   await page.getByRole("button", { name: "⚗ 打开置换" }).click();
   // 基线更新依据：Issue #74（两步式置换）——目标稀有度由首选材料自动推导，旧目标按钮已移除

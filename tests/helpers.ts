@@ -44,6 +44,15 @@ export function enemy(
 export function ticks(core: GameCore, count: number) {
   for (let i = 0; i < count; i++) core.step(1 / 60);
 }
+/**
+ * S1：休整期新增「属性强化面板」并排在链首（属性 → 天赋 → 宝箱 → 报告）。
+ * 与属性无关的流程用例（宝箱、Issue #67 面板链等）用它清掉本波额度，
+ * 回到它们真正要验证的那条链；属性面板自己的流程由
+ * `tests/s1-attribute-dispatch.test.ts` 覆盖。
+ */
+export function skipAttrs(core: GameCore) {
+  core.attrPicks = 0;
+}
 export function seeded(seed = 12345) {
   return () => {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;

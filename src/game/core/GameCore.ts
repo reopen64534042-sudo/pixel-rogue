@@ -13,6 +13,13 @@ import {
   killEnemy,
 } from "./CombatSystem";
 import type { AttributePoint } from "./AttributeSources";
+import {
+  attrPicksPerWave,
+  chooseAttr,
+  openAttrPanel,
+  refreshAttr,
+  type AttrChoice,
+} from "./AttributeSystem";
 import { nearestEnemy, spawnEnemy } from "./EnemySystem";
 import { meleeSwing } from "./MeleeSystem";
 import { update } from "./Simulation";
@@ -104,6 +111,15 @@ export class GameCore {
    * 空数组时属性零贡献，行为与改动前完全一致。
    */
   attributePicks: AttributePoint[] = [];
+  /**
+   * S1：本波剩余的可选次数（波次发放，波末消费）。为 0 时属性面板不出现。
+   * 不进 parity 快照白名单：它只驱动面板流程，不参与任何数值计算。
+   */
+  attrPicks = 0;
+  /** 当前展示的四格候选（offense/defense/utility/special 各一个） */
+  attrChoices: AttrChoice[] = [];
+  /** 本「次选择」的刷新额度是否已用掉（每次选择各有一次，选完重置） */
+  attrRefreshUsed = false;
   chainCd = 0;
   wavePhase: WavePhase = "fight";
   waveN = 1;
@@ -206,6 +222,9 @@ export class GameCore {
   learnTalent = learnTalent.bind(this);
   openLevelPanel = openLevelPanel.bind(this);
   openBoxPanel = openBoxPanel.bind(this);
+  openAttrPanel = openAttrPanel.bind(this);
+  refreshAttr = refreshAttr.bind(this);
+  chooseAttr = chooseAttr.bind(this);
   refreshSlot = refreshSlot.bind(this);
   chooseSlot = chooseSlot.bind(this);
   openSwap = openSwap.bind(this);
@@ -262,6 +281,11 @@ export class GameCore {
     this.shake = 0;
     this.hurtFlash = 0;
     this.pendingLevels = 0;
+    // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
+    this.attributePicks = [];
+    this.attrPicks = attrPicksPerWave(1);
+    this.attrChoices = [];
+    this.attrRefreshUsed = false;
     this.chainCd = 0;
     this.wavePhase = "fight";
     this.waveN = 1;

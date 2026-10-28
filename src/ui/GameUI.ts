@@ -1,4 +1,5 @@
 import type { GameCore } from "../game/core/GameCore";
+import { groupLabel, rarityLabel } from "../game/core/AttributeSystem";
 import { CHANGELOG, CURRENT_VERSION } from "../game/data/changelog";
 import {
   UPGRADES,
@@ -61,6 +62,7 @@ export class GameUI {
         }
       },
       level: () => this.openLevelPanel(),
+      attr: () => this.openAttrPanel(),
       rest: () => this.showRestBar(),
       over: () => {
         element("over-stats").innerHTML =
@@ -140,6 +142,10 @@ export class GameUI {
       element("sw-result").classList.add("hidden");
       element("sw-form").classList.remove("hidden");
     };
+    element("attr-refresh").onclick = () => {
+      // 失败（本轮已用过）时不重绘，按钮由 openAttrPanel 置灰
+      this.core.refreshAttr();
+    };
     element("bp-boxskip").onclick = () => {
       this.core.drainBoxPicks();
       this.core.bpMode = null;
@@ -157,7 +163,7 @@ export class GameUI {
     element("btn-start").removeAttribute("aria-busy");
   }
   reset() {
-    ["bottom-bar", "bp-level", "bp-rest", "bp-swap"].forEach(hide);
+    ["bottom-bar", "bp-level", "bp-attr", "bp-rest", "bp-swap"].forEach(hide);
   }
   choose(index: number) {
     this.core.chooseSlot(index);
@@ -169,11 +175,12 @@ export class GameUI {
       paused() {},
       stats() {},
       level() {},
+      attr() {},
       rest() {},
       over() {},
     };
     for (const node of document.querySelectorAll<HTMLElement>(
-      "#stage button, #bp-cards .card, #sw-inv span, #talent-list",
+      "#stage button, #bp-cards .card, #attr-cards .card, #sw-inv span, #talent-list",
     )) {
       node.onclick = null;
       node.onmouseover = null;
@@ -584,6 +591,81 @@ export class GameUI {
     if (this.core.pendingLevels > 0) return;
     element("bp-level").classList.add("hidden");
     // Issue #71：升级选完后若仍有宝箱点数 → 依次开箱
+    if (this.core.boxPicks > 0) {
+      this.core.openBoxPanel();
+      return;
+    }
+    if (this.core.wavePhase === "rest") {
+      this.showRestBar();
+    } else {
+      element("bottom-bar").classList.add("hidden");
+    }
+  }
+  /**
+   * 属性强化面板（S1）：四方向各一格 + 整体刷新一次。
+   *
+   * 与升级面板共用 `.level-panel` / `.card r{tier}` 的样式，但**单独一套 DOM**——
+   * 卡片内容（属性名 + 数值）、快捷键数量（4 个）、刷新语义（整体重掷而非逐张）
+   * 都不同，挤进同一节点会让两边都变复杂。
+   */
+  openAttrPanel() {
+    if (this.core.bpMode !== "attr") {
+      this.closeAttrPanelIfDone();
+      return;
+    }
+    const g = this.core;
+    const title = document.querySelector<HTMLElement>("#attr-title");
+    if (title)
+      title.textContent =
+        g.attrPicks > 1
+          ? `◆ 属性强化 · 还剩 ${g.attrPicks} 次`
+          : "◆ 属性强化 · 选择一项";
+    const hint = document.querySelector<HTMLElement>("#attr-hint");
+    if (hint)
+      hint.textContent = "模拟不暂停 · 键盘 1 / 2 / 3 / 4 快捷选取 · 刷新会连稀有度一起重掷";
+    const btn = element("attr-refresh") as HTMLButtonElement;
+    btn.disabled = g.attrRefreshUsed;
+    btn.textContent = g.attrRefreshUsed ? "已刷新" : "刷新（每次一次）";
+    this.drawAttrCards();
+    element("bp-attr").classList.remove("hidden");
+    element("bp-level").classList.add("hidden");
+    element("bp-rest").classList.add("hidden");
+    element("bottom-bar").classList.remove("hidden");
+  }
+  drawAttrCards() {
+    const box = element("attr-cards");
+    box.innerHTML = "";
+    this.core.attrChoices.forEach((c, i) => {
+      const el = document.createElement("div");
+      el.className = `card r${c.rarity}`;
+      el.tabIndex = 0;
+      el.setAttribute("role", "button");
+      el.setAttribute(
+        "aria-label",
+        `第 ${i + 1} 项：${c.def.label} ${c.text}，${rarityLabel(c.rarity)}`,
+      );
+      el.onkeydown = (event) => {
+        if (event.target === el && ["Enter", " "].includes(event.key)) {
+          event.preventDefault();
+          this.core.chooseAttr(i);
+        }
+      };
+      el.innerHTML = `<div class="tier">${rarityLabel(c.rarity)}</div>
+      <div class="cat">${groupLabel(c.def.group)}</div>
+      <div class="nm">${c.def.label}</div>
+      <div class="ds">${c.text}</div>`;
+      el.onclick = () => this.core.chooseAttr(i);
+      box.appendChild(el);
+    });
+  }
+  closeAttrPanelIfDone() {
+    if (this.core.attrPicks > 0) return;
+    element("bp-attr").classList.add("hidden");
+    // 与升级面板同一条链：属性 → 天赋 → 宝箱 → 报告
+    if (this.core.pendingLevels > 0) {
+      this.core.openLevelPanel();
+      return;
+    }
     if (this.core.boxPicks > 0) {
       this.core.openBoxPanel();
       return;

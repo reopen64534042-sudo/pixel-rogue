@@ -1,6 +1,6 @@
 import type { DamageTypeId } from "../data/damageTypes";
 export type Mode = "start" | "play" | "stats" | "pause" | "over";
-export type Panel = "level" | "rest" | "box" | null;
+export type Panel = "level" | "rest" | "box" | "attr" | null;
 export type GameState = Mode | "levelup" | "report" | "swap";
 export type WavePhase = "fight" | "collect" | "rest";
 export type DamageSource =
@@ -387,6 +387,8 @@ export interface GameView {
   paused(paused: boolean): void;
   stats(open: boolean): void;
   level(): void;
+  /** 属性四选一面板（S1）。与 level() 分开：卡片内容与快捷键数量都不同。 */
+  attr(): void;
   rest(): void;
   over(): void;
 }
@@ -396,6 +398,7 @@ export const silentView: GameView = {
   paused() {},
   stats() {},
   level() {},
+  attr() {},
   rest() {},
   over() {},
 };
