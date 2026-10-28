@@ -1,0 +1,1886 @@
+{
+  "playerBase": {
+    "fields": {
+      "r": 4,
+      "maxhp": 100,
+      "speed": 62,
+      "projSpeed": 170,
+      "damage": 11,
+      "boltDmgMul": 1,
+      "frostLv": 0,
+      "scorchVuln": 0,
+      "burnSpread": 0,
+      "meteorGuided": 0,
+      "burnGround": 0,
+      "bladeReflect": 0,
+      "fireRate": 2.2,
+      "multishot": 1,
+      "pierce": 0,
+      "area": 1,
+      "crit": 0.05,
+      "critMul": 2,
+      "ricochet": 0,
+      "slow": 0,
+      "burn": 0,
+      "chain": 0,
+      "meteor": 0,
+      "thorns": 0,
+      "lifesteal": 0,
+      "explode": 0,
+      "shieldMax": 0,
+      "dashLv": 0,
+      "dashMax": 2.4,
+      "dashChargeLv": 0,
+      "hasteLv": 0,
+      "luck": 0,
+      "magnet": 36,
+      "regen": 0,
+      "orbit": 0,
+      "orbitDmg": 7,
+      "dodge": 0,
+      "tough": 0,
+      "rageLv": 0,
+      "barrierLv": 0,
+      "nd": 0,
+      "explodeDmg": 0,
+      "chainDmg": 0
+    },
+    "indices": {
+      "attack": 11,
+      "defense": 0,
+      "critChance": 0.05,
+      "critMultiplier": 2,
+      "tough": 0,
+      "globalDamageBonus": 0,
+      "typeDamageBonus": {},
+      "formDamageBonus": {},
+      "coverage": 1,
+      "critExp": 1.05,
+      "dpsIndex": 25.41,
+      "ehpIndex": 100
+    }
+  },
+  "talents": {
+    "强化弹丸": {
+      "tier": 0,
+      "cat": "攻击",
+      "max": 30,
+      "lv1": {
+        "fields": {
+          "boltDmgMul": 0.25
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 31.7625,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "boltDmgMul": 806.7936
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 20526.0354,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "疾速扳机": {
+      "tier": 0,
+      "cat": "攻击",
+      "max": 8,
+      "lv1": {
+        "fields": {
+          "fireRate": 0.396
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 29.9838,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "fireRate": 6.0695
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 95.5127,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "疾风之靴": {
+      "tier": 0,
+      "cat": "增幅",
+      "max": 6,
+      "lv1": {
+        "fields": {
+          "speed": 6.2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "speed": 47.8368
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "生命之泉": {
+      "tier": 0,
+      "cat": "增幅",
+      "max": 99,
+      "lv1": {
+        "fields": {
+          "maxhp": 20
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 120
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "maxhp": 1980
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 2080
+        }
+      }
+    },
+    "分裂射击": {
+      "tier": 1,
+      "cat": "技能",
+      "max": 4,
+      "lv1": {
+        "fields": {
+          "multishot": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 2,
+          "critExp": 1.05,
+          "dpsIndex": 50.82,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "multishot": 4
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 5,
+          "critExp": 1.05,
+          "dpsIndex": 127.05,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "穿透之矢": {
+      "tier": 1,
+      "cat": "技能",
+      "max": 4,
+      "lv1": {
+        "fields": {
+          "pierce": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 2,
+          "critExp": 1.05,
+          "dpsIndex": 50.82,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "pierce": 4
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 5,
+          "critExp": 1.05,
+          "dpsIndex": 127.05,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "磁力护符": {
+      "tier": 0,
+      "cat": "增幅",
+      "max": 5,
+      "lv1": {
+        "fields": {
+          "magnet": 14.4
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "magnet": 157.6166
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "致命一击": {
+      "tier": 1,
+      "cat": "攻击",
+      "max": 8,
+      "lv1": {
+        "fields": {
+          "crit": 0.1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.15,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.15,
+          "dpsIndex": 27.83,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "crit": 0.8
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.85,
+          "critMultiplier": 2.4,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 2.19,
+          "dpsIndex": 52.998,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "守护之刃": {
+      "tier": 1,
+      "cat": "技能",
+      "max": 4,
+      "lv1": {
+        "fields": {
+          "orbit": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "orbit": 4
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "修复微光": {
+      "tier": 0,
+      "cat": "增幅",
+      "max": 4,
+      "lv1": {
+        "fields": {
+          "regen": 0.6
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "regen": 2.4
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "广域法印": {
+      "tier": 1,
+      "cat": "技能",
+      "max": 4,
+      "lv1": {
+        "fields": {
+          "area": 0.2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "area": 1.0736
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "会心深渊": {
+      "tier": 2,
+      "cat": "攻击",
+      "max": 4,
+      "lv1": {
+        "fields": {
+          "critMul": 0.5
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2.5,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.075,
+          "dpsIndex": 26.015,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "critMul": 2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 4,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.15,
+          "dpsIndex": 27.83,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "弹射魔符": {
+      "tier": 2,
+      "cat": "技能",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "ricochet": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "ricochet": 3
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "烈焰印记": {
+      "tier": 1,
+      "cat": "技能",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "burn": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "burn": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "冰霜之力": {
+      "tier": 1,
+      "cat": "技能",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "frostLv": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "frostLv": 3
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "雷霆连锁": {
+      "tier": 2,
+      "cat": "技能",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "chain": 1,
+          "chainDmg": 0.15
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "chain": 3,
+          "chainDmg": 0.45
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "星辰坠落": {
+      "tier": 3,
+      "cat": "技能",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "meteor": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "meteor": 3
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "吸血獠牙": {
+      "tier": 1,
+      "cat": "增幅",
+      "max": 4,
+      "lv1": {
+        "fields": {
+          "lifesteal": 0.008
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "lifesteal": 0.032
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "荆棘护甲": {
+      "tier": 0,
+      "cat": "防御",
+      "max": 4,
+      "lv1": {
+        "fields": {
+          "thorns": 6
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "thorns": 24
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "能量护盾": {
+      "tier": 2,
+      "cat": "防御",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "shieldMax": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "shieldMax": 3
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "疾影步": {
+      "tier": 1,
+      "cat": "防御",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "dashLv": 1,
+          "dashMax": -0.4
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "dashLv": 3,
+          "dashMax": -1.2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "屠戮之欲": {
+      "tier": 2,
+      "cat": "技能",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "explode": 1,
+          "explodeDmg": 0.5
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "explode": 3,
+          "explodeDmg": 1.5
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "击杀狂热": {
+      "tier": 3,
+      "cat": "攻击",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "hasteLv": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "hasteLv": 3
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "幸运之星": {
+      "tier": 0,
+      "cat": "增幅",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "luck": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "luck": 3
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "磨刃": {
+      "tier": 0,
+      "cat": "攻击",
+      "max": 99,
+      "lv1": {
+        "fields": {
+          "damage": 1.1
+        },
+        "indices": {
+          "attack": 12.1,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 27.951,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "damage": 137795.1234
+        },
+        "indices": {
+          "attack": 137806.1234,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 318332.145,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "狂怒": {
+      "tier": 1,
+      "cat": "攻击",
+      "max": 5,
+      "lv1": {
+        "fields": {
+          "damage": 2.2
+        },
+        "indices": {
+          "attack": 13.2,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 30.492,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "damage": 16.3715
+        },
+        "indices": {
+          "attack": 27.3715,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 63.2282,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "毁灭本能": {
+      "tier": 2,
+      "cat": "攻击",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "damage": 3.3
+        },
+        "indices": {
+          "attack": 14.3,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 33.033,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "damage": 13.167
+        },
+        "indices": {
+          "attack": 24.167,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 55.8258,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "闪避本能": {
+      "tier": 0,
+      "cat": "防御",
+      "max": 4,
+      "lv1": {
+        "fields": {
+          "dodge": 0.08
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 108.6957
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "dodge": 0.32
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 147.0588
+        }
+      }
+    },
+    "铁布衫": {
+      "tier": 0,
+      "cat": "防御",
+      "max": 4,
+      "lv1": {
+        "fields": {
+          "tough": 0.1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0.1,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 111.1111
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "tough": 0.4
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0.4,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 166.6667
+        }
+      }
+    },
+    "巨人血脉": {
+      "tier": 0,
+      "cat": "增幅",
+      "max": 99,
+      "lv1": {
+        "fields": {
+          "maxhp": 30
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 130
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "maxhp": 2970
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 3070
+        }
+      }
+    },
+    "战意沸腾": {
+      "tier": 1,
+      "cat": "攻击",
+      "max": 2,
+      "lv1": {
+        "fields": {
+          "rageLv": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "rageLv": 2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "壁垒": {
+      "tier": 2,
+      "cat": "防御",
+      "max": 2,
+      "lv1": {
+        "fields": {
+          "barrierLv": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "barrierLv": 2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "二段冲刺": {
+      "tier": 2,
+      "cat": "防御",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "dashChargeLv": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "dashChargeLv": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "不屈": {
+      "tier": 3,
+      "cat": "防御",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "nd": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "nd": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "灼热易伤": {
+      "tier": 2,
+      "cat": "技能",
+      "max": 2,
+      "lv1": {
+        "fields": {
+          "scorchVuln": 0.1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "scorchVuln": 0.2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "烈焰蔓延": {
+      "tier": 3,
+      "cat": "技能",
+      "max": 2,
+      "lv1": {
+        "fields": {
+          "burnSpread": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "burnSpread": 2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "天眼制导": {
+      "tier": 2,
+      "cat": "技能",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "meteorGuided": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "meteorGuided": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "焦土燃烧": {
+      "tier": 3,
+      "cat": "技能",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "burnGround": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "burnGround": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "魔刃回旋": {
+      "tier": 1,
+      "cat": "防御",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "bladeReflect": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "bladeReflect": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "磐石": {
+      "tier": 1,
+      "cat": "防御",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "defense": 15
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 15,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 130
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "defense": 45
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 45,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 190
+        }
+      }
+    },
+    "元素亲和": {
+      "tier": 2,
+      "cat": "技能",
+      "max": 3,
+      "lv1": {
+        "fields": {
+          "typeDamageBonus.fire": 0.1,
+          "typeDamageBonus.lightning": 0.1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {
+            "fire": 0.1,
+            "lightning": 0.1
+          },
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "typeDamageBonus.fire": 0.3,
+          "typeDamageBonus.lightning": 0.3
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {
+            "fire": 0.30000000000000004,
+            "lightning": 0.30000000000000004
+          },
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    }
+  },
+  "enemyPressure": {
+    "1": {
+      "hp": 14,
+      "dmg": 8,
+      "quota": 20,
+      "pressure": 1
+    },
+    "5": {
+      "hp": 24.8,
+      "dmg": 9.6,
+      "quota": 60,
+      "pressure": 5.3148
+    },
+    "10": {
+      "hp": 40.08,
+      "dmg": 11.6,
+      "quota": 110,
+      "pressure": 15.7462
+    },
+    "15": {
+      "hp": 57.13,
+      "dmg": 13.6,
+      "quota": 150,
+      "pressure": 30.6048
+    },
+    "20": {
+      "hp": 98.96,
+      "dmg": 18,
+      "quota": 150,
+      "pressure": 53.0159
+    },
+    "25": {
+      "hp": 194.91,
+      "dmg": 27.2,
+      "quota": 150,
+      "pressure": 104.4163
+    },
+    "30": {
+      "hp": 339.54,
+      "dmg": 41.2,
+      "quota": 150,
+      "pressure": 181.8983
+    }
+  }
+}
