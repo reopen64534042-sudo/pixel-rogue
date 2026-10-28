@@ -12,7 +12,8 @@ export function updateAttacks(this: GameCore, dt: number) {
   // ---- 自动攻击 ----
   p.fireCd -= dt;
   if (p.fireCd <= 0) {
-    const tgt = this.nearestEnemy(p.x, p.y, 130);
+    // S1：射程改为玩家属性（base 130）；索敌半径与弹道 life 共用同一值
+    const tgt = this.nearestEnemy(p.x, p.y, p.attackRange);
     if (tgt) {
       p.fireCd =
         1 /
@@ -33,7 +34,7 @@ export function updateAttacks(this: GameCore, dt: number) {
           vy: Math.sin(a) * p.projSpeed,
           dmg: boltDamage(p),
           pierce: p.pierce,
-          life: 130 / p.projSpeed,
+          life: p.attackRange / p.projSpeed,
           size: 2 * p.area,
           jumps: p.ricochet,
           hitList: [],

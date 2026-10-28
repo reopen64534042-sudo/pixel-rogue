@@ -62,6 +62,10 @@ export const STAT_IDS = [
   "critChance",
   "critMultiplier",
   "tough",
+  // S1：攻击射程。此前是 AttackSystem 的硬编码 130（索敌半径 + 弹道 life 共用），
+  // 提为属性后才能被「射程」类成长与长弓/短弓改造；base=statBase().attackRange=130，
+  // 无来源时投影写回 130，行为与硬编码等价。
+  "attackRange",
   // S4-C C2-B：五张乘法天赋中尚缺的三个标量槽位（fireRate/moveSpeed 已有）。
   // boltDmgMul 是技能特化倍率（仅魔弹伤害消费），magnet/area 是拾取/施法范围
   // 倍率——均为「base×倍率」语义，与 attack 同构进入 final 区，不占用

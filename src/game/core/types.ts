@@ -119,6 +119,12 @@ export interface Player extends Point {
   maxhp: number;
   speed: number;
   projSpeed: number;
+  /**
+   * 攻击射程（px）：索敌半径与弹道最大飞行距离共用。
+   * S1 之前是 `AttackSystem` 里的硬编码 130，现改为属性（base 130），
+   * 供「射程」类属性成长与长弓/短弓改造；语义与 StatModel 的 attackRange 一致。
+   */
+  attackRange: number;
   damage: number;
   boltDmgMul: number;
   frostLv: number;
