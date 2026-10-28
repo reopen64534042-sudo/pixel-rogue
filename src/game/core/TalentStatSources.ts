@@ -400,6 +400,15 @@ export function talentStatModifiers(
 export function applyTalentStatProjection(
   p: Player,
   persistent: PersistentStatSources,
+  /**
+   * S1：非天赋来源的修饰符（目前是属性强化，见 `core/AttributeSources.ts`）。
+   * **必须在下述同一次 resolveStats 里合并**，不能另起一次投影——否则后写的
+   * 一方会覆盖前一方算出的字段（recompute 先重置再投影，两次投影等于互相抹）。
+   * 顺序上排在天赋修饰符之后：不同 stage 之间顺序无关（flat 求和、percent
+   * 求和、final 连乘是分区计算），只有同 stage 的 final 连乘顺序会影响浮点
+   * 末位，而属性设计上以 flat/percent 为主，不受影响。
+   */
+  externalModifiers: readonly StatModifier[] = [],
 ): void {
   const base = statBase();
   const { scalars, typeDamageBonus } = talentStatModifiers(p.picks, persistent);
@@ -409,6 +418,9 @@ export function applyTalentStatProjection(
       tough: base.tough,
       critChance: base.crit,
       critMultiplier: base.critMul,
+      // S1：射程 base = 数据层 130（此前是 AttackSystem 硬编码；无来源时
+      // 写回 130，与硬编码行为等价）
+      attackRange: base.attackRange,
       // C3-A：maxHp base = 数据层初始值 + 实例级血包永久成长（持久来源仅在此
       // 计入一次；生命卡贡献为 flat 修饰符，非 base）
       maxHp: base.maxhp + persistent.potionMaxHpGrow,
@@ -434,7 +446,10 @@ export function applyTalentStatProjection(
       magnet: base.magnet,
       area: base.area,
     },
-    modifiers: scalars,
+    // S1：天赋修饰符在前、外部（属性）修饰符在后，同一次解析完成
+    modifiers: externalModifiers.length
+      ? [...scalars, ...externalModifiers]
+      : scalars,
   });
   p.tough = resolved.tough ?? 0;
   p.crit = resolved.critChance ?? base.crit;
@@ -466,6 +481,8 @@ export function applyTalentStatProjection(
   p.speed = resolved.moveSpeed ?? base.speed;
   p.magnet = resolved.magnet ?? base.magnet;
   p.area = resolved.area ?? base.area;
+  // S1：射程写回（base 130；属性/天赋都未改动时写回 130，与旧硬编码等价）
+  p.attackRange = resolved.attackRange ?? base.attackRange;
   // defense 无 base（键缺席 = 0），有来源才出现——与旧 f 的键存在性一致
   if (resolved.defense !== undefined) p.defense = resolved.defense;
   else delete p.defense;

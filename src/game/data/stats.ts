@@ -3,6 +3,8 @@ export function statBase() {
     maxhp: 100,
     speed: 62,
     projSpeed: 260,
+    // S1：攻击射程从 AttackSystem 的硬编码 130 提为属性（base 130，数值不变）
+    attackRange: 130,
     damage: 11,
     boltDmgMul: 1,
     frostLv: 0,

@@ -12,6 +12,7 @@ import {
   hurtEnemy,
   killEnemy,
 } from "./CombatSystem";
+import type { AttributePoint } from "./AttributeSources";
 import { nearestEnemy, spawnEnemy } from "./EnemySystem";
 import { meleeSwing } from "./MeleeSystem";
 import { update } from "./Simulation";
@@ -97,6 +98,12 @@ export class GameCore {
   shake = 0;
   hurtFlash = 0;
   pendingLevels = 0;
+  /**
+   * S1：本局已选的属性强化（来源，不是缓存）。`recompute` 每次由它重建
+   * 属性修饰符——禁止在此基础上维护累加值，否则重算会重放两次。
+   * 空数组时属性零贡献，行为与改动前完全一致。
+   */
+  attributePicks: AttributePoint[] = [];
   chainCd = 0;
   wavePhase: WavePhase = "fight";
   waveN = 1;

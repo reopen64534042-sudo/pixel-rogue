@@ -13,6 +13,7 @@
 |---|---|---|
 | v40.0 | main `370c372` | 首次建立 |
 | **v40.1** | main 合入 #119「怪物数值 v1」 | `projSpeed` 170→260；slime 19 HP / 25 护甲 / 10 伤害；护甲随波次 `+min(24,(w−8)×1.2)`；压力区新增 `defense` / `ehpPhysical` / `shotsToKill`。**41 张卡的增量全部未变** |
+| **v40.2** | 伤害重做 S1（射程属性化） | 只多一个字段 `attackRange: 130`（原为 `AttackSystem` 硬编码）。**其余全部不动**——这是「S1 行为零变化」的直接证据 |
 
 ---
 
@@ -20,7 +21,7 @@
 
 | 区块 | 内容 |
 |---|---|
-| `playerBase` | 未学任何天赋时的**全部静态数值**（44 字段，含 `typeDamageBonus.fire` 这类映射型）+ 两个派生指标 |
+| `playerBase` | 未学任何天赋时的**全部静态数值**（45 字段，含 `typeDamageBonus.fire` 这类映射型）+ 两个派生指标 |
 | `talents[name]` | 学 **1 级** 与 **满级** 后相对 base 的**增量**（只记变了的字段）+ 指标比值 |
 | `enemyPressure` | 标准怪（slime）在波 1/5/10/15/20/25/30 的 HP、护甲、伤害、配额、**物理有效血量**、压力倍数、**几发一只** |
 
@@ -51,7 +52,7 @@ shotsToKill = ceil(hp ÷ 玩家单发经护甲减伤后的取整值)  ← 单怪
 
 | 项 | 值 |
 |---|---|
-| 玩家（未学卡） | attack 11、fireRate 2.2、crit 5%/×2、maxhp 100、dodge 0、tough 0、projSpeed 260 |
+| 玩家（未学卡） | attack 11、fireRate 2.2、crit 5%/×2、maxhp 100、dodge 0、tough 0、projSpeed 260、**attackRange 130** |
 | dpsIndex / ehpIndex | **25.41 / 100** |
 
 | 波次 | 单怪 HP | 护甲 | 单怪伤害 | 配额 | 物理有效 HP | 压力倍数 | **几发一只** |

@@ -201,6 +201,26 @@ function takeEbulletStats(snapshot: unknown) {
   return { rest: snapshot, pairs };
 }
 /**
+ * 基线更新依据：伤害重做 S1（射程属性化）。
+ * `player.attackRange` 是新增的**属性来源字段**，v8 时代射程是 `AttackSystem`
+ * 里的硬编码 130（索敌半径与弹道 life 共用）。行为等价但对象形状不同，
+ * 逐字段对照前必须摘出，否则整张 player 的深比较会因多一个键而失败。
+ *
+ * 摘出后仍然显式断言，不削弱保护力：
+ * - v8 一侧必须没有该键（证明它确实是新增字段，不是旧字段改名）；
+ * - 当前实现无属性来源时必须恰好是 130（证明「属性化」没有偷偷改数值）。
+ * 射程的成长行为由 `tests/s1-attribute-base.test.ts` 与基线快照单独钉住。
+ */
+function takeAttackRange(snapshot: unknown) {
+  const snap = snapshot as { player: Record<string, unknown> } & Record<
+    string,
+    unknown
+  >;
+  const attackRange = snap.player.attackRange;
+  delete snap.player.attackRange;
+  return { rest: snapshot, attackRange };
+}
+/**
  * 逐字段对照，同时按三条已批准的基线规则做显式断言：
  * - Issue #13：dmgBy.melee 是新增分项，v8 无此键，当前实现必须恒为 0；
  * - Issue #12：hp/maxhp 的增量必须在 [0, POTION_GROW_CAP] 内且同步增长；
@@ -220,9 +240,14 @@ function expectParity(actual: unknown, expected: unknown, wave: number) {
   flattenEliteXp(a0.rest);
   flattenEliteXp(e0.rest);
 
-  const a = takeMelee(a0.rest);
-  const e = takeMelee(e0.rest);
-  expect(e.melee).toBeUndefined();
+  // S1：射程是新增属性来源字段，先摘出并断言（理由见 takeAttackRange）
+  const aR = takeAttackRange(a0.rest);
+  const eR = takeAttackRange(e0.rest);
+  expect(eR.attackRange).toBeUndefined();
+  expect(aR.attackRange).toBe(130);
+
+  const a = takeMelee(aR.rest);
+  const e = takeMelee(eR.rest);  expect(e.melee).toBeUndefined();
   expect(a.melee).toBe(0);
 
   // Combat Foundation S2：弹丸发射时快照摘出 + S2 零值断言（见上方依据）
@@ -466,10 +491,17 @@ it("every talent effect, cap and tier matches the protected original", () => {
       // S4-C C1（见上方依据）：属性贡献已迁移，单级效果经真实学习路径对照，
       // 学习记录（upCounts/picks）归一化为 v8 f 不记录的现状后逐字段比较。
       g.learnTalent(u);
-      expect({ ...g.player, upCounts: {}, picks: [] }).toEqual(expected.player);
+      // S1：attackRange 是新增属性来源字段（见 takeAttackRange），本用例只比卡的效果，
+      // 该键单独由 s1-attribute-base / 基线快照保护
+      expect({
+        ...g.player,
+        attackRange: undefined,
+        upCounts: {},
+        picks: [],
+      }).toEqual(expected.player);
     } else {
       u.f(g.player);
-      expect(g.player).toEqual(expected.player);
+      expect({ ...g.player, attackRange: undefined }).toEqual(expected.player);
     }
     expect(u.max).toBe(expected.max);
     expect(u.t).toBe(expected.t);

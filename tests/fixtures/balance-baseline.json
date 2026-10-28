@@ -5,6 +5,7 @@
       "maxhp": 100,
       "speed": 62,
       "projSpeed": 260,
+      "attackRange": 130,
       "damage": 11,
       "boltDmgMul": 1,
       "frostLv": 0,
