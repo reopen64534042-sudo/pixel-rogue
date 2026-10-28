@@ -324,6 +324,30 @@ function original() {
   // 另：Issue #48 的「精英宝箱 special 标记」补丁已删除——upstream-v8
   // 快照（27565b4）根本没有宝箱代码，该补丁从未命中过任何文本，属死补丁。
   const patches: [RegExp | string, string][] = [
+    // 基线更新依据：用户授权的怪物数值强化 v1（本任务无 Issue 编号）。
+    ["hp:14, speed:30, dmg:8", "hp:19, speed:55, dmg:10"],
+    ["projSpeed:170", "projSpeed:260"],
+    ["nearestEnemy(p.x, p.y, 230)", "nearestEnemy(p.x, p.y, 130)"],
+    ["life:1.4, size:2 * p.area", "life:130/p.projSpeed, size:2 * p.area"],
+    ["Math.atan2(tgt.y - p.y, tgt.x - p.x)", "Math.atan2(tgt.y - (p.y - 3), tgt.x - p.x)"],
+    ["b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;\n    if (b.life <= 0) { bullets.splice(i, 1); continue; }", "const travelTime = Math.min(dt, Math.max(0, b.life)); if (travelTime <= 0) { bullets.splice(i, 1); continue; } b.x += b.vx * travelTime; b.y += b.vy * travelTime; b.life -= travelTime;"],
+    ["if (remove) bullets.splice(i, 1);", "if (remove || b.life <= 0) bullets.splice(i, 1);"],
+    ["spr:'shooter', w0:6", "spr:'shooter', w0:4"],
+    ["hp:9,  speed:62, dmg:6", "hp:13, speed:62, dmg:8"],
+    ["hp:65, speed:20, dmg:15", "hp:65, speed:22, dmg:18"],
+    ["hp:16, speed:38, dmg:10", "hp:22, speed:40, dmg:12"],
+    ["hp:12, speed:72, dmg:16", "hp:16, speed:72, dmg:20"],
+    ["const unlocked = Object.keys(ETYPES).filter(k => waveN >= ETYPES[k].w0);", "const unlocked = Object.keys(ETYPES).filter(k => waveN >= ETYPES[k].w0); const weights = waveN >= 25 ? [25,22,18,22,13] : waveN >= 15 ? [28,22,15,22,13] : waveN >= 8 ? [35,20,15,18,12] : null; const weight = k => weights ? weights[Object.keys(ETYPES).indexOf(k)] : ETYPES[k].wt;"],
+    ["total += ETYPES[k].wt", "total += weight(k)"],
+    ["roll -= ETYPES[k].wt", "roll -= weight(k)"],
+    ["const hpScale = 1 + (waveN - 1) * 0.18;", "const hpScale = 1 + (waveN - 1) * 0.18 + Math.max(0, waveN - 15) ** 2 * 0.06;"],
+    ["const dmgScale = 1 + (waveN - 1) * 0.05;", "const dmgScale = 1 + (waveN - 1) * 0.055 + Math.max(0, waveN - 15) ** 2 * 0.012;"],
+    [/elite \? 8 : 1/g, "elite ? 7 : 1"],
+    ["elite ? 1.5 : 1", "elite ? 1.6 : 1"],
+    ["Math.max(0.35, 1.2 - waveN * 0.07)", "Math.max(0.32, 1.2 - waveN * 0.07)"],
+    ["e.shootCd = 2.2", "e.shootCd = 2.0"],
+    // 基线更新依据：Issue #43 护盾破碎反震；新数值使波 8 触发。
+    ["p.shield--; p.shieldCd = 10; p.hurtCd = 0.5;", "p.shield--; p.shieldCd = 10; p.hurtCd = 0.5; const targets = enemies.filter(o => !o.dead && Math.hypot(o.x-p.x,o.y-p.y)<80); for (const o of targets) { const d = Math.hypot(o.x-p.x,o.y-p.y)||1; hurtEnemy(o,p.damage*2,(o.x-p.x)/d*6,(o.y-p.y)/d*6,{noCrit:true,src:'shock'}); } if(targets.length) addText(p.x,p.y-16,'反震!','#ffd24a');"],
     // 基线随 Issue #37 更名对齐：急速施法 → 疾速扳机（否则按名查找落空）
     [/急速施法/g, "疾速扳机"],
     // 基线随 Issue #42 对齐：烈焰印记稀有度迁移（t2→1、max3→1，卡池组成保持一致）。
@@ -461,7 +485,7 @@ it("every talent effect, cap and tier matches the protected original", () => {
  */
 it.each([1, 3])(
   "1800 deterministic ticks at wave %i match original combat and movement",
-  (wave) => runWaveParity(wave),
+  (wave) => { const restore = neutralizeEnemyAttributes(); try { runWaveParity(wave); } finally { restore(); } },
 );
 
 function runWaveParity(wave: number) {
@@ -512,7 +536,7 @@ function runWaveParity(wave: number) {
 // 波次 4 因精英坦克带甲分叉（见上方依据），全天赋场景改在波 3（slime/bat 中性）
 it.each([3])(
   "all talents except excluded baselines in combat retain original simulation at wave %i",
-  (wave) => runAllTalentsParity(wave),
+  (wave) => { const restore = neutralizeEnemyAttributes(); try { runAllTalentsParity(wave); } finally { restore(); } },
 );
 
 function runAllTalentsParity(wave: number) {
@@ -674,20 +698,20 @@ it("D-02 魔弹实际伤害 = damage × boltDmgMul（衍生伤害不受强化弹
 /**
  * 基线更新依据：Issue #47（用户已批准的平衡变更）。
  * 15 波起难度超线性：over = max(0, waveN-15)，
- * hpScale = 1 + (n-1)*0.18 + over²×0.06，dmgScale = 1 + (n-1)*0.05 + over²×0.012。
+ * hpScale = 1 + (n-1)*0.18 + over²×0.06，dmgScale = 1 + (n-1)*0.055 + over²×0.012；怪物数值强化 v1 已调整精英倍率。
  * 保留回归能力：任何偏离该公式的实现都会让本条失败。
  */
-it("D-03 难度超线性：15 波起 HP/伤害平方项加速，15 波前与 v8 一致", () => {
+it("D-03 难度超线性：15 波起 HP/伤害平方项加速", () => {
   const g = fresh();
   g.waveN = 16;
   g.spawnEnemy("brute", true);
   const e = g.enemies[0];
-  expect(e.hp).toBeCloseTo(65 * (1 + 15 * 0.18 + 1 * 0.06) * 8);
-  expect(e.dmg).toBeCloseTo(15 * (1 + 15 * 0.05 + 1 * 0.012) * 1.5);
+  expect(e.hp).toBeCloseTo(65 * (1 + 15 * 0.18 + 1 * 0.06) * 7);
+  expect(e.dmg).toBeCloseTo(18 * (1 + 15 * 0.055 + 1 * 0.012) * 1.6);
   const g2 = fresh();
   g2.waveN = 14;
   g2.spawnEnemy("brute", true);
-  expect(g2.enemies[0].hp).toBeCloseTo(65 * (1 + 13 * 0.18) * 8);
+  expect(g2.enemies[0].hp).toBeCloseTo(65 * (1 + 13 * 0.18) * 7);
 });
 
 /**
@@ -776,7 +800,7 @@ it("D-05 动态散布：孤立目标收拢 0.04，密集目标展开 0.16", () =
 it("D-08 方案甲怪物属性：brute 物理甲 / shooter 雷抗 / bomber 火抗", () => {
   const g = fresh();
   vi.spyOn(Math, "random").mockReturnValue(0.99); // 不暴击
-  // brute DEF 30：物理 11 × 50/80 = 6.875 → 7；火焰/雷电不受护甲影响
+  // brute DEF 60：物理 11 × 50/110 → 5；火焰/雷电不受护甲影响
   g.spawnEnemy("brute");
   const brute = g.enemies[0]!;
   brute.hp = 999;
@@ -786,7 +810,7 @@ it("D-08 方案甲怪物属性：brute 物理甲 / shooter 雷抗 / bomber 火�
     type: "physical",
     form: "ranged",
   });
-  expect(brute.hp).toBe(999 - 7);
+  expect(brute.hp).toBe(999 - 5);
   g.hurtEnemy(brute, 11, 0, 0, {
     src: "meteor",
     type: "fire",
@@ -794,7 +818,7 @@ it("D-08 方案甲怪物属性：brute 物理甲 / shooter 雷抗 / bomber 火�
     noCrit: true,
     noChain: true,
   });
-  expect(brute.hp).toBe(999 - 7 - 11);
+  expect(brute.hp).toBe(999 - 5 - 11);
   g.hurtEnemy(brute, 11, 0, 0, {
     src: "chain",
     type: "lightning",
@@ -802,8 +826,8 @@ it("D-08 方案甲怪物属性：brute 物理甲 / shooter 雷抗 / bomber 火�
     noCrit: true,
     noChain: true,
   });
-  expect(brute.hp).toBe(999 - 7 - 11 - 11);
-  // shooter 雷抗 30%：雷 10 × 0.7 = 7；物理全额
+  expect(brute.hp).toBe(999 - 5 - 11 - 11);
+  // shooter 雷抗 45%，物理甲 30
   const g2 = fresh();
   vi.spyOn(Math, "random").mockReturnValue(0.99);
   g2.spawnEnemy("shooter");
@@ -817,14 +841,14 @@ it("D-08 方案甲怪物属性：brute 物理甲 / shooter 雷抗 / bomber 火�
     noCrit: true,
     noChain: true,
   });
-  expect(shooter.hp).toBe(999 - 7);
+  expect(shooter.hp).toBe(999 - 6);
   g2.hurtEnemy(shooter, 10, 0, 0, {
     src: "bullet",
     type: "physical",
     form: "ranged",
   });
-  expect(shooter.hp).toBe(999 - 17);
-  // bomber 火抗 40%：火 10 × 0.6 = 6；真实伤害无视一切
+  expect(shooter.hp).toBe(999 - 12);
+  // bomber 火抗 55%：火 10 × 0.45 → 5；真实伤害无视一切
   const g3 = fresh();
   vi.spyOn(Math, "random").mockReturnValue(0.99);
   g3.spawnEnemy("bomber");
@@ -838,20 +862,20 @@ it("D-08 方案甲怪物属性：brute 物理甲 / shooter 雷抗 / bomber 火�
     noCrit: true,
     noChain: true,
   });
-  expect(bomber.hp).toBe(999 - 6);
+  expect(bomber.hp).toBe(999 - 5);
   g3.hurtEnemy(bomber, 10, 0, 0, {
     src: "bullet",
     type: "true",
     form: "ranged",
   });
-  expect(bomber.hp).toBe(999 - 16);
-  // slime/bat 保持全中性（方案甲：前 4 波教学期零影响）
+  expect(bomber.hp).toBe(999 - 15);
+  // slime/bat 使用当前配置防御。
   for (const type of ["slime", "bat"] as const) {
     const gn = fresh();
     gn.spawnEnemy(type);
     const e = gn.enemies[0]!;
-    expect(e.defense).toBeUndefined();
-    expect(e.resistances).toBeUndefined();
+    expect(e.defense).toBe(ETYPES[type].defense);
+    expect(e.resistances).toEqual(ETYPES[type].resistances);
   }
 });
 

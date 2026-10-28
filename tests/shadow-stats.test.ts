@@ -207,17 +207,17 @@ describe("S4-B shadow · 敌人护甲与抗性（方案甲，权威=getEnemyComb
     }
   });
 
-  it("中性怪（slime/bat）：无甲无抗，权威快照同为 0/空映射", () => {
+  it("slime/bat 配置防御与权威快照一致", () => {
     for (const kind of ["slime", "bat"] as const) {
       const g = fresh();
       g.spawnEnemy(kind);
       const e = g.enemies.at(-1)!;
       const shadow = enemyShadowFromConfig(ETYPES[kind]);
       const auth = getEnemyCombatStats(e);
-      expect(shadow.defense).toBe(0);
-      expect(shadow.resistances).toEqual({});
-      expect(auth.defense).toBe(0);
-      expect(auth.resistances).toEqual({});
+      expect(shadow.defense).toBe(ETYPES[kind].defense);
+      expect(shadow.resistances).toEqual(ETYPES[kind].resistances);
+      expect(auth.defense).toBe(ETYPES[kind].defense);
+      expect(auth.resistances).toEqual(ETYPES[kind].resistances);
       expect(enemyShadowFromEntity(e)).toEqual(shadow);
     }
   });

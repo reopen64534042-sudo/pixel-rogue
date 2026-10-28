@@ -503,7 +503,7 @@ describe("S4-C C2-B 消费路径 A · 强化弹丸（boltDmgMul）", () => {
   it("学习后新弹丸按投影值：dmg = damage × boltDmgMul", () => {
     const g = fresh();
     vi.spyOn(Math, "random").mockReturnValue(0.99);
-    const e = enemy(g, g.player.x + 200, g.player.y); // 200px：单 tick 内弹丸不命中
+    const e = enemy(g, g.player.x + 75, g.player.y); // 75px：单 tick 内弹丸不命中
     e.hp = 9999;
     e.maxhp = 9999;
     e.speed = 0;
@@ -569,18 +569,19 @@ describe("S4-C C2-B 消费路径 B · 疾速扳机（fireRate）", () => {
   it("攻速时序：fireRate 2.596 → 首发后 25 tick 内恰好第 2 发（间隔 = 1/2.596）", () => {
     const g = fresh();
     vi.spyOn(Math, "random").mockReturnValue(0.99);
-    const e = enemy(g, g.player.x + 200, g.player.y); // 200px：窗口内弹丸不命中不移除
+    const e = enemy(g, g.player.x + 75, g.player.y); // 75px：射程内的静止目标
     e.hp = 9999;
     e.maxhp = 9999;
     e.speed = 0;
     learn(g, "疾速扳机");
+    const fired = vi.spyOn(g.bullets, "push");
     g.player.fireCd = 0;
     g.update(1 / 60); // tick 1：首发
-    expect(g.bullets).toHaveLength(1);
+    expect(fired).toHaveBeenCalledTimes(1);
     for (let i = 0; i < 23; i++) g.update(1 / 60);
-    expect(g.bullets).toHaveLength(1); // 24 tick 时未达冷却
+    expect(fired).toHaveBeenCalledTimes(1); // 24 tick 时未达冷却
     g.update(1 / 60); // tick 25：累计 24/60 > 1/2.596 → 第二发
-    expect(g.bullets).toHaveLength(2);
+    expect(fired).toHaveBeenCalledTimes(2);
   });
 
   it("学习疾速扳机零 RNG（学习步骤无随机消耗）", () => {
@@ -704,7 +705,7 @@ describe("S4-C C2-B 消费路径 E · 广域法印（area）", () => {
   it("弹丸尺寸生成时固化：学习后 size = 2×1.2 = 2.4；在途弹丸不回溯", () => {
     const g = fresh();
     vi.spyOn(Math, "random").mockReturnValue(0.99);
-    const e = enemy(g, g.player.x + 200, g.player.y);
+    const e = enemy(g, g.player.x + 75, g.player.y);
     e.hp = 9999;
     e.maxhp = 9999;
     e.speed = 0;
@@ -800,7 +801,7 @@ describe("S4-C C2-B 消费路径 E · 广域法印（area）", () => {
   it("无关天赋学习不改变半径：学习疾风之靴后弹丸尺寸/陨星 R 不变", () => {
     const g = fresh();
     vi.spyOn(Math, "random").mockReturnValue(0.99);
-    const e = enemy(g, g.player.x + 200, g.player.y);
+    const e = enemy(g, g.player.x + 75, g.player.y);
     e.hp = 9999;
     e.maxhp = 9999;
     e.speed = 0;

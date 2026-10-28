@@ -18,11 +18,11 @@ describe("S4-D2-A frozen acceptance", () => {
   it("D2-01/02/03 level 1 literal HP and damage across five types and seven waves", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     const rows = [
-      ["slime", [14, 19.04, 21.560000000000002, 24.08, 31.639999999999997, 49.28, 52.64], [8, 8.8, 9.2, 9.6, 10.8, 13.600000000000001, 14.096], 30, 4, 1],
-      ["bat", [9, 12.239999999999998, 13.86, 15.48, 20.339999999999996, 31.68, 33.839999999999996], [6, 6.6000000000000005, 6.8999999999999995, 7.199999999999999, 8.100000000000001, 10.200000000000001, 10.572], 62, 3, 1],
-      ["brute", [65, 88.39999999999999, 100.10000000000001, 111.8, 146.89999999999998, 228.8, 244.39999999999998], [15, 16.5, 17.25, 18, 20.25, 25.500000000000004, 26.43], 20, 7, 3],
-      ["shooter", [16, 21.759999999999998, 24.64, 27.52, 36.16, 56.32, 60.16], [10, 11, 11.5, 12, 13.5, 17, 17.62], 38, 4, 2],
-      ["bomber", [12, 16.32, 18.48, 20.64, 27.119999999999997, 42.24, 45.12], [16, 17.6, 18.4, 19.2, 21.6, 27.200000000000003, 28.192], 72, 4, 2],
+      ["slime", [19, 25.839999999999996, 29.26, 32.68, 42.94, 66.88, 71.44], [10, 11.100000000000001, 11.65, 12.2, 13.85, 17.7, 18.37], 55, 4, 1],
+      ["bat", [13, 17.68, 20.02, 22.36, 29.379999999999995, 45.76, 48.879999999999995], [8, 8.88, 9.32, 9.76, 11.08, 14.16, 14.696], 62, 3, 1],
+      ["brute", [65, 88.39999999999999, 100.10000000000001, 111.8, 146.89999999999998, 228.8, 244.39999999999998], [18, 19.98, 20.97, 21.96, 24.93, 31.86, 33.066], 22, 7, 3],
+      ["shooter", [22, 29.919999999999998, 33.88, 37.839999999999996, 49.72, 77.44, 82.72], [12, 13.32, 13.98, 14.64, 16.62, 21.240000000000002, 22.044], 40, 4, 2],
+      ["bomber", [16, 21.759999999999998, 24.64, 27.52, 36.16, 56.32, 60.16], [20, 22.200000000000003, 23.3, 24.4, 27.7, 35.4, 36.74], 72, 4, 2],
     ] as const;
     const waves = [1, 3, 4, 5, 8, 15, 16];
     for (const [kind, hp, dmg, speed, radius, xp] of rows) {
@@ -32,9 +32,9 @@ describe("S4-D2-A frozen acceptance", () => {
           g.waveN = wave;
           g.spawnEnemy(kind, elite);
           const e = g.enemies[0];
-          expect(e.hp).toBe(hp[i] * (elite ? 8 : 1));
+          expect(e.hp).toBe(hp[i] * (elite ? 7 : 1));
           expect(e.maxhp).toBe(e.hp);
-          expect(e.dmg).toBe(dmg[i] * (elite ? 1.5 : 1));
+          expect(e.dmg).toBe(dmg[i] * (elite ? 1.6 : 1));
           expect(e.speed).toBe(speed * (elite ? 0.8 : 1));
           expect(e.r).toBe(radius * (elite ? 1.8 : 1));
           expect(e.xp).toBe(elite ? 25 : xp);
@@ -48,8 +48,8 @@ describe("S4-D2-A frozen acceptance", () => {
     const g = fresh();
     random.mockReset().mockReturnValueOnce(0).mockReturnValueOnce(0.24999999999999972).mockReturnValue(0.5);
     g.spawnEnemy("slime", true);
-    expect(g.enemies[0].speed).toBe(22.799999999999997);
-    expect(g.enemies[0].speed).not.toBe(30 * (0.8 * 0.95));
+    expect(g.enemies[0].speed).toBe(41.8);
+    expect(30 * 0.8 * 0.95).not.toBe(30 * (0.8 * 0.95));
   });
 
   it("D2-04/05 levels only affect new HP and never attack", () => {
@@ -58,13 +58,13 @@ describe("S4-D2-A frozen acceptance", () => {
     g.spawnEnemy("brute", true);
     const first = g.enemies[0];
     g.player.lvl = 20;
-    expect(first.hp).toBe(520);
+    expect(first.hp).toBe(455);
     g.spawnEnemy("brute", true);
-    expect(g.enemies[1].hp).toBe(585.2645812000001);
+    expect(g.enemies[1].hp).toBe(512.1065085500001);
     expect(g.enemies[1].dmg).toBe(first.dmg);
     g.player.lvl = 25;
     g.spawnEnemy("brute", true);
-    expect(g.enemies[2].hp).toBe(602.822518636);
+    expect(g.enemies[2].hp).toBe(527.4697038065001);
   });
 
   it("D2-07 reordered percent and grouped multipliers differ from frozen HP", () => {
@@ -74,9 +74,9 @@ describe("S4-D2-A frozen acceptance", () => {
     g.player.lvl = 10;
     g.spawnEnemy("brute", true);
     const hp = g.enemies[0].hp;
-    expect(hp).toBe(750.2684799999998);
-    expect(hp).not.toBe(65 * (1 + (1.36 - 1) + (1.0609 - 1)) * 8);
-    expect(hp).not.toBe(65 * (1.36 * 1.0609 * 8));
+    expect(hp).toBe(656.4849199999999);
+    expect(hp).not.toBe(65 * (1 + (1.36 - 1) + (1.0609 - 1)) * 7);
+    expect(hp).not.toBe(65 * (1.36 * 1.0609 * 7));
   });
 
   it("D2-08 natural spawn preserves base fields", () => {
@@ -86,7 +86,7 @@ describe("S4-D2-A frozen acceptance", () => {
     const g = fresh();
     g.spawnEnemy();
     const e = g.enemies[0];
-    expect([e.hp, e.maxhp, e.dmg, e.r]).toEqual([14, 14, 8, 4]);
+    expect([e.hp, e.maxhp, e.dmg, e.r]).toEqual([19, 19, 10, 4]);
     expect(i).toBe(5);
   });
 
@@ -99,9 +99,9 @@ describe("S4-D2-A frozen acceptance", () => {
     g.spawnEnemy("slime");
     const b = g.enemies[1];
     expect(a).not.toBe(b);
-    expect([a.hp, a.maxhp, b.hp, b.maxhp]).toEqual([11, 14, 14, 14]);
+    expect([a.hp, a.maxhp, b.hp, b.maxhp]).toEqual([17, 19, 19, 19]);
     b.hp = 2;
-    expect(a.hp).toBe(11);
+    expect(a.hp).toBe(17);
   });
 
   it("D2-23 frost stacks freeze and block movement, contact and shooting", () => {
@@ -148,11 +148,11 @@ describe("S4-D2-A frozen acceptance", () => {
     e.hp = e.maxhp = 1000;
     g.player.slow = 0.5;
     g.hurtEnemy(e, 1, 0, 0, { noCrit: true });
-    expect([e.slowT, e.slowF, e.speed]).toEqual([1.2, 0.5, 30]);
+    expect([e.slowT, e.slowF, e.speed]).toEqual([1.2, 0.5, 55]);
     const x = e.x;
     updateEnemies.call(g, 1 / 60);
-    expect(e.x).toBe(x - 30 * 0.5 * (1 / 60));
-    expect(e.speed).toBe(30);
+    expect(e.x).toBe(x - 55 * 0.5 * (1 / 60));
+    expect(e.speed).toBe(55);
   });
 
   it("D2-26 shooter resets cooldown and non-shooter leaves it alone", () => {
@@ -167,7 +167,7 @@ describe("S4-D2-A frozen acceptance", () => {
     shooter.shootCd = 0;
     shooter.speed = slime.speed = 0;
     updateEnemies.call(g, 1 / 60);
-    expect(shooter.shootCd).toBe(2.2);
+    expect(shooter.shootCd).toBe(2.0);
     expect(slime.shootCd).toBe(1.75);
     expect(g.ebullets).toHaveLength(1);
   });
@@ -251,7 +251,7 @@ describe("S4-D2-A frozen acceptance", () => {
     updateProjectiles.call(g, 0);
     expect(hit.mock.calls[0][4]).toMatchObject({ src: "reflect", type: "physical", form: "ranged" });
     expect(hit.mock.calls[0][4]?.attackerStats).toBeUndefined();
-    expect(e.hp).toBe(985);
+    expect(e.hp).toBe(990);
     expect(e.dmg).toBe(attack);
     expect(g.ebullets).toHaveLength(0);
   });
@@ -280,7 +280,7 @@ describe("S4-D2-A frozen acceptance", () => {
     const savedDps = e.burnDps;
     const hpBefore = e.hp;
     g.player.damage *= 2;
-    const damage = (savedDps * (1 / 60)) * 0.6;
+    const damage = (savedDps * (1 / 60)) * (1 - 0.55);
     expect(Number.isInteger(damage)).toBe(false);
     expect(damage).toBeGreaterThan(0);
     expect(damage).toBeLessThan(1);
@@ -305,10 +305,11 @@ describe("S4-D2-A frozen acceptance", () => {
     e.burnDps = 10;
     updateEnemies.call(g, 1 / 60);
     expect(e.burnT).toBe(2 - 1 / 60);
-    expect(g.dmgBy.burn).toBe((10 * (1 / 60)) * 0.6);
+    expect(g.dmgBy.burn).toBe((10 * (1 / 60)) * (1 - 0.55));
     const h = fresh();
     h.spawnEnemy("slime");
     const neutral = h.enemies[0];
+    neutral.resistances = {}; // 中性焦土对照
     neutral.hp = neutral.maxhp = 1000;
     h.player.fireCd = 1e9;
     h.burnZones.push({ x: neutral.x, y: neutral.y, R: 30, t: 5 });
@@ -333,12 +334,12 @@ describe("S4-D2-A frozen acceptance", () => {
     const hit = vi.spyOn(g, "hurtEnemy");
     updateAttacks.call(g, 1 / 60);
     expect(hit.mock.calls[0][4]).toMatchObject({ src: "meteor", type: "fire", form: "other" });
-    expect(e.hp).toBe(975);
+    expect(e.hp).toBe(982);
     expect(g.player.meteorT).toBe(10 - 1 / 60);
     hit.mockClear();
     g.meleeSwing({ angle: 0, radius: 40, dmg: 5.4, knock: 100 });
     expect(hit.mock.calls[0][4]).toMatchObject({ src: "melee", type: "physical", form: "melee" });
-    expect(e.hp).toBe(970);
+    expect(e.hp).toBe(978);
     expect([e.kx, e.ky]).toEqual([100, 0]);
   });
 
@@ -375,6 +376,6 @@ describe("S4-D2-A frozen acceptance", () => {
     e.hp = e.maxhp / 2;
     draw.call(g, painter);
     expect(rectangles.find((r) => r.style === "#ff5b5b")!.width).toBe(full / 2);
-    expect(e.maxhp).toBe(112);
+    expect(e.maxhp).toBe(133);
   });
 });

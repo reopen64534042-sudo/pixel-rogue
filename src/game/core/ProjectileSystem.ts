@@ -5,13 +5,15 @@ export function updateProjectiles(this: GameCore, dt: number) {
   // ---- 子弹 ----
   for (let i = this.bullets.length - 1; i >= 0; i--) {
     const b = this.bullets[i];
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-    b.life -= dt;
-    if (b.life <= 0) {
+    // 最后一帧只走剩余寿命内的距离，仍检查端点碰撞。
+    const travelTime = Math.min(dt, Math.max(0, b.life));
+    if (travelTime <= 0) {
       this.bullets.splice(i, 1);
       continue;
     }
+    b.x += b.vx * travelTime;
+    b.y += b.vy * travelTime;
+    b.life -= travelTime;
     let remove = false;
     for (const e of this.enemies) {
       if (e.dead || b.hitList.includes(e)) continue;
@@ -50,7 +52,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
         if (remove) break;
       }
     }
-    if (remove) this.bullets.splice(i, 1);
+    if (remove || b.life <= 0) this.bullets.splice(i, 1);
   }
 
   // ---- 敌方弹幕 ----

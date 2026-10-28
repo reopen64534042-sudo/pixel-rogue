@@ -77,7 +77,7 @@ export function updateWave(this: GameCore, dt: number) {
     if (this.spawnedThisWave < this.quota) {
       this.spawnCd -= dt;
       if (this.spawnCd <= 0 && this.enemies.length < 160) {
-        this.spawnCd = Math.max(0.35, 1.2 - this.waveN * 0.07);
+        this.spawnCd = Math.max(0.32, 1.2 - this.waveN * 0.07);
         // Issue #48：12 波起每波 2 只 BOSS，20 波起 3 只（此前每 4 波 1 只）
         const eliteQuota =
           this.waveN >= 20 ? 3 : this.waveN >= 12 ? 2 : this.waveN % 4 === 0 ? 1 : 0;

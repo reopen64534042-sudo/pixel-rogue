@@ -33,6 +33,9 @@ export function enemy(
 ) {
   core.spawnEnemy("slime");
   const e = core.enemies.at(-1)!;
+  // 通用战斗夹具保持中性，真实怪物防御由专门测试通过 spawnEnemy 验证。
+  delete e.defense;
+  delete e.resistances;
   e.x = x;
   e.y = y;
   e.speed = 0;

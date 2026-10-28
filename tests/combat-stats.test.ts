@@ -274,15 +274,15 @@ describe("combat foundation s3-a attribute wiring", () => {
     g.applyBurnGroundDot(neutral, 10, 1);
     expect(neutral.hp).toBeCloseTo(999 - 10, 10);
     expect(g.dmgBy.burn).toBeCloseTo(10, 10);
-    // bomber 火抗 40% → 10 × 0.6 = 6
+    // bomber 火抗 55% → 10 × 0.45 = 4.5
     const g2 = fresh();
     g2.spawnEnemy("bomber");
     const bomber = g2.enemies[0]!;
     bomber.hp = 999;
     bomber.maxhp = 999;
     g2.applyBurnGroundDot(bomber, 10, 1);
-    expect(bomber.hp).toBeCloseTo(999 - 6, 10);
-    // 火系增伤 +30%（元素亲和满级程序化等效）→ 13；与火抗组合 → 7.8
+    expect(bomber.hp).toBeCloseTo(999 - 4.5, 10);
+    // 火系增伤 +30%（元素亲和满级程序化等效）→ 13；与火抗组合 → 5.85
     const g3 = fresh();
     g3.player.typeDamageBonus = { fire: 0.3 };
     const e3 = enemy(g3);
@@ -295,7 +295,7 @@ describe("combat foundation s3-a attribute wiring", () => {
     b3.hp = 999;
     b3.maxhp = 999;
     g3.applyBurnGroundDot(b3, 10, 1);
-    expect(b3.hp).toBeCloseTo(999 - 7.8, 10);
+    expect(b3.hp).toBeCloseTo(999 - 5.85, 10);
     // 无普通命中副作用：不产生飘字/暴击/吸血
     expect(g3.texts.length).toBe(0);
     // 集成：真实焦土地带逐帧结算走同一入口（DPS = damage × 20%）
