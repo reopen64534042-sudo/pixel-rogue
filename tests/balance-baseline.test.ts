@@ -2,7 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getPlayerCombatStats } from "../src/game/core/CombatStats";
-import { resolveEnemySpawnStats } from "../src/game/core/EnemyStatSources";
+import {
+  resolveEnemyDefense,
+  resolveEnemySpawnStats,
+} from "../src/game/core/EnemyStatSources";
 import { UPGRADES } from "../src/game/data/talents";
 import { ETYPES } from "../src/game/data/enemies";
 import { COMBAT_BALANCE } from "../src/game/data/combatBalance";
@@ -103,6 +106,8 @@ const INDICES_NOTES = {
     "参考指标：不含属性强化（当前系统尚无属性成长）、不含类型/形态条件增伤（按伤害类型与攻击方式生效，见 indices.typeDamageBonus）、不含元素/DoT/召唤/护盾/环绕飞刃等衍生伤害。只用于同口径横向对比。",
   coverageCaution:
     "coverage 是乐观口径：多弹道实际会分散、穿透受队形影响，所以覆盖率翻倍不等于 DPS 翻倍。",
+  enemyPressure:
+    "标准怪 slime 在采样波次的生成值：ehpPhysical = hp ÷ (1 − 护甲减伤)，pressure = ehpPhysical × 配额 ÷ 波 1 同项，shotsToKill = ceil(hp ÷ 玩家基础单发经护甲减伤 + round-min-one)。只算护甲，不算抗性（抗性只影响元素伤害）。",
 };
 
 const round = (v: number, digits = 4) => {
@@ -206,7 +211,18 @@ interface Snapshot {
   >;
   enemyPressure: Record<
     string,
-    { hp: number; dmg: number; quota: number; pressure: number }
+    {
+      hp: number;
+      defense: number;
+      dmg: number;
+      quota: number;
+      /** 对物理攻击者的有效血量：hp ÷ (1 - 护甲减伤)；无护甲时等于 hp */
+      ehpPhysical: number;
+      /** 总量压力倍数（以波 1 为 1）：ehpPhysical × 配额 ÷ 波 1 的同项 */
+      pressure: number;
+      /** 玩家基础单发（11）打这只怪要几发：按 round-min-one + 护甲减伤算 */
+      shotsToKill: number;
+    }
   >;
 }
 
@@ -237,26 +253,46 @@ function buildSnapshot(): Snapshot {
 
   const cfg = ETYPES.slime;
   const enemyPressure: Snapshot["enemyPressure"] = {};
-  const wave1Hp =
-    resolveEnemySpawnStats(cfg, {
-      wave: 1,
-      playerLevel: SAMPLE_LEVELS[1],
-      elite: false,
-      speedJitter: 1,
-    }).maxHp * base.waveQuota(1);
-  for (const w of WAVES) {
+  const armorK = COMBAT_BALANCE.armorK;
+  /** 标准怪的物理有效血量与「几发一只」——只算护甲，不算抗性（抗性只影响元素伤害）。 */
+  function pressureRow(w: number) {
     const st = resolveEnemySpawnStats(cfg, {
       wave: w,
       playerLevel: SAMPLE_LEVELS[w],
       elite: false,
       speedJitter: 1,
     });
-    const quota = base.waveQuota(w);
-    enemyPressure[String(w)] = {
+    const defense = resolveEnemyDefense(cfg, w).defense ?? 0;
+    const mitigation = 1 - armorK / (armorK + Math.max(0, defense));
+    const ehpPhysical = st.maxHp / (1 - mitigation);
+    // round-min-one：正伤害 Math.max(1, round)，与 DamageSystem 的结算精度一致
+    const perShot = Math.max(
+      1,
+      Math.round(base.player.damage * (1 - mitigation)),
+    );
+    return {
       hp: round(st.maxHp, 2),
+      defense: round(defense, 2),
       dmg: round(st.attack, 2),
-      quota,
-      pressure: round((st.maxHp * quota) / wave1Hp, 4),
+      quota: base.waveQuota(w),
+      ehpPhysical: round(ehpPhysical, 2),
+      perShot,
+    };
+  }
+  const row1 = pressureRow(1);
+  for (const w of WAVES) {
+    const row = pressureRow(w);
+    enemyPressure[String(w)] = {
+      hp: row.hp,
+      defense: row.defense,
+      dmg: row.dmg,
+      quota: row.quota,
+      ehpPhysical: row.ehpPhysical,
+      pressure: round(
+        (row.ehpPhysical * row.quota) / (row1.ehpPhysical * row1.quota),
+        4,
+      ),
+      shotsToKill: Math.ceil(row.hp / row.perShot),
     };
   }
 
