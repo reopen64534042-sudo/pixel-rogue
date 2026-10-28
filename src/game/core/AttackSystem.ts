@@ -12,12 +12,12 @@ export function updateAttacks(this: GameCore, dt: number) {
   // ---- 自动攻击 ----
   p.fireCd -= dt;
   if (p.fireCd <= 0) {
-    const tgt = this.nearestEnemy(p.x, p.y, 230);
+    const tgt = this.nearestEnemy(p.x, p.y, 130);
     if (tgt) {
       p.fireCd =
         1 /
         (p.fireRate * (1 + p.haste * 0.1 + (p.rageT > 0 ? 0.2 * p.rageLv : 0)));
-      const base = Math.atan2(tgt.y - p.y, tgt.x - p.x);
+      const base = Math.atan2(tgt.y - (p.y - 3), tgt.x - p.x);
       for (let i = 0; i < p.multishot; i++) {
         // Issue #36 动态散布：目标附近敌人越少，弹道越收拢（孤立目标近平行）
         const near = this.enemies.reduce(
@@ -33,7 +33,7 @@ export function updateAttacks(this: GameCore, dt: number) {
           vy: Math.sin(a) * p.projSpeed,
           dmg: boltDamage(p),
           pierce: p.pierce,
-          life: 1.4,
+          life: 130 / p.projSpeed,
           size: 2 * p.area,
           jumps: p.ricochet,
           hitList: [],

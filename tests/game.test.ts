@@ -34,7 +34,7 @@ describe("game flow and state", () => {
     expect(near.dead).toBe(true);
     expect(g.kills).toBe(1);
     expect(g.dmgBy.bullet).toBe(11);
-    expect(far.hp).toBe(14);
+    expect(far.hp).toBe(19);
     expect(g.gems.length + g.player.xp).toBeGreaterThan(0);
   });
   it("XP levels and defers talent selection to the rest phase (Issue #67)", () => {

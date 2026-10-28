@@ -1,5 +1,5 @@
 import { WORLD, clamp } from "../data/constants";
-import { ETYPES } from "../data/enemies";
+import { enemyWeight, ETYPES } from "../data/enemies";
 import { getEnemyCombatStats } from "./CombatStats";
 import { resolveEnemyAttackBonuses, resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
@@ -17,10 +17,10 @@ export function spawnEnemy(
       (k) => this.waveN >= ETYPES[k].w0,
     );
     let total = 0;
-    for (const k of unlocked) total += ETYPES[k].wt;
+    for (const k of unlocked) total += enemyWeight(k, this.waveN);
     let roll = Math.random() * total;
     for (const k of unlocked) {
-      roll -= ETYPES[k].wt;
+      roll -= enemyWeight(k, this.waveN);
       if (roll <= 0) {
         type = k;
         break;
@@ -30,7 +30,7 @@ export function spawnEnemy(
   }
   const T = ETYPES[type];
   // 防御属性只在生成时解析一次；伤害/快照路径继续读取实体字段。
-  const defenseStats = resolveEnemyDefense(T);
+  const defenseStats = resolveEnemyDefense(T, this.waveN);
   // 在世界内、远离玩家的位置生成
   let sx = this.player.x,
     sy = this.player.y;
@@ -197,7 +197,7 @@ export function updateEnemies(this: GameCore, dt: number) {
       e.y += mvy * spd * dt;
       e.shootCd -= dt;
       if (e.shootCd <= 0 && d < 210) {
-        e.shootCd = 2.2;
+        e.shootCd = 2.0;
         this.ebullets.push({
           x: e.x,
           y: e.y,

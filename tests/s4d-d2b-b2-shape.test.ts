@@ -71,7 +71,7 @@ it("replays natural spawn RNG through retry, jitter, seed and cooldown", () => {
     expect(enemy.type).toBe("slime");
     expect(enemy.x).toBe(242.13203435596427);
     expect(enemy.y).toBe(242.13203435596424);
-    expect(enemy.speed).toBe(30 * (0.9 + 0.25 * 0.2));
+    expect(enemy.speed).toBe(55 * (0.9 + 0.25 * 0.2));
     expect(enemy.seed).toBe(4);
     expect(enemy.shootCd).toBe(1 + 0.8 * 1.5);
   } finally { random.mockRestore(); }
