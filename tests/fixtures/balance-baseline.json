@@ -4,7 +4,7 @@
       "r": 4,
       "maxhp": 100,
       "speed": 62,
-      "projSpeed": 170,
+      "projSpeed": 260,
       "damage": 11,
       "boltDmgMul": 1,
       "frostLv": 0,
@@ -1841,46 +1841,67 @@
   },
   "enemyPressure": {
     "1": {
-      "hp": 14,
-      "dmg": 8,
+      "hp": 19,
+      "defense": 25,
+      "dmg": 10,
       "quota": 20,
-      "pressure": 1
+      "ehpPhysical": 28.5,
+      "pressure": 1,
+      "shotsToKill": 3
     },
     "5": {
-      "hp": 24.8,
-      "dmg": 9.6,
+      "hp": 33.66,
+      "defense": 25,
+      "dmg": 12.2,
       "quota": 60,
-      "pressure": 5.3148
+      "ehpPhysical": 50.49,
+      "pressure": 5.3147,
+      "shotsToKill": 5
     },
     "10": {
-      "hp": 40.08,
-      "dmg": 11.6,
+      "hp": 54.4,
+      "defense": 27.4,
+      "dmg": 14.95,
       "quota": 110,
-      "pressure": 15.7462
+      "ehpPhysical": 84.2,
+      "pressure": 16.2491,
+      "shotsToKill": 8
     },
     "15": {
-      "hp": 57.13,
-      "dmg": 13.6,
+      "hp": 77.53,
+      "defense": 33.4,
+      "dmg": 17.7,
       "quota": 150,
-      "pressure": 30.6048
+      "ehpPhysical": 129.32,
+      "pressure": 34.0316,
+      "shotsToKill": 12
     },
     "20": {
-      "hp": 98.96,
-      "dmg": 18,
+      "hp": 134.31,
+      "defense": 39.4,
+      "dmg": 23.45,
       "quota": 150,
-      "pressure": 53.0159
+      "ehpPhysical": 240.14,
+      "pressure": 63.1947,
+      "shotsToKill": 23
     },
     "25": {
-      "hp": 194.91,
-      "dmg": 27.2,
+      "hp": 264.52,
+      "defense": 45.4,
+      "dmg": 35.2,
       "quota": 150,
-      "pressure": 104.4163
+      "ehpPhysical": 504.71,
+      "pressure": 132.8184,
+      "shotsToKill": 45
     },
     "30": {
-      "hp": 339.54,
-      "dmg": 41.2,
+      "hp": 460.81,
+      "defense": 49,
+      "dmg": 52.95,
       "quota": 150,
-      "pressure": 181.8983
+      "ehpPhysical": 912.4,
+      "pressure": 240.1053,
+      "shotsToKill": 77
     }
   }
 }
