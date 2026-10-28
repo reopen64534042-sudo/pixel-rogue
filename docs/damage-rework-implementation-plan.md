@@ -98,7 +98,7 @@ S1 属性系统 ──► S2 射手纵切（第一个可玩版）──► S3 �
 | 项 | 内容 |
 |---|---|
 | 目标 | 属性加点成为一种合法来源，且每波能在面板上选 |
-| 改动 | `StatModel.ts`（`STAT_IDS` 加 `dodge`/`regen`/`range`）；新增 `core/AttributeSources.ts`；`TalentSystem.recompute` 追加第二次投影；新增 `core/AttributeSystem.ts`（roll/refresh/choose）；`GameCore`（`attributePicks`/`attrSlots`）；`WaveSystem.enterRest` 插步骤；`GameUI` + `index.html`（复用 `#bp-level` 卡片）；`ProgressionSystem` 断掉 `pendingLevels → 天赋` |
+| 改动 | `StatModel.ts`（`STAT_IDS` 加 `dodge`/`regen`/`attackRange`）；`data/stats.ts`（`attackRange` base 130）；`AttackSystem` 把硬编码 130 改为读字段（索敌半径与弹道 `life` 两处）；新增 `core/AttributeSources.ts`；`TalentSystem.recompute` 追加第二次投影；新增 `core/AttributeSystem.ts`（roll/refresh/choose）；`GameCore`（`attributePicks`/`attrSlots`）；`WaveSystem.enterRest` 插步骤；`GameUI` + `index.html`（复用 `#bp-level` 卡片）；`ProgressionSystem` 断掉 `pendingLevels → 天赋` |
 | 检查点 ① | **投影空跑**：属性点为空时，`recompute` 前后 Player 逐字段相等；连续两次重算结果一致；给 1 点后重算两次不翻倍 → 提交 |
 | 检查点 ② | **面板可走完**：一局 30+ 次选择不卡流程；刷新确实重掷稀有度（1000 次统计）；四格方向不重复；已满属性不出现 → 提交 |
 | 阶段末验收 | typecheck + vitest + **parity 全绿（不许加排除）** + e2e 波末链（属性 → 天赋 → 宝箱 → 报告） |
@@ -204,7 +204,7 @@ S1 属性系统 ──► S2 射手纵切（第一个可玩版）──► S3 �
 
 **接下来的三件，按顺序：**
 
-1. **S1 属性底座**——`STAT_IDS` 扩容（`dodge`/`regen`/`range`）+ 属性来源投影接进 `recompute`。**属性点为空时行为零变化**，parity 必须全绿。
+1. **S1 属性底座**——`STAT_IDS` 扩容（`dodge`/`regen`/`attackRange`）+ 射程从硬编码 130 改为字段 + 属性来源投影接进 `recompute`。**属性点为空时行为零变化**（射程 130 原样），parity 必须全绿。
 2. **拆 `talents.ts`**（可并入 S2）——纯机械重构，行为零变化，parity 可验证。
 3. **熔炉关入口**——独立、可逆，`AGENTS.md` 要求先关入口再移除。
 
