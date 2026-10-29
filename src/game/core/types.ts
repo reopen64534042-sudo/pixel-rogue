@@ -340,6 +340,8 @@ export interface Enemy extends Point {
    */
   kx?: number;
   ky?: number;
+  /** 教程木桩：免疫击退（不因子弹 kx/ky 被推远）。 */
+  noKnock?: boolean;
   dead?: boolean;
   /* —— Combat Foundation S3-A 可配置战斗属性（全部可选、默认不写入）——
    * EnemyConfig 同名字段存在时由 spawnEnemy 拷贝；防御/抗性作防守方，
@@ -485,6 +487,8 @@ export interface MageDomain extends Point {
   t: number;
   /** 距离下一次 DoT 结算的时间（秒）；领域按固定 tick 结算，不逐帧出伤。 */
   tick: number;
+  /** 距离下一次元素状态结算的时间（秒）；每秒一次，与 DoT tick 独立。 */
+  statusT: number;
   /** 领域元素类型。 */
   element: DamageTypeId;
 }

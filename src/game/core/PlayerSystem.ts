@@ -23,6 +23,7 @@ export function updatePlayer(this: GameCore, dt: number) {
     mx *= 0.7071;
     my *= 0.7071;
   }
+  if (this.tutorialMode && (mx || my)) this.tutorialMoved = true;
   if (mx || my) {
     p.dx = mx;
     p.dy = my;

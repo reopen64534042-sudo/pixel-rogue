@@ -8,6 +8,7 @@ import { frostSlowFactor, isFrozen, isParalyzed } from "./ElementMath";
 import { resolveEnemyAttackBonuses, resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
+import { mageDomainSlowFactor } from "./MageSystem";
 import type { Enemy, MageDecoy } from "./types";
 export function spawnEnemy(
   this: GameCore,
@@ -232,7 +233,8 @@ export function updateEnemies(this: GameCore, dt: number) {
       e.speed *
       (e.slowT > 0 ? 1 - e.slowF : 1) *
       (1 - frostSlowFactor(e)) *
-      (isParalyzed(e) ? 1 - MB.paraMoveSlow : 1);
+      (isParalyzed(e) ? 1 - MB.paraMoveSlow : 1) *
+      (this.prof === "mage" ? mageDomainSlowFactor(this, e) : 1);
     if (e.type === "shooter") {
       // 远程: 远则靠近、近则后撤、中距离横向游走并射击
       // S3：距离改用当前目标（默认玩家；存在镜像残影时是残影），

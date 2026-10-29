@@ -151,6 +151,17 @@ export class DevPanel {
       revive.style.borderColor = this.core.devRevive ? "#57e86b" : "#3a4a7a";
     });
     tools2.appendChild(revive);
+    const clearTalents = el(
+      "button",
+      "flex:1;background:#3a2020;color:#ffb4b4;border:1px solid #7a3a3a;border-radius:3px;padding:3px 4px;cursor:pointer",
+      "清空天赋",
+    );
+    clearTalents.title = "清空已学天赋，保留属性 / 等级 / 强化箭";
+    clearTalents.addEventListener("click", () => {
+      this.core.devClearTalents();
+      this.render();
+    });
+    tools2.appendChild(clearTalents);
     root.appendChild(tools2);
 
     // 起始波次：直接从第 N 波开打，避免每次都从 1 波刷上去。
@@ -197,6 +208,38 @@ export class DevPanel {
     mkWave("← 上一波", -1);
     mkWave("下一波 →", 1);
     root.appendChild(waveBtns);
+
+    // 强化箭阶段：直接回退/跳到指定等级，并按阶段重建升级。
+    const specialRow = el(
+      "div",
+      "display:flex;gap:4px;margin-bottom:6px;align-items:center",
+    ) as HTMLDivElement;
+    specialRow.appendChild(el("span", "color:#7d8ec4", "强化箭"));
+    const specialSel = document.createElement("select");
+    specialSel.style.cssText =
+      "flex:1;background:#0e1430;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 4px;font:11px ui-monospace,Consolas,monospace";
+    for (let i = 1; i <= 12; i++) {
+      const option = document.createElement("option");
+      option.value = String(i);
+      option.textContent = `Lv.${i}`;
+      specialSel.appendChild(option);
+    }
+    specialSel.value = String(this.core.specialLevel);
+    specialSel.addEventListener("keydown", (e) => e.stopPropagation());
+    specialSel.addEventListener("keyup", (e) => e.stopPropagation());
+    specialRow.appendChild(specialSel);
+    const specialGo = el(
+      "button",
+      "background:#1d2440;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 6px;cursor:pointer",
+      "应用",
+    );
+    specialGo.title = "按阶段重建升级（L4 起每级 1 条）";
+    specialGo.addEventListener("click", () => {
+      this.core.devSetSpecialLevel(Number(specialSel.value));
+      this.render();
+    });
+    specialRow.appendChild(specialGo);
+    root.appendChild(specialRow);
 
     const body = el("div", "") as HTMLDivElement;
     root.appendChild(body);

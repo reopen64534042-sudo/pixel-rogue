@@ -164,6 +164,7 @@ export class GameUI {
     element("btn-tutorial-mage").onclick = () => this.startTutorialFor("mage");
     element("btn-tutorial-pick-back").onclick = () => this.closeTutorialPick();
     element("btn-tutorial-skip").onclick = () => this.skipTutorial();
+    element("btn-tutorial-next").onclick = () => this.core.advanceTutorial();
     element("btn-tutorial-start").onclick = () => this.finishTutorialRun();
     element("btn-changelog").onclick = () => {
       element("changelog-list").innerHTML = CHANGELOG.map(
@@ -656,6 +657,9 @@ export class GameUI {
       const desc = u.dyn ? u.dyn(p) : u.d;
       const curDesc = u.cur ? u.cur(p) : desc;
       const catColor = CAT_COLOR[u.cat] || "#57e6ff";
+      // 一次性天赋（max 1）不显示等级与「当前等级生效效果」：
+      // 二者对 max 1 的卡是重复信息，机制说明已包含全部内容。
+      const showLevel = u.max > 1;
 
       tooltip.className = `talent-tooltip tt-t${u.t}`;
       tooltip.innerHTML = `
@@ -666,7 +670,7 @@ export class GameUI {
             <div class="tt-sub">
               <span class="tt-tier t${u.t}">${TIERS[u.t]}</span>
               <span class="tt-cat" style="color:${catColor}">[${u.cat}]</span>
-              <span class="tt-lvl">Lv.${lv}${u.max ? " / " + u.max : ""}</span>
+              ${showLevel ? `<span class="tt-lvl">Lv.${lv} / ${u.max}</span>` : ""}
             </div>
           </div>
         </div>
@@ -675,10 +679,14 @@ export class GameUI {
           <div class="tt-label">天赋机制说明</div>
           <div class="tt-desc">${desc}</div>
         </div>
-        <div class="tt-cur-box">
-          <div class="tt-label">当前等级生效效果 (Lv.${lv})</div>
-          <div class="tt-cur-val">${curDesc}</div>
-        </div>
+        ${
+          showLevel
+            ? `<div class="tt-cur-box">
+                 <div class="tt-label">当前等级生效效果 (Lv.${lv})</div>
+                 <div class="tt-cur-val">${curDesc}</div>
+               </div>`
+            : ""
+        }
         ${
           lv < u.max
             ? `<div class="tt-next-box">
@@ -1078,7 +1086,7 @@ export class GameUI {
     const prof = this.core.tutorialProf ?? this.core.prof;
     const step = this.core.tutorialStep;
     const kb = this.core.keybinds;
-    const sig = `${prof}:${step}:${kb.up}:${kb.down}:${kb.left}:${kb.right}:${kb.dash}`;
+    const sig = `${prof}:${step}:${this.core.tutorialStepReady ? 1 : 0}:${kb.up}:${kb.down}:${kb.left}:${kb.right}:${kb.dash}`;
     if (sig === this.tutorialSig) return;
     this.tutorialSig = sig;
     hud.classList.remove("hidden");
@@ -1087,6 +1095,10 @@ export class GameUI {
       step >= 5 ? "新手教程" : `新手教程 · ${step + 1} / 5`;
     element("tutorial-title").textContent = content.title;
     element("tutorial-body").textContent = content.body;
+    element("btn-tutorial-next").classList.toggle(
+      "hidden",
+      !(this.core.tutorialStepReady && step < 5),
+    );
     element("btn-tutorial-skip").classList.toggle("hidden", step >= 5);
     element("btn-tutorial-start").classList.toggle("hidden", step < 5);
   }
@@ -1119,13 +1131,13 @@ export class GameUI {
               body: "法阵会自动落在怪最密集处；读条最后 40% 停下，伤害 ×1.5。试着站定命中至少 2 个目标。",
             }
           : {
-              title: "保持距离",
-              body: "离敌人越远越安全；试着在远距离命中一次。被贴身时用冲刺拉开。",
+              title: "强化箭",
+              body: "保持距离输出。每 3 发自动变成强化箭；命中会填充角色下方的黄条，升级解锁导弹 / 激光 / 追踪等新形态。试着打出 3 发强化箭。",
             };
       case 4:
         return {
           title: "经验球",
-          body: "清完怪后捡起经验球。升级和波末会给你属性 / 天赋选择。",
+          body: "地上有一颗经验球，走过去即可拾取。正式战斗中清完怪也会掉落，升级和波末会给你属性 / 天赋选择。",
         };
       default:
         return {

@@ -98,6 +98,34 @@ function resonanceDesc(p: Player): string {
   return `印记触发时，${MB.resonanceRadius}px 内的敌人按你持有的元素获得强化（${owned.join("；")}）`;
 }
 
+/** 元素残域卡面：按当前持有元素特化领域名称、伤害类型与状态。 */
+const DOMAIN_ELEMENT: Record<
+  MageElement,
+  { name: string; type: string; status: string }
+> = {
+  fire: { name: "燃烧领域", type: "火焰", status: "每秒 +1 层灼烧" },
+  frost: { name: "霜冻领域", type: "冰霜", status: "每秒 +1 层凝冰" },
+  lightning: { name: "电场", type: "雷电", status: "每秒刷新麻痹" },
+};
+
+function domainDesc(p: Player): string {
+  const els = mageElements(p);
+  const slow = `领域内敌人移速 −${Math.round(MB.domainSlow * 100)}%`;
+  if (!els.length)
+    return `落点留下元素领域（燃烧 / 霜冻 / 电场），持续造成元素伤害；每秒为领域内敌人叠加对应元素状态；${slow}（需持有元素卡）`;
+  const names = els.map((e) => DOMAIN_ELEMENT[e].name).join(" / ");
+  const types = els.map((e) => DOMAIN_ELEMENT[e].type).join(" / ");
+  const statuses = els.map((e) => DOMAIN_ELEMENT[e].status).join("、");
+  return `落点留下${names}：持续造成${types}伤害，${statuses}；${slow}`;
+}
+
+function domainCur(p: Player): string {
+  const els = mageElements(p);
+  if (!els.length) return "落点留下引力残域：领域内敌人移速 −25%";
+  const el = DOMAIN_ELEMENT[els[0]];
+  return `${el.name}：${el.type}持续伤害 · ${el.status} · 领域内敌人移速 −${Math.round(MB.domainSlow * 100)}%`;
+}
+
 /**
  * 双修/三修卡面用的反应说明。
  *
@@ -333,12 +361,13 @@ export const MAGE_TALENTS: Talent[] = [
     // 残域继承施法者的元素；没有元素卡时无从谈起（否则会留下“物理领域”）。
     req: hasAnyElement,
     reqHint: "需 元素卡",
-    d: "落点留下元素领域（燃烧 / 霜冻 / 电场），持续造成元素伤害（需持有元素卡）",
+    d: "落点留下元素领域，持续造成元素伤害；每秒为领域内敌人叠加对应元素状态（火：灼烧 / 冰：凝冰 / 雷：麻痹）；领域内敌人移速 −25%（需持有元素卡）",
     max: 1,
-    pv: () =>
-      `领域半径 ${MB.domainRadius}px · 持续 ${MB.domainDuration} 秒 · 每秒 ${Math.round(MB.domainDpsMul * 100)}% 伤害`,
+    dyn: domainDesc,
+    pv: (p) =>
+      `领域半径 ${Math.round(MB.domainRadius * p.area * ((p.upCounts["广域符印"] || 0) > 0 ? MB.wideSealAreaMul : 1))}px · 持续 ${MB.domainDuration} 秒 · 每秒 ${Math.round(MB.domainDpsMul * 100)}% 伤害 · 减速 ${Math.round(MB.domainSlow * 100)}% · 状态 ${MB.domainStatusInterval} 秒/次`,
     f: () => {},
-    cur: () => "落点留下元素领域",
+    cur: domainCur,
   },
 
   // ================= 节律槽：缩短前摇与间隔 =================
@@ -350,12 +379,19 @@ export const MAGE_TALENTS: Talent[] = [
     slot: "节律",
     layer: 1,
     prof: "mage",
-    d: "施法前摇 −30%（0.35 → 0.245 秒）",
+    d: "施法前摇 −30%（0.35 → 0.245 秒）；星陨路线改为陨星落地时间 −30%",
     max: 1,
-    pv: () =>
-      `前摇 ${MB.castWindup.toFixed(2)}s → ${(MB.castWindup * MB.quickCastWindupMul).toFixed(3)}s`,
+    dyn: (p) =>
+      p.upCounts["星陨"]
+        ? `陨星落地时间 −30%（${MB.meteorFall.toFixed(2)} → ${(MB.meteorFall * MB.quickCastWindupMul).toFixed(2)} 秒）`
+        : `施法前摇 −30%（${MB.castWindup.toFixed(2)} → ${(MB.castWindup * MB.quickCastWindupMul).toFixed(3)} 秒）`,
+    pv: (p) =>
+      p.upCounts["星陨"]
+        ? `落地 ${MB.meteorFall.toFixed(2)}s → ${(MB.meteorFall * MB.quickCastWindupMul).toFixed(2)}s`
+        : `前摇 ${MB.castWindup.toFixed(2)}s → ${(MB.castWindup * MB.quickCastWindupMul).toFixed(3)}s`,
     f: () => {},
-    cur: () => "前摇缩短 30%",
+    cur: (p) =>
+      p.upCounts["星陨"] ? "陨星落地时间缩短 30%" : "前摇缩短 30%",
   },
   {
     n: "连咏",
@@ -366,12 +402,19 @@ export const MAGE_TALENTS: Talent[] = [
     layer: 2,
     prof: "mage",
     requires: "速咏",
-    d: "施法间隔 −20%（0.20 → 0.16 秒）",
+    d: "施法间隔 −20%（0.20 → 0.16 秒）；星陨路线改为陨星间隔 −20%",
     max: 1,
-    pv: () =>
-      `间隔 ${MB.castInterval.toFixed(2)}s → ${(MB.castInterval * MB.continuousCastIntervalMul).toFixed(2)}s`,
+    dyn: (p) =>
+      p.upCounts["星陨"]
+        ? `陨星间隔 −20%（${MB.meteorInterval.toFixed(1)} → ${(MB.meteorInterval * MB.continuousCastIntervalMul).toFixed(1)} 秒）`
+        : `施法间隔 −20%（${MB.castInterval.toFixed(2)} → ${(MB.castInterval * MB.continuousCastIntervalMul).toFixed(2)} 秒）`,
+    pv: (p) =>
+      p.upCounts["星陨"]
+        ? `间隔 ${MB.meteorInterval.toFixed(1)}s → ${(MB.meteorInterval * MB.continuousCastIntervalMul).toFixed(1)}s`
+        : `间隔 ${MB.castInterval.toFixed(2)}s → ${(MB.castInterval * MB.continuousCastIntervalMul).toFixed(2)}s`,
     f: () => {},
-    cur: () => "施法间隔缩短 20%",
+    cur: (p) =>
+      p.upCounts["星陨"] ? "陨星间隔缩短 20%" : "施法间隔缩短 20%",
   },
 
   // ================= 范围槽：法阵大小 =================
@@ -383,12 +426,19 @@ export const MAGE_TALENTS: Talent[] = [
     slot: "范围",
     layer: 1,
     prof: "mage",
-    d: "法阵作用范围 +20%",
+    d: "法阵作用范围 +20%；星陨路线改为陨星与残域范围 +20%",
     max: 1,
+    dyn: (p) =>
+      p.upCounts["星陨"] ? "陨星与残域范围 +20%" : "法阵作用范围 +20%",
     pv: (p) =>
-      `法阵半径 ${Math.round(MB.circleRadius * p.area)}px → ${Math.round(MB.circleRadius * p.area * MB.wideSealAreaMul)}px`,
+      p.upCounts["星陨"]
+        ? `陨星半径 ${Math.round(MB.meteorRadius * p.area)}px → ${Math.round(MB.meteorRadius * p.area * MB.wideSealAreaMul)}px`
+        : `法阵半径 ${Math.round(MB.circleRadius * p.area)}px → ${Math.round(MB.circleRadius * p.area * MB.wideSealAreaMul)}px`,
     f: () => {},
-    cur: (p) => `法阵半径 ${Math.round(MB.circleRadius * p.area * MB.wideSealAreaMul)}px`,
+    cur: (p) =>
+      p.upCounts["星陨"]
+        ? `陨星半径 ${Math.round(MB.meteorRadius * p.area * MB.wideSealAreaMul)}px`
+        : `法阵半径 ${Math.round(MB.circleRadius * p.area * MB.wideSealAreaMul)}px`,
   },
   {
     n: "三连聚爆",

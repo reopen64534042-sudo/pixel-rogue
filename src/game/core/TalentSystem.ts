@@ -340,6 +340,18 @@ export function rollPicks(this: GameCore) {
     }
     picks.push(cand);
   }
+  // v88 秘传保底：前置满足后，双修/三修必在下一轮三选一出现。
+  // 只替换最后一个槽位、不额外消耗随机数；玩家仍可用刷新放弃它。
+  if (this.prof === "mage") {
+    for (const name of ["双修", "三修"] as const) {
+      const card = UPGRADES.find((u) => u.n === name);
+      if (!card || !this.canOffer(card)) continue;
+      if (picks.some((u) => u.n === name)) break;
+      if (picks.length >= 3) picks[picks.length - 1] = card;
+      else picks.push(card);
+      break;
+    }
+  }
   // S2：删除「三选一里保证至少一个伤害系天赋」的硬保底（DMG_POOL）。
   // 理由：新体系的天赋**不提供伤害**（伤害来自属性成长与职业基础形态），
   // 这条保底会把清场类机制卡强行塞进每一次三选一，破坏取舍；

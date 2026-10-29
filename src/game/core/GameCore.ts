@@ -32,8 +32,9 @@ import {
   updateMageCasting,
 } from "./MageSystem";
 import { meleeSwing } from "./MeleeSystem";
-import { gainSpecialXp } from "./SpecialSystem";
+import { devSetSpecialLevel, gainSpecialXp } from "./SpecialSystem";
 import {
+  advanceTutorial,
   finishTutorial,
   startTutorial,
   updateTutorial,
@@ -208,12 +209,18 @@ export class GameCore {
   /** 新手教程（v83）：练习场标记与分步状态 */
   tutorialMode = false;
   tutorialStep = 0;
+  /** 当前步骤条件已满足：UI 显示「下一步」，由玩家点击推进 */
+  tutorialStepReady = false;
   tutorialProf: Profession | null = null;
   tutorialStartX = 0;
   tutorialStartY = 0;
   tutorialDashed = false;
   tutorialHit = false;
   tutorialProfDone = false;
+  /** 射手教程第 3 步：已命中的强化箭次数 */
+  tutorialSpecialHits = 0;
+  /** 教程第 1 步：按过任意移动键（不再等走满距离） */
+  tutorialMoved = false;
   tutorialGemPicked = false;
   tutorialGemSpawned = false;
   /* —— S3 法师池运行态 ——
@@ -447,10 +454,12 @@ export class GameCore {
   triggerMirrorDecoy = triggerMirrorDecoy.bind(this);
   startTutorial = startTutorial.bind(this);
   updateTutorial = updateTutorial.bind(this);
+  advanceTutorial = advanceTutorial.bind(this);
   finishTutorial = finishTutorial.bind(this);
   addText = addText.bind(this);
   damagePlayer = damagePlayer.bind(this);
   gainSpecialXp = gainSpecialXp.bind(this);
+  devSetSpecialLevel = devSetSpecialLevel.bind(this);
   update = update.bind(this);
   waveQuota = waveQuota.bind(this);
   startNextWave = startNextWave.bind(this);
@@ -463,10 +472,13 @@ export class GameCore {
     this.audio.cancelCues();
     this.tutorialMode = false;
     this.tutorialStep = 0;
+    this.tutorialStepReady = false;
     this.tutorialProf = null;
     this.tutorialDashed = false;
     this.tutorialHit = false;
     this.tutorialProfDone = false;
+    this.tutorialSpecialHits = 0;
+    this.tutorialMoved = false;
     this.tutorialGemPicked = false;
     this.tutorialGemSpawned = false;
     this.player = {
@@ -742,9 +754,41 @@ export class GameCore {
     this.startNextWave();
   }
 
+  /**
+   * DEV：清空已学天赋并重算属性。
+   * 保留：属性加点、等级/经验、强化箭等级与升级、血包永久成长。
+   * 清掉：picks/upCounts 与依赖天赋的运行态（护盾/充能/陨星/残域/法阵读条）。
+   */
+  devClearTalents() {
+    const p = this.player;
+    // 原地清空，避免任何持有 upCounts/picks 引用的系统读到旧对象。
+    for (const key of Object.keys(p.upCounts)) delete p.upCounts[key];
+    p.picks.length = 0;
+    p.shield = 0;
+    p.shieldCd = 0;
+    p.rageT = 0;
+    p.hasteT = 0;
+    this.dashFireBoostT = 0;
+    this.dashSpecialT = 0;
+    this.castPhase = "idle";
+    this.castT = 0;
+    this.castCd = 0;
+    this.mageCharge = 0;
+    this.mageChargeFlashT = 0;
+    this.mageMeteors = [];
+    this.mageDomains = [];
+    this.mageShield = 0;
+    this.mageShieldT = 0;
+    this.mageShieldMaxT = 0;
+    this.mageDecoys = [];
+    this.magePhaseT = 0;
+    this.mageElementPickPending = null;
+    this.recompute();
+    this.addText(p.x, p.y - 26, "已清空天赋", "#ffd24a", true);
+  }
+
   gameOver() {
-    if (this.state === "over") return;
-    // DEV-only：允许复活时拦截死亡，保留本局构筑并重开当前波。
+    if (this.state === "over") return;    // DEV-only：允许复活时拦截死亡，保留本局构筑并重开当前波。
     if (import.meta.env.DEV && this.devRevive) {
       this.devReviveRun();
       return;
