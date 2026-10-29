@@ -25,7 +25,12 @@ import {
   type KeyAction,
 } from "../game/data/keybindings";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
-import { markTutorialSeen, tutorialSeen } from "../game/data/tutorialState";
+import {
+  markTutorialSeen,
+  tutorialSeen,
+  TUTORIAL_NEXT_KEY,
+  TUTORIAL_SKIP_KEY,
+} from "../game/data/tutorialState";
 import {
   SPECIAL_LEVELS,
   SPECIAL_UPGRADES,
@@ -364,7 +369,7 @@ export class GameUI {
       <div class="cat" style="color:${CAT_COLOR[u.cat]}">${CAT_ICO[u.cat]} ${u.cat}</div>
       <div class="ico">${u.ico}</div><div class="nm">${u.n}${u.mech && lv === 0 ? " ✦NEW" : ""}</div>
       ${chainInfo}
-      <div class="ds">${desc}</div>`;
+      <div class="ds"><span class="ds-inner">${desc}</span></div>`;
       if (!s.used && this.core.bpMode === "level") {
         // 每张卡独立刷新 1 次（阻止冒泡，避免误触发"选卡"）；宝箱不提供刷新。
         // 用文字而非 🔄：Press Start 2P 不含 emoji，部分环境会渲染成方块。
@@ -1062,6 +1067,28 @@ export class GameUI {
 
   private finishTutorialRun(): void {
     this.completeTutorial();
+  }
+
+  /** 教程快捷键：F 下一步 / X 跳过；返回 true 表示已消费该按键。 */
+  handleTutorialKey(key: string): boolean {
+    if (!this.core.tutorialMode || this.core.state !== "play") return false;
+    if (this.core.tutorialStep >= 5) return false;
+    const kb = this.core.keybinds;
+    if (
+      [kb.up, kb.down, kb.left, kb.right, kb.dash, kb.pause, kb.stats].includes(
+        key,
+      )
+    )
+      return false;
+    if (key === TUTORIAL_NEXT_KEY) {
+      if (!this.core.tutorialStepReady) return false;
+      return this.core.advanceTutorial();
+    }
+    if (key === TUTORIAL_SKIP_KEY) {
+      this.skipTutorial();
+      return true;
+    }
+    return false;
   }
 
   private completeTutorial(): void {

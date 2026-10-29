@@ -732,7 +732,8 @@ p {
 }
 #bp-cards .card {
   width: 19.5vmin;
-  min-height: 22vmin;
+  /* 固定高度：刷新出的短文本卡不再改变整排高度；长文本在 .ds 内滚动 */
+  height: 26vmin;
   background: rgba(16, 21, 40, 0.9);
   border: 0.3vmin solid #3d4a7a;
   padding: 1.4vmin 1.2vmin;
@@ -819,13 +820,22 @@ p {
   text-align: center;
 }
 #bp-cards .card .ds {
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
   color: #9aa3c7;
   font-size: 1.15vmin;
   line-height: 1.5;
   text-align: center;
   flex: 1 1 auto;
+}
+#bp-cards .card .ds-inner {
   display: flex;
+  width: 100%;
+  min-height: 100%;
   align-items: center;
+  justify-content: center;
 }
 /* S3 职业池：链层级与前置（L2 · 需 速咏）。
    让玩家看得见「我在构筑一条链」而不是随手拿卡（设计文档 §3.4）。 */
