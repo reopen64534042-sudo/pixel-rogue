@@ -32,10 +32,10 @@ function spriteRect(key: string, cx: number, cy: number, scale = 1) {
 }
 
 /**
- * 冻结冰壳：半透明冰面 + 1px 亮边 + 两道冰裂。
+ * 冻结冰壳：低饱和青蓝冰面 + 顶部冷光 + 底部冰棱 + 侧面霜点。
  *
- * 替代「冻结」飘字——元素共振会一次冻住一片怪，满屏文字比伤害数字还乱。
- * 旧表 frozenT 与法师凝冰满层共用这套表现，状态一眼可见且不新增 HUD。
+ * 不用整圈矩形描边与折线裂纹——小怪会被框成一个 UI 方框，很像“选中框”。
+ * 冻结状态靠冰面染色、底部冰棱和霜点表达，保留贴图轮廓。
  */
 function drawFrozenOverlay(
   ctx: PixelPainter,
@@ -44,24 +44,32 @@ function drawFrozenOverlay(
   w: number,
   h: number,
 ) {
-  ctx.globalAlpha = 0.42;
-  ctx.fillStyle = "#bfeaff";
+  // 冰面：低透明度，保留贴图细节
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = "#9fe1ff";
   ctx.fillRect(x, y, w, h);
-  // 1px 外扩冰壳：四边用整数实心条，避免描边半像素发虚
-  ctx.globalAlpha = 0.9;
+  // 顶部冷光：一条细高光 + 左上小霜点
+  ctx.globalAlpha = 0.55;
   ctx.fillStyle = "#e8f7ff";
-  ctx.fillRect(x - 1, y - 1, w + 2, 1);
-  ctx.fillRect(x - 1, y + h, w + 2, 1);
-  ctx.fillRect(x - 1, y, 1, h);
-  ctx.fillRect(x + w, y, 1, h);
-  // 冰裂：固定折线，不随帧变化
+  ctx.fillRect(x + 1, y, Math.max(1, w - 2), 1);
+  ctx.fillRect(x + 2, y + 2, 2, 1);
+  // 底部冰棱：三根短刺，中间略高
+  const mid = x + Math.floor(w / 2);
+  const baseY = y + h;
   ctx.globalAlpha = 0.85;
-  ctx.strokeStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.moveTo(x + 2, y + h - 2);
-  ctx.lineTo(x + Math.floor(w / 2), y + 2);
-  ctx.lineTo(x + w - 2, y + h - 3);
-  ctx.stroke();
+  ctx.fillStyle = "#bfeaff";
+  ctx.fillRect(x + 1, baseY, 1, 2);
+  ctx.fillRect(mid, baseY, 1, 3);
+  ctx.fillRect(x + w - 2, baseY, 1, 2);
+  ctx.fillStyle = "#e8f7ff";
+  ctx.fillRect(x + 1, baseY, 1, 1);
+  ctx.fillRect(mid, baseY, 1, 1);
+  ctx.fillRect(x + w - 2, baseY, 1, 1);
+  // 两侧霜点
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = "#e8f7ff";
+  ctx.fillRect(x, y + Math.floor(h / 2), 1, 1);
+  ctx.fillRect(x + w - 1, y + Math.floor(h / 2) - 1, 1, 1);
   ctx.globalAlpha = 1;
 }
 export function draw(this: GameCore, ctx: PixelPainter) {

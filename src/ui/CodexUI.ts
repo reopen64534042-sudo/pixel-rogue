@@ -5,6 +5,7 @@ import {
   TALENT_ENTRIES,
   type CodexEntry,
 } from "../game/codex/codexData";
+import { ETYPES } from "../game/data/enemies";
 import type { CodexProgress } from "../game/codex/CodexSystem";
 import { TIERS, TIER_COLOR } from "../game/data/talents";
 import { spriteImageSrc } from "../game/rendering/assetRegistry";
@@ -42,6 +43,58 @@ function accentColor(entry: CodexEntry): string {
 function chainMeta(entry: CodexEntry): string {
   if (!entry.slot) return "";
   return entry.layer ? `${entry.slot} · L${entry.layer}` : entry.slot;
+}
+
+const RES_LABEL = { fire: "火", frost: "冰", lightning: "雷" } as const;
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+
+/**
+ * 敌人详情里的属性表。
+ *
+ * 数值直接读 `ETYPES`，与真实刷新/战斗同源；精英条目复用基础怪配置，
+ * 再单列一行精英修正，避免把 ×3.5 后的数字误当成基础值。
+ */
+function enemyStatsHtml(entry: CodexEntry): string {
+  if (!entry.link) return "";
+  const cfg = ETYPES[entry.link];
+  if (!cfg) return "";
+  const def = cfg.defense ?? 0;
+  const armorNote =
+    def > 0
+      ? `物理承伤 ${Math.round((50 / (50 + def)) * 100)}%（减伤 ${Math.round((def / (50 + def)) * 100)}%）；元素与真实伤害无视护甲`
+      : "无物理护甲";
+  const resText = (["fire", "frost", "lightning"] as const)
+    .map((k) => {
+      const v = cfg.resistances?.[k];
+      return `${RES_LABEL[k]} ${v !== undefined ? pct(v) : "—"}`;
+    })
+    .join(" · ");
+  const rows: [string, string, string][] = [
+    ["生命", String(cfg.hp), "基础生命；生成时按波次成长"],
+    ["攻击", String(cfg.dmg), "基础攻击；生成时按波次成长"],
+    ["移速", String(cfg.speed), "像素/秒，越大移动越快"],
+    ["半径", String(cfg.r), "碰撞与受击体积"],
+    ["经验", String(cfg.xp), "击杀获得的基础经验"],
+    ["护甲", def > 0 ? String(def) : "—", armorNote],
+    ["抗性", resText, "按百分比减少对应元素伤害，上限 75%；— 表示无抗性"],
+    ["解锁波次", String(cfg.w0), "首次出现的波次"],
+    ["初始权重", String(cfg.wt), "刷新池中的基础权重，后期会随波次变化"],
+  ];
+  if (entry.elite)
+    rows.push([
+      "精英强化",
+      "生命 ×3.5 · 攻击 ×1.6 · 移速 ×0.8 · 半径 ×1.8",
+      "特殊宝箱 50% 概率；经验 25+(波次-1)×4",
+    ]);
+  return `<div class="cx-d-stats">
+    <div class="cx-d-stats-title">怪物属性</div>
+    ${rows
+      .map(
+        ([k, v, n]) =>
+          `<div class="cx-stat-row"><span class="cx-stat-k">${k}</span><span class="cx-stat-v">${v}</span><span class="cx-stat-note">${n}</span></div>`,
+      )
+      .join("")}
+  </div>`;
 }
 
 /**
@@ -208,7 +261,8 @@ export class CodexUI {
     detail.innerHTML = `
       <div class="cx-d-name" style="color:${accentColor(entry)}">${entry.icon ? `${entry.icon} ` : ""}${entry.name}</div>
       <div class="cx-d-meta">${meta}</div>
-      <div class="cx-d-desc">${entry.desc}</div>`;
+      <div class="cx-d-desc">${entry.desc}</div>
+      ${entry.cat === "enemy" ? enemyStatsHtml(entry) : ""}`;
   }
 
   private hideDetail(): void {

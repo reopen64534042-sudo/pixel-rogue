@@ -173,7 +173,7 @@ export const ENEMY_ENTRIES: readonly CodexEntry[] = [
     id: enemyId("brute_elite"),
     cat: "enemy",
     name: "岩石巨兽",
-    desc: "精英形态：生命 8 倍、伤害 1.5 倍、体型放大，倒下必掉特殊宝箱。",
+    desc: "精英形态：生命 ×3.5、攻击 ×1.6、移速 ×0.8、体型放大；特殊宝箱 50% 概率掉落，血包与经验仍必掉。",
     spr: "brute_elite",
     link: "brute",
     elite: true,
