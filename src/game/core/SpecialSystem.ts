@@ -13,7 +13,6 @@ import {
   SPECIAL_UPGRADES,
   getSpecialLevelStats,
 } from "../data/specialShot";
-import { boltDamage } from "./DamageMath";
 import type { GameCore } from "./GameCore";
 import type { Enemy } from "./types";
 
@@ -207,6 +206,7 @@ export function updateSpecialMissiles(this: GameCore, dt: number) {
 /**
  * 强化箭命中积累经验；升级时按等级表提升伤害/穿透，
  * 并在 L4-L12 随机获得一条尚未拥有的升级。
+ * 升级结果统一在 C 属性面板查看，不再弹出世界飘字。
  */
 export function gainSpecialXp(this: GameCore, amount: number) {
   if (!Number.isFinite(amount) || amount <= 0) return;
@@ -220,7 +220,6 @@ export function gainSpecialXp(this: GameCore, amount: number) {
     this.specialLevel++;
 
     const next = getSpecialLevelStats(this.specialLevel);
-    let upgradeText = "";
     if (next.grantsUpgrade) {
       const pool = SPECIAL_UPGRADES.filter(
         (upgrade) => !this.specialUpgrades.includes(upgrade.id),
@@ -228,31 +227,8 @@ export function gainSpecialXp(this: GameCore, amount: number) {
       if (pool.length) {
         const pick = pool[Math.floor(Math.random() * pool.length)];
         this.specialUpgrades.push(pick.id);
-        upgradeText = ` · ${pick.name}`;
-        this.texts.push({
-          x: this.player.x,
-          y: this.player.y - 20 - (this.specialLevel - 2) * 8,
-          s: `获得：${pick.name} — ${pick.desc}`,
-          c: "#ffd24a",
-          life: 2.8,
-          vy: -6,
-          big: false,
-        });
       }
     }
-
-    const pierceText = next.infinitePierce ? "∞" : `+${next.pierceBonus}`;
-    const damageText = (boltDamage(this.player) * next.mul).toFixed(1);
-    const maxText = next.xpToNext === null ? " · MAX" : "";
-    this.texts.push({
-      x: this.player.x,
-      y: this.player.y - 30 - (this.specialLevel - 2) * 8,
-      s: `强化箭 Lv.${this.specialLevel} · 伤害 ${damageText}（×${next.mul}） · 穿透 ${pierceText}${maxText}${upgradeText}`,
-      c: "#ffd24a",
-      life: 2.2,
-      vy: -8,
-      big: true,
-    });
     this.audio.beep(1046, 0.12, "triangle", 0.05, 200);
   }
   if (this.specialLevel >= SPECIAL_LEVELS.length) this.specialXp = 0;

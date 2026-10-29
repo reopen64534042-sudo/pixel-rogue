@@ -24,6 +24,10 @@ import {
   shieldShockDamage,
 } from "./DamageMath";
 
+/** 真实伤害飘字：银白填色 + 冷蓝描边/外发光，优先于强化箭/暴击的金色 */
+const TRUE_DAMAGE_COLOR = "#eaf7ff";
+export const TRUE_DAMAGE_OUTLINE = "#38bdf8";
+
 /** §3.5：被闪避/护盾完全抵挡的命中——未进入数值计算，结算与实际损失均为 0 */
 function blockedHit(
   raw: number,
@@ -110,6 +114,7 @@ export function hurtEnemy(
     defenderStats: getEnemyCombatStats(e),
   });
   let settled = calc.settledDamage;
+  let trueDamage = 0;
   if (opts.trueFraction && opts.trueFraction > 0) {
     // 附带真实伤害是额外一层，不替换主伤害；同样吃暴击与增伤，但绕过减伤。
     const trueCalc = calculateDamage(DAMAGE_TYPES, {
@@ -123,9 +128,13 @@ export function hurtEnemy(
       attackerStats,
       defenderStats: getEnemyCombatStats(e),
     });
-    settled += trueCalc.settledDamage;
+    trueDamage = trueCalc.settledDamage;
+    settled += trueDamage;
   }
   dmg = settled;
+  // 完全真实伤害（type=true）或附带真实伤害（trueFraction）都使用银白飘字，
+  // 避免被强化箭/暴击的金色淹没。
+  const hasTrueDamage = opts.type === "true" || trueDamage > 0;
   // v76 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多留
   // 1 HP，让随后结算的反应完成击杀。只压低实际应用值；反应基数由调用方
   // 另行传入，不受本处影响（反应/连锁不得使用 lethalCap）。
@@ -158,8 +167,13 @@ export function hurtEnemy(
     e.x,
     e.y - e.r - 2,
     dmg,
-    opts.specialHit || crit ? "#ffd24a" : "#ffffff",
+    hasTrueDamage
+      ? TRUE_DAMAGE_COLOR
+      : opts.specialHit || crit
+        ? "#ffd24a"
+        : "#ffffff",
     crit,
+    hasTrueDamage,
   );
   if (kx || ky) {
     e.x += kx;
@@ -355,6 +369,7 @@ export function addText(
   s: string | number,
   c: string,
   big = false,
+  trueDmg = false,
 ) {
   // 同位置叠字是玩家实机反馈的问题（伤害数字与机制标签互相盖住，两个都看不清）。
   // 生成时就按当前飘字错开：同一列（x 差 <18px）每撞到一条，新字上移 9px（最多 4 层）。
@@ -376,6 +391,7 @@ export function addText(
     life: 0.7,
     vy: -22,
     big: !!big,
+    ...(trueDmg ? { trueDmg: true } : {}),
   });
 }
 

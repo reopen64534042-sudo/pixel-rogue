@@ -397,6 +397,16 @@ p {
   padding: 0.45vmin 0;
   align-items: center;
 }
+/* 强化箭的「当前升级」可能列出多条，跨两列并允许换行 */
+.stat-group-grid .row.wide {
+  grid-column: 1 / -1;
+  align-items: flex-start;
+}
+.stat-group-grid .row.wide .v {
+  text-align: right;
+  white-space: normal;
+  line-height: 1.5;
+}
 .stat-group-grid .k {
   color: #9aa3c7;
 }

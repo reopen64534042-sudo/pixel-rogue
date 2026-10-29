@@ -1,6 +1,5 @@
 import { WORLD } from "../data/constants";
 import {
-  BOUNCE_DAMAGE_MUL,
   CURRENT_HP_DAMAGE_FRACTION,
   HOMING_RANGE,
   HOMING_TURN_RATE,
@@ -49,38 +48,6 @@ export function updateProjectiles(this: GameCore, dt: number) {
     b.x += b.vx * travelTime;
     b.y += b.vy * travelTime;
     b.life -= travelTime;
-    if (b.special && (b.bounces ?? 0) > 0) {
-      let hitWall = false;
-      if (b.x < 0) {
-        b.x = -b.x;
-        b.vx = -b.vx;
-        hitWall = true;
-      } else if (b.x > WORLD.w) {
-        b.x = WORLD.w * 2 - b.x;
-        b.vx = -b.vx;
-        hitWall = true;
-      }
-      if (b.y < 0) {
-        b.y = -b.y;
-        b.vy = -b.vy;
-        hitWall = true;
-      } else if (b.y > WORLD.h) {
-        b.y = WORLD.h * 2 - b.y;
-        b.vy = -b.vy;
-        hitWall = true;
-      }
-      if (hitWall) {
-        b.x = Math.max(0, Math.min(WORLD.w, b.x));
-        b.y = Math.max(0, Math.min(WORLD.h, b.y));
-        b.dmg *= BOUNCE_DAMAGE_MUL;
-        b.bounces = (b.bounces ?? 0) - 1;
-        this.audio.beep(900, 0.05, "square", 0.03, 300);
-        if (b.bounces <= 0) {
-          this.bullets.splice(i, 1);
-          continue;
-        }
-      }
-    }
     // S2「贯穿轨迹」：沿路径投放能量线节点（节流 0.05s，寿命 0.6s）。
     // 用节点而不是连续几何，是为了让结算保持 O(节点数 × 敌人数) 的简单上界。
     if (b.trail && b.trail > 0) {
@@ -145,10 +112,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
         });
         if (special) this.gainSpecialXp(1);
         b.hitList.push(e);
-        if (b.infinitePierce) {
-          // Lv.3+：不消耗穿透次数，但仍按 falloff 衰减；hitList 防止重复命中。
-          b.dmg *= b.falloff;
-        } else if (b.pierce > 0) {
+        if (b.pierce > 0) {
           b.pierce--;
           // S2：衰减系数从硬编码 0.85 改为发射时固化的属性值
           //（射手职业 0.5、破甲箭 0.8、弹道贯穿 1.0）
