@@ -1,4 +1,5 @@
 import {
+  CHEST_HEAL,
   ELITE_BOX_GAIN,
   ELITE_BOX_POINT_CAP,
   POTION_GROW_CAP,
@@ -41,14 +42,15 @@ export function updateProgression(this: GameCore, dt: number) {
       }
     }
   }
-  // 满血也吸附：满血拾取会转化为最大生命，不再是废品
+  // 满血时不再吸附：满血血包会转最大生命，但让玩家自己决定何时踩上去；
+  // 手动接触仍保留满血转化（不再自动把血包吸走）。
   const pullR = p.magnet * 0.4; // 血瓶吸附范围 ≤ 经验球的一半
   for (let i = this.potions.length - 1; i >= 0; i--) {
     const o = this.potions[i];
     const dx = p.x - o.x,
       dy = p.y - o.y;
     const d = Math.hypot(dx, dy);
-    if (d >= 6 && d < pullR) {
+    if (p.hp < p.maxhp && d >= 6 && d < pullR) {
       const s = 140;
       o.x += (dx / d) * s * dt;
       o.y += (dy / d) * s * dt;
@@ -76,22 +78,27 @@ export function updateProgression(this: GameCore, dt: number) {
       this.audio.beep(700, 0.12, "triangle", 0.06, 200);
     }
   }
-  // 宝箱：平时留在原地等玩家踩上去；波次结束（auto）后像经验球一样飞过来
+  // 宝箱：平时留在原地等玩家踩上去；波次结束（auto）后像经验球一样飞过来。
+  // v79：满血时取消自动飞行（吸附），玩家仍可走到箱子上手动拾取。
   for (let i = this.boxes.length - 1; i >= 0; i--) {
     const b = this.boxes[i];
     const dx = p.x - b.x,
       dy = p.y - b.y;
     const d = Math.hypot(dx, dy);
-    if (b.auto && d > 0.01) {
+    if (b.auto && p.hp < p.maxhp && d > 0.01) {
       b.x += (dx / d) * 300 * dt;
       b.y += (dy / d) * 300 * dt;
     }
     if (dx * dx + dy * dy < 64) {
       this.boxes.splice(i, 1);
+      // v79：普通/精英宝箱拾取回血相同；满血时回复 0，但属性/经验照常。
+      const healed = Math.min(CHEST_HEAL, Math.max(0, p.maxhp - p.hp));
+      if (healed > 0) p.hp += healed;
+      const healText = healed > 0 ? ` · 生命 +${healed}` : "";
       if (!b.special) {
         // 普通宝箱：固定 1 点，不受精英上限约束
         this.boxPicks += 1;
-        this.addText(p.x, p.y - 14, "宝箱 +1", "#ffc23d");
+        this.addText(p.x, p.y - 14, `宝箱 +1${healText}`, "#ffc23d");
       } else {
         // Issue #87（用户批准的平衡变更）：特殊宝箱 1 点 + 每波精英点数上限 2，
         // 超出部分转为经验 + 血包（沿用 Issue #71 的兜底口径），避免后期多精英导致数值膨胀。
@@ -103,11 +110,16 @@ export function updateProgression(this: GameCore, dt: number) {
         if (gain > 0) {
           this.eliteBoxPointsThisWave += gain;
           this.boxPicks += gain;
-          this.addText(p.x, p.y - 14, `特殊宝箱 +${gain}`, "#ffd24a");
+          this.addText(p.x, p.y - 14, `特殊宝箱 +${gain}${healText}`, "#ffd24a");
         } else {
           this.player.xp += 8;
           this.potions.push({ x: p.x, y: p.y });
-          this.addText(p.x, p.y - 14, "精英宝箱已满 · 转经验 + 血包", "#9aa3c7");
+          this.addText(
+            p.x,
+            p.y - 14,
+            `精英宝箱已满 · 转经验 + 血包${healText}`,
+            "#9aa3c7",
+          );
         }
       }
       this.audio.beep(1046, 0.1, "triangle", 0.05, 200);

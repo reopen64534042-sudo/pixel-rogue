@@ -3,6 +3,7 @@ import { StorageService } from "../../services/StorageService";
 import { CodexStore, type CodexStorage } from "../codex/CodexStore";
 import { CodexSystem } from "../codex/CodexSystem";
 import { WORLD } from "../data/constants";
+import { DEFAULT_KEYBINDS, type KeyBindings } from "../data/keybindings";
 import { statBase } from "../data/stats";
 import type { SpecialUpgradeId } from "../data/specialShot";
 import {
@@ -279,7 +280,7 @@ export class GameCore {
    * `attrPicks` 本身仍是累加的，未用完的次数照旧可以留到下次。
    */
   attrGrantedThisWave = 0;
-  /** 当前展示的四格候选（offense/defense/utility/special 各一个） */
+  /** 当前展示的四格候选（输出/生存/续航/功能 各一个） */
   attrChoices: AttrChoice[] = [];
   /** 本「次选择」的刷新额度是否已用掉（每次选择各有一次，选完重置） */
   attrRefreshUsed = false;
@@ -359,6 +360,8 @@ export class GameCore {
   swTarget = 0;
   swSel: Record<string, number> = {};
   keys: Record<string, boolean> = {};
+  /** 键位设置（v79）：GameUI 启动时从 localStorage 载入；resetGame 不重置。 */
+  keybinds: KeyBindings = { ...DEFAULT_KEYBINDS };
   /**
    * Issue #95：触控八向向量（取值只可能是 -1 / 0 / 1）。
    *

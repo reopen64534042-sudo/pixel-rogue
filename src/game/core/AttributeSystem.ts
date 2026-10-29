@@ -8,7 +8,7 @@ import type { ModifierStage, StatId } from "./StatModel";
  * 伤害重做 S1：属性发放（波末四选一 + 一次刷新）。
  *
  * 设计口径（`docs/talent-pool-design-rules.md` §5.3 / `damage-rework-coordination-v1.md` §4-D）：
- * - 四格固定为 攻势 / 守势 / 功能 / 特殊，各出一格，所以「方向」永远齐全；
+ * - 四格固定为 输出 / 生存 / 续航 / 功能，各出一格，所以「方向」永远齐全；
  * - 稀有度**纯随机、无保底**，刷新会把稀有度一起重掷（可能把金刷成白）；
  * - 数值梯度 1 : 1.5 : 2.1 : 2.9（白/绿/紫/金，约每档 ×1.45）；
  * - 概率随等级每 5 级一档，越到后期高档越常见——这是「越打越值钱」的来源；
@@ -17,14 +17,18 @@ import type { ModifierStage, StatId } from "./StatModel";
  * 与天赋的分工：属性只做「线性、无条件、可预期」的数值成长。凡是改变打法的
  * （穿透、多段、护盾、触发类）都留在天赋里；本模块不应出现任何条件逻辑。
  *
- * 暂未纳入的一项：`dodge`（闪避）尚无权威来源——它由旧卡「闪避本能」直接写
- * Player，纳入投影需要先把那张卡迁进来源表。属性池里不提供它，避免
- * 「投影写回 0 把卡的加成抹掉」。
+ * 分类轴：玩家拿这张卡想解决什么问题——打得更疼（输出）/ 不被秒（生存）/
+ * 打完能回（续航）/ 走位、拾取、打得更远更广（功能）。暴击与暴击伤害同组，
+ * 吸血与生命回复同组，不再使用「特殊」兜底。
  *
  * `regen`（生命回复）已随 #135 纳入：StatModel 白名单补了 lifesteal/regen，
  * 投影侧改成「有来源才写」，因此不会与旧卡 `f` 的直写冲突。
  */
 
+/**
+ * 内部 key 沿用历史命名（offense/defense/special/utility），玩家看到的标签
+ * 以 ATTR_GROUPS 为准；`special` 现在表示「续航」，不再表示「特殊」。
+ */
 export type AttrGroup = "offense" | "defense" | "utility" | "special";
 
 export interface AttrGroupDef {
@@ -33,10 +37,10 @@ export interface AttrGroupDef {
 }
 
 export const ATTR_GROUPS: readonly AttrGroupDef[] = [
-  { key: "offense", label: "攻势" },
-  { key: "defense", label: "守势" },
+  { key: "offense", label: "输出" },
+  { key: "defense", label: "生存" },
+  { key: "special", label: "续航" },
   { key: "utility", label: "功能" },
-  { key: "special", label: "特殊" },
 ];
 
 export interface AttrDef {
@@ -74,6 +78,7 @@ export interface AttrDef {
  * 每格至少 2 个候选：只有一个时「这一格」就不是选择而是发放。
  */
 export const ATTR_DEFS: readonly AttrDef[] = [
+  // ================= 输出 =================
   // #134 方案 B：攻击 +5 → +2。
   // 原值对基础攻击 11 是 **+45%/次**，配上每波 5-7 次，30 波能把攻击堆到数百，
   // 天赋的机制收益完全被淹没。+2 约等于 +18%/次，与「一次选择 = 一个小台阶」相称。
@@ -88,32 +93,27 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     kind: "pct",
     capped: (p) => p.crit >= 1,
   },
-  // 续航之一（#135）：命中回复伤害的百分比。放在攻势组——它鼓励持续输出。
-  // 0.04 = 4%/次：前期攻击 11 → 约 0.44/次、攻速 2.2 → 约 1/s，
-  // 后期攻击上百后成为主要回复来源（与「生命回复」形成「打得多回得多 vs 稳定回」的分工）。
   {
     group: "offense",
-    label: "生命汲取",
-    stat: "lifesteal",
+    label: "暴击伤害",
+    stat: "critMultiplier",
     stage: "flat",
-    base: 0.04,
+    base: 0.15,
+    kind: "pct",
+  },
+  {
+    group: "offense",
+    label: "全局增伤",
+    stat: "globalDamageBonus",
+    stage: "percent",
+    base: 0.05,
     kind: "pct",
   },
 
+  // ================= 生存 =================
   // #134 方案 B：生命 +15 → +10（对基础 100 是 +10%/次，原先 15% 偏猛）
   { group: "defense", label: "生命", stat: "maxHp", stage: "flat", base: 10, kind: "int" },
   { group: "defense", label: "护甲", stat: "defense", stage: "flat", base: 6, kind: "int" },
-  // 续航之二（#135）：每秒固定回复。放在守势组——它是「站着就回」的稳定续航。
-  // 0.6/秒 取自旧卡「修复微光」，避免出现第二套量级。
-  {
-    group: "defense",
-    label: "生命回复",
-    stat: "regen",
-    stage: "flat",
-    base: 0.6,
-    kind: "dec",
-    unit: "/秒",
-  },
   // S5：闪避（完全免伤）。上限 60% 取自设计文档附录 E 的成长预算；
   // 白档 +3%（与暴击同档），金色 8.7%，集中投入约 7 次到顶。
   // 来源迁移：旧卡「闪避本能」已进 TalentStatSources，投影不会互相抹。
@@ -127,35 +127,39 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     capped: (p) => p.dodge >= 0.6,
   },
 
+  // ================= 续航 =================
+  // 续航之一（#135）：命中回复伤害的百分比。
+  // 0.04 = 4%/次：前期攻击 11 → 约 0.44/次、攻速 2.2 → 约 1/s，
+  // 后期攻击上百后成为主要回复来源（与「生命回复」形成「打得多回得多 vs 稳定回」的分工）。
+  {
+    group: "special",
+    label: "吸血",
+    stat: "lifesteal",
+    stage: "flat",
+    base: 0.04,
+    kind: "pct",
+  },
+  // 续航之二（#135）：每秒固定回复。0.6/秒 取自旧卡「修复微光」，
+  // 避免出现第二套量级。
+  {
+    group: "special",
+    label: "生命回复",
+    stat: "regen",
+    stage: "flat",
+    base: 0.6,
+    kind: "dec",
+    unit: "/秒",
+  },
+
+  // ================= 功能 =================
   { group: "utility", label: "移速", stat: "moveSpeed", stage: "percent", base: 0.04, kind: "pct" },
   // 「拾取范围」：magnet 决定经验球与血瓶的自动吸附半径（ProgressionSystem）。
   // 旧名「拾取」含义模糊（是范围？速度？自动？），直接写清范围，不加额外提示。
   { group: "utility", label: "拾取范围", stat: "magnet", stage: "flat", base: 8, kind: "int" },
   { group: "utility", label: "射程", labels: { mage: "施法距离" }, stat: "attackRange", stage: "percent", base: 0.05, kind: "pct" },
-  // 「范围」：S2（#135）因射手零感知被移出面板，S3 法师的法阵半径直接读
-  // `p.area`（mageCircleRadius），因此只对法师恢复投放。
-  { group: "utility", label: "范围", prof: "mage", stat: "area", stage: "percent", base: 0.05, kind: "pct" },
-
-  {
-    group: "special",
-    label: "暴伤",
-    stat: "critMultiplier",
-    stage: "flat",
-    base: 0.15,
-    kind: "pct",
-  },
-  {
-    group: "special",
-    label: "增伤",
-    stat: "globalDamageBonus",
-    stage: "percent",
-    base: 0.05,
-    kind: "pct",
-  },
-  // S2（#135）：移除「范围」（area）。
-  // 原因：射手唯一受它影响的是弹丸**碰撞判定半径**（`size = 2*area`），
-  // 而 GameScene 绘制弹丸时根本不读 size——只改判定、不改视觉，玩家零感知。
-  // area 这个 stat 保留（环绕飞刃/陨星/爆炸/法师 AOE 都要用），S3a 再加回面板。
+  // 法阵范围：S2（#135）因射手零感知被移出面板，S3 法师的法阵半径直接读
+  // `p.area`（mageCircleRadius），因此只对法师投放。
+  { group: "utility", label: "法阵范围", prof: "mage", stat: "area", stage: "percent", base: 0.05, kind: "pct" },
 ];
 
 /** 稀有度倍率：白 / 绿 / 紫 / 金 */
@@ -266,7 +270,7 @@ export function rollAttrChoices(
   p: Player,
   prof: Profession = "shooter",
 ): AttrChoice[] {
-  return ATTR_GROUPS.map((group) => {
+  const choices = ATTR_GROUPS.map((group) => {
     const pool = ATTR_DEFS.filter(
       (d) =>
         d.group === group.key &&
@@ -277,6 +281,12 @@ export function rollAttrChoices(
     const def = usable[Math.floor(Math.random() * usable.length)];
     return makeChoice(def, p, prof);
   });
+  // v79：四格顺序随机，避免输出类永远在第一张。键盘 1-4 跟随显示顺序。
+  for (let i = choices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [choices[i], choices[j]] = [choices[j], choices[i]];
+  }
+  return choices;
 }
 
 /** 候选 → 可提交的属性点（stage 与数值原样带过去） */

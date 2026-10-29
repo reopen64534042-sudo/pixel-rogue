@@ -70,6 +70,8 @@ export class GameScene extends Phaser.Scene {
     this.orient = new OrientationGate(this.core, this.touch.active);
     this.cameras.main.setBounds(0, 0, WORLD.w, WORLD.h).setRoundPixels(true);
     const down = (event: KeyboardEvent) => {
+      // v79：设置面板/改键捕获优先；返回 true 时游戏不处理本事件。
+      if (this.ui.handleSettingsKey(event)) return;
       const key = event.key.toLowerCase();
       if (
         [" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)
@@ -77,16 +79,17 @@ export class GameScene extends Phaser.Scene {
         event.preventDefault();
       this.core.keys[key] = true;
       if (event.repeat) return;
-      // 覆盖层优先：图鉴打开时 P / Esc 只关闭图鉴，不恢复游戏（Issue #78 / #81）
-      if (key === "p" || key === "escape") {
+      // 覆盖层优先：图鉴打开时暂停键 / Esc 只关闭图鉴，不恢复游戏（Issue #78 / #81）
+      if (key === this.core.keybinds.pause || key === "escape") {
         if (this.ui.dismissOverlay()) return;
-        if (key === "p") this.core.togglePause();
+        if (key === this.core.keybinds.pause) this.core.togglePause();
         else if (this.core.state === "stats") this.core.toggleStats();
         else if (this.core.state === "pause") this.core.togglePause();
         return;
       }
       // 图鉴打开时不响应属性面板，避免两层 overlay 互相遮挡
-      if (key === "c" && !this.ui.hasOverlay()) this.core.toggleStats();
+      if (key === this.core.keybinds.stats && !this.ui.hasOverlay())
+        this.core.toggleStats();
       if (key === "m") {
         this.core.audio.muted = !this.core.audio.muted;
         this.core.addText(
@@ -296,5 +299,7 @@ export class GameScene extends Phaser.Scene {
       );
       draw.call(this.core, this.painter);
     }
+    // v77：低血量屏幕边缘提示（DOM 覆盖层；只改 opacity，不碰画布）
+    this.ui.syncLowHp();
   }
 }
