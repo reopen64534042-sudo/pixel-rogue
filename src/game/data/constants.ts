@@ -4,6 +4,8 @@ export const VIEW = { w: W, h: H };
 export const WORLD = { w: 1392, h: 1040 };
 /** 满血拾取血包转化为最大生命的每波上限（加成本身永久保留，不设总上限） */
 export const POTION_GROW_CAP = 10;
+/** 宝箱拾取回血：普通与精英宝箱相同（v79 用户裁定） */
+export const CHEST_HEAL = 10;
 /** 每波普通怪宝箱掉落上限；精英宝箱不占此名额 */
 export const BOX_DROP_CAP = 2;
 /** 普通怪单只掉宝箱概率 */

@@ -199,10 +199,25 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     const R = Math.round(
       mageCircleRadius(this, this.mageCharge + 1 >= MB.chargeFull),
     );
-    ctx.globalAlpha = this.castPhase === "cast" ? 0.5 : 0.25;
+    const total = Math.max(0.001, mageWindup(this));
+    const castPart = total * (1 - MB.castWindupInterruptible / MB.castWindup);
+    const remain =
+      this.castPhase === "windup" ? this.castT + castPart : this.castT;
+    const prog = Math.max(0, Math.min(1, 1 - remain / total));
+    // v80：法阵预览从中心缓动扩大，避免整圈突然出现；结束时正好等于实际半径。
+    const grow = 1 - (1 - prog) * (1 - prog);
+    const drawR = Math.max(1, Math.round(R * grow));
+    // 透明度随进度缓慢加深，避免 windup→cast 切换时整圈闪一下。
+    ctx.globalAlpha = 0.2 + 0.3 * prog;
     ctx.strokeStyle = steady ? "#57e6ff" : "#c07bff";
     ctx.beginPath();
-    ctx.arc(Math.round(this.castX), Math.round(this.castY), R, 0, Math.PI * 2);
+    ctx.arc(
+      Math.round(this.castX),
+      Math.round(this.castY),
+      drawR,
+      0,
+      Math.PI * 2,
+    );
     ctx.stroke();
     ctx.fillStyle = "#7a4fd0";
     ctx.fillRect(Math.round(this.castX - 2), Math.round(this.castY - 2), 4, 4);
@@ -210,11 +225,6 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     // 玩家脚下的吟唱读条：**横条**，不是环。
     // 环会和法阵落点圈、护盾圈、冲刺格挤在角色周围（用户实机反馈「很花」）；
     // 横条只占角色下方 3px，放在冲刺充能格（y+10）上方，互不重叠。
-    const total = Math.max(0.001, mageWindup(this));
-    const castPart = total * (1 - MB.castWindupInterruptible / MB.castWindup);
-    const remain =
-      this.castPhase === "windup" ? this.castT + castPart : this.castT;
-    const prog = Math.max(0, Math.min(1, 1 - remain / total));
     const bw = 22;
     // 取整基准必须与角色贴图一致：先 round 玩家坐标、再减一个**整数**偏移。
     // 之前写 round(x - bw/2)，bw 为奇数时（冲刺格 5px）偏移是 ±2.5，
