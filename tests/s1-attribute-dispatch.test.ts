@@ -2,12 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ATTR_DEFS,
   ATTR_GROUPS,
+  ATTR_WAVE_GRANT_CAP,
   RARITY_CHANCE,
   attrPicksPerWave,
   rarityChances,
   rollAttrChoices,
 } from "../src/game/core/AttributeSystem";
-import { fresh, skipAttrs, ticks } from "./helpers";
+import { enemy, fresh, learn, skipAttrs, ticks } from "./helpers";
 
 /**
  * 伤害重做 S1 · 属性发放（波末四选一 + 一次刷新）
@@ -32,19 +33,21 @@ function seedRandom(seed = 20261029) {
 }
 
 describe("S1 · 发放节奏", () => {
-  it("每波次数：1-10 波 1 次 / 11-20 波 2 次 / 21 波起 3 次", () => {
+  it("每波基础次数：1-10 波 1 次 / 11 波起 2 次（#134 方案 B）", () => {
+    // 基础额度故意不给到 3：留出余量让宝箱能补 1~2 次，
+    // 否则 21 波后基础就占满上限，宝箱变成纯装饰。
     expect(attrPicksPerWave(1)).toBe(1);
     expect(attrPicksPerWave(10)).toBe(1);
     expect(attrPicksPerWave(11)).toBe(2);
     expect(attrPicksPerWave(20)).toBe(2);
-    expect(attrPicksPerWave(21)).toBe(3);
-    expect(attrPicksPerWave(30)).toBe(3);
+    expect(attrPicksPerWave(21)).toBe(2);
+    expect(attrPicksPerWave(30)).toBe(2);
   });
 
-  it("一局 30 波共 60 次（不是 30 次：后期加速）", () => {
+  it("一局 30 波基础额度 50 次（1×10 + 2×20）", () => {
     let total = 0;
     for (let w = 1; w <= 30; w++) total += attrPicksPerWave(w);
-    expect(total).toBe(60);
+    expect(total).toBe(50);
   });
 });
 
@@ -78,8 +81,8 @@ describe("S1 · 候选生成", () => {
     // 直接按倍率推导，避免依赖随机
     const white = Math.round(attack.base * 1);
     const gold = Math.max(1, Math.round(attack.base * 2.9));
-    expect(white).toBe(5);
-    expect(gold).toBe(15);
+    expect(white).toBe(2); // #134：攻击白档 5 → 2
+    expect(gold).toBe(6); // round(2 × 2.9)
   });
 
   it("概率表：7 档 × 4 稀有度，且每档合计 100", () => {
@@ -173,7 +176,7 @@ describe("S1 · 面板流程", () => {
 });
 
 describe("S1 · 一局跑完不卡（检查点 ②）", () => {
-  it("30 波 × 60 次选择，每次都能走完且面板正确关闭", () => {
+  it("30 波 × 50 次选择，每次都能走完且面板正确关闭", () => {
     seedRandom(11);
     const g = fresh();
     let picks = 0;
@@ -191,8 +194,8 @@ describe("S1 · 一局跑完不卡（检查点 ②）", () => {
       }
       expect(g.bpMode).toBeNull();
     }
-    expect(picks).toBe(60);
-    expect(g.attributePicks).toHaveLength(60);
+    expect(picks).toBe(50);
+    expect(g.attributePicks).toHaveLength(50);
   });
 
   it("属性额度不会丢：跳过的次数留到下次休整", () => {
@@ -203,5 +206,151 @@ describe("S1 · 一局跑完不卡（检查点 ②）", () => {
     skipAttrs(g);
     expect(g.startNextWave()).toBe(true);
     expect(g.attrPicks).toBe(attrPicksPerWave(2));
+  });
+});
+
+/**
+ * #135：属性池增删两条续航 + 移除「范围」。
+ *
+ * 这里验证的是**整条链路**（AttributeSystem → StatModel 白名单 → 投影写回 →
+ * 战斗消费点），不是只断言目录里多了两行——之前 `regen` 就是「有消费点、
+ * 无来源」的死字段，只加目录不加白名单会静默失效。
+ */
+describe("属性池：#135 续航与范围", () => {
+  it("「范围」不再进属性池，但 area 这个 stat 仍在（法师 AOE 会用）", () => {
+    expect(ATTR_DEFS.some((d) => d.label === "范围")).toBe(false);
+    expect(ATTR_DEFS.some((d) => d.stat === "area")).toBe(false);
+  });
+
+  it("生命汲取在攻势组、生命回复在守势组，且显示格式正确", () => {
+    const leech = ATTR_DEFS.find((d) => d.label === "生命汲取")!;
+    expect(leech.group).toBe("offense");
+    expect(leech.stat).toBe("lifesteal");
+    expect(leech.base).toBeCloseTo(0.04, 10);
+
+    const regen = ATTR_DEFS.find((d) => d.label === "生命回复")!;
+    expect(regen.group).toBe("defense");
+    expect(regen.stat).toBe("regen");
+    expect(regen.base).toBeCloseTo(0.6, 10);
+    // 0.6 必须保留一位小数：int 型会被 round 成 1，量级就翻了 66%
+    expect(regen.kind).toBe("dec");
+    expect(regen.unit).toBe("/秒");
+
+    // 每格仍有 ≥2 个候选（否则那一格不是选择而是发放）
+    for (const group of ["offense", "defense", "utility", "special"]) {
+      const n = ATTR_DEFS.filter((d) => d.group === group).length;
+      expect(n, group).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("生命汲取走通整条链路：命中后按伤害比例回血", () => {
+    const g = fresh();
+    g.quota = 0;
+    g.attributePicks.push({ stat: "lifesteal", stage: "flat", value: 0.5 });
+    g.recompute();
+    expect(g.player.lifesteal).toBeCloseTo(0.5, 10); // 白名单 + 写回都通了
+
+    g.player.hp = 50;
+    const e = enemy(g);
+    e.hp = e.maxhp = 1e6;
+    g.hurtEnemy(e, 20, 0, 0, {
+      src: "bullet",
+      type: "physical",
+      form: "ranged",
+    });
+    expect(g.player.hp).toBeGreaterThan(50);
+  });
+
+  it("生命回复走通整条链路：每秒按恒定速率回血", () => {
+    const g = fresh();
+    g.quota = 0;
+    g.attributePicks.push({ stat: "regen", stage: "flat", value: 6 });
+    g.recompute();
+    expect(g.player.regen).toBeCloseTo(6, 10);
+
+    g.player.hp = 50;
+    ticks(g, 60); // 约 1 秒
+    // 60 帧 × 1/60 × 6 ≈ 6 点；给足容差，只验证「确实在回」且量级正确
+    expect(g.player.hp).toBeGreaterThan(54);
+    expect(g.player.hp).toBeLessThanOrEqual(57);
+  });
+
+  it("两条续航与旧卡 f 不互相覆盖（投影只在有来源时写）", () => {
+    const g = fresh();
+    g.quota = 0;
+    // 旧卡路径：f 直接写
+    learn(g, "修复微光", 2); // 0.6 × 2
+    const viaCard = g.player.regen;
+    expect(viaCard).toBeCloseTo(1.2, 10);
+    // 属性来源不存在时，recompute 不得把卡的效果抹成 0
+    g.recompute();
+    expect(g.player.regen).toBeCloseTo(viaCard, 10);
+  });
+});
+
+/**
+ * #134 方案 B：属性发放限幅。
+ *
+ * 核心不变式：**单波新增**（基础额度 + 宝箱折算）合计不超过
+ * `ATTR_WAVE_GRANT_CAP`；`attrPicks` 本身仍累加（未用完留到下次），
+ * 换波只清零「本波已发放」计数。
+ */
+describe("属性发放限幅：#134 方案 B", () => {
+  it("单波发放合计封顶：基础 2 + 宝箱 2 → 宝箱只放行 1", () => {
+    const g = fresh();
+    g.waveN = 11; // 基础额度 2
+    g.attrPicks = 0;
+    g.attrGrantedThisWave = 0;
+    expect(g.grantAttrPicks(2)).toBe(2); // 基础
+    expect(g.grantAttrPicks(2)).toBe(1); // 宝箱 2 只放行 1（cap 3）
+    expect(g.grantAttrPicks(2)).toBe(0); // 已满
+    expect(g.attrPicks).toBe(3);
+    expect(g.attrGrantedThisWave).toBe(3);
+  });
+
+  it("非法输入直接拒绝，不产生发放", () => {
+    const g = fresh();
+    g.attrPicks = 0;
+    g.attrGrantedThisWave = 0;
+    expect(g.grantAttrPicks(0)).toBe(0);
+    expect(g.grantAttrPicks(-1)).toBe(0);
+    expect(g.grantAttrPicks(Number.NaN)).toBe(0);
+    expect(g.attrPicks).toBe(0);
+    expect(g.attrGrantedThisWave).toBe(0);
+  });
+
+  it("开局发放第 1 波基础额度；换波清零计数、留存语义不变", () => {
+    seedRandom();
+    const g = fresh();
+    expect(g.attrGrantedThisWave).toBe(1); // startGame 已发放第 1 波
+    expect(g.grantAttrPicks(2)).toBe(2); // 波内补发（如宝箱）
+    expect(g.grantAttrPicks(2)).toBe(0); // 封顶
+    expect(g.attrPicks).toBe(3);
+    g.wavePhase = "rest"; // startNextWave 要求休整相
+    skipAttrs(g); // 面板留到下次：直接清空跳过
+    expect(g.startNextWave()).toBe(true); // → 第 2 波
+    // 额度池按波重置并发放新基础额度（第 2 波为 1）；attrPicks 同步为新基础额度
+    expect(g.attrGrantedThisWave).toBe(attrPicksPerWave(2));
+    expect(g.attrPicks).toBe(attrPicksPerWave(2));
+    expect(ATTR_WAVE_GRANT_CAP).toBe(3); // 用户体感锚点：每波最多 3 次
+  });
+
+  it("宝箱折算受单波额度约束并提示「本波已满」", () => {
+    seedRandom();
+    const g = fresh();
+    g.waveN = 11; // 基础额度 2
+    g.attrPicks = 0;
+    g.attrGrantedThisWave = 0;
+    g.grantAttrPicks(2); // 基础额度已发放（占用额度池 2/3）
+    g.spawnedThisWave = g.quota;
+    g.wavePhase = "collect";
+    g.boxPicks = 2;
+    const spy = vi.spyOn(g, "addText");
+    ticks(g, 2);
+    expect(g.wavePhase).toBe("rest");
+    expect(g.attrPicks).toBe(3); // 基础 2 + 宝箱 1（被 cap 截断）
+    expect(
+      spy.mock.calls.some((c) => String(c[2]).includes("本波已满")),
+    ).toBe(true);
   });
 });

@@ -1,4 +1,17 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
+
+/**
+ * S2 修订：开局送 1 次天赋，started 回调会弹出天赋面板。
+ * e2e 若不先选掉，后续的键盘/点击都会被面板挡住（表现为 click 超时）。
+ */
+async function dismissStartTalent(page: Page) {
+  const card = page.locator("#bp-cards .card").first();
+  if (await card.isVisible().catch(() => false)) {
+    await card.click();
+    await expect(page.locator("#bp-level")).toBeHidden();
+  }
+}
 test("real Phaser input, UI commands, pause, choices, furnace, death, history, restart", async ({
   page,
 }) => {
@@ -9,6 +22,7 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
   await page.waitForFunction(
     () => window.__PIXEL_ROGUE__?.core.state === "play",
   );
+  await dismissStartTalent(page);
   const start = await page.evaluate(
     () => window.__PIXEL_ROGUE__!.core.player.x,
   );
@@ -114,6 +128,12 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
     ),
   ).toBeGreaterThan(0);
   await page.screenshot({ path: "output/playwright/bottombar-rest.png" });
+  // S2：天赋改为「精英波前一波」发放，第 3 波末会弹一次，必须确认已收起
+  await expect(page.locator("#bp-level")).toBeHidden();
+  await expect(page.locator("#bp-attr")).toBeHidden();
+  // S2：天赋改为「精英波前一波」发放，第 3 波末会弹一次，必须确认已收起
+  await expect(page.locator("#bp-level")).toBeHidden();
+  await expect(page.locator("#bp-attr")).toBeHidden();
   await page.getByRole("button", { name: "⚗ 打开置换" }).click();
   // 基线更新依据：Issue #74（两步式置换）——目标稀有度由首选材料自动推导，旧目标按钮已移除
   const material = page.locator('#sw-inv span[data-n="磨刃"]');
@@ -201,10 +221,15 @@ test("chest box panel reinforces damage talent with exact projection", async ({
   await page.waitForFunction(
     () => window.__PIXEL_ROGUE__?.core.state === "play",
   );
+  await dismissStartTalent(page);
   await page.evaluate(() => {
     const g = window.__PIXEL_ROGUE__!.core;
     const UPGRADES = window.__PIXEL_ROGUE__!.talents;
     g.learnTalent(UPGRADES.find((u) => u.n === "磨刃")!);
+    // S2：开局天赋面板可能仍开着，openBoxPanel 会因 bpMode 非空直接返回
+    g.pendingLevels = 0;
+    g.bpMode = null;
+    g.slots = [];
     g.boxPicks = 2;
     g.openBoxPanel();
   });

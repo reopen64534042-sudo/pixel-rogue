@@ -21,7 +21,7 @@ export const SHOOTER_TALENTS: Talent[] = [
   {
     n: "破甲箭",
     ico: "🏹",
-    t: 1,
+    t: 0,
     cat: "核心",
     slot: "核心",
     layer: 1,
@@ -35,7 +35,7 @@ export const SHOOTER_TALENTS: Talent[] = [
   {
     n: "弹道贯穿",
     ico: "➡️",
-    t: 2,
+    t: 0,
     cat: "核心",
     slot: "核心",
     layer: 2,
@@ -50,7 +50,7 @@ export const SHOOTER_TALENTS: Talent[] = [
   {
     n: "贯穿轨迹",
     ico: "〰️",
-    t: 3,
+    t: 0,
     cat: "核心",
     slot: "核心",
     layer: 3,
@@ -66,7 +66,7 @@ export const SHOOTER_TALENTS: Talent[] = [
   {
     n: "三重射击",
     ico: "🔱",
-    t: 2,
+    t: 0,
     cat: "核心",
     slot: "核心",
     layer: 3,
@@ -91,7 +91,7 @@ export const SHOOTER_TALENTS: Talent[] = [
   {
     n: "猎杀标记",
     ico: "🎯",
-    t: 1,
+    t: 0,
     cat: "标记",
     slot: "标记",
     layer: 1,
@@ -105,7 +105,7 @@ export const SHOOTER_TALENTS: Talent[] = [
   {
     n: "深痕",
     ico: "🩸",
-    t: 2,
+    t: 0,
     cat: "标记",
     slot: "标记",
     layer: 2,
@@ -120,7 +120,7 @@ export const SHOOTER_TALENTS: Talent[] = [
   {
     n: "处决",
     ico: "⚔️",
-    t: 3,
+    t: 0,
     cat: "标记",
     slot: "标记",
     layer: 3,
@@ -169,7 +169,7 @@ export const SHOOTER_TALENTS: Talent[] = [
   {
     n: "距离即收益",
     ico: "📏",
-    t: 1,
+    t: 0,
     cat: "距离",
     slot: "距离",
     layer: 1,
@@ -216,7 +216,7 @@ export const SHOOTER_TALENTS: Talent[] = [
   {
     n: "余韵",
     ico: "🌙",
-    t: 1,
+    t: 0,
     cat: "生存",
     slot: "生存",
     layer: 2,
@@ -232,7 +232,7 @@ export const SHOOTER_TALENTS: Talent[] = [
   {
     n: "赌命",
     ico: "🎲",
-    t: 2,
+    t: 0,
     cat: "生存",
     slot: "生存",
     layer: 3,

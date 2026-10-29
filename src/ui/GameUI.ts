@@ -11,7 +11,7 @@ import {
 import { fmtTime } from "../game/data/constants";
 import { boltDamage, critMultiplier } from "../game/core/DamageMath";
 import { COMBAT_BALANCE } from "../game/data/combatBalance";
-import { element, elementWithin } from "./dom";
+import { element } from "./dom";
 import { CodexUI } from "./CodexUI";
 const DMG_NAMES: Record<string, string> = {
   bullet: "🏹魔弹",
@@ -38,6 +38,15 @@ export class GameUI {
       reset: () => this.reset(),
       started: () => {
         ["ov-start", "ov-over", "ov-pause", "ov-stats"].forEach(hide);
+        // S2 修订（用户反馈）：开局送 1 次天赋 → 选完再进入战斗。
+        // 面板由**UI 层**弹出而不是 GameCore.startGame：core 里开面板会走
+        // rollPicks，消耗 Math.random 打乱确定性序列，所有基于种子随机的
+        // 测试与 parity 都会错位。放在这里，单测（silentView）完全不受影响。
+        // 注意调的是 **core 的逻辑方法**（会 rollPicks 并写 bpMode），
+        // 不是 UI 自己的 openLevelPanel()（那个只负责把面板显示出来）。
+        // 写成 this.openLevelPanel() 会静默无效：它只检查 bpMode 是否已是
+        // "level"，而此刻还是 null，于是直接返回、面板永远不出现。
+        if (this.core.pendingLevels > 0) this.core.openLevelPanel();
       },
       paused: (p) => {
         if (p) {
@@ -210,12 +219,14 @@ export class GameUI {
           this.choose(i);
         }
       };
-      el.innerHTML = `<div class="tier">${TIERS[u.t]}</div>
+      // 卡面只保留「说明」（d）。数值预览（pv）与 Lv.0 → 1 都是 S2 之前
+      // 的天赋语言：现在天赋一次性获得、不提供数值，这类预览既无意义也占高度。
+      // 稀有度文字只在非普通时显示——S2 的射手池暂定全普通（稀有度待讨论），
+      // 全普通时逐卡标「普通」纯属噪声；将来恢复分级后自动生效。
+      el.innerHTML = `${u.t > 0 ? `<div class="tier">${TIERS[u.t]}</div>` : ""}
       <div class="cat" style="color:${CAT_COLOR[u.cat]}">${CAT_ICO[u.cat]} ${u.cat}</div>
       <div class="ico">${u.ico}</div><div class="nm">${u.n}${u.mech && lv === 0 ? " ✦NEW" : ""}</div>
-      <div class="ds">${u.d}</div><div class="up"></div><div class="lv"></div>`;
-      elementWithin(el, ".up").textContent = u.pv(this.core.player); // 动态数值预览
-      elementWithin(el, ".lv").textContent = `Lv.${lv} → ${lv + 1}`;
+      <div class="ds">${u.d}</div>`;
       if (!s.used && this.core.bpMode === "level") {
         // 每张卡独立刷新 1 次（阻止冒泡，避免误触发"选卡"）；宝箱不提供刷新。
         // 用文字而非 🔄：Press Start 2P 不含 emoji，部分环境会渲染成方块。
@@ -360,7 +371,22 @@ export class GameUI {
     if (!learned.length) {
       tl.innerHTML = '<div class="talent-empty">暂未习得任何天赋</div>';
     } else {
-      const CAT_ORDER = ["攻击", "增幅", "技能", "防御"];
+      // S2 修复：分类顺序**从已学卡派生**，不再写死四个旧分类。
+      // 之前写死 ["攻击","增幅","技能","防御"]，而射手卡的 cat 是槽位名
+      //（核心/标记/距离/生存/脱离/机动），导致 18 张新卡一张都不显示——
+      // 数值其实生效，玩家却以为「天赋没用」。
+      const KNOWN_CATS = ["攻击", "增幅", "技能", "防御"];
+      const usedCats = [
+        ...new Set(
+          learned
+            .map(([n]) => UPGRADES.find((item) => item.n === n)?.cat)
+            .filter((c): c is string => !!c),
+        ),
+      ];
+      const CAT_ORDER = [
+        ...KNOWN_CATS.filter((c) => usedCats.includes(c)),
+        ...usedCats.filter((c) => !KNOWN_CATS.includes(c)),
+      ];
       let html = "";
       for (const cat of CAT_ORDER) {
         const inCat = learned.filter(([n]) => {
@@ -692,12 +718,18 @@ export class GameUI {
       html += `<span class="it">${DMG_NAMES[it.k]} <b>${Math.round(it.v)}</b> (${((it.v / total) * 100).toFixed(0)}%)</span>`;
     if (total < 0.5) html = '<span class="it">本波没有造成伤害</span>';
     element("bp-report").innerHTML = html;
-    // 置换入口: 本波没用过 且 存在可换的目标档位
+    // 置换入口: 本波没用过 且 存在可换的目标档位。
+    // S2：判定必须与 melt() 实际使用的池一致（legacyAvailTalents）——
+    // 射手池全部改成普通（t=0）之后，UPGRADES 里 t1/t2/t3 只剩退役旧卡，
+    // availTalents 恒为空，会导致按钮**永远不显示**、熔炉静默失效。
     const can =
       !this.core.swapUsedThisRest &&
-      ((this.core.cardsOfTier(0) >= 2 && this.core.availTalents(1).length) ||
-        (this.core.cardsOfTier(1) >= 2 && this.core.availTalents(2).length) ||
-        (this.core.cardsOfTier(2) >= 2 && this.core.availTalents(3).length));
+      ((this.core.cardsOfTier(0) >= 2 &&
+        this.core.legacyAvailTalents(1).length) ||
+        (this.core.cardsOfTier(1) >= 2 &&
+          this.core.legacyAvailTalents(2).length) ||
+        (this.core.cardsOfTier(2) >= 2 &&
+          this.core.legacyAvailTalents(3).length));
     element("bp-swapbtn").style.display = can ? "" : "none";
     element("bp-swap").classList.add("hidden");
     element("bp-level").classList.add("hidden");
@@ -766,7 +798,8 @@ export class GameUI {
       return;
     }
     hint.textContent = `可随机熔出 1 张${TIERS[this.core.swTarget]}天赋 · 点击熔炼确认`;
-    mb.disabled = !this.core.availTalents(this.core.swTarget).length;
+    // 同上：材料档的产出池也用熔炉实际使用的旧表池
+    mb.disabled = !this.core.legacyAvailTalents(this.core.swTarget).length;
     mb.style.opacity = mb.disabled ? "0.4" : "1";
   }
 

@@ -17,10 +17,12 @@ import type { ModifierStage, StatId } from "./StatModel";
  * 与天赋的分工：属性只做「线性、无条件、可预期」的数值成长。凡是改变打法的
  * （穿透、多段、护盾、触发类）都留在天赋里；本模块不应出现任何条件逻辑。
  *
- * 暂未纳入的两项：`dodge`（闪避）与 `regen`（回复）尚无权威来源——它们目前
- * 由旧卡 `f` 直接写 Player（闪避本能 / 修复微光），纳入投影需要先把那两张卡
- * 迁进来源表（S2 的迁移批次）。在那之前属性池里不提供它们，避免出现
- * 「投影写回 0 把卡的加成抹掉」这类问题。
+ * 暂未纳入的一项：`dodge`（闪避）尚无权威来源——它由旧卡「闪避本能」直接写
+ * Player，纳入投影需要先把那张卡迁进来源表。属性池里不提供它，避免
+ * 「投影写回 0 把卡的加成抹掉」。
+ *
+ * `regen`（生命回复）已随 #135 纳入：StatModel 白名单补了 lifesteal/regen，
+ * 投影侧改成「有来源才写」，因此不会与旧卡 `f` 的直写冲突。
  */
 
 export type AttrGroup = "offense" | "defense" | "utility" | "special";
@@ -45,8 +47,15 @@ export interface AttrDef {
   readonly stage: ModifierStage;
   /** 白档数值：flat 为绝对值，percent 为小数（0.04 = +4%） */
   readonly base: number;
-  /** 显示方式：int 整数、pct 百分比 */
-  readonly kind: "int" | "pct";
+  /**
+   * 显示方式：
+   * - `int` 整数（保底 1，避免「金色 +0 攻击」）
+   * - `pct` 百分比（×100 显示）
+   * - `dec` 一位小数（生命回复这类 0.6/秒 的量级，取整会失真）
+   */
+  readonly kind: "int" | "pct" | "dec";
+  /** 数值后缀（如「/秒」），拼在显示值后面 */
+  readonly unit?: string;
   /** 返回 true 表示已到上限，不再进入候选 */
   readonly capped?: (p: Player) => boolean;
 }
@@ -57,7 +66,10 @@ export interface AttrDef {
  * 每格至少 2 个候选：只有一个时「这一格」就不是选择而是发放。
  */
 export const ATTR_DEFS: readonly AttrDef[] = [
-  { group: "offense", label: "攻击", stat: "attack", stage: "flat", base: 5, kind: "int" },
+  // #134 方案 B：攻击 +5 → +2。
+  // 原值对基础攻击 11 是 **+45%/次**，配上每波 5-7 次，30 波能把攻击堆到数百，
+  // 天赋的机制收益完全被淹没。+2 约等于 +18%/次，与「一次选择 = 一个小台阶」相称。
+  { group: "offense", label: "攻击", stat: "attack", stage: "flat", base: 2, kind: "int" },
   { group: "offense", label: "攻速", stat: "fireRate", stage: "percent", base: 0.04, kind: "pct" },
   {
     group: "offense",
@@ -68,12 +80,37 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     kind: "pct",
     capped: (p) => p.crit >= 1,
   },
+  // 续航之一（#135）：命中回复伤害的百分比。放在攻势组——它鼓励持续输出。
+  // 0.04 = 4%/次：前期攻击 11 → 约 0.44/次、攻速 2.2 → 约 1/s，
+  // 后期攻击上百后成为主要回复来源（与「生命回复」形成「打得多回得多 vs 稳定回」的分工）。
+  {
+    group: "offense",
+    label: "生命汲取",
+    stat: "lifesteal",
+    stage: "flat",
+    base: 0.04,
+    kind: "pct",
+  },
 
-  { group: "defense", label: "生命", stat: "maxHp", stage: "flat", base: 15, kind: "int" },
+  // #134 方案 B：生命 +15 → +10（对基础 100 是 +10%/次，原先 15% 偏猛）
+  { group: "defense", label: "生命", stat: "maxHp", stage: "flat", base: 10, kind: "int" },
   { group: "defense", label: "护甲", stat: "defense", stage: "flat", base: 6, kind: "int" },
+  // 续航之二（#135）：每秒固定回复。放在守势组——它是「站着就回」的稳定续航。
+  // 0.6/秒 取自旧卡「修复微光」，避免出现第二套量级。
+  {
+    group: "defense",
+    label: "生命回复",
+    stat: "regen",
+    stage: "flat",
+    base: 0.6,
+    kind: "dec",
+    unit: "/秒",
+  },
 
   { group: "utility", label: "移速", stat: "moveSpeed", stage: "percent", base: 0.04, kind: "pct" },
-  { group: "utility", label: "拾取", stat: "magnet", stage: "flat", base: 8, kind: "int" },
+  // 「拾取范围」：magnet 决定经验球与血瓶的自动吸附半径（ProgressionSystem）。
+  // 旧名「拾取」含义模糊（是范围？速度？自动？），直接写清范围，不加额外提示。
+  { group: "utility", label: "拾取范围", stat: "magnet", stage: "flat", base: 8, kind: "int" },
   { group: "utility", label: "射程", stat: "attackRange", stage: "percent", base: 0.05, kind: "pct" },
 
   {
@@ -92,7 +129,10 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     base: 0.05,
     kind: "pct",
   },
-  { group: "special", label: "范围", stat: "area", stage: "percent", base: 0.05, kind: "pct" },
+  // S2（#135）：移除「范围」（area）。
+  // 原因：射手唯一受它影响的是弹丸**碰撞判定半径**（`size = 2*area`），
+  // 而 GameScene 绘制弹丸时根本不读 size——只改判定、不改视觉，玩家零感知。
+  // area 这个 stat 保留（环绕飞刃/陨星/爆炸/法师 AOE 都要用），S3a 再加回面板。
 ];
 
 /** 稀有度倍率：白 / 绿 / 紫 / 金 */
@@ -118,8 +158,23 @@ export function rarityChances(lvl: number): readonly number[] {
 }
 
 /** 每波给几次属性选择：1-10 波各 1 次，11-20 波 2 次，21 波起 3 次（一局 60 次） */
+/**
+ * 每波**新增**属性选择次数的硬上限（#134 方案 B）。
+ *
+ * 注意这是「新增额度」不是「存量上限」：`attrPicks` 仍是累加的（保留「这波没选完
+ * 可以留到下次」的既有行为），但一波之内无论多少来源（基础额度 / 普通宝箱 /
+ * 精英宝箱）合计不会超过这个数。
+ *
+ * 改之前：基础最多 3 + 宝箱最多 4 = 单波最多 7 次；一局约 120 次属性对上 8 次天赋，
+ * 权重 15:1，天赋的机制完全被数值淹没。
+ */
+export const ATTR_WAVE_GRANT_CAP = 3;
+
 export function attrPicksPerWave(wave: number): number {
-  return 1 + Math.floor((wave - 1) / 10);
+  // 原实现 `1 + floor((wave-1)/10)` 会在 21 波后给到 3，把额度占满、宝箱补不进来。
+  // 现在基础只给 1（前期）/ 2（11 波起），留出 1~2 的余量给宝箱，
+  // 让「打精英拿宝箱 → 多一次属性」这条因果仍然成立。
+  return wave >= 11 ? 2 : 1;
 }
 
 export interface AttrChoice {
@@ -144,12 +199,17 @@ function pickRarity(lvl: number): number {
 }
 
 function quantize(def: AttrDef, raw: number): number {
-  // 整数型保底 1，避免「金色 +0 攻击」这种笑话；百分比保留 3 位小数
-  return def.kind === "int" ? Math.max(1, Math.round(raw)) : Math.round(raw * 1000) / 1000;
+  // 整数型保底 1，避免「金色 +0 攻击」这种笑话；百分比保留 3 位小数；
+  // dec 型（生命回复）保留 1 位小数、保底 0.1 —— 0.6 若不保留小数会被 round 成 1。
+  if (def.kind === "int") return Math.max(1, Math.round(raw));
+  if (def.kind === "dec") return Math.max(0.1, Math.round(raw * 10) / 10);
+  return Math.round(raw * 1000) / 1000;
 }
 
 function textOf(def: AttrDef, value: number): string {
-  return def.kind === "int" ? `+${value}` : `+${Math.round(value * 1000) / 10}%`;
+  if (def.kind === "int") return `+${value}${def.unit ?? ""}`;
+  if (def.kind === "dec") return `+${value.toFixed(1)}${def.unit ?? ""}`;
+  return `+${Math.round(value * 1000) / 10}%`;
 }
 
 function makeChoice(def: AttrDef, p: Player): AttrChoice {
@@ -199,6 +259,27 @@ export function groupLabel(group: AttrGroup): string {
 // 与天赋的关键差异：这里**可能连续选多次**（attrPicks 由波次给），所以 choose 后
 // 若仍有剩余次数，就地重掷下一组，不关闭面板。
 
+/**
+ * 发放属性选择次数（#134 方案 B 的统一入口）。
+ *
+ * 所有来源（每波基础额度 / 普通宝箱 / 精英宝箱）都必须走这里：
+ * - 单波新增合计不超过 `ATTR_WAVE_GRANT_CAP`；
+ * - `attrPicks` 仍是累加的，未用完的次数照旧留到下次（既有语义不变）。
+ *
+ * 之前两处直接 `attrPicks +=`：`startNextWave`（基础）与 `enterRest`（宝箱），
+ * 互相不设限，所以单波最多能到 7 次。
+ *
+ * @returns 实际发放的次数（可能小于请求值，被单波额度截断）
+ */
+export function grantAttrPicks(this: GameCore, n: number): number {
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  const room = Math.max(0, ATTR_WAVE_GRANT_CAP - this.attrGrantedThisWave);
+  const granted = Math.min(n, room);
+  if (granted <= 0) return 0;
+  this.attrPicks += granted;
+  this.attrGrantedThisWave += granted;
+  return granted;
+}
 export function openAttrPanel(this: GameCore) {
   if (this.bpMode) return;
   this.bpMode = "attr";

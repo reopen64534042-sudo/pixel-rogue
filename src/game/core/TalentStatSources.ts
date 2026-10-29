@@ -589,6 +589,11 @@ export function applyTalentStatProjection(
     p.distanceDmg = resolved.distanceDmg;
   if (resolved.dashDistMul !== undefined)
     p.dashDistMul = resolved.dashDistMul;
+  // S2 续航（#135）：同样「有来源才写」——旧表吸血獠牙/修复微光仍靠 f 直写
+  // 这两个字段，无条件写回会把它们抹成 0（parity 全天赋场景会立刻对不上）。
+  // 两者都不在 base 里，所以属性 flat 从 0 起算，符合 statBase 的初始值。
+  if (resolved.lifesteal !== undefined) p.lifesteal = resolved.lifesteal;
+  if (resolved.regen !== undefined) p.regen = resolved.regen;
   // defense 无 base（键缺席 = 0），有来源才出现——与旧 f 的键存在性一致
   if (resolved.defense !== undefined) p.defense = resolved.defense;
   else delete p.defense;
