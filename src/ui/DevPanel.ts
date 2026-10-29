@@ -1,5 +1,6 @@
 import type { GameCore } from "../game/core/GameCore";
 import { UPGRADES } from "../game/data/talents";
+import type { Talent } from "../game/core/types";
 
 /**
  * 开发者作弊面板（**仅 DEV 构建**）。
@@ -34,6 +35,8 @@ export class DevPanel {
   /** 面板打开时轮询「已学数量」的签名，正常游玩选卡也能实时反映 */
   private timer: ReturnType<typeof setInterval> | null = null;
   private sig = "";
+  /** 「起始波次」输入框的保留值（面板重开时还原） */
+  private lastWave = 1;
   private readonly onKey = (e: KeyboardEvent) => {
     if (e.key === "F2") {
       e.preventDefault();
@@ -78,7 +81,7 @@ export class DevPanel {
     ) as HTMLDivElement;
     const head = el("div", "display:flex;align-items:center;gap:6px;margin-bottom:6px");
     head.appendChild(
-      el("div", "flex:1;color:#7d8ec4;letter-spacing:1px", "DEV · 天赋作弊"),
+      el("div", "flex:1;color:#7d8ec4;letter-spacing:1px", "DEV · 作弊面板"),
     );
     const close = el(
       "button",
@@ -108,7 +111,54 @@ export class DevPanel {
     mk("重开本局", () => {
       this.core.startGame(this.core.prof);
     });
+    // 无敌：只影响 damagePlayer（DEV 门控），跨重开保留
+    const god = el(
+      "button",
+      "flex:1;background:" +
+        (this.core.devInvincible ? "#2a4a2a" : "#1d2440") +
+        ";color:#cfe0ff;border:1px solid " +
+        (this.core.devInvincible ? "#57e86b" : "#3a4a7a") +
+        ";border-radius:3px;padding:3px 4px;cursor:pointer",
+      "无敌：" + (this.core.devInvincible ? "开" : "关"),
+    ) as HTMLButtonElement;
+    god.addEventListener("click", () => {
+      this.core.devInvincible = !this.core.devInvincible;
+      god.textContent = "无敌：" + (this.core.devInvincible ? "开" : "关");
+      god.style.background = this.core.devInvincible ? "#2a4a2a" : "#1d2440";
+      god.style.borderColor = this.core.devInvincible ? "#57e86b" : "#3a4a7a";
+    });
+    tools.appendChild(god);
     root.appendChild(tools);
+
+    // 起始波次：直接从第 N 波开打，避免每次都从 1 波刷上去。
+    const waveRow = el(
+      "div",
+      "display:flex;gap:4px;margin-bottom:6px;align-items:center",
+    ) as HTMLDivElement;
+    waveRow.appendChild(el("span", "color:#7d8ec4", "起始波次"));
+    const waveInput = document.createElement("input");
+    waveInput.type = "number";
+    waveInput.min = "1";
+    waveInput.max = "999";
+    waveInput.value = String(this.lastWave);
+    waveInput.style.cssText =
+      "width:56px;background:#0e1430;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 4px;font:11px ui-monospace,Consolas,monospace";
+    // 输入数字不能被游戏当成选卡快捷键（GameScene 监听 window keydown）
+    waveInput.addEventListener("keydown", (e) => e.stopPropagation());
+    waveInput.addEventListener("keyup", (e) => e.stopPropagation());
+    waveRow.appendChild(waveInput);
+    const waveGo = el(
+      "button",
+      "flex:1;background:#1d2440;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:3px 4px;cursor:pointer",
+      "从该波开始",
+    ) as HTMLButtonElement;
+    waveGo.addEventListener("click", () => {
+      this.lastWave = Math.max(1, Math.min(999, Number(waveInput.value) || 1));
+      this.startAtWave(this.lastWave);
+      this.render();
+    });
+    waveRow.appendChild(waveGo);
+    root.appendChild(waveRow);
 
     const body = el("div", "") as HTMLDivElement;
     root.appendChild(body);
@@ -120,6 +170,66 @@ export class DevPanel {
     this.render();
     // 正常游玩时选卡不会通知本面板：轮询「已学数量」签名，变了才重绘。
     this.timer = setInterval(() => this.render(), 400);
+  }
+
+  /**
+   * 从第 n 波重新开局（仅开发工具）。
+   *
+   * 走 `startGame` + `startNextWave` 的正常链路，保证配额、敌人权重、
+   * 精英配额、属性额度都按该波生成；只跳过开局天赋面板并把波次拨到 n。
+   */
+  private startAtWave(n: number) {
+    const c = this.core;
+    // 只有「开始 / 结算」界面没有可保留的局，先正常开局；
+    // 游玩中跳波**保留当前构筑**（天赋/属性/等级），只清场并把波次拨到 n。
+    if (c.state !== "play" && c.state !== "pause" && c.state !== "stats")
+      c.startGame(c.prof);
+    c.enemies = [];
+    c.ebullets = [];
+    c.bullets = [];
+    c.gems = [];
+    c.boxes = [];
+    c.potions = [];
+    c.meteors = [];
+    c.burnZones = [];
+    c.trailZones = [];
+    c.mageMeteors = [];
+    c.mageDomains = [];
+    c.mageDecoys = [];
+    c.parts = [];
+    c.texts = [];
+    c.slashes = [];
+    c.bolts = [];
+    // 中断可能正在进行的施法/陨星计时，避免跨波结算
+    c.castPhase = "idle";
+    c.castT = 0;
+    c.castCd = 0;
+    c.mageMeteorT = 0;
+    c.pendingLevels = 0;
+    c.startTalentPending = false;
+    c.bpMode = null;
+    c.state = "play";
+    c.wavePhase = "rest";
+    c.waveN = n - 1;
+    c.startNextWave();
+    for (const id of [
+      "bp-level",
+      "bp-attr",
+      "bp-rest",
+      "bottom-bar",
+      "ov-pause",
+      "ov-stats",
+    ])
+      document.getElementById(id)?.classList.add("hidden");
+  }
+
+  /** 正常游玩的前置判定：`requires`（链前置）与 `req`（自定义条件）。 */
+  private prereq(u: Talent): { ok: boolean; hint: string } {
+    if (u.requires && !this.core.player.picks.includes(u.requires))
+      return { ok: false, hint: `需 ${u.requires}` };
+    if (u.req && !u.req(this.core.player))
+      return { ok: false, hint: u.reqHint ?? "前置未满足" };
+    return { ok: true, hint: "" };
   }
 
   private render() {
@@ -145,17 +255,23 @@ export class DevPanel {
       for (const u of cards) {
         const lv = this.core.player.upCounts[u.n] || 0;
         const maxed = lv >= u.max;
+        // 前置未满足：灰显 + 不可点，和正常游玩的链规则一致
+        const pre = this.prereq(u);
+        const locked = !maxed && !pre.ok;
         const row = el(
           "div",
           "display:flex;gap:4px;align-items:center;padding:1px 2px;border-radius:2px;" +
-            (maxed
+            (maxed || locked
               ? "opacity:.4"
               : "cursor:pointer") +
             ";background:" +
             (lv > 0 ? "rgba(87,230,255,.10)" : "transparent"),
         );
         row.appendChild(el("span", "flex:1", `${u.ico ? u.ico + " " : ""}${u.n}`));
-        if (u.layer) row.appendChild(el("span", "color:#6d7fb5", `L${u.layer}`));
+        if (locked)
+          row.appendChild(el("span", "color:#c8a06a", pre.hint));
+        else if (u.layer)
+          row.appendChild(el("span", "color:#6d7fb5", `L${u.layer}`));
         row.appendChild(
           el(
             "span",
@@ -163,7 +279,7 @@ export class DevPanel {
             `${lv}/${u.max}`,
           ),
         );
-        if (!maxed)
+        if (!maxed && !locked)
           row.addEventListener("click", () => {
             if (this.core.learnTalent(u)) this.render();
           });

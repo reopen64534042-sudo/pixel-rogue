@@ -206,6 +206,14 @@ export class GameCore {
   /** 上一帧玩家位置：用来检测「这一帧有没有移动」。 */
   magePrevX = 0;
   magePrevY = 0;
+  /**
+   * 开发者无敌（仅 DEV 作弊面板使用）。
+   *
+   * 消费点在 `damagePlayer` 的最前面，并用 `import.meta.env.DEV` 门控：
+   * 生产构建下条件恒假、整段被 tree-shake。跨重开保留（属于开发设置，
+   * 不是局内状态），`resetGame` 不重置它。
+   */
+  devInvincible = false;
   /** 充能条：每 MB.chargeFull 次成功施法满一次，满时结算循环轴。 */
   mageCharge = 0;
   /** 值型限时护盾现值（与既有层数制护盾是两套模型）。 */
