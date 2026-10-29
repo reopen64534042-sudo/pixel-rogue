@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GameCore } from "../core/GameCore";
 import { FixedClock } from "../core/FixedClock";
 import { GameUI } from "../../ui/GameUI";
+import { DevPanel } from "../../ui/DevPanel";
 import { TouchControls } from "../../ui/TouchControls";
 import { OrientationGate } from "../../ui/OrientationGate";
 import { PixelPainter } from "../rendering/PixelPainter";
@@ -43,6 +44,8 @@ export class GameScene extends Phaser.Scene {
   private touch?: TouchControls;
   /** Issue #96：竖屏引导闸门，与触控层共用同一套设备判定 */
   private orient?: OrientationGate;
+  /** 开发者作弊面板：仅 DEV 构建存在（生产包无入口、无控制桥） */
+  private dev?: DevPanel;
   private clock = new FixedClock();
   private stars = Array.from({ length: 60 }, () => ({
     x: Math.random() * W,
@@ -57,6 +60,7 @@ export class GameScene extends Phaser.Scene {
     for (const [key, canvas] of Object.entries(SPR))
       this.textures.addCanvas(key, canvas);
     this.painter = new PixelPainter(this);    this.ui = new GameUI(this.core);
+    if (import.meta.env.DEV) this.dev = new DevPanel(this.core);
     this.touch = new TouchControls(this.core, this.game.canvas);
     // 与触控层共用判定结果：桌面拖窄窗口不该弹横屏提示
     this.orient = new OrientationGate(this.core, this.touch.active);
@@ -126,6 +130,7 @@ export class GameScene extends Phaser.Scene {
       document.removeEventListener("visibilitychange", hidden);
       this.touch?.dispose();
       this.orient?.dispose();
+      this.dev?.dispose();
       this.ui.dispose();
       this.core.audio.dispose();
       if (import.meta.env.DEV) delete window.__PIXEL_ROGUE__;

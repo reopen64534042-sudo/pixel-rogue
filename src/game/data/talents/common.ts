@@ -53,6 +53,14 @@ export const CAT_COLOR: Record<string, string> = {
   生存: "#4dff88",
   脱离: "#ff9a3d",
   机动: "#ffd24a",
+  // S3 法师七个槽位轴。与射手同名的「脱离」共用一个配色（语义相同：
+  // 都是「门控破功时的保险」）。
+  元素: "#ff9a3d",
+  路线A: "#c07bff",
+  路线B: "#ffd24a",
+  节律: "#57e6ff",
+  范围: "#4dff88",
+  循环: "#ff6b9d",
 };
 export const CAT_ICO: Record<string, string> = {
   攻击: "⚔",
@@ -65,4 +73,10 @@ export const CAT_ICO: Record<string, string> = {
   生存: "◇",
   脱离: "⇄",
   机动: "➤",
+  元素: "✹",
+  路线A: "☯",
+  路线B: "☄",
+  节律: "⏩",
+  范围: "◉",
+  循环: "↻",
 };

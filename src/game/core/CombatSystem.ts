@@ -8,6 +8,7 @@ import {
 import { DAMAGE_TYPES } from "../data/damageTypes";
 import { calculateDamage } from "./DamageSystem";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
+import { elementDamageMultiplier } from "./ElementMath";
 import type {
   DamageResult,
   Enemy,
@@ -76,6 +77,11 @@ export function hurtEnemy(
     dmg *= scorchVulnMultiplier(p);
   // S2「猎杀标记」/「深痕」：标记层数按受击方结算，每层 +15%
   if (e.markStacks > 0) dmg *= 1 + 0.15 * e.markStacks;
+  // S3 法师元素：受击方身上的元素状态带来的受击加成
+  // （冻结 +10% 任意伤害 / 带凝冰 +8% 元素伤害 / 超导 +15% 雷电伤害）。
+  // 射手路径上敌人永远没有元素状态 → 倍率为 1 → 不参与运算，逐位不变。
+  const elemMul = elementDamageMultiplier(e, opts.type ?? "physical");
+  if (elemMul !== 1) dmg *= elemMul;
   // S2「余韵」：闪避后的一次性伤害加成，用掉即清
   if (this.dodgeNextDmg > 1) {
     dmg *= this.dodgeNextDmg;
@@ -319,7 +325,27 @@ export function addText(
   c: string,
   big = false,
 ) {
-  this.texts.push({ x, y, s: String(s), c, life: 0.7, vy: -22, big: !!big });
+  // 同位置叠字是玩家实机反馈的问题（伤害数字与机制标签互相盖住，两个都看不清）。
+  // 生成时就按当前飘字错开：同一列（x 差 <18px）每撞到一条，新字上移 9px（最多 4 层）。
+  // 只读现有飘字位置，不消耗随机数、不改变任何战斗数值；飘字本来就在上浮，
+  // 因此错位在视觉上是一条「字往上排」的队列。
+  let ny = y;
+  for (let i = 0; i < 4; i++) {
+    const clash = this.texts.some(
+      (t) => Math.abs(t.x - x) < 18 && Math.abs(t.y - ny) < 8,
+    );
+    if (!clash) break;
+    ny -= 9;
+  }
+  this.texts.push({
+    x,
+    y: ny,
+    s: String(s),
+    c,
+    life: 0.7,
+    vy: -22,
+    big: !!big,
+  });
 }
 
 export function damagePlayer(
@@ -328,6 +354,13 @@ export function damagePlayer(
   opts: PlayerHitOptions = {},
 ): DamageResult {
   const p = this.player;
+  const rawDmg = dmg;
+  // S3 法师「镜像」虚影：虚影期间不可受击。
+  // 放在最前面——虚影是「完全躲开」而不是「减伤」。
+  if (this.magePhaseT > 0) {
+    this.addText(p.x, p.y - 10, "虚影", "#c07bff");
+    return blockedHit(dmg, { dodged: true, shieldUsed: "none" });
+  }
   // 闪避本能: 完全无效化
   if (p.dodge > 0 && Math.random() < p.dodge) {
     this.addText(p.x, p.y - 10, "闪避!", "#4dff88");
@@ -377,6 +410,22 @@ export function damagePlayer(
     this.audio.beep(980, 0.12, "sine", 0.06, -200);
     return blockedHit(dmg, { dodged: false, shieldUsed: "normal" });
   }
+  // S3 法师「循环」轴的值型限时护盾：**按值吸收**，与上面的层数制护盾
+  // （挡整伤）是两套模型。护盾归零后仍继续结算剩余伤害。
+  if (this.mageShield > 0) {
+    const absorbed = Math.min(this.mageShield, dmg);
+    this.mageShield -= absorbed;
+    dmg -= absorbed;
+    this.addText(p.x, p.y - 10, "护盾 -" + Math.round(absorbed), "#57e6ff");
+    if (dmg <= 0)
+      return blockedHit(rawDmg, { dodged: false, shieldUsed: "temporary" });
+  }
+  // S3 法师：受击打断抬手段（前摇）。收束段不可打断。
+  this.interruptMageCast();
+  // S3 法师「脱离」槽：相位（传送规避本次伤害）/ 镜像（残影 + 1 秒虚影）。
+  if (this.triggerPhaseEscape())
+    return blockedHit(rawDmg, { dodged: true, shieldUsed: "none" });
+  this.triggerMirrorDecoy();
   // §3.4 步骤 4：玩家受击固定 preserve-float（§3.3 浮点扣血，UI 取整仅显示）；
   // tough 经通用减伤乘区生效，S2 其余乘区全为 1。
   // 攻击者上下文优先用发射时快照（弹丸），其次接触敌人（opts.src）

@@ -6,8 +6,8 @@
 ## 实际结构
 - src/main.ts：入口、缩放和 Phaser 配置。
 - src/game/scenes/GameScene.ts：唯一场景及其输入/更新/清理生命周期。
-- src/game/core/：GameCore 状态与命令，Simulation 按原顺序调度规则；Player/Combat/Attack/Projectile/Enemy/Wave/Progression/Talent/Swap/Effects 各有实际职责，Damage/CombatSystem 构成 Combat Foundation 统一伤害管线（S1 纯计算 + S2 全路径接入），CombatStats 为实体属性适配层（S3-A 接线 + S3-B 方案甲数值），StatModel 为纯属性解析模型（S4-A，未接入运行时），StatSheets 为 S4-B 只读 shadow 构建器（未接入运行时），FixedClock 固定步长。
-- src/game/data/：常量、初始属性、41 天赋、敌人配置及伤害类型注册与战斗基准。
+- src/game/core/：GameCore 状态与命令，Simulation 按原顺序调度规则；Player/Combat/Attack/Projectile/Enemy/Wave/Progression/Talent/Swap/Effects 各有实际职责，Mage/Element（S3 法师施法状态机与元素印记，ElementMath 为纯计算层）随职业池接入，Damage/CombatSystem 构成 Combat Foundation 统一伤害管线（S1 纯计算 + S2 全路径接入），CombatStats 为实体属性适配层（S3-A 接线 + S3-B 方案甲数值），StatModel 为纯属性解析模型（S4-A，未接入运行时），StatSheets 为 S4-B 只读 shadow 构建器（未接入运行时），FixedClock 固定步长。
+- src/game/data/：常量、初始属性、旧表 41 张通用卡与射手/法师职业池（talents/ 分文件）、敌人配置及伤害类型注册与战斗基准。
 - src/game/rendering/：原像素纹理、Phaser 绘制和对象复用。
 - src/ui/：DOM 显示及命令适配；src/services/：音频、战绩；src/styles/：样式。
 - public/：随产物发布的字体、许可证与第三方说明。

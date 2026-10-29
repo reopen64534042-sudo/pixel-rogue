@@ -1,5 +1,5 @@
 import { TIERS } from "../data/talents";
-import type { Player } from "./types";
+import type { Player, Profession } from "./types";
 import type { GameCore } from "./GameCore";
 import type { AttributePoint } from "./AttributeSources";
 import type { ModifierStage, StatId } from "./StatModel";
@@ -43,6 +43,14 @@ export interface AttrDef {
   readonly group: AttrGroup;
   /** 面板上的属性名（极简：只给名字与数值，不给公式） */
   readonly label: string;
+  /** 职业专属候选（省略 = 所有职业通用） */
+  readonly prof?: Profession;
+  /**
+   * 职业专属显示名。底层的 stat 不变，只换玩家看到的名字——
+   * 法师的「攻击/攻速/射程」实际驱动的是元素伤害、施法速度、施法距离，
+   * 沿用射手口径会让玩家以为自己在加物理攻击。
+   */
+  readonly labels?: Partial<Record<Profession, string>>;
   readonly stat: StatId;
   readonly stage: ModifierStage;
   /** 白档数值：flat 为绝对值，percent 为小数（0.04 = +4%） */
@@ -69,8 +77,8 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   // #134 方案 B：攻击 +5 → +2。
   // 原值对基础攻击 11 是 **+45%/次**，配上每波 5-7 次，30 波能把攻击堆到数百，
   // 天赋的机制收益完全被淹没。+2 约等于 +18%/次，与「一次选择 = 一个小台阶」相称。
-  { group: "offense", label: "攻击", stat: "attack", stage: "flat", base: 2, kind: "int" },
-  { group: "offense", label: "攻速", stat: "fireRate", stage: "percent", base: 0.04, kind: "pct" },
+  { group: "offense", label: "攻击", labels: { mage: "元素伤害" }, stat: "attack", stage: "flat", base: 2, kind: "int" },
+  { group: "offense", label: "攻速", labels: { mage: "施法速度" }, stat: "fireRate", stage: "percent", base: 0.04, kind: "pct" },
   {
     group: "offense",
     label: "暴击",
@@ -111,7 +119,10 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   // 「拾取范围」：magnet 决定经验球与血瓶的自动吸附半径（ProgressionSystem）。
   // 旧名「拾取」含义模糊（是范围？速度？自动？），直接写清范围，不加额外提示。
   { group: "utility", label: "拾取范围", stat: "magnet", stage: "flat", base: 8, kind: "int" },
-  { group: "utility", label: "射程", stat: "attackRange", stage: "percent", base: 0.05, kind: "pct" },
+  { group: "utility", label: "射程", labels: { mage: "施法距离" }, stat: "attackRange", stage: "percent", base: 0.05, kind: "pct" },
+  // 「范围」：S2（#135）因射手零感知被移出面板，S3 法师的法阵半径直接读
+  // `p.area`（mageCircleRadius），因此只对法师恢复投放。
+  { group: "utility", label: "范围", prof: "mage", stat: "area", stage: "percent", base: 0.05, kind: "pct" },
 
   {
     group: "special",
@@ -185,6 +196,8 @@ export interface AttrChoice {
   readonly value: number;
   /** 面板文案：`+8` / `+12%` */
   readonly text: string;
+  /** 面板显示名（已按职业解析，如法师的「元素伤害」） */
+  readonly label: string;
 }
 
 function pickRarity(lvl: number): number {
@@ -212,10 +225,20 @@ function textOf(def: AttrDef, value: number): string {
   return `+${Math.round(value * 1000) / 10}%`;
 }
 
-function makeChoice(def: AttrDef, p: Player): AttrChoice {
+function makeChoice(
+  def: AttrDef,
+  p: Player,
+  prof: Profession = "shooter",
+): AttrChoice {
   const rarity = pickRarity(p.lvl);
   const value = quantize(def, def.base * RARITY_MUL[rarity]);
-  return { def, rarity, value, text: textOf(def, value) };
+  return {
+    def,
+    rarity,
+    value,
+    text: textOf(def, value),
+    label: def.labels?.[prof] ?? def.label,
+  };
 }
 
 /**
@@ -223,15 +246,24 @@ function makeChoice(def: AttrDef, p: Player): AttrChoice {
  *
  * 某格全被过滤（例如暴击满了而攻势只剩它可选）时，该格改为必出的「攻击」，
  * 保证四格永远有四个可选项——否则会退化成三选一甚至空白面板。
+ *
+ * `prof` 决定职业专属候选与显示名（法师的「范围」、元素口径命名）；
+ * 省略时按射手，保持既有调用与测试的默认行为。
  */
-export function rollAttrChoices(p: Player): AttrChoice[] {
+export function rollAttrChoices(
+  p: Player,
+  prof: Profession = "shooter",
+): AttrChoice[] {
   return ATTR_GROUPS.map((group) => {
     const pool = ATTR_DEFS.filter(
-      (d) => d.group === group.key && !(d.capped?.(p) ?? false),
+      (d) =>
+        d.group === group.key &&
+        (!d.prof || d.prof === prof) &&
+        !(d.capped?.(p) ?? false),
     );
     const usable = pool.length ? pool : ATTR_DEFS.filter((d) => d.stat === "attack");
     const def = usable[Math.floor(Math.random() * usable.length)];
-    return makeChoice(def, p);
+    return makeChoice(def, p, prof);
   });
 }
 
@@ -283,7 +315,7 @@ export function grantAttrPicks(this: GameCore, n: number): number {
 export function openAttrPanel(this: GameCore) {
   if (this.bpMode) return;
   this.bpMode = "attr";
-  this.attrChoices = rollAttrChoices(this.player);
+  this.attrChoices = rollAttrChoices(this.player, this.prof);
   this.attrRefreshUsed = false;
   this.view.attr();
 }
@@ -292,7 +324,7 @@ export function refreshAttr(this: GameCore) {
   this.ensurePlay(); // Issue #34：与天赋刷新一致，先收掉属性覆盖层
   if (this.state !== "play" || this.bpMode !== "attr" || this.attrRefreshUsed)
     return false;
-  this.attrChoices = rollAttrChoices(this.player);
+  this.attrChoices = rollAttrChoices(this.player, this.prof);
   this.attrRefreshUsed = true;
   this.view.attr();
   return true;
@@ -308,7 +340,7 @@ export function chooseAttr(this: GameCore, index: number) {
   this.recompute();
   if (this.attrPicks > 0) {
     // 还有次数：就地换一组新的，刷新额度重置（每「次选择」各有一次刷新）
-    this.attrChoices = rollAttrChoices(this.player);
+    this.attrChoices = rollAttrChoices(this.player, this.prof);
     this.attrRefreshUsed = false;
   } else {
     this.attrChoices = [];

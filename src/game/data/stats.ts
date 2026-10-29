@@ -1,10 +1,27 @@
-export function statBase() {
+import { MAGE_BALANCE } from "./mageBalance";
+import type { Profession } from "../core/types";
+
+/**
+ * 职业基础形态（S3）。
+ *
+ * 两个字段按职业分叉，其余字段三职业共用：
+ * - `fireRate`：射手 2.2 发/秒；法师 1.82 次/秒（= 1 / 0.55 秒施法周期）。
+ *   法师的施法前摇与间隔都按「当前施法速度 ÷ 基础施法速度」同比缩放，
+ *   因此属性「施法速度」对法师是从施法周期生效的。
+ * - `attackRange`：射手 130px 索敌；法师 260px 施法距离（法阵落点最远距离）。
+ *
+ * 为什么在这里分叉而不是在消费点硬编码：属性投影会用 `Object.assign`
+ * 以本函数重建 Player，写在消费点会在每次 recompute 后失真；而职业在
+ * `resetGame(prof)` 时就已确定，base 可以安全地按职业给出。
+ */
+export function statBase(prof: Profession = "shooter") {
+  const mage = prof === "mage";
   return {
     maxhp: 100,
     speed: 62,
     projSpeed: 260,
     // S1：攻击射程从 AttackSystem 的硬编码 130 提为属性（base 130，数值不变）
-    attackRange: 130,
+    attackRange: mage ? MAGE_BALANCE.castRange : 130,
     damage: 11,
     boltDmgMul: 1,
     frostLv: 0,
@@ -13,7 +30,8 @@ export function statBase() {
     meteorGuided: 0,
     burnGround: 0,
     bladeReflect: 0,
-    fireRate: 2.2,
+    // 法师：1 / 0.55s 施法周期 ≈ 1.82 次/秒（MageSystem 按此值缩放前摇与间隔）
+    fireRate: mage ? 1 / MAGE_BALANCE.castCycle : 2.2,
     multishot: 1,
     pierce: 0,
     // S2：穿透衰减系数从 ProjectileSystem 的硬编码 0.85 提为属性。

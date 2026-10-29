@@ -13,7 +13,14 @@ export type DamageSource =
   | "explode"
   | "thorns"
   | "burn"
-  | "melee";
+  | "melee"
+  // S3 法师池：法阵爆裂与元素印记 DoT 各自单列。
+  // 不并入既有分项的原因：explode 是「击杀爆炸」、burn 是「火系 DoT」，
+  // 法阵与霜蚀/电蚀塞进去会让玩家在伤害报告里看到错误的归因。
+  // 基线影响：parity 的 dmgBy 逐字段对照需要摘除这两个键
+  // （沿用 takeMelee 先例），登记在 docs/migration.md。
+  | "cast"
+  | "element";
 export type DamageTotals = Record<DamageSource, number>;
 /* ---------- Combat Foundation v1（S1 契约，未接入运行时战斗） ---------- */
 /** 攻击方式：决定近战/远程增伤乘区适用范围；由技能显式指定，不按距离推断 */
@@ -240,6 +247,18 @@ export interface Talent {
   excludes?: string[];
   /** 变体组：同一组在一局内只能取一张。与 excludes 的区别是组合规模可变（N 选 1）。 */
   variant?: string;
+  /**
+   * 变体组豁免（S3 法师池「双修」用）。
+   *
+   * 变体组是「N 选 1」，但有些机制卡**本身就要打破这个排他**：
+   * 法师的元素槽是三变体组（火/冰/雷），而「双修」的机制是
+   * 「同时施加两种元素状态」——玩家必须能同时持有两个元素 L1，
+   * 否则这张卡无对象可作用。
+   *
+   * 因此持有本卡的玩家，不再受 `variant` 组的排他限制。
+   * 值为**被豁免的变体组 id**（不是卡名）。
+   */
+  variantBypass?: string;
 }
 /** 职业标识。`common` 表示三职业共用池。 */
 export type Profession = "shooter" | "mage" | "warrior" | "common";
@@ -270,6 +289,27 @@ export interface Enemy extends Point {
   frostStacks: number;
   frozenT: number;
   frostImmuneT: number;
+  /* —— S3 法师池：元素印记（全部为**可选字段**）——
+   *
+   * 为什么是可选而不是初始化：敌人实体的对象形状会被 parity 逐字段对照，
+   * v8 没有元素概念。可选 + 「施加时才物化」保证**射手路径下这些键永不存在**，
+   * 对照不会因为新增字段而失败（先例：Enemy.kx 击退速度）。
+   *
+   * 计时语义（docs/talent-pool-design-rules.md §4.1 独立计时）：
+   * - elemFire / elemFrost 是**每层一个剩余秒数**的数组，
+   *   每层独立过期（灼烧 5 秒、凝冰 5 秒）；
+   * - elemParaT 是单值计时（麻痹可刷新，不叠层）。
+   */
+  /** 灼烧：每层的剩余秒数（独立计时）。 */
+  elemFire?: number[];
+  /** 凝冰：每层的剩余秒数（独立计时）。 */
+  elemFrost?: number[];
+  /** 麻痹：剩余秒数（可刷新）。 */
+  elemParaT?: number;
+  /** 法师冻结：剩余秒数（凝冰满层触发，与旧 frozenT 是两套状态）。 */
+  elemFrozenT?: number;
+  /** 超导：剩余秒数（冰+雷反应标记）。 */
+  elemSuperT?: number;
   seed: number;
   shootCd: number;
   fuse: number;
@@ -386,6 +426,43 @@ export interface Meteor extends Point {
   t: number;
   R: number;
 }
+
+/* —— S3 法师池：路线B（星陨 / 多重陨星 / 元素残域）—— */
+
+/** 法师陨星：继承施法者的元素类型，落点预警后爆裂。 */
+export interface MageMeteor extends Point {
+  /** 倒计时：归零时爆裂。 */
+  t: number;
+  /** 爆裂半径（px）。 */
+  R: number;
+  /** 继承的元素类型。 */
+  element: DamageTypeId;
+}
+
+/** 元素残域：落点留下的持续伤害区域。 */
+export interface MageDomain extends Point {
+  /** 爆裂半径（px）。 */
+  R: number;
+  /** 剩余时间（秒）。 */
+  t: number;
+  /** 领域元素类型。 */
+  element: DamageTypeId;
+}
+
+/** 镜像残影：吸引仇恨的诱饵（限时存在，不因接触破碎）。 */
+export interface MageDecoy extends Point {
+  /** 剩余存在时间（秒）。 */
+  t: number;
+}
+
+/**
+ * 法师施法阶段（S3）。
+ *
+ * - `idle`：等待下一次起手（冷却中）
+ * - `windup`：**抬手**段，可被受击打断（打断 → 回到 idle）
+ * - `cast`：**法阵收束**段，不可打断；归零时法阵爆裂
+ */
+export type MageCastPhase = "idle" | "windup" | "cast";
 export interface Bolt {
   x1: number;
   y1: number;

@@ -1,12 +1,14 @@
 import { WORLD, clamp } from "../data/constants";
 import { enemyWeight, ETYPES } from "../data/enemies";
+import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { professionPierce } from "./AttributeSources";
 import { boltDamage } from "./DamageMath";
+import { frostSlowFactor, isFrozen, isParalyzed } from "./ElementMath";
 import { resolveEnemyAttackBonuses, resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
-import type { Enemy } from "./types";
+import type { Enemy, MageDecoy } from "./types";
 export function spawnEnemy(
   this: GameCore,
   forceType?: string | null,
@@ -189,12 +191,43 @@ export function updateEnemies(this: GameCore, dt: number) {
       e.frozenT -= dt;
       continue;
     }
-    let a = Math.atan2(p.y - e.y, p.x - e.x);
+    // S3 法师：冻结（凝冰满层）定身。与上面的旧 frozenT 是两套独立状态——
+    // 旧状态属于已退役的「冰霜之力」，新状态属于法师池的「霜寒之力」。
+    // 计时由 ElementSystem.updateMageElements 推进，这里只判定。
+    if (isFrozen(e)) continue;
+    // S3 法师「镜像」残影：存在残影时敌人改攻残影（吸引仇恨）。
+    // 残影不存在时下面的目标点仍是玩家，射手路径逐位不变。
+    let targetX = p.x;
+    let targetY = p.y;
+    let decoy: MageDecoy | null = null;
+    if (this.mageDecoys.length) {
+      let bestD = Infinity;
+      for (const d of this.mageDecoys) {
+        const dist = Math.hypot(d.x - e.x, d.y - e.y);
+        if (dist < bestD) {
+          bestD = dist;
+          decoy = d;
+        }
+      }
+      if (decoy) {
+        targetX = decoy.x;
+        targetY = decoy.y;
+      }
+    }
+    let a = Math.atan2(targetY - e.y, targetX - e.x);
     if (e.type === "bat") a += Math.sin(this.time * 6 + e.seed) * 0.5;
-    const spd = e.speed * (e.slowT > 0 ? 1 - e.slowF : 1);
+    // S3 法师元素：凝冰每层减速、麻痹降低移速。
+    // 射手路径上两个因子恒为 1 → 乘 1 精确，数值逐位不变。
+    const spd =
+      e.speed *
+      (e.slowT > 0 ? 1 - e.slowF : 1) *
+      (1 - frostSlowFactor(e)) *
+      (isParalyzed(e) ? 1 - MB.paraMoveSlow : 1);
     if (e.type === "shooter") {
       // 远程: 远则靠近、近则后撤、中距离横向游走并射击
-      const d = Math.hypot(p.x - e.x, p.y - e.y);
+      // S3：距离改用当前目标（默认玩家；存在镜像残影时是残影），
+      // 无残影时 target 就是玩家，行为与旧版逐位一致。
+      const d = Math.hypot(targetX - e.x, targetY - e.y);
       let mvx = 0,
         mvy = 0;
       if (d > 150) {
@@ -211,7 +244,8 @@ export function updateEnemies(this: GameCore, dt: number) {
       e.y += mvy * spd * dt;
       e.shootCd -= dt;
       if (e.shootCd <= 0 && d < 210) {
-        e.shootCd = 2.0;
+        // S3 法师「闪电连锁」的麻痹：攻击间隔 +30%。
+        e.shootCd = 2.0 * (isParalyzed(e) ? 1 + MB.paraAttackSlow : 1);
         this.ebullets.push({
           x: e.x,
           y: e.y,
@@ -230,7 +264,7 @@ export function updateEnemies(this: GameCore, dt: number) {
       if (!e.fuse) {
         e.x += Math.cos(a) * spd * dt;
         e.y += Math.sin(a) * spd * dt;
-        if (Math.hypot(p.x - e.x, p.y - e.y) < 26) {
+        if (Math.hypot(targetX - e.x, targetY - e.y) < 26) {
           e.fuse = 0.5;
           this.audio.beep(220, 0.2, "sawtooth", 0.05, 200);
         }
@@ -304,7 +338,8 @@ export function updateEnemies(this: GameCore, dt: number) {
         this.counterCd = 3;
         this.addText(p.x, p.y - 12, "逆矢", "#ffd24a");
       }
-      if (p.hurtCd <= 0 && p.dashT <= 0) {
+      // S3 法师「镜像」虚影期间无视碰撞：不结算接触伤害。
+      if (p.hurtCd <= 0 && p.dashT <= 0 && this.magePhaseT <= 0) {
         const hit = this.damagePlayer(e.dmg, {
           melee: true,
           src: e,

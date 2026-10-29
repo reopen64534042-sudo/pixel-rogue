@@ -1,6 +1,9 @@
 import type { GameCore } from "../core/GameCore";
 import type { PixelPainter } from "./PixelPainter";
 import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
+import { isFrozen, isParalyzed } from "../core/ElementMath";
+import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
+import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { spriteEntry } from "./assetRegistry";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
@@ -140,6 +143,128 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
+  // ---- S3 法师：法阵（施法落点）----
+  // 抬手段是半透明圆环（可被打断），收束段更亮（已经成形、不可打断）。
+  // 站定时圆环变青、半径按 +20% 预览；走动时保持紫色原半径。
+  if (
+    this.prof === "mage" &&
+    (this.castPhase === "windup" || this.castPhase === "cast")
+  ) {
+    const steady = mageIsSteady(this);
+    // 预览圈按「下一次施法会不会满充能」取半径，与 detonate 的实际半径一致
+    //（三连聚爆会让满充能发半径 +50%，预览偏小会让玩家误判落点）。
+    const R = Math.round(
+      mageCircleRadius(this, this.mageCharge + 1 >= MB.chargeFull, steady),
+    );
+    ctx.globalAlpha = this.castPhase === "cast" ? 0.5 : 0.25;
+    ctx.strokeStyle = steady ? "#57e6ff" : "#c07bff";
+    ctx.beginPath();
+    ctx.arc(Math.round(this.castX), Math.round(this.castY), R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "#7a4fd0";
+    ctx.fillRect(Math.round(this.castX - 2), Math.round(this.castY - 2), 4, 4);
+    ctx.globalAlpha = 1;
+    // 玩家脚下的吟唱读条：**横条**，不是环。
+    // 环会和法阵落点圈、护盾圈、冲刺格挤在角色周围（用户实机反馈「很花」）；
+    // 横条只占角色下方 3px，放在冲刺充能格（y+10）上方，互不重叠。
+    const total = Math.max(0.001, mageWindup(this));
+    const castPart = total * (1 - MB.castWindupInterruptible / MB.castWindup);
+    const remain =
+      this.castPhase === "windup" ? this.castT + castPart : this.castT;
+    const prog = Math.max(0, Math.min(1, 1 - remain / total));
+    const bw = 22;
+    // 取整基准必须与角色贴图一致：先 round 玩家坐标、再减一个**整数**偏移。
+    // 之前写 round(x - bw/2)，bw 为奇数时（冲刺格 5px）偏移是 ±2.5，
+    // 相邻帧会在 -2/-3 之间跳，表现为横移时小方块左右摆动。
+    const bx = Math.round(this.player.x) - Math.floor(bw / 2);
+    const by = Math.round(this.player.y) + 6;
+    // 外框（深蓝）+ 底槽（更亮的蓝灰）+ 进度（青/橙）：空槽时也看得见形状，
+    // 只画一条纯色会随进度缩成一个点，看不出「正在读条」。
+    // 不做任何闪烁/高亮——实机反馈「锁定闪光太晃眼，看不清急停线到没到」；
+    // 读条只保留静态信息：急停线 + 填充颜色。
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#3a4a7a";
+    ctx.fillRect(bx - 1, by, bw + 2, 5);
+    ctx.fillStyle = "#2a3560";
+    ctx.fillRect(bx, by + 1, bw, 3);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = steady ? "#57e6ff" : "#ff9a3d";
+    ctx.fillRect(bx, by + 1, Math.max(1, Math.round(bw * prog)), 3);
+    // 急停线：前摇 60%（= 1 - steadyHoldRatio）。**常驻**——玩家需要从起手
+    // 就看见「最晚停在这里」，而不是过了某条线之后才被提醒（实测来不及）。
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = "#c8a06a";
+    ctx.fillRect(
+      bx + Math.round(bw * (1 - MB.steadyHoldRatio)),
+      by + 1,
+      1,
+      3,
+    );
+    ctx.globalAlpha = 1;
+  } else if (
+    // 星陨路线整体替换主施法：没有前摇，所以没有施法读条。
+    // 但玩家的节奏感知不能丢——同一条位置改为显示「下一次陨星」的冷却，
+    // 填满即落星（落点有独立的预警圈），紫色与施法读条区分。
+    this.prof === "mage" &&
+    (this.player.upCounts["星陨"] || 0) > 0
+  ) {
+    const prog = Math.max(
+      0,
+      Math.min(1, 1 - this.mageMeteorT / MB.meteorInterval),
+    );
+    const bw = 22;
+    // 取整基准必须与角色贴图一致：先 round 玩家坐标、再减一个**整数**偏移。
+    // 之前写 round(x - bw/2)，bw 为奇数时（冲刺格 5px）偏移是 ±2.5，
+    // 相邻帧会在 -2/-3 之间跳，表现为横移时小方块左右摆动。
+    const bx = Math.round(this.player.x) - Math.floor(bw / 2);
+    const by = Math.round(this.player.y) + 6;
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#3a4a7a";
+    ctx.fillRect(bx - 1, by, bw + 2, 5);
+    ctx.fillStyle = "#2a3560";
+    ctx.fillRect(bx, by + 1, bw, 3);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#c07bff";
+    ctx.fillRect(bx, by + 1, Math.max(1, Math.round(bw * prog)), 3);
+  }
+  // ---- S3 法师：元素残域（持续伤害领域）----
+  for (const d of this.mageDomains) {
+    ctx.globalAlpha = 0.22 + Math.sin(this.time * 6) * 0.08;
+    ctx.strokeStyle =
+      d.element === "frost"
+        ? "#9fe1ff"
+        : d.element === "lightning"
+          ? "#c07bff"
+          : "#ff6a2b";
+    ctx.beginPath();
+    ctx.arc(Math.round(d.x), Math.round(d.y), d.R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // ---- S3 法师：陨星预告（路线B）----
+  if (this.mageMeteors.length) {
+    const rings: number[] = [];
+    for (const m of this.mageMeteors)
+      rings.push(
+        Math.round(m.x),
+        Math.round(m.y),
+        Math.round((m.R * m.t) / MB.meteorFall + 8),
+      );
+    ctx.meteorRing(rings, "#c07bff", 0.5 + Math.sin(this.time * 20) * 0.3);
+  }
+  // ---- S3 法师：镜像残影（吸引仇恨的诱饵）----
+  // 用玩家的贴图半透明绘制，读作「一个假体」；缺贴图时退回紫色方块。
+  for (const d of this.mageDecoys) {
+    const r = spriteRect("player", d.x, d.y);
+    ctx.globalAlpha = 0.45;
+    if (r) ctx.sprite(r.tex, r.x, r.y, r.w, r.h);
+    else {
+      ctx.fillStyle = "#c07bff";
+      ctx.fillRect(Math.round(d.x - 4), Math.round(d.y - 6), 8, 10);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   // 敌人
   for (const e of this.enemies) {
     // 精英优先用独立贴图；没有时退回「同系列贴图 ×1.8」。
@@ -167,6 +292,32 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     if (e.frozenT > 0) {
       ctx.globalAlpha = 0.5;
       ctx.fillStyle = "#9fe1ff";
+      ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+    }
+    // S3 法师：元素印记染色。层数只体现在浓度上（§3.6：不做逐层特效，
+    // 只在关键节点给反馈），冰/雷/火三色互斥，先判定顺序即显示优先级。
+    if (e.elemFire?.length) {
+      ctx.globalAlpha = Math.min(0.55, 0.18 + e.elemFire.length * 0.1);
+      ctx.fillStyle = "#ff6a2b";
+      ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+    }
+    if (e.elemFrost?.length) {
+      ctx.globalAlpha = Math.min(0.5, 0.16 + e.elemFrost.length * 0.11);
+      ctx.fillStyle = "#9fe1ff";
+      ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+    }
+    if (isFrozen(e)) {
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = "#cfefff";
+      ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+    }
+    if (isParalyzed(e)) {
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = "#c07bff";
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
     }
@@ -209,7 +360,9 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   }
 
   // 玩家 (冲刺时半透明残影感)
-  ctx.globalAlpha = this.player.dashT > 0 ? 0.6 : 1;
+  // S3 法师「镜像」虚影：半透明 + 紫色调（不可受击的状态要看得见）
+  ctx.globalAlpha =
+    this.magePhaseT > 0 ? 0.4 : this.player.dashT > 0 ? 0.6 : 1;
   const playerRect = spriteRect("player", this.player.x, this.player.y);
   if (playerRect)
     ctx.sprite(
@@ -250,25 +403,50 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
-  // Issue #51：冲刺充能菱形格（角色脚下，跟随玩家；满充能脉冲高亮）
+  // S3 法师：值型限时护盾光环（与上面的层数制护盾是两种表现）
+  if (this.mageShield > 0) {
+    ctx.globalAlpha = 0.4 + Math.sin(this.time * 7) * 0.2;
+    ctx.strokeStyle = "#c07bff";
+    ctx.beginPath();
+    ctx.arc(
+      Math.round(this.player.x),
+      Math.round(this.player.y),
+      13,
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // 冲刺充能格（#51 重做）：小格条替代原来的菱形小点。
+  // 每格是**无边框的实心块**：亮青=可用，暗色=冷却中，下一格按充能进度从左填充。
+  // 不画上下边框与内凹线——用户明确要求去掉；格子之间靠 2px 间距分隔。
   if (this.player.dashLv > 0) {
     const dchMax = 1 + this.player.dashChargeLv;
-    const full = this.player.dashCharges >= dchMax;
-    const pw = dchMax * 7 - 2;
-    const px = Math.round(this.player.x - pw / 2);
-    const py = Math.round(this.player.y + 10);
+    const cw = 5;
+    const chh = 3;
+    const gap = 2;
+    const pw = dchMax * cw + (dchMax - 1) * gap;
+    // 同读条：整数偏移居中，避免奇数宽度导致横移时左右抖动
+    const px = Math.round(this.player.x) - Math.floor(pw / 2);
+    const py = Math.round(this.player.y) + 12;
+    const recharge =
+      this.player.dashCharges < dchMax && this.player.dashRe > 0
+        ? Math.min(
+            1,
+            Math.max(0, 1 - this.player.dashRe / this.player.dashMax),
+          )
+        : 0;
     for (let i = 0; i < dchMax; i++) {
-      const charged = i < this.player.dashCharges;
-      const x = px + i * 7;
-      ctx.fillStyle = charged ? "#57e6ff" : "#1d2440";
-      ctx.fillRect(x + 1, py, 3, 1);
-      ctx.fillRect(x, py + 1, 5, 3);
-      ctx.fillRect(x + 1, py + 4, 3, 1);
-      if (charged && full) {
-        ctx.globalAlpha = 0.4 + Math.sin(this.time * 8) * 0.25;
-        ctx.fillStyle = "#9fe1ff";
-        ctx.fillRect(x + 2, py + 1, 1, 3);
-        ctx.globalAlpha = 1;
+      const x = px + i * (cw + gap);
+      ctx.fillStyle = "#1d2440";
+      ctx.fillRect(x, py, cw, chh);
+      if (i < this.player.dashCharges) {
+        ctx.fillStyle = "#57e6ff";
+        ctx.fillRect(x, py, cw, chh);
+      } else if (i === this.player.dashCharges && recharge > 0) {
+        ctx.fillStyle = "#2f8fae";
+        ctx.fillRect(x, py, Math.max(1, Math.round(cw * recharge)), chh);
       }
     }
   }

@@ -33,8 +33,16 @@ export interface CodexEntry {
   aliases?: string[];
   /** 天赋稀有度 0-3，复用 `TIERS` */
   tier?: number;
-  /** 天赋分类：攻击 / 增幅 / 技能 / 防御 */
+  /** 天赋分类：旧表是 攻击 / 增幅 / 技能 / 防御；职业池按职业分（射手 / 法师） */
   group?: string;
+  /** 职业池归属（shooter / mage / common）。旧表为空。 */
+  prof?: string;
+  /** 槽位轴名（核心 / 元素 / 循环 …）。旧表为空。 */
+  slot?: string;
+  /** 链层级 1/2/3。旧表为空。 */
+  layer?: number;
+  /** 变体组 id。旧表为空。 */
+  variant?: string;
   elite?: boolean;
   status?: "live" | "planned";
 }
@@ -58,6 +66,19 @@ function aliasesOf(name: string): string[] | undefined {
   return renamed.length ? renamed : undefined;
 }
 
+/**
+ * 图鉴分区名（S3）。
+ *
+ * 旧表按旧四类（攻击/增幅/技能/防御）分；职业池改按**职业**分
+ * （设计文档：旧分类是过渡方案，将被「职业轴 × 槽位轴」取代）。
+ * 槽位轴不再作为分区——分区太多（16 个）会让图鉴的 tab 变成噪音；
+ * 槽位改为在条目详情里显示。
+ */
+const PROF_GROUP: Record<string, string> = {
+  shooter: "射手",
+  mage: "法师",
+};
+
 export const TALENT_ENTRIES: readonly CodexEntry[] = UPGRADES.filter(
   // S2：只排除**原版隐藏**（`hidden`，如「不屈」）。
   // `retired` 的旧表**保留在图鉴里**——这是有意的裁决：旧存档里的已解锁记录
@@ -77,7 +98,11 @@ export const TALENT_ENTRIES: readonly CodexEntry[] = UPGRADES.filter(
     link: u.n,
     aliases: aliasesOf(u.n),
     tier: u.t,
-    group: u.cat,
+    group: (u.prof && PROF_GROUP[u.prof]) || u.cat,
+    prof: u.prof,
+    slot: u.slot,
+    layer: u.layer,
+    variant: u.variant,
     status: "live",
   }),
 );
