@@ -63,21 +63,21 @@ export function mageIsSteady(core: GameCore): boolean {
   return core.time - core.mageLastMoveAt >= mageWindup(core) * MB.steadyHoldRatio;
 }
 
-/** 法阵半径（广域符印 +20%，聚爆 +50%，站定 +20%）。 */
-export function mageCircleRadius(
-  core: GameCore,
-  isCharge: boolean,
-  steady = false,
-): number {
+/**
+ * 法阵半径（广域符印 +20%，聚爆 +50%）。
+ *
+ * **不看站定**：半径只由天赋/属性决定，移动和站定必须一致——
+ * 否则玩家会以为「范围天赋只在站定时生效」。
+ */
+export function mageCircleRadius(core: GameCore, isCharge: boolean): number {
   const p = core.player;
   let r = MB.circleRadius * p.area;
   if ((p.upCounts["广域符印"] || 0) > 0) r *= MB.wideSealAreaMul;
   if (isCharge && (p.upCounts["三连聚爆"] || 0) > 0) r *= MB.burstRadiusMul;
-  if (steady) r *= MB.steadyRadiusMul;
   return r;
 }
 
-/** 法阵伤害（元素蓄能 / 三连聚爆 只作用于满充能的那一发；站定 +20%）。 */
+/** 法阵伤害（元素蓄能 / 三连聚爆 只作用于满充能的那一发；站定 ×1.5）。 */
 export function mageCircleDamage(
   core: GameCore,
   isCharge: boolean,
@@ -178,7 +178,7 @@ function detonate(core: GameCore, steady: boolean) {
   const p = core.player;
   const isCharge = core.mageCharge + 1 >= MB.chargeFull;
   const dmg = mageCircleDamage(core, isCharge, steady);
-  const R = mageCircleRadius(core, isCharge, steady);
+  const R = mageCircleRadius(core, isCharge);
   const hits = explodeCircle(core, core.castX, core.castY, R, dmg);
   // 回响：施法命中后获得少量护盾（可叠加，总量有上限）
   if (hits > 0 && (p.upCounts["回响"] || 0) > 0) {

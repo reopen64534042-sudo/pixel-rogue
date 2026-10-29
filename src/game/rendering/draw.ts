@@ -154,7 +154,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     // 预览圈按「下一次施法会不会满充能」取半径，与 detonate 的实际半径一致
     //（三连聚爆会让满充能发半径 +50%，预览偏小会让玩家误判落点）。
     const R = Math.round(
-      mageCircleRadius(this, this.mageCharge + 1 >= MB.chargeFull, steady),
+      mageCircleRadius(this, this.mageCharge + 1 >= MB.chargeFull),
     );
     ctx.globalAlpha = this.castPhase === "cast" ? 0.5 : 0.25;
     ctx.strokeStyle = steady ? "#57e6ff" : "#c07bff";

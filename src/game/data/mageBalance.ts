@@ -41,13 +41,13 @@ export interface MageBalance {
   castIdleRetry: number;
   /**
    * 站定施法：前摇最后 `steadyHoldRatio × 前摇总长` 的时间内保持静止，
-   * 本发伤害 ×`steadyDamageMul`、法阵半径 ×`steadyRadiusMul`。
-   * 判的是**最后一段**而不是整段前摇——玩家可以边跑边施法，在读数临近完成时
-   * 急停吃加成；移动施法保持 100%，站定是额外收益。
+   * 本发伤害 ×`steadyDamageMul`。判的是**最后一段**而不是整段前摇——
+   * 玩家可以边跑边施法，在读数临近完成时急停吃加成。
+   *
+   * 站定**不再改变法阵半径**：半径只由天赋/属性（广域符印、范围）决定，
+   * 否则移动/站定的范围不一致，看起来像「范围天赋时灵时不灵」。
    */
   steadyDamageMul: number;
-  /** 站定施法：本发法阵半径倍率。 */
-  steadyRadiusMul: number;
   /**
    * 站定所需的「静止窗口」占前摇总长的比例（0.4 = 最后 40% 不许动）。
    * 基础前摇 0.35s → 最后 0.14s；速咏后 0.245s → 最后 0.098s。
@@ -197,7 +197,6 @@ export const MAGE_BALANCE: MageBalance = {
   castDamageMul: 1.2,
   castIdleRetry: 0.1,
   steadyDamageMul: 1.5,
-  steadyRadiusMul: 1.25,
   steadyHoldRatio: 0.4,
 
   burnStackCap: 4,
