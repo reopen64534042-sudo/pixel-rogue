@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v71",
+    date: "2026-10-30",
+    title: "怪物冰弱与负抗性",
+    items: [
+      "蛮牛（精英形态岩石巨兽）改为火抗 30% / 冰弱 -20%；自爆虫改为火抗 55% / 冰弱 -20%，不再有冰霜抗性。",
+      "负抗性正式参与减伤：弱点下限 -50%，-20% 表示受到对应元素伤害 ×1.2；图鉴抗性说明同步。",
+    ],
+  },
+  {
     version: "v70",
     date: "2026-10-30",
     title: "三法印反应与秘传三修",

@@ -165,7 +165,8 @@ function requireFiniteResistanceMap(
 
 /**
  * EnemyConfig → StatModel 的唯一防御侧权威出口。
- * 映射按通用 resistance 族逐 key 解析；数值只验证非负，不做上限裁剪。
+ * 映射按通用 resistance 族逐 key 解析；负值作为弱点，用 flat 负修饰符表达
+ * （StatModel 契约要求 base ≥ 0，负增益走 flat）。
  */
 export function resolveEnemyDefense(
   cfg: EnemyConfig,
@@ -191,11 +192,24 @@ export function resolveEnemyDefense(
     const resistanceSource: unknown = cfg.resistances;
     // 通用映射解析器会把缺省 key 置为 0；先校验显式值，避免非法值被中性化。
     requireFiniteResistanceMap(resistanceSource);
-    const resistances = resolveKeyedMap("resistance", resistanceSource, []);
-    for (const [key, value] of Object.entries(resistances)) {
-      requireNonNegative(value, `EnemyConfig.resistances.${key}`);
+    const base: Record<string, number> = {};
+    const mods: (StatModifier & { stat: "resistance"; key: string })[] = [];
+    for (const [key, value] of Object.entries(resistanceSource)) {
+      // StatModel 的 base 必须 ≥ 0；负抗性（弱点）用 flat 负修饰符表达。
+      if (value < 0) {
+        base[key] = 0;
+        mods.push({
+          sourceId: "enemy-config",
+          stat: "resistance",
+          key,
+          stage: "flat",
+          value,
+        });
+      } else {
+        base[key] = value;
+      }
     }
-    out.resistances = resistances;
+    out.resistances = resolveKeyedMap("resistance", base, mods);
   }
 
   if (cfg.tough !== undefined) {

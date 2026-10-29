@@ -76,7 +76,7 @@ function enemyStatsHtml(entry: CodexEntry): string {
     ["半径", String(cfg.r), "碰撞与受击体积"],
     ["经验", String(cfg.xp), "击杀获得的基础经验"],
     ["护甲", def > 0 ? String(def) : "—", armorNote],
-    ["抗性", resText, "按百分比减少对应元素伤害，上限 75%；— 表示无抗性"],
+    ["抗性", resText, "正值减伤、负值增伤（弱点）；减伤上限 75%、弱点下限 -50%；— 表示无抗性"],
     ["解锁波次", String(cfg.w0), "首次出现的波次"],
     ["初始权重", String(cfg.wt), "刷新池中的基础权重，后期会随波次变化"],
   ];

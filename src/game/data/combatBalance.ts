@@ -16,6 +16,8 @@ export interface CombatBalance {
   armorK: number;
   /** 元素抗性减伤上限（比例） */
   resistanceCap: number;
+  /** 元素抗性下限（负值 = 弱点，对应元素伤害按 1 - res 放大；-0.5 即最多 +50%） */
+  resistanceFloor: number;
   /** 通用减伤（韧性 tough）上限，兼容既有「铁布衫」60% */
   toughCap: number;
 
@@ -56,6 +58,7 @@ export interface CombatBalance {
 export const COMBAT_BALANCE: CombatBalance = {
   armorK: 50,
   resistanceCap: 0.75,
+  resistanceFloor: -0.5,
   toughCap: 0.6,
 
   boltMulPerLevel: 1.25,
