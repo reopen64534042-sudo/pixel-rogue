@@ -149,3 +149,32 @@
   line-height: 1.7;
   margin-top: 0.6vmin;
 }
+.cx-d-stats {
+  margin-top: 1vmin;
+  padding-top: 0.8vmin;
+  border-top: 1px solid #3d4a7a;
+  display: grid;
+  gap: 0.35vmin;
+}
+.cx-d-stats-title {
+  color: #ffd24a;
+  font-size: 1.25vmin;
+  margin-bottom: 0.2vmin;
+}
+.cx-stat-row {
+  display: grid;
+  grid-template-columns: 8vmin 18vmin minmax(0, 1fr);
+  gap: 1vmin;
+  font-size: 1.15vmin;
+  line-height: 1.5;
+  align-items: start;
+}
+.cx-stat-k {
+  color: #8ea0d8;
+}
+.cx-stat-v {
+  color: #ffd24a;
+}
+.cx-stat-note {
+  color: #9aa3c7;
+}
