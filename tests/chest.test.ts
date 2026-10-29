@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fresh, learn, ticks } from "./helpers";
+import { fresh, learn, skipAttrs, ticks } from "./helpers";
 import {
   BOX_DROP_CAP,
   ELITE_BOX_GAIN,
@@ -64,6 +64,7 @@ describe("chest drops and elite rewards", () => {
 
   it("uncollected boxes fly to the player after the wave clears", () => {
     const g = fresh();
+    skipAttrs(g); // 本用例验证宝箱链，属性面板另有用例覆盖
     learn(g, "强化弹丸", 1);
     const box = { x: g.player.x + 60, y: g.player.y };
     g.boxes.push(box);
@@ -94,6 +95,7 @@ describe("chest drops and elite rewards", () => {
 
   it("opening a box upgrades a learned talent, then the wave enters rest", () => {
     const g = fresh();
+    skipAttrs(g); // 本用例验证宝箱链，属性面板另有用例覆盖
     learn(g, "强化弹丸", 1);
     learn(g, "疾影步", 1);
     g.boxPicks = 1;
@@ -116,6 +118,7 @@ describe("chest drops and elite rewards", () => {
 
   it("falls back to XP when nothing can be upgraded", () => {
     const g = fresh();
+    skipAttrs(g); // 本用例验证宝箱链，属性面板另有用例覆盖
     g.boxPicks = 1;
     g.wavePhase = "collect";
     const xpBefore = g.player.xp;

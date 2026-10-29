@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fresh, learn, talent, enemy, ticks, seeded } from "./helpers";
+import { fresh, learn, talent, enemy, ticks, seeded, skipAttrs } from "./helpers";
 import { UPGRADES, RAMP, TIER_VAL, DMG_POOL } from "../src/game/data/talents";
 import { WORLD } from "../src/game/data/constants";
 import { FixedClock } from "../src/game/core/FixedClock";
@@ -76,6 +76,7 @@ describe("game flow and state", () => {
   });
   it("fight → collect → rest cascades level picks → report/swap → next wave is guarded (Issue #67)", () => {
     const g = fresh();
+    skipAttrs(g); // 本用例验证「升级 → 宝箱 → 报告」链，属性面板另有用例覆盖
     expect(g.startNextWave()).toBe(false);
     g.spawnedThisWave = g.quota;
     g.gems.push({ x: g.player.x + 5, y: g.player.y, vx: 0, vy: 0, v: 8 });

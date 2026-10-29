@@ -94,6 +94,13 @@ export class GameScene extends Phaser.Scene {
         ["1", "2", "3"].includes(key)
       )
         this.ui.choose(Number(key) - 1);
+      // S1：属性面板是四选一，所以多一个键位
+      if (
+        this.core.state === "play" &&
+        this.core.bpMode === "attr" &&
+        ["1", "2", "3", "4"].includes(key)
+      )
+        this.core.chooseAttr(Number(key) - 1);
       if (this.core.state === "over" && key === "r") this.core.startGame();
     };
     const up = (event: KeyboardEvent) => {

@@ -1,4 +1,5 @@
 import { UPGRADES } from "../data/talents";
+import { attrPicksPerWave } from "./AttributeSystem";
 import type { GameCore } from "./GameCore";
 export function waveQuota(this: GameCore, n: number) {
   return Math.min(150, 20 + (n - 1) * 10);
@@ -17,6 +18,8 @@ export function startNextWave(this: GameCore) {
   this.swTarget = 0;
   this.swSel = {};
   this.waveN++;
+  // S1：属性次数按波发放，波末消费
+  this.attrPicks += attrPicksPerWave(this.waveN);
   this.beginWaveReport();
   this.quota = this.waveQuota(this.waveN);
   this.spawnedThisWave = 0;
@@ -58,6 +61,12 @@ export function enterRest(this: GameCore) {
   this.bpMode = "rest";
   this.swapUsedThisRest = false;
   // Issue #67：休整面板依次执行——升级 → 宝箱 → 报告/置换
+  // S1：属性选择排在最前（高频低决策的先做，且它可能要连选多次）
+  if (this.attrPicks > 0) {
+    this.bpMode = null;
+    this.openAttrPanel();
+    return;
+  }
   if (this.pendingLevels > 0) {
     this.bpMode = null;
     this.openLevelPanel();

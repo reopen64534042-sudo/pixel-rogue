@@ -221,6 +221,36 @@ function takeAttackRange(snapshot: unknown) {
   return { rest: snapshot, attackRange };
 }
 /**
+ * 基线更新依据：伤害重做 S1（属性发放）。
+ *
+ * 休整期新增「属性强化面板」并排在链首（属性 → 天赋 → 宝箱 → 报告），所以到达
+ * rest 时当前实现的 `bpMode` 是 `"attr"`、`slots` 还没填；而 v8 只可能是
+ * `"level"` / `"rest"`。这属于**有意的流程改动**，不是战斗分叉：
+ *
+ * - 同一快照里 `pendingLevels` 仍逐字段相等 —— 待处理的升级次数一致，只是先弹
+ *   哪个面板变了；
+ * - 战斗、移动、掉落、经验等其余全部字段继续逐字段严格相等。
+ *
+ * 因此把两侧归一到 `bpMode: "rest"`、`slotsUsed: []` 再比较，并断言当前实现
+ * 只出现预期集合内的面板值（防止将来多出一个没登记的面板）。面板链本身由
+ * `tests/s1-attribute-dispatch.test.ts` 覆盖。
+ */
+function flattenRestPanel(snapshot: unknown) {
+  const snap = snapshot as {
+    bpMode?: string | null;
+    wavePhase?: string;
+    slotsUsed?: boolean[];
+  };
+  if (snap.wavePhase === "rest") {
+    const allowed = [null, "rest", "level", "box", "attr"];
+    if (!allowed.includes(snap.bpMode ?? null))
+      throw new Error(`未知的休整面板 bpMode: ${String(snap.bpMode)}`);
+    snap.bpMode = "rest";
+    snap.slotsUsed = [];
+  }
+  return snapshot;
+}
+/**
  * 逐字段对照，同时按三条已批准的基线规则做显式断言：
  * - Issue #13：dmgBy.melee 是新增分项，v8 无此键，当前实现必须恒为 0；
  * - Issue #12：hp/maxhp 的增量必须在 [0, POTION_GROW_CAP] 内且同步增长；
@@ -228,8 +258,12 @@ function takeAttackRange(snapshot: unknown) {
  * 其余全部字段（含其余伤害分项、普通宝石经验）仍与 v8 严格相等。
  */
 function expectParity(actual: unknown, expected: unknown, wave: number) {
-  const a0 = splitPlayerHealth(JSON.parse(JSON.stringify(actual)));
-  const e0 = splitPlayerHealth(JSON.parse(JSON.stringify(expected)));
+  const a0 = splitPlayerHealth(
+    flattenRestPanel(JSON.parse(JSON.stringify(actual))),
+  );
+  const e0 = splitPlayerHealth(
+    flattenRestPanel(JSON.parse(JSON.stringify(expected))),
+  );
   const grow = a0.maxhp - e0.maxhp;
   expect(grow).toBeGreaterThanOrEqual(0);
   expect(grow).toBeLessThanOrEqual(POTION_GROW_CAP);
