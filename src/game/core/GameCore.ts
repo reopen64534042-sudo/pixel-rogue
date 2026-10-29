@@ -196,6 +196,16 @@ export class GameCore {
   /** 本次法阵的落点（起手时固化）。 */
   castX = 0;
   castY = 0;
+  /**
+   * 站定判定：最后一次「玩家位置发生变化」的时刻（秒）。
+   *
+   * 判定看的是前摇**最后一段**（`steadyHoldRatio × 前摇总长`）是否静止，
+   * 而不是整段前摇——玩家可以边跑边施法，在读数临近完成时急停吃加成。
+   */
+  mageLastMoveAt = -1e9;
+  /** 上一帧玩家位置：用来检测「这一帧有没有移动」。 */
+  magePrevX = 0;
+  magePrevY = 0;
   /** 充能条：每 MB.chargeFull 次成功施法满一次，满时结算循环轴。 */
   mageCharge = 0;
   /** 值型限时护盾现值（与既有层数制护盾是两套模型）。 */
@@ -373,7 +383,10 @@ export class GameCore {
   startNextWave = startNextWave.bind(this);
   cardsOfTier = cardsOfTier.bind(this);
   enterRest = enterRest.bind(this);
-  resetGame() {
+  resetGame(prof: Profession = "shooter") {
+    // S3：职业必须在重建 Player 之前确定——属性投影以 statBase(prof) 重建，
+    // 法师的施法速度/施法距离来自职业 base。
+    this.prof = prof;
     this.audio.cancelCues();
     this.player = {
       x: WORLD.w / 2,
@@ -386,7 +399,7 @@ export class GameCore {
       fireCd: 0,
       upCounts: {},
       picks: [],
-      ...statBase(),
+      ...statBase(prof),
     };
     this.enemies = [];
     this.bullets = [];
@@ -419,14 +432,15 @@ export class GameCore {
     this.hurtFlash = 0;
     this.pendingLevels = 0;
     this.startTalentPending = false;
-    // S2：职业池固定射手（S3 才有开局选择）
-    this.prof = "shooter";
     // S3 法师池运行态归零
     this.castPhase = "idle";
     this.castT = 0;
     this.castCd = 0;
     this.castX = 0;
     this.castY = 0;
+    this.mageLastMoveAt = -1e9;
+    this.magePrevX = this.player.x;
+    this.magePrevY = this.player.y;
     this.mageCharge = 0;
     this.mageShield = 0;
     this.mageShieldT = 0;
@@ -504,14 +518,13 @@ export class GameCore {
   /**
    * 开局。
    *
-   * @param prof 职业（S3 起可选射手 / 法师）。必须在 `resetGame()` **之后**写：
-   * `resetGame` 会把职业硬编码回 `"shooter"`；而且 `view.started()` 里的
-   * `openLevelPanel` 会立刻按 `this.prof` 过滤卡池——职业必须先定，
-   * 否则第一批卡是按上一个职业抽的。
+   * @param prof 职业（S3 起可选射手 / 法师）。职业在 `resetGame(prof)` 里
+   * 写定——`view.started()` 的 `openLevelPanel` 会立刻按 `this.prof` 过滤
+   * 卡池，职业必须先定，否则第一批卡是按上一个职业抽的；Player 的
+   * 施法速度/施法距离 base 也随职业重建。
    */
   startGame(prof?: Profession) {
-    this.resetGame();
-    this.prof = prof ?? "shooter";
+    this.resetGame(prof ?? "shooter");
     this.state = "play";
     // S2 修订（用户反馈）：开局送 1 次天赋，让第 1 波起就有一次成长。
     // **必须在 view.started() 之前记账**：面板是 UI 在 started 回调里按

@@ -22,35 +22,70 @@ import type { Enemy, MageCastPhase } from "./types";
  * dodgeNextCrit / contactKnockCd 等。
  */
 
-/** 有效前摇时长（速咏 −30%）。 */
+/**
+ * 施法速度倍率：1 = 职业基础速度。
+ *
+ * 法师的 fireRate base 是 `1 / castCycle`（见 data/stats.ts），属性「施法速度」
+ * 通过 fireRate 的百分比成长作用到这里——前摇与间隔同比缩放，施法周期
+ * 始终等于 `1 / fireRate`。下限保护只防「速度为 0」的非法配置。
+ */
+function castRate(core: GameCore): number {
+  return Math.max(0.05, core.player.fireRate * MB.castCycle);
+}
+
+/** 有效前摇时长（速咏 −30%，施法速度同比缩放）。 */
 export function mageWindup(core: GameCore): number {
   const mul =
     (core.player.upCounts["速咏"] || 0) > 0 ? MB.quickCastWindupMul : 1;
-  return MB.castWindup * mul;
+  return (MB.castWindup * mul) / castRate(core);
 }
 
-/** 有效施法间隔（连咏 −20%）。 */
+/** 有效施法间隔（连咏 −20%，施法速度同比缩放）。 */
 export function mageInterval(core: GameCore): number {
   const mul =
     (core.player.upCounts["连咏"] || 0) > 0
       ? MB.continuousCastIntervalMul
       : 1;
-  return MB.castInterval * mul;
+  return (MB.castInterval * mul) / castRate(core);
 }
 
-/** 法阵半径（广域符印 +20%，聚爆 +50%）。 */
-export function mageCircleRadius(core: GameCore, isCharge: boolean): number {
+/**
+ * 站定判定：前摇**最后一段**保持静止。
+ *
+ * 静止窗口 = 前摇总长 × `steadyHoldRatio`（0.4）。基础前摇 0.35s →
+ * 最后 0.14s 不许动；速咏后按缩短后的前摇同比缩放。
+ * 判定依据是「最后一次移动的时刻」，因此玩家可以边跑边施法，在读数临近
+ * 完成时急停——停够窗口就吃加成。绘制侧与 detonate 共用本函数，
+ * 读条变青的时刻就是判定生效的时刻。
+ */
+export function mageIsSteady(core: GameCore): boolean {
+  if (core.castPhase !== "windup" && core.castPhase !== "cast") return false;
+  return core.time - core.mageLastMoveAt >= mageWindup(core) * MB.steadyHoldRatio;
+}
+
+/** 法阵半径（广域符印 +20%，聚爆 +50%，站定 +20%）。 */
+export function mageCircleRadius(
+  core: GameCore,
+  isCharge: boolean,
+  steady = false,
+): number {
   const p = core.player;
   let r = MB.circleRadius * p.area;
   if ((p.upCounts["广域符印"] || 0) > 0) r *= MB.wideSealAreaMul;
   if (isCharge && (p.upCounts["三连聚爆"] || 0) > 0) r *= MB.burstRadiusMul;
+  if (steady) r *= MB.steadyRadiusMul;
   return r;
 }
 
-/** 法阵伤害（元素蓄能 / 三连聚爆 只作用于满充能的那一发）。 */
-export function mageCircleDamage(core: GameCore, isCharge: boolean): number {
+/** 法阵伤害（元素蓄能 / 三连聚爆 只作用于满充能的那一发；站定 +20%）。 */
+export function mageCircleDamage(
+  core: GameCore,
+  isCharge: boolean,
+  steady = false,
+): number {
   const p = core.player;
   let dmg = p.damage * MB.castDamageMul;
+  if (steady) dmg *= MB.steadyDamageMul;
   if (isCharge) {
     if ((p.upCounts["元素蓄能"] || 0) > 0) dmg *= MB.chargeDamageMul;
     if ((p.upCounts["三连聚爆"] || 0) > 0) dmg *= MB.burstDamageMul;
@@ -125,7 +160,8 @@ function explodeCircle(
     applyMageHit(core, e, dmg);
   }
   if (hits) {
-    core.addText(x, y - 8, "法阵", "#c07bff");
+    // 不再刷「法阵」飘字：它每 0.55 秒在落点出现一次，正好压住伤害数字
+    //（玩家实机反馈两者互相看不清）。命中反馈由法阵圈、音效与震屏承担。
     core.audio.beep(520, 0.1, "sine", 0.05, 180);
     core.shake = Math.min(core.shake + 1.5, 5);
   }
@@ -140,11 +176,11 @@ function explodeCircle(
  * （三连聚爆 +15% 伤害 / 半径 +50%、元素蓄能 +40% 伤害、
  *  咏唱护壁给护盾、过载额外再触发一次）。
  */
-function detonate(core: GameCore) {
+function detonate(core: GameCore, steady: boolean) {
   const p = core.player;
   const isCharge = core.mageCharge + 1 >= MB.chargeFull;
-  const dmg = mageCircleDamage(core, isCharge);
-  const R = mageCircleRadius(core, isCharge);
+  const dmg = mageCircleDamage(core, isCharge, steady);
+  const R = mageCircleRadius(core, isCharge, steady);
   const hits = explodeCircle(core, core.castX, core.castY, R, dmg);
   // 回响：施法命中后获得少量护盾（可叠加，总量有上限）
   if (hits > 0 && (p.upCounts["回响"] || 0) > 0) {
@@ -164,9 +200,16 @@ function detonate(core: GameCore) {
         MB.wardShieldDuration,
         false,
       );
-    // 过载：满充能时该次施法立即再触发一次（额外这一次不吃充能加成）
+    // 过载：满充能时该次施法立即再触发一次（额外这一次不吃充能加成，
+    // 但同属这一发，站定加成一并继承）
     if ((p.upCounts["过载"] || 0) > 0)
-      explodeCircle(core, core.castX, core.castY, R, mageCircleDamage(core, false));
+      explodeCircle(
+        core,
+        core.castX,
+        core.castY,
+        R,
+        mageCircleDamage(core, false, steady),
+      );
   }
   core.mageCharge = (core.mageCharge + 1) % MB.chargeFull;
 }
@@ -239,10 +282,37 @@ export function triggerPhaseEscape(this: GameCore): boolean {
 }
 
 /**
+ * 残影落点方向：与「玩家→最近敌人」垂直。
+ *
+ * 为什么不留在玩家脚下：实机反馈「怪物仍围着玩家的虚影打」——残影和玩家
+ * 同坐标时，敌人只是在原地继续打同一个点，看不出仇恨被拉走。偏到侧面
+ * 36px 后，敌人会明显转向，玩家才有脱离窗口。
+ */
+function decoyAngle(core: GameCore): number {
+  const p = core.player;
+  let nearest: Enemy | null = null;
+  let best = Infinity;
+  for (const e of core.enemies) {
+    if (e.dead) continue;
+    const d = Math.hypot(e.x - p.x, e.y - p.y);
+    if (d < best) {
+      best = d;
+      nearest = e;
+    }
+  }
+  if (!nearest) return Math.atan2(p.dy, p.dx) + Math.PI / 2;
+  return Math.atan2(nearest.y - p.y, nearest.x - p.x) + Math.PI / 2;
+}
+
+/**
  * 镜像：留下残影吸引仇恨，自身进入 1 秒虚影。
  *
  * 虚影期间：不可受击（damagePlayer 直接挡下）、无视碰撞（敌人接触判定跳过）、
  * 不能施法（施法状态机跳过）。
+ *
+ * 残影是**限时仇恨源**（`mirrorDecoyDuration` 秒），不因接触而破碎：
+ * 旧实现 hp=1，而触发条件正是「被贴脸打中」——残影生成当帧就被同一个敌人
+ * 打掉，仇恨转移从未发生。现在它活满时长，敌人会持续追它。
  */
 export function triggerMirrorDecoy(this: GameCore): boolean {
   const core = this;
@@ -250,11 +320,11 @@ export function triggerMirrorDecoy(this: GameCore): boolean {
   if ((p.upCounts["镜像"] || 0) <= 0) return false;
   if (core.mageMirrorCd > 0) return false;
   core.mageMirrorCd = MB.mirrorCooldown;
+  const a = decoyAngle(core);
   core.mageDecoys.push({
-    x: p.x,
-    y: p.y,
+    x: clamp(p.x + Math.cos(a) * MB.mirrorDecoyOffset, 24, WORLD.w - 24),
+    y: clamp(p.y + Math.sin(a) * MB.mirrorDecoyOffset, 24, WORLD.h - 24),
     t: MB.mirrorDecoyDuration,
-    hp: MB.mirrorDecoyHp,
   });
   core.magePhaseT = MB.mirrorDuration;
   core.addText(p.x, p.y - 12, "镜像", "#c07bff");
@@ -269,7 +339,7 @@ function updateMeteorRoute(core: GameCore, dt: number) {
   core.mageMeteorT -= dt;
   if (core.mageMeteorT <= 0) {
     core.mageMeteorT = MB.meteorInterval;
-    const target = findDensest(core, MB.castRange);
+    const target = findDensest(core, p.attackRange);
     if (target) {
       const count =
         (p.upCounts["多重陨星"] || 0) > 0 ? MB.meteorCount : 1;
@@ -357,6 +427,12 @@ function updateMeteorRoute(core: GameCore, dt: number) {
 export function updateMageCasting(this: GameCore, dt: number) {
   const p = this.player;
   if (this.prof !== "mage") return;
+  // 站定判定的移动追踪：Simulation 里本模块紧随 updatePlayer，读到的就是
+  // 本帧位移。0.05px 阈值忽略浮点噪声；只有真正移动才刷新计时。
+  if (Math.hypot(p.x - this.magePrevX, p.y - this.magePrevY) > 0.05)
+    this.mageLastMoveAt = this.time;
+  this.magePrevX = p.x;
+  this.magePrevY = p.y;
   // 值型限时护盾
   if (this.mageShieldT > 0) {
     this.mageShieldT -= dt;
@@ -388,7 +464,7 @@ export function updateMageCasting(this: GameCore, dt: number) {
     case "idle": {
       this.castCd -= dt;
       if (this.castCd > 0) break;
-      const target = findDensest(this, MB.castRange);
+      const target = findDensest(this, p.attackRange);
       if (!target) {
         this.castCd = MB.castIdleRetry;
         break;
@@ -413,9 +489,11 @@ export function updateMageCasting(this: GameCore, dt: number) {
     case "cast": {
       this.castT -= dt;
       if (this.castT > 0) break;
+      // 站定判定必须在切回 idle 之前取——mageIsSteady 以 castPhase 为前提
+      const steady = mageIsSteady(this);
       this.castPhase = "idle";
       this.castCd = mageInterval(this);
-      detonate(this);
+      detonate(this, steady);
       break;
     }
   }

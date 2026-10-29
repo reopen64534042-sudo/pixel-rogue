@@ -1,5 +1,4 @@
 import { WORLD, clamp } from "../data/constants";
-import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import type { GameCore } from "./GameCore";
 
 export function updatePlayer(this: GameCore, dt: number) {
@@ -73,12 +72,8 @@ export function updatePlayer(this: GameCore, dt: number) {
     // S2「滞空」：闪避成功后 0.5 秒的移速加成（两者可叠乘，来源不同）
     const boost =
       (this.dashBoostT > 0 ? 1.15 : 1) * (this.dodgeBoostT > 0 ? 1.2 : 1);
-    // S3 法师「时间门控」：抬手（前摇）期间移动被拖慢。
-    // 乘 1 是精确的，射手路径的移动数值逐位不变。
-    const windupPenalty =
-      this.castPhase === "windup" ? 1 / MB.windupMovePenalty : 1;
-    p.x += mx * p.speed * boost * windupPenalty * dt;
-    p.y += my * p.speed * boost * windupPenalty * dt;
+    p.x += mx * p.speed * boost * dt;
+    p.y += my * p.speed * boost * dt;
   }
   // 世界边界
   p.x = clamp(p.x, 24, WORLD.w - 24);

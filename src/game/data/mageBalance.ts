@@ -35,12 +35,24 @@ export interface MageBalance {
   castRange: number;
   /** 法阵半径（px，base）：随 area 乘区缩放。 */
   circleRadius: number;
-  /** 前摇期间的移速惩罚系数：移动速度 ÷ 该值（1.6 ≈ 慢 60%）。 */
-  windupMovePenalty: number;
   /** 法阵单次伤害系数（× 玩家 damage）。 */
   castDamageMul: number;
   /** 无目标时的重试间隔（秒）：避免每帧空转找目标。 */
   castIdleRetry: number;
+  /**
+   * 站定施法：前摇最后 `steadyHoldRatio × 前摇总长` 的时间内保持静止，
+   * 本发伤害 ×`steadyDamageMul`、法阵半径 ×`steadyRadiusMul`。
+   * 判的是**最后一段**而不是整段前摇——玩家可以边跑边施法，在读数临近完成时
+   * 急停吃加成；移动施法保持 100%，站定是额外收益。
+   */
+  steadyDamageMul: number;
+  /** 站定施法：本发法阵半径倍率。 */
+  steadyRadiusMul: number;
+  /**
+   * 站定所需的「静止窗口」占前摇总长的比例（0.4 = 最后 40% 不许动）。
+   * 基础前摇 0.35s → 最后 0.14s；速咏后 0.245s → 最后 0.098s。
+   */
+  steadyHoldRatio: number;
 
   // —— 元素印记 ——
   /** 灼烧层数上限。 */
@@ -157,8 +169,8 @@ export interface MageBalance {
   mirrorDuration: number;
   /** 镜像：残影存在时间（秒）。 */
   mirrorDecoyDuration: number;
-  /** 镜像：残影可承受的接触伤害次数。 */
-  mirrorDecoyHp: number;
+  /** 镜像：残影相对玩家的生成偏移（px，沿垂直于「玩家→最近敌人」的方向）。 */
+  mirrorDecoyOffset: number;
 }
 
 export const MAGE_BALANCE: MageBalance = {
@@ -168,9 +180,11 @@ export const MAGE_BALANCE: MageBalance = {
   castInterval: 0.2,
   castRange: 260,
   circleRadius: 34,
-  windupMovePenalty: 1.6,
   castDamageMul: 1.2,
   castIdleRetry: 0.1,
+  steadyDamageMul: 1.5,
+  steadyRadiusMul: 1.25,
+  steadyHoldRatio: 0.4,
 
   burnStackCap: 4,
   burnDpsPerStack: 0.15,
@@ -229,5 +243,5 @@ export const MAGE_BALANCE: MageBalance = {
   mirrorCooldown: 12,
   mirrorDuration: 1,
   mirrorDecoyDuration: 3,
-  mirrorDecoyHp: 1,
+  mirrorDecoyOffset: 36,
 };

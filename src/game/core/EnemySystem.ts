@@ -226,7 +226,9 @@ export function updateEnemies(this: GameCore, dt: number) {
       (isParalyzed(e) ? 1 - MB.paraMoveSlow : 1);
     if (e.type === "shooter") {
       // 远程: 远则靠近、近则后撤、中距离横向游走并射击
-      const d = Math.hypot(p.x - e.x, p.y - e.y);
+      // S3：距离改用当前目标（默认玩家；存在镜像残影时是残影），
+      // 无残影时 target 就是玩家，行为与旧版逐位一致。
+      const d = Math.hypot(targetX - e.x, targetY - e.y);
       let mvx = 0,
         mvy = 0;
       if (d > 150) {
@@ -263,7 +265,7 @@ export function updateEnemies(this: GameCore, dt: number) {
       if (!e.fuse) {
         e.x += Math.cos(a) * spd * dt;
         e.y += Math.sin(a) * spd * dt;
-        if (Math.hypot(p.x - e.x, p.y - e.y) < 26) {
+        if (Math.hypot(targetX - e.x, targetY - e.y) < 26) {
           e.fuse = 0.5;
           this.audio.beep(220, 0.2, "sawtooth", 0.05, 200);
         }
@@ -302,20 +304,6 @@ export function updateEnemies(this: GameCore, dt: number) {
     }
     e.x = clamp(e.x, 20, WORLD.w - 20);
     e.y = clamp(e.y, 20, WORLD.h - 20);
-    // S3 法师「镜像」残影：敌人接触残影时打掉残影，而不是玩家。
-    if (decoy) {
-      const ddx = decoy.x - e.x;
-      const ddy = decoy.y - e.y;
-      const drr = e.r + 6;
-      if (ddx * ddx + ddy * ddy < drr * drr) {
-        decoy.hp -= 1;
-        this.addText(decoy.x, decoy.y - 10, "残影破碎", "#c07bff");
-        if (decoy.hp <= 0) {
-          const idx = this.mageDecoys.indexOf(decoy);
-          if (idx >= 0) this.mageDecoys.splice(idx, 1);
-        }
-      }
-    }
     // 接触伤害
     const dx = p.x - e.x,
       dy = p.y - e.y,

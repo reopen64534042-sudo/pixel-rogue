@@ -98,7 +98,7 @@ export function recompute(this: GameCore) {
   // （R-4 修复）
   const capsBefore = effectiveCaps(this.player);
   const runtime = captureRuntimeState(this.player);
-  Object.assign(this.player, statBase());
+  Object.assign(this.player, statBase(this.prof));
   // Combat Foundation S3-B：statBase 不含可选战斗属性键，Object.assign 不会清除
   // 残留值——磐石/元素亲和等增量型天赋重放前必须清键，否则在旧值上叠加
   for (const key of [
@@ -128,6 +128,7 @@ export function recompute(this: GameCore) {
       potionMaxHpGrow: this.potionMaxHpGrow,
     },
     attributeModifiers(this.attributePicks),
+    this.prof,
   );
   // C3-B/C3-C：属性重建完成后原样回写全部运行状态（不恢复资源、不刷新
   // 倒计时、不重放获得时效果），再按「上限降低」方向协调——置换移除层级
@@ -158,6 +159,7 @@ export function learnTalent(this: GameCore, u: Talent) {
       potionMaxHpGrow: this.potionMaxHpGrow,
     },
     attributeModifiers(this.attributePicks),
+    this.prof,
   );
   // C3-A：获得时效果在投影**之后**执行（生命之泉回满依赖新有效 maxhp）；
   // 仅对已登记卡生效（未登记 no-op），melt 输出卡路径经本函数自动复用，

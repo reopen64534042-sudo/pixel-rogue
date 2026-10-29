@@ -325,7 +325,27 @@ export function addText(
   c: string,
   big = false,
 ) {
-  this.texts.push({ x, y, s: String(s), c, life: 0.7, vy: -22, big: !!big });
+  // 同位置叠字是玩家实机反馈的问题（伤害数字与机制标签互相盖住，两个都看不清）。
+  // 生成时就按当前飘字错开：同一列（x 差 <18px）每撞到一条，新字上移 9px（最多 4 层）。
+  // 只读现有飘字位置，不消耗随机数、不改变任何战斗数值；飘字本来就在上浮，
+  // 因此错位在视觉上是一条「字往上排」的队列。
+  let ny = y;
+  for (let i = 0; i < 4; i++) {
+    const clash = this.texts.some(
+      (t) => Math.abs(t.x - x) < 18 && Math.abs(t.y - ny) < 8,
+    );
+    if (!clash) break;
+    ny -= 9;
+  }
+  this.texts.push({
+    x,
+    y: ny,
+    s: String(s),
+    c,
+    life: 0.7,
+    vy: -22,
+    big: !!big,
+  });
 }
 
 export function damagePlayer(

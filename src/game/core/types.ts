@@ -449,12 +449,10 @@ export interface MageDomain extends Point {
   element: DamageTypeId;
 }
 
-/** 镜像残影：吸引仇恨的诱饵。 */
+/** 镜像残影：吸引仇恨的诱饵（限时存在，不因接触破碎）。 */
 export interface MageDecoy extends Point {
   /** 剩余存在时间（秒）。 */
   t: number;
-  /** 可承受的接触伤害次数。 */
-  hp: number;
 }
 
 /**

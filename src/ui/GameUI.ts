@@ -11,6 +11,7 @@ import {
 import { fmtTime } from "../game/data/constants";
 import { boltDamage, critMultiplier } from "../game/core/DamageMath";
 import { COMBAT_BALANCE } from "../game/data/combatBalance";
+import { MAGE_BALANCE } from "../game/data/mageBalance";
 import { element } from "./dom";
 import { CodexUI } from "./CodexUI";
 const DMG_NAMES: Record<string, string> = {
@@ -279,30 +280,49 @@ export class GameUI {
           COMBAT_BALANCE.armorK / (COMBAT_BALANCE.armorK + Math.max(0, def))) *
           100,
       );
+    // S3：法师的伤害基线与攻速是元素/施法口径——沿用射手的「基础攻击/魔弹/攻速」
+    // 会让玩家以为自己在加物理攻击（属性面板已同步改口径）。
+    const isMage = this.core.prof === "mage";
     const combatRows: [string, string | number][] = [
       ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
       ["📘 下级所需经验", p.xpNext],
       ["🌊 当前波次", this.core.waveN + "（配额 " + this.core.quota + "）"],
       // 文案更名（S3-C）：p.damage 是攻击基线（技能系数/raw），非 globalDamageBonus
-      ["⚔️ 基础攻击", p.damage.toFixed(1)],
-      [
-        "🔥 魔弹伤害",
-        boltDamage(p).toFixed(1) +
-          (p.boltDmgMul > 1 ? ` ×${p.boltDmgMul.toFixed(2)}` : ""),
-      ],
-      [
-        "⚡ 攻速",
-        (p.fireRate * (1 + p.haste * 0.1)).toFixed(2) +
-          " /秒" +
-          (p.haste ? ` (狂热 +${p.haste * 10}%)` : ""),
-      ],
+      isMage
+        ? ["🔮 元素伤害", p.damage.toFixed(1)]
+        : ["⚔️ 基础攻击", p.damage.toFixed(1)],
+      isMage
+        ? [
+            "☄️ 法阵伤害",
+            (p.damage * MAGE_BALANCE.castDamageMul).toFixed(1),
+          ]
+        : [
+            "🔥 魔弹伤害",
+            boltDamage(p).toFixed(1) +
+              (p.boltDmgMul > 1 ? ` ×${p.boltDmgMul.toFixed(2)}` : ""),
+          ],
+      isMage
+        ? ["⚡ 施法速度", p.fireRate.toFixed(2) + " 次/秒"]
+        : [
+            "⚡ 攻速",
+            (p.fireRate * (1 + p.haste * 0.1)).toFixed(2) +
+              " /秒" +
+              (p.haste ? ` (狂热 +${p.haste * 10}%)` : ""),
+          ],
       [
         "💥 暴击/暴伤",
         (p.crit * 100).toFixed(0) + "% / ×" + critMultiplier(p).toFixed(1),
       ],
-      ["🔱 弹道/穿透", `${p.multishot} / ${p.pierce}`],
+      ...(isMage
+        ? ([["🎯 施法距离", Math.round(p.attackRange)]] as [
+            string,
+            string | number,
+          ][])
+        : ([
+            ["🔱 弹道/穿透", `${p.multishot} / ${p.pierce}`],
+            ["🪃 弹射次数", p.ricochet ? `${p.ricochet} 次` : "—"],
+          ] as [string, string | number][])),
       ["🌐 施法范围", "×" + p.area.toFixed(2)],
-      ["🪃 弹射次数", p.ricochet ? `${p.ricochet} 次` : "—"],
       ["👟 移动速度", Math.round(p.speed)],
       ["🧲 拾取范围", Math.round(p.magnet)],
       ["❄️ 冰冻减速", p.slow ? (p.slow * 100).toFixed(0) + "%" : "—"],
@@ -687,7 +707,7 @@ export class GameUI {
       el.setAttribute("role", "button");
       el.setAttribute(
         "aria-label",
-        `第 ${i + 1} 项：${c.def.label} ${c.text}，${rarityLabel(c.rarity)}`,
+        `第 ${i + 1} 项：${c.label} ${c.text}，${rarityLabel(c.rarity)}`,
       );
       el.onkeydown = (event) => {
         if (event.target === el && ["Enter", " "].includes(event.key)) {
@@ -697,7 +717,7 @@ export class GameUI {
       };
       el.innerHTML = `<div class="tier">${rarityLabel(c.rarity)}</div>
       <div class="cat">${groupLabel(c.def.group)}</div>
-      <div class="nm">${c.def.label}</div>
+      <div class="nm">${c.label}</div>
       <div class="ds">${c.text}</div>`;
       el.onclick = () => this.core.chooseAttr(i);
       box.appendChild(el);

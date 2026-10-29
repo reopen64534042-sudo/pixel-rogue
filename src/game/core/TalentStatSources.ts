@@ -96,7 +96,7 @@
 import { statBase } from "../data/stats";
 import { resolveStats, type StatModifier } from "./StatModel";
 import { resolveKeyedMap, type TypeDamageBonusModifier } from "./StatSheets";
-import type { Player } from "./types";
+import type { Player, Profession } from "./types";
 
 /** 十三张已迁移卡（C1/C2）+ 两张生命卡（C3-A）的来源贡献：标量区（含 attack 与五字段 final）+ 类型化火雷增伤区 */
 export interface TalentStatContribution {
@@ -497,8 +497,14 @@ export function applyTalentStatProjection(
    * 末位，而属性设计上以 flat/percent 为主，不受影响。
    */
   externalModifiers: readonly StatModifier[] = [],
+  /**
+   * S3：职业基础形态。base 由 `statBase(prof)` 给出——法师的
+   * fireRate（施法速度）与 attackRange（施法距离）与射手不同。
+   * 省略时按射手，保持既有调用与测试的默认行为。
+   */
+  prof: Profession = "shooter",
 ): void {
-  const base = statBase();
+  const base = statBase(prof);
   const { scalars, typeDamageBonus } = talentStatModifiers(p.picks, persistent);
   const resolved = resolveStats({
     base: {
