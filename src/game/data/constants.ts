@@ -4,10 +4,15 @@ export const VIEW = { w: W, h: H };
 export const WORLD = { w: 1392, h: 1040 };
 /** 满血拾取血包转化为最大生命的每波上限（加成本身永久保留，不设总上限） */
 export const POTION_GROW_CAP = 10;
-/** 每波普通怪宝箱掉落上限；精英必掉的那一个不占此名额 */
+/** 每波普通怪宝箱掉落上限；精英宝箱不占此名额 */
 export const BOX_DROP_CAP = 2;
 /** 普通怪单只掉宝箱概率 */
 export const BOX_DROP_RATE = 0.01;
+/**
+ * 精英（含 BOSS）宝箱掉落概率。
+ * 2026-10-30 用户裁定：从「必掉」改回概率掉落，初值 50%。
+ */
+export const ELITE_BOX_DROP_RATE = 0.5;
 /**
  * Issue #87（用户批准的平衡变更）：特殊宝箱单箱可换取的强化点数。
  * 原为 2，后期叠加多精英导致天赋成长过快、数值膨胀，下调为 1。

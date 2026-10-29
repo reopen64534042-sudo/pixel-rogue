@@ -33,6 +33,16 @@ const DMG_NAMES: Record<string, string> = {
 };
 const show = (id: string) => element(id).classList.remove("hidden");
 const hide = (id: string) => element(id).classList.add("hidden");
+
+/**
+ * 置换（熔炉）入口开关。
+ *
+ * v60 起关闭：新职业池没有稀有度分层（法师 18 张全 t0、max 1），而 melt()
+ * 的产出池走 legacyAvailTalents——法师局投入 2 张法师卡会熔出旧表退役卡。
+ * 按 2026-10-28 裁定「先关入口、保留实现」：SwapSystem/melt 与单元测试不动，
+ * 重新开放时改这里并同步池规则。
+ */
+const SWAP_ENTRY_ENABLED: boolean = false;
 export class GameUI {
   /** 图鉴面板：开始界面与暂停界面共用同一实例（Issue #78） */
   readonly codex: CodexUI;
@@ -626,18 +636,23 @@ export class GameUI {
     element("bp-boxskip").classList.toggle("hidden", mode !== "box");
     // 升级面板与宝箱面板共用同一套卡片，只换标题文案
     const box = mode === "box";
+    const second = this.core.mageSecondElementPending;
     const title = document.querySelector<HTMLElement>("#bp-level .bp-title");
     if (title)
       title.textContent = box
         ? `🎁 开启宝箱 · 剩余 ${this.core.boxPicks} 次强化 · 强化一项已学天赋`
-        : "⬆ 等级提升！选择一项天赋强化";
+        : second
+          ? "☯️ 双修 · 选择第二个元素"
+          : "⬆ 等级提升！选择一项天赋强化";
     const hint = document.querySelector<HTMLElement>(
       "#bp-level .level-subhint",
     );
     if (hint)
       hint.textContent = box
         ? "只强化已学天赋 · 键盘 1 / 2 / 3 快捷选取"
-        : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷新」换一张";
+        : second
+          ? "只显示尚未持有的元素 · 键盘 1 / 2 快捷选取"
+          : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷新」换一张";
     this.drawCards();
     element("bp-level").classList.remove("hidden");
     element("bp-rest").classList.add("hidden");
@@ -748,11 +763,11 @@ export class GameUI {
       html += `<span class="it">${DMG_NAMES[it.k]} <b>${Math.round(it.v)}</b> (${((it.v / total) * 100).toFixed(0)}%)</span>`;
     if (total < 0.5) html = '<span class="it">本波没有造成伤害</span>';
     element("bp-report").innerHTML = html;
-    // 置换入口: 本波没用过 且 存在可换的目标档位。
-    // S2：判定必须与 melt() 实际使用的池一致（legacyAvailTalents）——
-    // 射手池全部改成普通（t=0）之后，UPGRADES 里 t1/t2/t3 只剩退役旧卡，
-    // availTalents 恒为空，会导致按钮**永远不显示**、熔炉静默失效。
+    // 置换入口：v60 起由 SWAP_ENTRY_ENABLED 统一关闭（原因见常量注释）。
+    // 判定必须与 melt() 实际使用的池一致（legacyAvailTalents）——重新开放时
+    // 若改池，这里要同步改，否则按钮会静默失效。
     const can =
+      SWAP_ENTRY_ENABLED &&
       !this.core.swapUsedThisRest &&
       ((this.core.cardsOfTier(0) >= 2 &&
         this.core.legacyAvailTalents(1).length) ||
