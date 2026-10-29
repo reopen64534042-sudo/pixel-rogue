@@ -1,5 +1,6 @@
 import { MAGE_BALANCE as MB, type MageElement } from "../data/mageBalance";
 import { DAMAGE_TYPES } from "../data/damageTypes";
+import type { DamageTypeId } from "../data/damageTypes";
 import { mageElements, mageHasElement } from "../data/talents/mage";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { calculateDamage } from "./DamageSystem";
@@ -237,19 +238,23 @@ export function applyMageHit(
   }
 }
 
-/** 元素 DoT 结算：每帧按层数 × 每层 DPS 扣血（dot/preserve-float，不暴击）。 */
-function applyElementDot(
+/**
+ * 通用 DoT 结算：preserve-float、不暴击、**不产生飘字**。
+ *
+ * 灼烧与元素残域共用——绝不能走 `hurtEnemy`：后者的 `round-min-one` 会把
+ * 每帧 0.073 的伤害取整成 1，并且每帧生成一条飘字（实机事故：元素残域
+ * 里满屏「1」）。受击方条件加成（冻结 +10% 等）在这里显式乘上。
+ */
+export function applyDotDamage(
   core: GameCore,
   e: Enemy,
-  dps: number,
-  dt: number,
+  rawAmount: number,
+  type: DamageTypeId,
 ): void {
-  // DoT 不走 hurtEnemy（要避开暴击/连锁），所以受击方加成要在这里显式乘上：
-  // 设计文档「冻结目标受任意伤害 +10%」对灼烧同样成立。
-  const raw = dps * dt * elementDamageMultiplier(e, "fire");
+  const raw = rawAmount * elementDamageMultiplier(e, type);
   const calc = calculateDamage(DAMAGE_TYPES, {
     rawAmount: raw,
-    type: "fire",
+    type,
     form: "other",
     origin: "element",
     kind: "dot",
@@ -260,6 +265,16 @@ function applyElementDot(
   });
   e.hp -= calc.settledDamage;
   core.dmgBy.element += calc.settledDamage;
+}
+
+/** 灼烧 DoT：每帧按层数 × 每层 DPS 扣血。 */
+function applyElementDot(
+  core: GameCore,
+  e: Enemy,
+  dps: number,
+  dt: number,
+): void {
+  applyDotDamage(core, e, dps * dt, "fire");
 }
 
 /**

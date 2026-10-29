@@ -231,6 +231,8 @@ export interface Talent {
   max: number;
   mech?: number;
   req?: (p: Player) => boolean;
+  /** `req` 的人类可读提示（作弊面板/未来 UI 用），如「需 元素卡」。 */
+  reqHint?: string;
   pv: (p: Player) => string;
   f: (p: Player) => void;
   cur?: (p: Player) => string;
@@ -445,6 +447,8 @@ export interface MageDomain extends Point {
   R: number;
   /** 剩余时间（秒）。 */
   t: number;
+  /** 距离下一次 DoT 结算的时间（秒）；领域按固定 tick 结算，不逐帧出伤。 */
+  tick: number;
   /** 领域元素类型。 */
   element: DamageTypeId;
 }

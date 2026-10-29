@@ -1,6 +1,6 @@
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { WORLD, clamp } from "../data/constants";
-import { applyMageHit, mageDamageType } from "./ElementSystem";
+import { applyDotDamage, applyMageHit, mageDamageType } from "./ElementSystem";
 import type { GameCore } from "./GameCore";
 import type { Enemy, MageCastPhase } from "./types";
 
@@ -406,12 +406,15 @@ function updateMeteorRoute(core: GameCore, dt: number) {
         y: m.y,
         R: MB.domainRadius,
         t: MB.domainDuration,
+        tick: MB.domainTick,
         element: m.element,
       });
     core.shake = Math.min(core.shake + 3, 6);
     core.audio.beep(90, 0.25, "sawtooth", 0.07, -40);
   }
-  // 元素残域：持续伤害
+  // 元素残域：持续伤害——按 domainTick 结算的 DoT，**不走 hurtEnemy**。
+  // hurtEnemy 是「命中」管线：round-min-one 会把每帧 0.073 取整成 1，
+  // 并且每帧弹一条飘字（实机事故：领域内满屏「1」）。
   const dps = p.damage * MB.domainDpsMul;
   for (let i = core.mageDomains.length - 1; i >= 0; i--) {
     const d = core.mageDomains[i];
@@ -420,18 +423,16 @@ function updateMeteorRoute(core: GameCore, dt: number) {
       core.mageDomains.splice(i, 1);
       continue;
     }
+    d.tick -= dt;
+    if (d.tick > 0) continue;
+    d.tick += MB.domainTick;
     for (const e of core.enemies) {
       if (e.dead) continue;
       const dx = e.x - d.x;
       const dy = e.y - d.y;
       if (dx * dx + dy * dy > d.R * d.R) continue;
-      core.hurtEnemy(e, dps * dt, 0, 0, {
-        noCrit: true,
-        noChain: true,
-        src: "element",
-        type: d.element,
-        form: "other",
-      });
+      applyDotDamage(core, e, dps * MB.domainTick, d.element);
+      if (e.hp <= 0) core.killEnemy(e);
     }
   }
 }

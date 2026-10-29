@@ -175,6 +175,16 @@ export function talentStatModifiers(
           value: 0.5,
         });
         break;
+      // S5：闪避本能迁入权威来源。旧 f 直接写 p.dodge，属性池加入「闪避」
+      // 后必须由投影重建，否则 recompute 的 base 写回会把它抹成 0。
+      case "闪避本能": // legacy.ts：dodge +0.08/级（max 4）
+        scalars.push({
+          sourceId: "天赋:闪避本能",
+          stat: "dodge",
+          stage: "flat",
+          value: 0.08,
+        });
+        break;
       // ---- S2 射手池：核心链（穿透）/ 距离链 / 机动链 ----
       // 基础链：全局 pierceFalloff 0.85，射手职业被动 −0.35 → 0.5（第二目标 50%）。
       // 下面两张卡按有序 flat 继续改这个值，语义是「设为」，不是「乘以」。
@@ -510,6 +520,8 @@ export function applyTalentStatProjection(
     base: {
       attack: base.damage,
       tough: base.tough,
+      // S5：闪避 base = 0；来源为属性池「闪避」与旧卡「闪避本能」
+      dodge: base.dodge,
       critChance: base.crit,
       critMultiplier: base.critMul,
       // S1：射程 base = 数据层 130（此前是 AttackSystem 硬编码；无来源时
@@ -551,6 +563,7 @@ export function applyTalentStatProjection(
       : scalars,
   });
   p.tough = resolved.tough ?? 0;
+  p.dodge = resolved.dodge ?? base.dodge;
   p.crit = resolved.critChance ?? base.crit;
   // 不含觉醒：DamageMath.critMultiplier 在读取时按 upCounts 现值叠加 0.4
   p.critMul = resolved.critMultiplier ?? base.critMul;

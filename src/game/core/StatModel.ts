@@ -40,6 +40,10 @@ export const STAT_IDS = [
   "attack",
   "globalDamageBonus",
   "defense",
+  // S5：闪避（完全免伤概率）。属性池新增「闪避」词条后进入白名单；
+  // 旧卡「闪避本能」同时迁入 TalentStatSources 的 flat 来源，
+  // 否则 recompute 的 base 写回会把它的直接写入抹成 0。
+  "dodge",
   "maxHp",
   // S4-C C3-B：能量护盾容量（旧 f 的 shieldMax++ 每级 +1 → flat 修饰符；
   // 对应 Player 字段 p.shieldMax，base=statBase().shieldMax=0）。当前护盾
