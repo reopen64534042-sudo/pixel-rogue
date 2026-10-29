@@ -1,4 +1,72 @@
 import Phaser from "phaser";
+
+interface TextDrawState {
+  fontSize: number;
+  fillStyle: string;
+  alpha: number;
+  depth: number;
+  scrollFactor: number;
+  textAlign: CanvasTextAlign;
+}
+
+/**
+ * 一组 Phaser Text label。浮动文字用固定槽位池，HUD 用顺序池。
+ *
+ * Phaser Text 每次 setText/setFontSize/setColor/setStroke 都会重绘内部 canvas
+ * 并上传纹理；固定槽位让一条浮动文字在生命周期内复用同一个 label，
+ * 只有内容真正变化（新文字占用该槽）时才重建。
+ */
+class TextLabelPool {
+  private labels: Phaser.GameObjects.Text[] = [];
+  private labelVal: string[] = [];
+  private labelSize: number[] = [];
+  private labelColor: string[] = [];
+  constructor(private scene: Phaser.Scene) {}
+  begin() {
+    for (const label of this.labels) label.setVisible(false);
+  }
+  draw(index: number, value: string, x: number, y: number, state: TextDrawState) {
+    let label = this.labels[index];
+    if (!label) {
+      label = this.scene.add.text(0, 0, "", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: 8,
+        resolution: 1,
+      });
+      this.labels[index] = label;
+    }
+    if (this.labelVal[index] !== value) {
+      label.setText(value);
+      this.labelVal[index] = value;
+    }
+    if (this.labelSize[index] !== state.fontSize) {
+      label.setFontSize(state.fontSize);
+      this.labelSize[index] = state.fontSize;
+    }
+    if (this.labelColor[index] !== state.fillStyle) {
+      label.setColor(state.fillStyle);
+      this.labelColor[index] = state.fillStyle;
+    }
+    label.setOrigin(
+      state.textAlign === "center"
+        ? 0.5
+        : state.textAlign === "right"
+          ? 1
+          : 0,
+      0.8,
+    );
+    label
+      .setPosition(x, y)
+      .setVisible(true)
+      .setAlpha(state.alpha)
+      .setDepth(state.depth)
+      .setScrollFactor(state.scrollFactor);
+  }
+  get count() {
+    return this.labels.length;
+  }
+}
+
 /** Retained-mode Phaser objects, batched and reused. No per-frame Canvas texture upload. */
 export class PixelPainter {
   fillStyle = "#ffffff";
@@ -8,25 +76,26 @@ export class PixelPainter {
   textAlign: CanvasTextAlign = "left";
   private graphics: Phaser.GameObjects.Graphics[] = [];
   private images: Phaser.GameObjects.Image[] = [];
-  private labels: Phaser.GameObjects.Text[] = [];
-  /** 每个 label 槽位上次写入的内容/字号/颜色，用于跳过无效重建（#106 性能） */
-  private labelVal: string[] = [];
-  private labelSize: number[] = [];
-  private labelColor: string[] = [];
+  private hudLabels: TextLabelPool;
+  private floatLabels: TextLabelPool;
   private gi = 0;
   private ii = 0;
-  private ti = 0;
+  private hudIndex = 0;
   private depth = 0;
   private hud = false;
   private active: Phaser.GameObjects.Graphics | null = null;
-  constructor(private scene: Phaser.Scene) {}
+  constructor(private scene: Phaser.Scene) {
+    this.hudLabels = new TextLabelPool(scene);
+    this.floatLabels = new TextLabelPool(scene);
+  }
   begin() {
     for (const g of this.graphics) g.setVisible(false).clear();
     for (const i of this.images) i.setVisible(false);
-    for (const t of this.labels) t.setVisible(false);
+    this.hudLabels.begin();
+    this.floatLabels.begin();
     this.gi = 0;
     this.ii = 0;
-    this.ti = 0;
+    this.hudIndex = 0;
     this.depth = 0;
     this.hud = false;
     this.active = null;
@@ -159,50 +228,30 @@ export class PixelPainter {
       .setDepth(this.depth++)
       .setScrollFactor(this.hud ? 0 : 1);
   }
+  private textState(): TextDrawState {
+    return {
+      fontSize: Number.parseInt(this.font, 10),
+      fillStyle: this.fillStyle,
+      alpha: this.globalAlpha,
+      depth: this.depth++,
+      scrollFactor: this.hud ? 0 : 1,
+      textAlign: this.textAlign,
+    };
+  }
   fillText(value: string, x: number, y: number) {
     this.active = null;
-    const i = this.ti;
-    let label = this.labels[i];
-    if (!label) {
-      label = this.scene.add.text(0, 0, "", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: 8,
-        resolution: 1,
-      });
-      this.labels[i] = label;
-    }
-    this.ti++;
-    const size = Number.parseInt(this.font, 10);
-    // 只在真正变化时写属性：每次 setText/setFontSize/setColor 都会让 Phaser
-    // 重建文字 canvas 并重新上传纹理（texImage2D），HUD 值不变时纯属浪费。
-    if (this.labelVal[i] !== value) {
-      label.setText(value);
-      this.labelVal[i] = value;
-    }
-    if (this.labelSize[i] !== size) {
-      label.setFontSize(size);
-      this.labelSize[i] = size;
-    }
-    if (this.labelColor[i] !== this.fillStyle) {
-      label.setColor(this.fillStyle);
-      this.labelColor[i] = this.fillStyle;
-    }
-    label.setOrigin(
-      this.textAlign === "center" ? 0.5 : this.textAlign === "right" ? 1 : 0,
-      0.8,
-    );
-    label
-      .setPosition(x, y)
-      .setVisible(true)
-      .setAlpha(this.globalAlpha)
-      .setDepth(this.depth++)
-      .setScrollFactor(this.hud ? 0 : 1);
+    this.hudLabels.draw(this.hudIndex++, value, x, y, this.textState());
+  }
+  /** 浮动文字专用：slot 在文字生命周期内保持稳定，避免每帧重建纹理。 */
+  fillTextSlot(slot: number, value: string, x: number, y: number) {
+    this.active = null;
+    this.floatLabels.draw(slot, value, x, y, this.textState());
   }
   get counts() {
     return {
       graphics: this.graphics.length,
       images: this.images.length,
-      text: this.labels.length,
+      text: this.hudLabels.count + this.floatLabels.count,
     };
   }
 }
