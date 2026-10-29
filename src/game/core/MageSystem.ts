@@ -356,14 +356,27 @@ function updateMeteorRoute(core: GameCore, dt: number) {
     const points = findDensestPoints(core, p.attackRange, count);
     if (points.length) {
       const type = mageDamageType(p);
-      for (let i = 0; i < count; i++) {
-        // 敌群够多：一颗一个群；敌群不足（例如只剩一个敌人）：围绕同一个
-        // 目标按固定角度铺开，保证「同时落下 count 颗」这条卡面承诺永远成立。
-        const base = points[i % points.length];
-        const extra = i >= points.length ? i : -1;
-        const a = extra >= 0 ? (extra / count) * Math.PI * 2 : 0;
-        const ox = extra >= 0 ? Math.cos(a) * MB.meteorSpread : 0;
-        const oy = extra >= 0 ? Math.sin(a) * MB.meteorSpread : 0;
+      // S5：陨星也吃充能条——每 3 波陨星触发一次满充能，循环轴 5 张卡
+      // 在星陨路线下不再失效（此前 mageCharge 只在基础施法的 detonate 里推进）。
+      const isCharge = core.mageCharge + 1 >= MB.chargeFull;
+      let dmg = p.damage * MB.meteorDamageMul;
+      let R = MB.meteorRadius;
+      if (isCharge) {
+        if ((p.upCounts["元素蓄能"] || 0) > 0) dmg *= MB.chargeDamageMul;
+        if ((p.upCounts["三连聚爆"] || 0) > 0) {
+          dmg *= MB.burstDamageMul;
+          R *= MB.burstRadiusMul;
+        }
+        // 咏唱护壁：满充能波次给盾（不可叠层 → 覆盖）
+        if ((p.upCounts["咏唱护壁"] || 0) > 0)
+          grantMageShield(
+            core,
+            p.maxhp * MB.wardShieldPct,
+            MB.wardShieldDuration,
+            false,
+          );
+      }
+      const spawnMeteor = (base: { x: number; y: number; e: Enemy }, ox = 0, oy = 0) => {
         // 落点提前量：按敌人**真实速度**外推落地时长。旧实现假设敌人朝玩家
         // 移动，射手后撤时落点会落在玩家与敌人中间，永远打空。
         const leadX = (base.e.vx ?? 0) * MB.meteorFall;
@@ -372,10 +385,26 @@ function updateMeteorRoute(core: GameCore, dt: number) {
           x: clamp(base.x + ox + leadX, 16, WORLD.w - 16),
           y: clamp(base.y + oy + leadY, 16, WORLD.h - 16),
           t: MB.meteorFall,
-          R: MB.meteorRadius,
+          R,
           element: type,
+          dmg,
+          charged: isCharge,
         });
+      };
+      for (let i = 0; i < count; i++) {
+        // 敌群够多：一颗一个群；敌群不足（例如只剩一个敌人）：围绕同一个
+        // 目标按固定角度铺开，保证「同时落下 count 颗」这条卡面承诺永远成立。
+        const base = points[i % points.length];
+        const extra = i >= points.length ? i : -1;
+        const a = extra >= 0 ? (extra / count) * Math.PI * 2 : 0;
+        const ox = extra >= 0 ? Math.cos(a) * MB.meteorSpread : 0;
+        const oy = extra >= 0 ? Math.sin(a) * MB.meteorSpread : 0;
+        spawnMeteor(base, ox, oy);
       }
+      // 过载：满充能波次额外再落一颗（落在第一个目标群）
+      if (isCharge && (p.upCounts["过载"] || 0) > 0) spawnMeteor(points[0]);
+      // 充能推进：每波陨星算一次成功施法
+      core.mageCharge = (core.mageCharge + 1) % MB.chargeFull;
     }
   }
   for (let i = core.mageMeteors.length - 1; i >= 0; i--) {
@@ -383,12 +412,14 @@ function updateMeteorRoute(core: GameCore, dt: number) {
     m.t -= dt;
     if (m.t > 0) continue;
     core.mageMeteors.splice(i, 1);
-    const dmg = p.damage * MB.meteorDamageMul;
+    const dmg = m.dmg;
+    let hits = 0;
     for (const e of core.enemies) {
       if (e.dead) continue;
       const dx = e.x - m.x;
       const dy = e.y - m.y;
       if (dx * dx + dy * dy > m.R * m.R) continue;
+      hits++;
       core.hurtEnemy(e, dmg, 0, 0, {
         noChain: true,
         src: "meteor",
@@ -397,6 +428,14 @@ function updateMeteorRoute(core: GameCore, dt: number) {
       });
       applyMageHit(core, e, dmg);
     }
+    // 回响：陨星命中后给盾（可叠层，总量上限见 grantMageShield）
+    if (hits > 0 && (p.upCounts["回响"] || 0) > 0)
+      grantMageShield(
+        core,
+        p.maxhp * MB.echoShieldPct,
+        MB.echoShieldDuration,
+        true,
+      );
     // 元素残域：落点留下持续领域
     if ((p.upCounts["元素残域"] || 0) > 0)
       core.mageDomains.push({
