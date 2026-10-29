@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v73",
+    date: "2026-10-30",
+    title: "DEV 复活与跳波",
+    items: [
+      "作弊面板新增「复活」开关（仅 DEV）：开启后死亡自动按当前波满血复活，天赋、属性、等级等构筑原样保留。",
+      "新增「← 上一波 / 下一波 →」按钮，保留当前构筑直接跳波。",
+    ],
+  },
+  {
     version: "v72",
     date: "2026-10-30",
     title: "暂停重新开始回到主界面",

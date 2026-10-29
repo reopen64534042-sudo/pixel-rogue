@@ -2291,3 +2291,12 @@ ctx.stroke();      // → strokePath()
   2. 暂停的「重新开始」二次确认后调用 `returnToStart()`，不再 `startGame(this.prof)`；职业按钮仍走正常 `startGame` 重建新局。
 - 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`）：暂停后连点两次「重新开始」→ `state="start"`、`ov-start` 可见、`ov-pause` 隐藏、射手/法师按钮可用；点击法师进入新法师局。
 - 基线：浏览器测试若断言「重新开始直接开同职业新局」，需按新流程更新（本批未跑，留待授权测试批次）。
+
+## D-76 DEV 复活与跳波（2026-10-30）
+
+- 用户需求：作弊模式允许复活并保留死亡前的天赋/属性；再加两个按钮直接开启下一波或上一波。
+- 改动：
+  1. `GameCore.devRevive`（仅 DEV，跨重开保留）：`gameOver()` 在 `import.meta.env.DEV && devRevive` 时拦截死亡，调用 `devReviveRun()`——清场、满血、`hurtCd` 至少 1.5s、从当前波重新 `startNextWave`；**不调用 resetGame/startGame**，因此 `player.upCounts`/`picks`/属性/等级全部保留，也不写战绩。
+  2. `DevPanel` 新增「复活：开/关」开关；「← 上一波 / 下一波 →」按钮调用 `jumpWave(±1)`，走现有 `startAtWave` 的游玩中分支，保留当前构筑。
+- 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`）：devRevive 开启后 9999 伤害致死 → `state=play`、`waveN=5`、HP 回满、天赋/等级原样、死亡页未出现；`jumpWave(+1/-1)` 后波次 6/5 切换，构筑保持。
+- 基线：DEV-only，生产构建不实例化面板且 `import.meta.env.DEV` 分支被 tree-shake；不影响正常玩法/验收。

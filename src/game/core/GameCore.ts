@@ -214,6 +214,11 @@ export class GameCore {
    * 不是局内状态），`resetGame` 不重置它。
    */
   devInvincible = false;
+  /**
+   * 开发者复活（仅 DEV）：开启后死亡不结束本局，按当前波满血复活；
+   * 天赋、属性、等级等构筑原样保留。跨重开保留（属于开发设置）。
+   */
+  devRevive = false;
   /** 充能条：每 MB.chargeFull 次成功施法满一次，满时结算循环轴。 */
   mageCharge = 0;
   /** 满充能触发后「三格全亮」的剩余时间（秒）——读条旁 1→2→3 的计数反馈。 */
@@ -632,8 +637,53 @@ export class GameCore {
   showRestBar() {
     this.view.rest();
   }
+  /**
+   * DEV 复活：保留本局构筑（天赋/属性/等级），清场后从当前波重新开始。
+   * 只由 `gameOver` 在 `devRevive` 开启时调用；不写战绩。
+   */
+  private devReviveRun() {
+    const wave = Math.max(1, this.waveN);
+    this.enemies = [];
+    this.ebullets = [];
+    this.bullets = [];
+    this.gems = [];
+    this.boxes = [];
+    this.potions = [];
+    this.meteors = [];
+    this.burnZones = [];
+    this.trailZones = [];
+    this.mageMeteors = [];
+    this.mageDomains = [];
+    this.mageDecoys = [];
+    this.parts = [];
+    this.texts = [];
+    this.slashes = [];
+    this.bolts = [];
+    this.castPhase = "idle";
+    this.castT = 0;
+    this.castCd = 0;
+    this.mageMeteorT = 0;
+    this.magePhaseT = 0;
+    this.pendingLevels = 0;
+    this.startTalentPending = false;
+    this.bpMode = null;
+    this.state = "play";
+    this.wavePhase = "rest";
+    this.waveN = wave - 1;
+    this.player.hp = this.player.maxhp;
+    this.player.hurtCd = Math.max(this.player.hurtCd, 1.5);
+    this.addText(this.player.x, this.player.y - 26, "复活", "#57e86b", true);
+    this.audio.beep(660, 0.18, "sine", 0.06, 300);
+    this.startNextWave();
+  }
+
   gameOver() {
     if (this.state === "over") return;
+    // DEV-only：允许复活时拦截死亡，保留本局构筑并重开当前波。
+    if (import.meta.env.DEV && this.devRevive) {
+      this.devReviveRun();
+      return;
+    }
     this.state = "over";
     this.storage.append({
       d: Date.now(),

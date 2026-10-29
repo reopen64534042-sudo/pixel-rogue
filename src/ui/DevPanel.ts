@@ -133,6 +133,26 @@ export class DevPanel {
     tools.appendChild(god);
     root.appendChild(tools);
 
+    // 允许复活（仅 DEV）：死亡自动按当前波满血复活，保留构筑。
+    const tools2 = el("div", "display:flex;gap:6px;margin-bottom:6px");
+    const revive = el(
+      "button",
+      "flex:1;background:" +
+        (this.core.devRevive ? "#2a4a2a" : "#1d2440") +
+        ";color:#cfe0ff;border:1px solid " +
+        (this.core.devRevive ? "#57e86b" : "#3a4a7a") +
+        ";border-radius:3px;padding:3px 4px;cursor:pointer",
+      "复活：" + (this.core.devRevive ? "开" : "关"),
+    ) as HTMLButtonElement;
+    revive.addEventListener("click", () => {
+      this.core.devRevive = !this.core.devRevive;
+      revive.textContent = "复活：" + (this.core.devRevive ? "开" : "关");
+      revive.style.background = this.core.devRevive ? "#2a4a2a" : "#1d2440";
+      revive.style.borderColor = this.core.devRevive ? "#57e86b" : "#3a4a7a";
+    });
+    tools2.appendChild(revive);
+    root.appendChild(tools2);
+
     // 起始波次：直接从第 N 波开打，避免每次都从 1 波刷上去。
     const waveRow = el(
       "div",
@@ -163,6 +183,21 @@ export class DevPanel {
     waveRow.appendChild(waveGo);
     root.appendChild(waveRow);
 
+    // 直接跳上一波 / 下一波（保留当前构筑）。
+    const waveBtns = el("div", "display:flex;gap:6px;margin-bottom:6px");
+    const mkWave = (label: string, delta: number) => {
+      const button = el(
+        "button",
+        "flex:1;background:#1d2440;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:3px 4px;cursor:pointer",
+        label,
+      );
+      button.addEventListener("click", () => this.jumpWave(delta));
+      waveBtns.appendChild(button);
+    };
+    mkWave("← 上一波", -1);
+    mkWave("下一波 →", 1);
+    root.appendChild(waveBtns);
+
     const body = el("div", "") as HTMLDivElement;
     root.appendChild(body);
 
@@ -181,8 +216,7 @@ export class DevPanel {
    * 走 `startGame` + `startNextWave` 的正常链路，保证配额、敌人权重、
    * 精英配额、属性额度都按该波生成；只跳过开局天赋面板并把波次拨到 n。
    */
-  private startAtWave(n: number) {
-    const c = this.core;
+  private startAtWave(n: number) {    const c = this.core;
     // 只有「开始 / 结算」界面没有可保留的局，先正常开局；
     // 游玩中跳波**保留当前构筑**（天赋/属性/等级），只清场并把波次拨到 n。
     if (c.state !== "play" && c.state !== "pause" && c.state !== "stats")
@@ -224,6 +258,14 @@ export class DevPanel {
       "ov-stats",
     ])
       document.getElementById(id)?.classList.add("hidden");
+  }
+
+  /** 直接跳上一波 / 下一波；保留当前构筑（走 startAtWave 的游玩中分支）。 */
+  private jumpWave(delta: number) {
+    const target = Math.max(1, this.core.waveN + delta);
+    this.lastWave = target;
+    this.startAtWave(target);
+    this.render();
   }
 
   /**
