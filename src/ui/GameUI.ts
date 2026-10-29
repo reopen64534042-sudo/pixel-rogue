@@ -133,8 +133,7 @@ export class GameUI {
         this.armRestart();
         return;
       }
-      this.disarmRestart();
-      this.core.startGame(this.core.prof);
+      this.returnToStart();
     };
     element("btn-statclose").onclick = () => this.core.toggleStats();
     element("btn-pause").onclick = () => {
@@ -879,6 +878,27 @@ export class GameUI {
     element("pause-stats").textContent =
       `第 ${core.waveN} 波 · ${fmtTime(core.time)} · Lv.${core.player.lvl} ｜ 击杀 ${core.kills} · 天赋 ${talentCount}`;
     element("pause-version").textContent = `Pixel Rogue · ${CURRENT_VERSION}`;
+  }
+
+  /**
+   * 暂停界面的「重新开始」回到主界面，允许重新选择职业。
+   *
+   * 不立即重置 player：职业按钮调用 startGame 时才重建新局，避免先按本局
+   * 职业重建一次再被覆盖。
+   */
+  private returnToStart(): void {
+    this.disarmRestart();
+    this.codex.close();
+    this.core.clearTouchInput();
+    this.core.state = "start";
+    this.core.view.reset();
+    ["ov-pause", "ov-over", "ov-stats", "ov-changelog"].forEach(hide);
+    show("ov-start");
+    for (const id of ["btn-start", "btn-prof-mage"]) {
+      const button = element(id) as HTMLButtonElement;
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+    }
   }
 
   /** 重新开始需二次确认：首次点击只改按钮文案，4 秒内没有第二次点击则自动复原。 */
