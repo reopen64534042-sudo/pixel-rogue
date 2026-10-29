@@ -175,6 +175,9 @@ export const MAGE_TALENTS: Talent[] = [
     slot: "路线A",
     layer: 3,
     prof: "mage",
+    // 路线A L3 的前置是元素槽 L2「元素共振」；只持有元素卡还不够。
+    // 不加这条时双修会在第一波就进池，玩家还没解锁共振、也还没有第二个元素。
+    requires: "元素共振",
     req: hasAnyElement,
     reqHint: "需 元素卡",
     excludes: ["星陨", "多重陨星", "元素残域"],

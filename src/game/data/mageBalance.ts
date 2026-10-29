@@ -31,7 +31,13 @@ export interface MageBalance {
   castWindupInterruptible: number;
   /** 施法间隔（秒）：一次爆裂结束到下一次起手。 */
   castInterval: number;
-  /** 施法距离（px）：落点法阵的最远施法距离。 */
+  /**
+   * 施法距离（px）：落点法阵的最远施法距离。
+   *
+   * v68：260 → 150。旧值超过 480×270 视野的纵向半高（135），第一波怪还没进
+   * 屏幕就被锁定；150 让 0.35s 前摇结束时敌人已进入屏幕（基础移速 55px/s
+   * 约前进 19px）。属性「施法距离」仍可继续成长。
+   */
   castRange: number;
   /** 法阵半径（px，base）：随 area 乘区缩放。 */
   circleRadius: number;
@@ -203,7 +209,7 @@ export const MAGE_BALANCE: MageBalance = {
   castWindup: 0.35,
   castWindupInterruptible: 0.15,
   castInterval: 0.2,
-  castRange: 260,
+  castRange: 150,
   circleRadius: 34,
   castDamageMul: 1.2,
   castIdleRetry: 0.1,
