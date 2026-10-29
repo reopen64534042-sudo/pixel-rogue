@@ -329,18 +329,19 @@ describe("属性发放限幅：#134 方案 B", () => {
     g.wavePhase = "rest"; // startNextWave 要求休整相
     skipAttrs(g); // 面板留到下次：直接清空跳过
     expect(g.startNextWave()).toBe(true); // → 第 2 波
-    expect(g.attrGrantedThisWave).toBe(0); // 额度池按波重置
-    expect(g.attrPicks).toBe(attrPicksPerWave(2)); // 仅新基础额度
+    // 额度池按波重置并发放新基础额度（第 2 波为 1）；attrPicks 同步为新基础额度
+    expect(g.attrGrantedThisWave).toBe(attrPicksPerWave(2));
+    expect(g.attrPicks).toBe(attrPicksPerWave(2));
     expect(ATTR_WAVE_GRANT_CAP).toBe(3); // 用户体感锚点：每波最多 3 次
   });
 
   it("宝箱折算受单波额度约束并提示「本波已满」", () => {
     seedRandom();
     const g = fresh();
-    g.pendingLevels = 0;
-    g.wavePhase = "rest"; // startNextWave 要求休整相
-    skipAttrs(g);
-    expect(g.startNextWave()).toBe(true); // 第 2 波：基础 2 已发放
+    g.waveN = 11; // 基础额度 2
+    g.attrPicks = 0;
+    g.attrGrantedThisWave = 0;
+    g.grantAttrPicks(2); // 基础额度已发放（占用额度池 2/3）
     g.spawnedThisWave = g.quota;
     g.wavePhase = "collect";
     g.boxPicks = 2;
