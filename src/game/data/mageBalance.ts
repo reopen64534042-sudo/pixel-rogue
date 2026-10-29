@@ -100,11 +100,23 @@ export interface MageBalance {
   /** 共振影响半径（px）：印记触发时周围的敌人。 */
   resonanceRadius: number;
 
-  // —— 双修反应 —
+  // —— 双修/三修反应 —
+  /** 超载最低灼烧层数（用命中前快照判定）。 */
+  overloadMinStacks: number;
   /** 超载：引燃全部灼烧层数的即时伤害折算秒数。 */
   overloadSeconds: number;
-  /** 融化：对冻结目标施加灼烧时的即时元素伤害倍数。 */
+  /** 融化：本次命中伤害（hitDamage）的倍数。 */
   meltDamageMul: number;
+  /** 融化反应内置冷却（秒）。 */
+  reactionIcdMelt: number;
+  /** 超载反应内置冷却（秒）。 */
+  reactionIcdOverload: number;
+  /** 超导反应内置冷却（秒）。 */
+  reactionIcdSuper: number;
+  /** 超导：直接雷伤（× 本次 hitDamage）。 */
+  superDamageMul: number;
+  /** 超导：雷电易伤持续时间（秒）。 */
+  superVulnDuration: number;
   /** 超导：闪电链额外跳跃目标数。 */
   superChainBonusJumps: number;
   /** 超导状态下敌人受到的雷电伤害加成。 */
@@ -236,8 +248,14 @@ export const MAGE_BALANCE: MageBalance = {
 
   resonanceRadius: 60,
 
+  overloadMinStacks: 2,
   overloadSeconds: 3,
   meltDamageMul: 2.5,
+  reactionIcdMelt: 0.8,
+  reactionIcdOverload: 0.8,
+  reactionIcdSuper: 1.0,
+  superDamageMul: 1.0,
+  superVulnDuration: 3,
   superChainBonusJumps: 2,
   superChainVuln: 0.15,
 
