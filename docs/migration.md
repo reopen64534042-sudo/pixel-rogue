@@ -1895,3 +1895,12 @@ ctx.stroke();      // → strokePath()
 - 测试适配（非新增）：`tests/s4d-d2a-enemy-spawn.test.ts` 的浮点顺序用例因 `lvlPow` 移除后波 3 不再产生分组差异，改用波 5 并更新期望 `656.4849199999999` → `782.6`；`playerLevel` 非法输入断言随输入一并移除；`tests/balance-baseline.test.ts` 删除仅供 `lvlPow` 使用的 `SAMPLE_LEVELS`。
 - **未重算** `tests/fixtures/balance-baseline.json`：其 `enemyPressure` 数值已过期；按 2026-10-29 验证标准留待授权测试批次统一更新。
 - 验证：`npm run typecheck`、`npm run build` 通过（Vite 主 chunk >500 kB 为既有提示）。按同日验证标准**未运行 Vitest / Playwright**；parity 的 v8 对照含 `lvlPow`，预期失效。
+
+## D-41 平衡止血 2/2：精英生命倍率 7 → 3.5（2026-10-29）
+
+- 依据：用户 2026-10-29 批准的止血方案。范围为**只降生命**，攻击保持 ×1.6——降低倍率已缩短输出窗口，同时削攻击会双重削弱精英的存在感（复核意见，已采纳）。
+- 改动：`resolveEnemySpawnStats` 的 elite final 修饰符 `7 → 3.5`；波次曲线、护甲、攻击、速度、半径、经验均未动。
+- 量化（`output/balance-model.mjs`，单目标理想输出、未计走位与换目标）：第 5/10/20/30 波精英 TTK 由 34.6/32.8/25.0/39.0 秒降到 17.3/16.4/12.5/19.5 秒。
+- **未解决**：波次清场时长几乎不受影响（第 30 波约 113 秒 → 仍约 113 秒），因为它由普通怪总有效血量决定。曲线批次（`slope` / `over²` / 护甲成长）与配额 210 均未在本批实施。
+- 测试适配：`s4d-d2a` 浮点顺序用例期望 `782.6` → `391.3`（分组反例同步改为 `×3.5`）。
+- 验证：`npm run typecheck`、`npm run build` 通过。按 2026-10-29 验证标准未运行 Vitest / Playwright；`tests/fixtures/balance-baseline.json` 的精英相关数值未重算，留待授权批次。

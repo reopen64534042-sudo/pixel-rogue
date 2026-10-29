@@ -106,7 +106,9 @@ export function resolveEnemySpawnStats(
     base: { maxHp: cfg.hp, attack: cfg.dmg, moveSpeed: cfg.speed },
     modifiers: [
       { sourceId: "wave", stat: "maxHp", stage: "final", value: hpScale },
-      { sourceId: "elite", stat: "maxHp", stage: "final", value: ctx.elite ? 7 : 1 },
+      // v46 止血：精英生命倍率 7 → 3.5，攻击保持 ×1.6。
+      // 原倍率叠加波次曲线后，第 30 波单只精英 TTK 约 39 秒（单目标理想输出）。
+      { sourceId: "elite", stat: "maxHp", stage: "final", value: ctx.elite ? 3.5 : 1 },
       { sourceId: "wave", stat: "attack", stage: "final", value: dmgScale },
       { sourceId: "elite", stat: "attack", stage: "final", value: ctx.elite ? 1.6 : 1 },
       { sourceId: "elite", stat: "moveSpeed", stage: "final", value: ctx.elite ? 0.8 : 1 },

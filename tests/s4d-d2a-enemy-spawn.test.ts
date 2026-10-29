@@ -47,8 +47,8 @@ describe("S4-D2-A enemy spawn", () => {
     const random = vi.spyOn(Math, "random");
     // v46：lvlPow 移除后，波 3 的两两乘法不再产生分组差异；改用波 5 保持「左结合、不预组合」的断言意图。
     const result = resolveEnemySpawnStats(ETYPES.brute, { wave: 5, elite: true, speedJitter: 0.95 });
-    expect(result.maxHp).toBe(782.6);
-    expect(result.maxHp).not.toBe(65 * ((1 + 4 * 0.18) * 7));
+    expect(result.maxHp).toBe(391.3);
+    expect(result.maxHp).not.toBe(65 * ((1 + 4 * 0.18) * 3.5));
     expect(result.moveSpeed).toBe(22 * 0.8 * 0.95);
     expect(30 * 0.8 * 0.95).not.toBe(30 * (0.8 * 0.95));
     expect(random).not.toHaveBeenCalled();
