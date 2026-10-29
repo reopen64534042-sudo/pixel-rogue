@@ -7,9 +7,11 @@ import {
   TIER_VAL,
   CAT_COLOR,
   CAT_ICO,
+  mageElements,
 } from "../game/data/talents";
 import { fmtTime } from "../game/data/constants";
 import { boltDamage, critMultiplier } from "../game/core/DamageMath";
+import { professionPierce } from "../game/core/AttributeSources";
 import { COMBAT_BALANCE } from "../game/data/combatBalance";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
 import { element } from "./dom";
@@ -273,7 +275,6 @@ export class GameUI {
     const pct = (v: number) => (v * 100).toFixed(0) + "%";
     const resist = p.resistances ?? {};
     const typeBonus = p.typeDamageBonus ?? {};
-    const formBonus = p.formDamageBonus ?? {};
     const physMit = (def: number) =>
       Math.round(
         (1 -
@@ -283,6 +284,13 @@ export class GameUI {
     // S3：法师的伤害基线与攻速是元素/施法口径——沿用射手的「基础攻击/魔弹/攻速」
     // 会让玩家以为自己在加物理攻击（属性面板已同步改口径）。
     const isMage = this.core.prof === "mage";
+    // 元素名（法师「当前元素」行）
+    const ELEM_LABEL: Record<string, string> = {
+      fire: "火",
+      frost: "冰",
+      lightning: "雷",
+    };
+    const elems = isMage ? mageElements(p) : [];
     const combatRows: [string, string | number][] = [
       ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
       ["📘 下级所需经验", p.xpNext],
@@ -313,46 +321,35 @@ export class GameUI {
         "💥 暴击/暴伤",
         (p.crit * 100).toFixed(0) + "% / ×" + critMultiplier(p).toFixed(1),
       ],
+      // S3：法师显示施法距离/当前元素/法阵范围；射手只显示穿透
+      //（弹道数量对玩家没有决策价值，已移除）。
       ...(isMage
-        ? ([["🎯 施法距离", Math.round(p.attackRange)]] as [
-            string,
-            string | number,
-          ][])
+        ? ([
+            ["🎯 施法距离", Math.round(p.attackRange)],
+            [
+              "🔮 当前元素",
+              elems.length ? elems.map((e) => ELEM_LABEL[e]).join(" · ") : "无",
+            ],
+            ["🌐 施法范围", "×" + p.area.toFixed(2)],
+          ] as [string, string | number][])
         : ([
-            ["🔱 弹道/穿透", `${p.multishot} / ${p.pierce}`],
-            ["🪃 弹射次数", p.ricochet ? `${p.ricochet} 次` : "—"],
+            ["🔱 穿透", p.pierce + professionPierce(this.core.prof)],
           ] as [string, string | number][])),
-      ["🌐 施法范围", "×" + p.area.toFixed(2)],
       ["👟 移动速度", Math.round(p.speed)],
       ["🧲 拾取范围", Math.round(p.magnet)],
-      ["❄️ 冰冻减速", p.slow ? (p.slow * 100).toFixed(0) + "%" : "—"],
-      ["♨️ 灼烧", p.burn ? "Lv." + p.burn : "—"],
-      ["🌩️ 闪电链", p.chain ? "Lv." + p.chain : "—"],
-      [
-        "☄️ 陨星",
-        p.meteor
-          ? "每 " + Math.max(2.2, 4.6 - p.meteor * 0.4).toFixed(1) + " 秒"
-          : "—",
-      ],
-      ["💣 击杀爆炸", p.explode ? "Lv." + p.explode : "—"],
-      ["🍀 幸运", p.luck ? "Lv." + p.luck : "—"],
       // S3-C：独立增伤乘区展示（与 p.damage 基线区分；0 值按既有惯例显示 —）
       [
         "✴️ 全局增伤",
         p.globalDamageBonus ? "+" + pct(p.globalDamageBonus) : "—",
       ],
-      ["⚔️ 物理增伤", typeBonus.physical ? "+" + pct(typeBonus.physical) : "—"],
       ["🌡️ 火焰增伤", typeBonus.fire ? "+" + pct(typeBonus.fire) : "—"],
       [
         "🌩️ 雷电增伤",
         typeBonus.lightning ? "+" + pct(typeBonus.lightning) : "—",
       ],
-      ["🗡️ 近战增伤", formBonus.melee ? "+" + pct(formBonus.melee) : "—"],
-      ["🏹 远程增伤", formBonus.ranged ? "+" + pct(formBonus.ranged) : "—"],
+      ["❄️ 冰霜增伤", typeBonus.frost ? "+" + pct(typeBonus.frost) : "—"],
     ];
     const defenseRows: [string, string | number][] = [
-      ["🛡️ 护盾", p.shieldMax ? `${p.shield} / ${p.shieldMax}` : "—"],
-      ["🧱 壁垒", p.barrierLv ? "每波 " + p.barrierLv + " 层临时盾" : "—"],
       ["🌀 闪避", p.dodge ? (p.dodge * 100).toFixed(0) + "%" : "—"],
       [
         "🥋 减伤",
@@ -376,20 +373,14 @@ export class GameUI {
           ? pct(Math.min(resist.lightning, COMBAT_BALANCE.resistanceCap))
           : "—",
       ],
-      ["✨ 生命回复", p.regen ? p.regen.toFixed(1) + " /秒" : "—"],
-      ["🦷 吸血", p.lifesteal ? (p.lifesteal * 100).toFixed(1) + "%" : "—"],
-      ["🌵 荆棘反伤", p.thorns ? `${p.thorns}` : "—"],
       [
-        "💨 冲刺",
-        p.dashLv
-          ? `充能 ${p.dashCharges}/${1 + p.dashChargeLv} · 冷却 ${p.dashMax.toFixed(1)}s`
+        "❄️ 冰霜抗性",
+        resist.frost
+          ? pct(Math.min(resist.frost, COMBAT_BALANCE.resistanceCap))
           : "—",
       ],
-      ["😡 战意", p.rageLv ? "受伤攻速 +" + p.rageLv * 20 + "% (3秒)" : "—"],
-      [
-        "🏅 不屈",
-        p.nd ? (p.ndUsed ? "免死(本波已触发)" : "每波一次免死") : "—",
-      ],
+      ["✨ 生命回复", p.regen ? p.regen.toFixed(1) + " /秒" : "—"],
+      ["🦷 吸血", p.lifesteal ? (p.lifesteal * 100).toFixed(1) + "%" : "—"],
     ];
 
     const renderRows = (items: [string, string | number][]) =>

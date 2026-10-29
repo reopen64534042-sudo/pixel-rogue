@@ -445,6 +445,10 @@ export interface MageMeteor extends Point {
   R: number;
   /** 继承的元素类型。 */
   element: DamageTypeId;
+  /** 生成时固化的伤害（含满充能加成）；落地只结算，不再读玩家当前属性。 */
+  dmg: number;
+  /** 是否为满充能波次（表现用：预警圈提亮）。 */
+  charged: boolean;
 }
 
 /** 元素残域：落点留下的持续伤害区域。 */

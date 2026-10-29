@@ -253,7 +253,13 @@ export function draw(this: GameCore, ctx: PixelPainter) {
         Math.round(m.y),
         Math.round((m.R * m.t) / MB.meteorFall + 8),
       );
-    ctx.meteorRing(rings, "#c07bff", 0.5 + Math.sin(this.time * 20) * 0.3);
+    // 满充能波次的预警圈提亮，让玩家能看出这一发是加强版
+    const charged = this.mageMeteors.some((m) => m.charged);
+    ctx.meteorRing(
+      rings,
+      charged ? "#57e6ff" : "#c07bff",
+      0.5 + Math.sin(this.time * 20) * 0.3,
+    );
   }
   // ---- S3 法师：镜像残影（吸引仇恨的诱饵）----
   // 用玩家的贴图半透明绘制，读作「一个假体」；缺贴图时退回紫色方块。
@@ -450,6 +456,42 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       } else if (i === this.player.dashCharges && recharge > 0) {
         ctx.fillStyle = "#2f8fae";
         ctx.fillRect(x, py, Math.max(1, Math.round(cw * recharge)), chh);
+      }
+    }
+  }
+  // 法师充能点（P0-2）：仅当持有任一充能相关卡时显示，避免给不走循环轴的
+  // 玩家增加噪音。三点 = 每 3 次施法满充能；下一发就是满充能时，空位画成
+  // 空心高亮（与读条/法阵圈的满充能预览同源）。
+  if (
+    this.prof === "mage" &&
+    this.state === "play" &&
+    this.wavePhase === "fight" &&
+    (this.player.upCounts["咏唱护壁"] ||
+      this.player.upCounts["回响"] ||
+      this.player.upCounts["元素蓄能"] ||
+      this.player.upCounts["过载"] ||
+      this.player.upCounts["三连聚爆"])
+  ) {
+    const total = MB.chargeFull;
+    const cw = 3;
+    const gap = 2;
+    const pw = total * cw + (total - 1) * gap;
+    const px = Math.round(this.player.x) - Math.floor(pw / 2);
+    const py = Math.round(this.player.y) + 17;
+    for (let i = 0; i < total; i++) {
+      const x = px + i * (cw + gap);
+      if (i < this.mageCharge) {
+        ctx.fillStyle = "#57e6ff";
+        ctx.fillRect(x, py, cw, cw);
+      } else if (i === this.mageCharge && this.mageCharge + 1 >= total) {
+        // 下一发即满充能：空心高亮
+        ctx.fillStyle = "#9fe1ff";
+        ctx.fillRect(x, py, cw, cw);
+        ctx.fillStyle = "#0e1430";
+        ctx.fillRect(x + 1, py + 1, cw - 2, cw - 2);
+      } else {
+        ctx.fillStyle = "#1d2440";
+        ctx.fillRect(x, py, cw, cw);
       }
     }
   }
