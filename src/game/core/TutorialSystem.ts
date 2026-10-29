@@ -1,6 +1,16 @@
-import type { Profession } from "./types";
+import type { Profession, WarriorStyle } from "./types";
 import type { GameCore } from "./GameCore";
 import { WORLD, clamp } from "../data/constants";
+import { WARRIOR_BALANCE } from "../data/warriorBalance";
+
+/** 教程经验球步骤：战士多一个核心演示步，所以整体后移一位。 */
+export function tutorialGemStep(prof: string | null): number {
+  return prof === "warrior" ? 5 : 4;
+}
+
+export function tutorialTotalSteps(prof: string | null): number {
+  return tutorialGemStep(prof) + 1;
+}
 
 /**
  * 新手教程练习场（v83 / v89）。
@@ -15,8 +25,12 @@ import { WORLD, clamp } from "../data/constants";
  * 每步条件满足后**不自动推进**：HUD 出现「下一步」按钮，由玩家点击进入下一步。
  * 法师自动施法会让「命中 / 站定命中多个目标」瞬间达成，自动推进会让文字一闪而过。
  */
-export function startTutorial(this: GameCore, prof: Profession) {
-  this.resetGame(prof);
+export function startTutorial(
+  this: GameCore,
+  prof: Profession,
+  warriorStyle: WarriorStyle = "katana",
+) {
+  this.resetGame(prof, warriorStyle);
   this.tutorialMode = true;
   this.tutorialStep = 0;
   this.tutorialStepReady = false;
@@ -28,6 +42,7 @@ export function startTutorial(this: GameCore, prof: Profession) {
   this.tutorialProfDone = false;
   this.tutorialSpecialHits = 0;
   this.tutorialMoved = false;
+  this.tutorialHeavyDone = false;
   this.tutorialGemPicked = false;
   this.tutorialGemSpawned = false;
   // 教程不弹初始天赋/属性面板，使用职业基础形态教学。
@@ -46,6 +61,12 @@ export function startTutorial(this: GameCore, prof: Profession) {
   this.gems = [];
   this.boxes = [];
   this.potions = [];
+  // 战士教程临时给本流派 L1 核心卡，用来演示流/重斩；正式开局会重置。
+  if (prof === "warrior") {
+    const core = warriorStyle === "katana" ? "流·初" : "重斩";
+    this.player.upCounts[core] = 1;
+    this.player.picks.push(core);
+  }
   this.view.started();
   const p = this.player;
   if (prof === "mage") {
@@ -53,6 +74,11 @@ export function startTutorial(this: GameCore, prof: Profession) {
     spawnDummy.call(this, p.x + 60, p.y);
     spawnDummy.call(this, p.x + 55, p.y - 16);
     spawnDummy.call(this, p.x + 55, p.y + 16);
+  } else if (prof === "warrior") {
+    // 三只木桩围在近战范围边缘，方便教「扇形一次打多个」。
+    spawnDummy.call(this, p.x + 26, p.y);
+    spawnDummy.call(this, p.x + 16, p.y - 18);
+    spawnDummy.call(this, p.x + 16, p.y + 18);
   } else {
     // 射手：目标放在远距离，先教「保持距离」。
     spawnDummy.call(this, p.x + 90, p.y);
@@ -78,9 +104,12 @@ function spawnDummy(this: GameCore, x: number, y: number) {
 /** 每帧检查教程条件；满足后置 ready，等玩家点「下一步」。 */
 export function updateTutorial(this: GameCore, _dt: number) {
   if (!this.tutorialMode) return;
-  if (this.tutorialStep >= 5 || this.tutorialStepReady) return;
+  const prof = this.tutorialProf ?? this.prof;
+  const total = tutorialTotalSteps(prof);
+  if (this.tutorialStep >= total || this.tutorialStepReady) return;
   const p = this.player;
   const step = this.tutorialStep;
+  const gemStep = tutorialGemStep(prof);
   let done = false;
 
   if (step === 0) {
@@ -103,7 +132,13 @@ export function updateTutorial(this: GameCore, _dt: number) {
     } else {
       done = this.tutorialProfDone;
     }
-  } else if (step === 4) {
+  } else if (prof === "warrior" && step === 4) {
+    // 核心演示：太刀叠满 L1 的 5 层；大剑打出一次重斩。
+    done =
+      this.warriorStyle === "katana"
+        ? this.warriorFlowStacks >= WARRIOR_BALANCE.flow.cap1
+        : this.tutorialHeavyDone;
+  } else if (step === gemStep) {
     if (!this.tutorialGemSpawned) {
       this.tutorialGemSpawned = true;
       // 放在磁吸范围（36px）之外：让玩家真的走过去捡，而不是生成即被吸走。
@@ -123,15 +158,25 @@ export function updateTutorial(this: GameCore, _dt: number) {
 /** 玩家点击「下一步」：当前步骤就绪时推进，并重置下一步的判定标记。 */
 export function advanceTutorial(this: GameCore) {
   if (!this.tutorialMode || !this.tutorialStepReady) return false;
-  if (this.tutorialStep >= 5) return false;
+  const prof = this.tutorialProf ?? this.prof;
+  const total = tutorialTotalSteps(prof);
+  if (this.tutorialStep >= total) return false;
   this.tutorialStep += 1;
   this.tutorialStepReady = false;
-  if (this.tutorialStep === 2) this.tutorialHit = false;
-  if (this.tutorialStep === 3) {
+  const step = this.tutorialStep;
+  if (step === 2) this.tutorialHit = false;
+  if (step === 3) {
     this.tutorialProfDone = false;
     this.tutorialSpecialHits = 0;
   }
-  if (this.tutorialStep === 4) this.tutorialGemPicked = false;
+  if (prof === "warrior" && step === 4) {
+    this.tutorialHeavyDone = false;
+    this.warriorFlowStacks = 0;
+    this.warriorFlowT = 0;
+    this.warriorFlowBurstT = 0;
+    this.warriorSwingCount = 0;
+  }
+  if (step === tutorialGemStep(prof)) this.tutorialGemPicked = false;
   return true;
 }
 
@@ -139,5 +184,5 @@ export function advanceTutorial(this: GameCore) {
 export function finishTutorial(this: GameCore) {
   if (!this.tutorialMode) return;
   const prof = this.tutorialProf ?? this.prof;
-  this.startGame(prof);
+  this.startGame(prof, this.warriorStyle);
 }

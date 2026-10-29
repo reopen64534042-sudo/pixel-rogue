@@ -254,6 +254,8 @@ export interface Talent {
   requires?: string;
   /** 互斥卡名：持有其中任意一张时本卡不进池，反之亦然。 */
   excludes?: string[];
+  /** 战士流派归属：另一流派的卡不进本局池。 */
+  warriorStyle?: WarriorStyle;
   /** 变体组：同一组在一局内只能取一张。与 excludes 的区别是组合规模可变（N 选 1）。 */
   variant?: string;
   /**
@@ -271,6 +273,9 @@ export interface Talent {
 }
 /** 职业标识。`common` 表示三职业共用池。 */
 export type Profession = "shooter" | "mage" | "warrior" | "common";
+
+/** 战士开局流派：太刀（快、近、弱击退）/ 大剑（慢、远、强击退）。 */
+export type WarriorStyle = "katana" | "greatsword";
 
 export interface Enemy extends Point {
   type: string;
@@ -342,6 +347,11 @@ export interface Enemy extends Point {
   ky?: number;
   /** 教程木桩：免疫击退（不因子弹 kx/ky 被推远）。 */
   noKnock?: boolean;
+  /** 战士重斩「破甲」：剩余护甲削减时间与比例。 */
+  armorBreakT?: number;
+  armorBreakPct?: number;
+  /** 战士「裂甲」：近战易伤层数（0-10，无衰退）。 */
+  meleeVulnStacks?: number;
   dead?: boolean;
   /* —— Combat Foundation S3-A 可配置战斗属性（全部可选、默认不写入）——
    * EnemyConfig 同名字段存在时由 spawnEnemy 拷贝；防御/抗性作防守方，

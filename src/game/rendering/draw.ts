@@ -5,6 +5,7 @@ import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
+import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import { getSpecialLevelStats } from "../data/specialShot";
 import { TRUE_DAMAGE_OUTLINE } from "../core/CombatSystem";
 import { spriteEntry } from "./assetRegistry";
@@ -564,6 +565,29 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
+  // 战士「流」层数（角色脚下）：仅持有流·初时显示；爆发期变红。
+  if (this.prof === "warrior" && this.player.upCounts["流·初"]) {
+    const cap = this.player.upCounts["流·极"]
+      ? WB.flow.cap3
+      : this.player.upCounts["流·续"]
+        ? WB.flow.cap2
+        : WB.flow.cap1;
+    const cw = 2;
+    const chh = 2;
+    const gap = 1;
+    const pw = cap * cw + (cap - 1) * gap;
+    const px = Math.round(this.player.x) - Math.floor(pw / 2);
+    const py = Math.round(this.player.y) + 16;
+    const burst = this.warriorFlowBurstT > 0;
+    for (let i = 0; i < cap; i++) {
+      ctx.fillStyle = "#1d2440";
+      ctx.fillRect(px + i * (cw + gap), py, cw, chh);
+      if (i < this.warriorFlowStacks) {
+        ctx.fillStyle = burst ? "#d8fff4" : "#36e0c0";
+        ctx.fillRect(px + i * (cw + gap), py, cw, chh);
+      }
+    }
+  }
   // 强化箭经验条（角色脚下；满级或满经验时整条金色）
   // 强化箭是射手专属系统；法师不显示，否则空条会压在充能点（y+17）上。
   if (this.prof === "shooter") {
@@ -606,6 +630,25 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       const bx = this.player.x + Math.cos(a) * 26;
       const by = this.player.y + Math.sin(a) * 26;
       ctx.spriteRot("blade", bx, by, a + Math.PI / 2);
+    }
+  }
+
+  // 战士剑气（直线，短寿命；与电弧一样批量绘制）
+  if (this.warriorQi.length) {
+    for (const q of this.warriorQi) {
+      const alpha = Math.max(0, Math.min(1, q.t / q.max));
+      ctx.polyline3(
+        [
+          Math.round(q.x1),
+          Math.round(q.y1),
+          Math.round((q.x1 + q.x2) / 2),
+          Math.round((q.y1 + q.y2) / 2),
+          Math.round(q.x2),
+          Math.round(q.y2),
+        ],
+        q.c,
+        alpha,
+      );
     }
   }
 

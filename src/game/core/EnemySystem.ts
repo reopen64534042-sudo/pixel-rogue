@@ -129,6 +129,7 @@ export function updateEnemies(this: GameCore, dt: number) {
     e.flash -= dt;
     e.orbCd -= dt;
     e.slowT -= dt;
+    if (e.armorBreakT) e.armorBreakT = Math.max(0, e.armorBreakT - dt);
     // 击退位移（近战模块写入，先于 AI 移动结算）
     applyKnockback(e, dt);
     // S5：陨星/法阵的落点提前量必须用**敌人真实速度**——旧实现假设

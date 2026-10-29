@@ -1,5 +1,6 @@
 import { WORLD, clamp } from "../data/constants";
 import { DASH_SPECIAL_WINDOW } from "../data/specialShot";
+import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import type { GameCore } from "./GameCore";
 
 export function updatePlayer(this: GameCore, dt: number) {
@@ -36,6 +37,17 @@ export function updatePlayer(this: GameCore, dt: number) {
     // 「冲刺强射」：冲刺结束后 0.8 秒内的普通射击全部按强化箭处理
     if (this.specialUpgrades.includes("dashSpecial"))
       this.dashSpecialT = DASH_SPECIAL_WINDOW;
+    // 战士疾冲：在冲刺结束帧结算路径伤害；残心开启下一刀窗口。
+    if (this.prof === "warrior") {
+      if (this.warriorDashFromX !== null && this.warriorDashFromY !== null)
+        this.warriorDashDamage(
+          this.warriorDashFromX,
+          this.warriorDashFromY,
+        );
+      this.warriorDashFromX = null;
+      this.warriorDashFromY = null;
+      if ((p.upCounts["残心"] || 0) > 0) this.warriorResolveT = 1;
+    }
   }
   if (this.dashFireBoostT > 0) this.dashFireBoostT -= dt;
   if (this.dashSpecialT > 0) this.dashSpecialT -= dt;
@@ -54,18 +66,37 @@ export function updatePlayer(this: GameCore, dt: number) {
     p.dashCharges > 0 &&
     p.dashT <= -0.1
   ) {
-    p.dashT = 0.16;
-    p.dashCharges--;
-    if (p.dashCharges === dchMax - 1 && p.dashRe <= 0) p.dashRe = p.dashMax;
-    if (this.tutorialMode) this.tutorialDashed = true;
+    // 战士跃击：冲刺改为跳向密集敌群；成功时不进入普通冲刺。
+    const leap =
+      this.prof === "warrior" &&
+      (p.upCounts["跃击"] || 0) > 0 &&
+      this.warriorLeap();
+    if (!leap) {
+      p.dashT = 0.16;
+      p.dashCharges--;
+      if (p.dashCharges === dchMax - 1 && p.dashRe <= 0)
+        p.dashRe = p.dashMax;
+      if (this.tutorialMode) this.tutorialDashed = true;
+      this.warriorDashFromX = null;
+      this.warriorDashFromY = null;
+      if (this.prof === "warrior" && (p.upCounts["疾冲"] || 0) > 0) {
+        this.warriorDashFromX = p.x;
+        this.warriorDashFromY = p.y;
+      }
+    }
     // S3 法师：冲刺中断施法（设计：施法前摇可被冲刺打断）。
     // 只打断「抬手」段；收束段（法阵已经成形）不可打断。
     this.interruptMageCast();
-    this.audio.beep(300, 0.1, "sine", 0.06, 500);
+    if (!leap) this.audio.beep(300, 0.1, "sine", 0.06, 500);
   }
   if (p.dashT > 0) {
-    // S2：冲刺位移按 dashDistMul 缩放（疾行 +25%）
-    const dashSpeed = 280 * p.dashDistMul;
+    // S2：冲刺位移按 dashDistMul 缩放（疾行 +25%；疾冲再 +30%）
+    const dashSpeed =
+      280 *
+      p.dashDistMul *
+      (this.prof === "warrior" && (p.upCounts["疾冲"] || 0) > 0
+        ? WB.dashDistMul
+        : 1);
     p.x += p.dx * dashSpeed * dt;
     p.y += p.dy * dashSpeed * dt;
     this.parts.push({
@@ -74,7 +105,10 @@ export function updatePlayer(this: GameCore, dt: number) {
       vx: 0,
       vy: 0,
       life: 0.25,
-      c: "#57e6ff",
+      c:
+        this.prof === "warrior"
+          ? WB.styles[this.warriorStyle].trail
+          : "#57e6ff",
     });
   } else {
     // S2「滞空」：闪避成功后 0.5 秒的移速加成

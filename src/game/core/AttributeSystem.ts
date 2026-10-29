@@ -156,7 +156,7 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   // 「拾取范围」：magnet 决定经验球与血瓶的自动吸附半径（ProgressionSystem）。
   // 旧名「拾取」含义模糊（是范围？速度？自动？），直接写清范围，不加额外提示。
   { group: "utility", label: "拾取范围", stat: "magnet", stage: "flat", base: 8, kind: "int" },
-  { group: "utility", label: "射程", labels: { mage: "施法距离" }, stat: "attackRange", stage: "percent", base: 0.05, kind: "pct" },
+  { group: "utility", label: "射程", labels: { mage: "施法距离", warrior: "近战范围" }, stat: "attackRange", stage: "percent", base: 0.05, kind: "pct" },
   // 法阵范围：S2（#135）因射手零感知被移出面板，S3 法师的法阵半径直接读
   // `p.area`（mageCircleRadius），因此只对法师投放。
   { group: "utility", label: "法阵范围", prof: "mage", stat: "area", stage: "percent", base: 0.05, kind: "pct" },

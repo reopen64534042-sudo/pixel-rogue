@@ -18,7 +18,7 @@ const GROUPS: { key: string; label: string }[] = [
   { key: "legacy", label: "旧表（retired/hidden）" },
   { key: "shooter", label: "射手" },
   { key: "mage", label: "法师" },
-  { key: "warrior", label: "战士（无池）" },
+  { key: "warrior", label: "战士" },
   { key: "common", label: "通用" },
 ];
 
@@ -112,7 +112,7 @@ export class DevPanel {
       if (this.core.state === "play") this.core.openAttrPanel();
     });
     mk("重开本局", () => {
-      this.core.startGame(this.core.prof);
+      this.core.startGame(this.core.prof, this.core.warriorStyle);
     });
     // 无敌：只影响 damagePlayer（DEV 门控），跨重开保留
     const god = el(
@@ -263,7 +263,7 @@ export class DevPanel {
     // 只有「开始 / 结算」界面没有可保留的局，先正常开局；
     // 游玩中跳波**保留当前构筑**（天赋/属性/等级），只清场并把波次拨到 n。
     if (c.state !== "play" && c.state !== "pause" && c.state !== "stats")
-      c.startGame(c.prof);
+      c.startGame(c.prof, c.warriorStyle);
     c.enemies = [];
     c.ebullets = [];
     c.bullets = [];

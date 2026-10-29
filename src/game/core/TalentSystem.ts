@@ -61,6 +61,12 @@ export function canOffer(this: GameCore, u: Talent) {
   // S2：职业池归属。`common` 或未填 prof 的卡不受职业限制
   //（旧表已整体 hidden，实际不会再进池）。
   if (u.prof && u.prof !== "common" && u.prof !== this.prof) return false;
+  // 战士开局流派：另一流派的卡不进本局池。
+  if (
+    u.warriorStyle &&
+    (this.prof !== "warrior" || this.warriorStyle !== u.warriorStyle)
+  )
+    return false;
   const picks = this.player.picks;
   // S2 链式依赖（混合式抽取）：未持有前置时 L2/L3 不进池。
   if (u.requires && !picks.includes(u.requires)) return false;
@@ -138,6 +144,7 @@ export function recompute(this: GameCore) {
     },
     attributeModifiers(this.attributePicks),
     this.prof,
+    this.warriorStyle,
   );
   // C3-B/C3-C：属性重建完成后原样回写全部运行状态（不恢复资源、不刷新
   // 倒计时、不重放获得时效果），再按「上限降低」方向协调——置换移除层级
@@ -169,6 +176,7 @@ export function learnTalent(this: GameCore, u: Talent) {
     },
     attributeModifiers(this.attributePicks),
     this.prof,
+    this.warriorStyle,
   );
   // C3-A：获得时效果在投影**之后**执行（生命之泉回满依赖新有效 maxhp）；
   // 仅对已登记卡生效（未登记 no-op），melt 输出卡路径经本函数自动复用，
