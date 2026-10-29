@@ -3,7 +3,7 @@ import type { GameCore } from "./GameCore";
 import { WORLD, clamp } from "../data/constants";
 
 /**
- * 新手教程练习场（v83 / v88）。
+ * 新手教程练习场（v83 / v89）。
  *
  * 不单独做模式切换：复用同一个 GameCore / 战斗画面，只把波次系统冻结、
  * 放几个 0 伤害高血量木桩。完成或跳过后直接 startGame(prof) 正式开局，

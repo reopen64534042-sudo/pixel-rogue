@@ -340,7 +340,7 @@ export function rollPicks(this: GameCore) {
     }
     picks.push(cand);
   }
-  // v87 秘传保底：前置满足后，双修/三修必在下一轮三选一出现。
+  // v88 秘传保底：前置满足后，双修/三修必在下一轮三选一出现。
   // 只替换最后一个槽位、不额外消耗随机数；玩家仍可用刷新放弃它。
   if (this.prof === "mage") {
     for (const name of ["双修", "三修"] as const) {

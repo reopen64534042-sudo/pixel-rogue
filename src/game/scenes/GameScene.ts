@@ -48,9 +48,15 @@ export class GameScene extends Phaser.Scene {
   /** 开发者作弊面板：仅 DEV 构建存在（生产包无入口、无控制桥） */
   private dev?: DevPanel;
   private clock = new FixedClock();
-  private specialTest: "special-max" | "dash-special" | null = null;
+  private specialTest:
+    | "special-max"
+    | "dash-special"
+    | "special-swarm"
+    | null = null;
   private testReady = false;
   private testAnchors: { x: number; y: number }[] = [];
+  /** special-swarm 沙盒的目标怪数量 */
+  private readonly swarmTarget = 80;
   private stars = Array.from({ length: 60 }, () => ({
     x: Math.random() * W,
     y: Math.random() * H,
@@ -156,9 +162,11 @@ export class GameScene extends Phaser.Scene {
       import.meta.env.DEV && import.meta.env.MODE === "e2e"
         ? testName === "dash-special"
           ? "dash-special"
-          : testName === "special-max"
-            ? "special-max"
-            : null
+          : testName === "special-swarm"
+            ? "special-swarm"
+            : testName === "special-max"
+              ? "special-max"
+              : null
         : null;
     if (this.specialTest) this.core.startGame();
   }
@@ -187,17 +195,29 @@ export class GameScene extends Phaser.Scene {
       core.burnZones = [];
       core.missiles = [];
       core.lasers = [];
-      this.testAnchors = [{ x: core.player.x + 110, y: core.player.y }];
-      for (const anchor of this.testAnchors) this.spawnTestElite(anchor);
-      core.addText(
-        core.player.x,
-        core.player.y - 30,
-        this.specialTest === "dash-special"
-          ? "测试：冲刺强射 · 冲刺后 0.8 秒全强化箭 · 10000 HP 精英"
-          : `测试：强化箭 Lv.${SPECIAL_LEVELS.length} · 全升级 · 10000 HP 精英`,
-        "#ffd24a",
-        true,
-      );
+      core.texts = [];
+      if (this.specialTest === "special-swarm") {
+        for (let i = 0; i < this.swarmTarget; i++) this.spawnSwarmEnemy(i);
+        core.addText(
+          core.player.x,
+          core.player.y - 30,
+          `测试：满级强化箭 · ${this.swarmTarget} 只高血量沙包 · 伤害 0`,
+          "#ffd24a",
+          true,
+        );
+      } else {
+        this.testAnchors = [{ x: core.player.x + 110, y: core.player.y }];
+        for (const anchor of this.testAnchors) this.spawnTestElite(anchor);
+        core.addText(
+          core.player.x,
+          core.player.y - 30,
+          this.specialTest === "dash-special"
+            ? "测试：冲刺强射 · 冲刺后 0.8 秒全强化箭 · 10000 HP 精英"
+            : `测试：强化箭 Lv.${SPECIAL_LEVELS.length} · 全升级 · 10000 HP 精英`,
+          "#ffd24a",
+          true,
+        );
+      }
       this.testReady = true;
       return;
     }
@@ -208,6 +228,11 @@ export class GameScene extends Phaser.Scene {
     core.gems = [];
     core.boxes = [];
     core.potions = [];
+    if (this.specialTest === "special-swarm") {
+      const living = core.enemies.filter((e) => !e.dead).length;
+      for (let i = living; i < this.swarmTarget; i++) this.spawnSwarmEnemy(i);
+      return;
+    }
     const living = core.enemies.filter((e) => e.elite && !e.dead);
     this.testAnchors.forEach((anchor, index) => {
       const e = living[index];
@@ -232,6 +257,29 @@ export class GameScene extends Phaser.Scene {
     e.dmg = 0;
     e.x = anchor.x;
     e.y = anchor.y;
+    e.kx = 0;
+    e.ky = 0;
+  }
+
+  private spawnSwarmEnemy(index: number) {
+    const core = this.core;
+    core.spawnEnemy("slime");
+    const e = core.enemies[core.enemies.length - 1];
+    const angle = index * 2.399963;
+    const ring = 50 + (index % 8) * 14;
+    e.x = Math.max(
+      20,
+      Math.min(WORLD.w - 20, core.player.x + Math.cos(angle) * ring),
+    );
+    e.y = Math.max(
+      20,
+      Math.min(WORLD.h - 20, core.player.y + Math.sin(angle) * ring),
+    );
+    e.maxhp = 5000;
+    e.hp = 5000;
+    e.speed = 0;
+    e.dmg = 0;
+    e.xp = 0;
     e.kx = 0;
     e.ky = 0;
   }

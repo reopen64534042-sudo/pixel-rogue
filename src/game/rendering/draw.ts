@@ -1,4 +1,5 @@
 import type { GameCore } from "../core/GameCore";
+import type { FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
 import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
@@ -11,6 +12,23 @@ function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
   h = (h ^ (h >> 13)) * 1274126177;
   return ((h ^ (h >> 16)) >>> 0) / 4294967295;
+}
+
+interface FloatingTextSlotState {
+  /** 每条飘字绑定的固定 label 槽位组；普通 2 层、真实 1 层、真实暴击 3 层 */
+  slots: Map<FloatingText, number[]>;
+  free: number[];
+  next: number;
+}
+const FLOAT_TEXT_SLOTS = new WeakMap<GameCore, FloatingTextSlotState>();
+
+function floatingTextSlots(core: GameCore): FloatingTextSlotState {
+  let state = FLOAT_TEXT_SLOTS.get(core);
+  if (!state) {
+    state = { slots: new Map(), free: [], next: 0 };
+    FLOAT_TEXT_SLOTS.set(core, state);
+  }
+  return state;
 }
 
 /**
@@ -688,44 +706,60 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   }
   ctx.globalAlpha = 1;
 
-  // 飘字
+  // 飘字：每条文字在生命周期内绑定固定 label 槽位，只更新坐标/透明度，
+  // 避免文字过期后槽位整体前移导致的每帧纹理重建。
   ctx.textAlign = "center";
+  const slotState = floatingTextSlots(this);
+  const activeTexts = new Set(this.texts);
+  for (const [text, slots] of slotState.slots) {
+    if (!activeTexts.has(text)) {
+      slotState.slots.delete(text);
+      slotState.free.push(...slots);
+    }
+  }
   for (const t of this.texts) {
+    const layers = t.trueDmg ? (t.big ? 4 : 3) : 2;
+    let slots = slotState.slots.get(t);
+    if (!slots || slots.length !== layers) {
+      if (slots) slotState.free.push(...slots);
+      slots = [];
+      for (let i = 0; i < layers; i++)
+        slots.push(slotState.free.pop() ?? slotState.next++);
+      slotState.slots.set(t, slots);
+    }
     ctx.globalAlpha = Math.min(1, t.life * 3);
     const x = Math.round(t.x);
     const y = Math.round(t.y);
-    ctx.fillStyle = "#10131f";
     if (t.trueDmg) {
-      // 真实伤害：用更大的冷蓝字号铺底形成实心外圈，再叠银白主体；
-      // 比 1px 描边更醒目，且不需要 PixelPainter 暴露 canvas 阴影 API。
-      // 暴击再叠一层金色外圈并整体放大，和普通真实伤害区分。
+      // 真实伤害：冷蓝外圈 + 深色落影 + 银白主体；暴击再叠金色外圈并放大。
       if (t.big) {
         ctx.font = '16px "Press Start 2P", monospace';
         ctx.fillStyle = "#ffd24a";
-        ctx.fillText(t.s, x, y);
+        ctx.fillTextSlot(slots[0], t.s, x, y);
         ctx.font = '14px "Press Start 2P", monospace';
         ctx.fillStyle = TRUE_DAMAGE_OUTLINE;
-        ctx.fillText(t.s, x, y);
+        ctx.fillTextSlot(slots[1], t.s, x, y);
         ctx.font = '12px "Press Start 2P", monospace';
         ctx.fillStyle = "#10131f";
-        ctx.fillText(t.s, x + 1, y + 1);
+        ctx.fillTextSlot(slots[2], t.s, x + 1, y + 1);
         ctx.fillStyle = "#ffffff";
-        ctx.fillText(t.s, x, y);
+        ctx.fillTextSlot(slots[3], t.s, x, y);
       } else {
         ctx.font = '12px "Press Start 2P", monospace';
         ctx.fillStyle = TRUE_DAMAGE_OUTLINE;
-        ctx.fillText(t.s, x, y);
+        ctx.fillTextSlot(slots[0], t.s, x, y);
         ctx.font = '10px "Press Start 2P", monospace';
         ctx.fillStyle = "#10131f";
-        ctx.fillText(t.s, x + 1, y + 1);
+        ctx.fillTextSlot(slots[1], t.s, x + 1, y + 1);
         ctx.fillStyle = t.c;
-        ctx.fillText(t.s, x, y);
+        ctx.fillTextSlot(slots[2], t.s, x, y);
       }
     } else {
       ctx.font = '8px "Press Start 2P", monospace';
-      ctx.fillText(t.s, x + 1, y + 1);
+      ctx.fillStyle = "#10131f";
+      ctx.fillTextSlot(slots[0], t.s, x + 1, y + 1);
       ctx.fillStyle = t.c;
-      ctx.fillText(t.s, x, y);
+      ctx.fillTextSlot(slots[1], t.s, x, y);
     }
   }
   ctx.globalAlpha = 1;
