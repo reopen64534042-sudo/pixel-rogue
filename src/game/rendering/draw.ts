@@ -184,19 +184,20 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     // 读条只保留静态信息：急停线 + 填充颜色。
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = "#3a4a7a";
-    ctx.fillRect(bx - 1, by, bw + 2, 5);
+    ctx.fillRect(bx - 1, by, bw + 2, 3);
     ctx.fillStyle = "#2a3560";
-    ctx.fillRect(bx, by + 1, bw, 3);
+    ctx.fillRect(bx, by + 1, bw, 1);
     ctx.globalAlpha = 1;
     ctx.fillStyle = steady ? "#57e6ff" : "#ff9a3d";
-    ctx.fillRect(bx, by + 1, Math.max(1, Math.round(bw * prog)), 3);
+    ctx.fillRect(bx, by + 1, Math.max(1, Math.round(bw * prog)), 1);
     // 急停线：前摇 60%（= 1 - steadyHoldRatio）。**常驻**——玩家需要从起手
     // 就看见「最晚停在这里」，而不是过了某条线之后才被提醒（实测来不及）。
+    // 条身只有 3px 高，竖线画满高才看得见。
     ctx.globalAlpha = 0.7;
     ctx.fillStyle = "#c8a06a";
     ctx.fillRect(
       bx + Math.round(bw * (1 - MB.steadyHoldRatio)),
-      by + 1,
+      by,
       1,
       3,
     );
@@ -223,12 +224,12 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     const by = Math.round(this.player.y) + 6;
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = "#3a4a7a";
-    ctx.fillRect(bx - 1, by, bw + 2, 5);
+    ctx.fillRect(bx - 1, by, bw + 2, 3);
     ctx.fillStyle = "#2a3560";
-    ctx.fillRect(bx, by + 1, bw, 3);
+    ctx.fillRect(bx, by + 1, bw, 1);
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#c07bff";
-    ctx.fillRect(bx, by + 1, Math.max(1, Math.round(bw * prog)), 3);
+    ctx.fillRect(bx, by + 1, Math.max(1, Math.round(bw * prog)), 1);
   }
   // ---- S3 法师：元素残域（持续伤害领域）----
   for (const d of this.mageDomains) {

@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v59",
+    date: "2026-10-29",
+    title: "施法读条减薄",
+    items: [
+      "施法读条与星陨冷却条在**长度不变**（22px）的前提下减薄：总高 5px → 3px，填充 3px → 1px，急停线改为画满整条高度。高攻速下反复充能不再那么抢注意力。",
+    ],
+  },
+  {
     version: "v58",
     date: "2026-10-29",
     title: "护盾吸收飘字只显示数值",
