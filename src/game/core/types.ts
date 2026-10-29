@@ -317,6 +317,12 @@ export interface Enemy extends Point {
   fuse: number;
   noDrop: boolean;
   /**
+   * 实际移动速度（px/s）：**仅法师路径**每帧物化，用于陨星/法阵的落点提前量。
+   * 可选字段——射手路径永不写入，敌人对象形状与 v8 逐字段对照保持不变。
+   */
+  vx?: number;
+  vy?: number;
+  /**
    * 击退速度 (px/s)，由近战模块写入，每帧衰减。
    * 必须是可选字段：未发生击退时对象上不存在该属性，
    * 以保证敌人对象结构与 v8 逐字段对照一致。

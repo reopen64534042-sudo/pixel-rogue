@@ -115,22 +115,20 @@ function findDensest(core: GameCore, range: number): Enemy | null {
 }
 
 /**
- * 落点：最密集处 + 速度提前量。
+ * 落点：目标位置 + 真实速度 × 前摇时长。
  *
- * 提前量按「敌人在前摇时长内会移动的距离」估算。敌人 AI 是朝玩家移动，
- * 因此方向取「敌人 → 玩家」；这只是一个近似（敌人类型不同会后撤或横向游走），
- * 但它让法阵不至于总落在敌人身后 —— 提前量取 0 时近距离敌人几乎不会被命中。
+ * 速度由 EnemySystem 每帧在法师路径物化（`e.vx/e.vy`）。旧实现按
+ * 「敌人在前摇内朝玩家移动」估算——面对会后撤/横移的射手敌人时，
+ * 落点会被推到玩家与敌人中间，永远打空。
  */
 function resolveCastPoint(
   core: GameCore,
   target: Enemy,
 ): { x: number; y: number } {
-  const p = core.player;
-  const a = Math.atan2(p.y - target.y, p.x - target.x);
-  const lead = target.speed * mageWindup(core);
+  const lead = mageWindup(core);
   return {
-    x: clamp(target.x + Math.cos(a) * lead, 16, WORLD.w - 16),
-    y: clamp(target.y + Math.sin(a) * lead, 16, WORLD.h - 16),
+    x: clamp(target.x + (target.vx ?? 0) * lead, 16, WORLD.w - 16),
+    y: clamp(target.y + (target.vy ?? 0) * lead, 16, WORLD.h - 16),
   };
 }
 
@@ -366,13 +364,13 @@ function updateMeteorRoute(core: GameCore, dt: number) {
         const a = extra >= 0 ? (extra / count) * Math.PI * 2 : 0;
         const ox = extra >= 0 ? Math.cos(a) * MB.meteorSpread : 0;
         const oy = extra >= 0 ? Math.sin(a) * MB.meteorSpread : 0;
-        // 落点提前量：陨星有 0.8 秒预警，敌人这段时间会朝玩家移动；
-        // 不算提前量时落点永远在敌人身后，整条路线打空（实测 dmgBy.meteor=0）。
-        const toPlayer = Math.atan2(p.y - base.y, p.x - base.x);
-        const lead = base.e.speed * MB.meteorFall;
+        // 落点提前量：按敌人**真实速度**外推落地时长。旧实现假设敌人朝玩家
+        // 移动，射手后撤时落点会落在玩家与敌人中间，永远打空。
+        const leadX = (base.e.vx ?? 0) * MB.meteorFall;
+        const leadY = (base.e.vy ?? 0) * MB.meteorFall;
         core.mageMeteors.push({
-          x: clamp(base.x + ox + Math.cos(toPlayer) * lead, 16, WORLD.w - 16),
-          y: clamp(base.y + oy + Math.sin(toPlayer) * lead, 16, WORLD.h - 16),
+          x: clamp(base.x + ox + leadX, 16, WORLD.w - 16),
+          y: clamp(base.y + oy + leadY, 16, WORLD.h - 16),
           t: MB.meteorFall,
           R: MB.meteorRadius,
           element: type,

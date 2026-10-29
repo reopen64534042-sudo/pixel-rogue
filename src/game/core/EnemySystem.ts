@@ -130,6 +130,16 @@ export function updateEnemies(this: GameCore, dt: number) {
     e.slowT -= dt;
     // 击退位移（近战模块写入，先于 AI 移动结算）
     applyKnockback(e, dt);
+    // S5：陨星/法阵的落点提前量必须用**敌人真实速度**——旧实现假设
+    // 「朝玩家移动」，射手后撤/横移时落点会落在玩家与敌人中间，永远打空。
+    // 先归零，只有真正移动的分支在下面写回；冻结/死亡的敌人保持 0。
+    // 仅法师路径物化，射手路径的敌人对象形状不变（parity 逐字段对照）。
+    if (this.prof === "mage") {
+      e.vx = 0;
+      e.vy = 0;
+    }
+    const moveX0 = e.x;
+    const moveY0 = e.y;
     // 表现层：精英滴熔岩、火囊虫奔袭掉火星。
     // 刻意用确定性相位而非 Math.random —— 后者会错开随机序列，破坏 parity 对照。
     if (e.elite && Math.sin(this.time * 7 + e.seed * 13) > 0.97) {
@@ -303,6 +313,10 @@ export function updateEnemies(this: GameCore, dt: number) {
     }
     e.x = clamp(e.x, 20, WORLD.w - 20);
     e.y = clamp(e.y, 20, WORLD.h - 20);
+    if (this.prof === "mage") {
+      e.vx = (e.x - moveX0) / dt;
+      e.vy = (e.y - moveY0) / dt;
+    }
     // 接触伤害
     const dx = p.x - e.x,
       dy = p.y - e.y,
