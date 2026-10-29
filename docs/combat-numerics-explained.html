@@ -90,15 +90,15 @@ table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;back
     </article>
     <article class="formula-card">
       <div class="formula-kicker">05 / 怪物最大生命随波次增长</div>
-      <div class="mathline"><strong>怪物 HP</strong> = <span class="sym">基础HP</span> × [1 + (波次−1)×0.18 + max(0,波次−15)<sup>2</sup>×0.06] × 1.03<sup>floor(玩家等级/5)</sup> × 精英倍率</div>
-      <p>越到后面波次成长越快；玩家每进入一个新的 5 级档，怪物 HP 再提高 3%。精英的 HP 倍率是 ×8。</p>
+      <div class="mathline"><strong>怪物 HP</strong> = <span class="sym">基础HP</span> × [1 + (波次−1)×0.18 + max(0,波次−15)<sup>2</sup>×0.06] × 精英倍率</div>
+      <p>越到后面波次成长越快。v46 起玩家等级不再影响怪物 HP——等级只影响属性强化的稀有度；精英的 HP 倍率是 ×3.5。</p>
       <div class="formula-gloss"><span>平方²：一个数乘自己</span><span>floor：向下取整</span></div>
     </article>
     <article class="formula-card">
       <div class="formula-kicker">06 / 怪物攻击与速度</div>
-      <div class="mathline"><strong>攻击</strong> = <span class="sym">基础攻击</span> × [1 + (波次−1)×0.05 + max(0,波次−15)<sup>2</sup>×0.012] × 精英攻击倍率</div>
+      <div class="mathline"><strong>攻击</strong> = <span class="sym">基础攻击</span> × [1 + (波次−1)×0.055 + max(0,波次−15)<sup>2</sup>×0.012] × 精英攻击倍率</div>
       <div class="mathline"><strong>速度</strong> = <span class="sym">基础速度</span> × 精英速度倍率 × 随机系数</div>
-      <p>普通倍率均为 ×1；精英攻击 ×1.5，精英速度 ×0.8。随机系数约为 0.9～1.1，所以同类型怪物的速度也可能略有不同。</p>
+      <p>普通倍率均为 ×1；精英攻击 ×1.6，精英速度 ×0.8。随机系数约为 0.9～1.1，所以同类型怪物的速度也可能略有不同。</p>
     </article>
     <article class="formula-card">
       <div class="formula-kicker">07 / 攻速、持续伤害与技能</div>
@@ -221,21 +221,20 @@ table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;back
 </section>
 
 <section class="section shell" id="enemy">
-  <div class="section-head"><div class="kicker">05 / 怪物为什么越打越强</div><h2>一只小怪，到了第 20 波会变多强？</h2><p class="sub">怪物不是每波手动配置一套数字。游戏先读它的“出厂数值”，再按波次、玩家等级、精英状态计算。下面用当前游戏里的五类敌人展示。</p></div>
+  <div class="section-head"><div class="kicker">05 / 怪物为什么越打越强</div><h2>一只小怪，到了第 20 波会变多强？</h2><p class="sub">怪物不是每波手动配置一套数字。游戏先读它的“出厂数值”，再按波次、精英状态计算。下面用当前游戏里的五类敌人展示。</p></div>
   <div class="split">
     <div class="card">
       <div class="controls">
-        <div class="control"><label for="enemyType">选择一种怪物</label><select id="enemyType" class="select"><option value="slime">史莱姆（基础 HP 14）</option><option value="bat">蝙蝠（基础 HP 9）</option><option value="brute">重甲怪（基础 HP 65）</option><option value="shooter">射手（基础 HP 16）</option><option value="bomber">自爆虫（基础 HP 12）</option></select></div>
+        <div class="control"><label for="enemyType">选择一种怪物</label><select id="enemyType" class="select"><option value="slime">史莱姆（基础 HP 19）</option><option value="bat">蝙蝠（基础 HP 13）</option><option value="brute">重甲怪（基础 HP 65）</option><option value="shooter">射手（基础 HP 22）</option><option value="bomber">自爆虫（基础 HP 16）</option></select></div>
         <div class="control"><label for="wave">第几波 <output id="wavev">1</output></label><input id="wave" type="range" min="1" max="30" step="1" value="1"></div>
-        <div class="control"><label for="level">玩家等级 <output id="levelv">1</output></label><input id="level" type="range" min="1" max="40" step="1" value="1"></div>
         <div class="control"><div class="stat-label">精英状态</div><div class="switch-line"><input id="elite" type="checkbox"><label for="elite"><b>让它变成精英</b></label></div></div>
       </div>
       <div class="note">速度存在一个随机小幅波动，所以这里展示的是不带抖动的<strong>参考速度</strong>。真实生成会再乘一个约 0.9～1.1 的随机系数。</div>
       <div class="separator"></div>
       <div class="wave-grid">
-        <div class="wave-card"><span class="stat-label">生成时的最大 HP</span><b id="enemyHp">14</b><span class="unit" id="hpRatio">初始的 ×1</span></div>
-        <div class="wave-card"><span class="stat-label">碰撞/攻击基础威力</span><b id="enemyDmg">8</b><span class="unit" id="dmgRatio">初始的 ×1</span></div>
-        <div class="wave-card"><span class="stat-label">参考移动速度</span><b id="enemySpeed">30</b><span class="unit">像素/秒 × 随机系数</span></div>
+        <div class="wave-card"><span class="stat-label">生成时的最大 HP</span><b id="enemyHp">19</b><span class="unit" id="hpRatio">初始的 ×1</span></div>
+        <div class="wave-card"><span class="stat-label">碰撞/攻击基础威力</span><b id="enemyDmg">10</b><span class="unit" id="dmgRatio">初始的 ×1</span></div>
+        <div class="wave-card"><span class="stat-label">参考移动速度</span><b id="enemySpeed">55</b><span class="unit">像素/秒 × 随机系数</span></div>
       </div>
       <div class="live-equation"><div class="formula-kicker">当前怪物成长公式 · 代入后的数值</div><div class="math-eval" id="enemyLiveHp"></div><div class="math-eval" id="enemyLiveDmg"></div><div class="math-eval" id="enemyLiveSpeed"></div></div><div class="chart-legend" style="margin-top:15px"><span><i class="dot" style="background:var(--mint)"></i>HP 趋势</span><span><i class="dot" style="background:var(--gold)"></i>攻击趋势</span><span>纵轴分别按各自比例显示</span></div>
       <svg id="enemyChart" class="graph" viewBox="0 0 560 205" role="img" aria-label="从第1波到30波的生命与攻击成长趋势"></svg>
@@ -243,13 +242,13 @@ table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;back
     <div class="card">
       <h3 class="mini-title">这只怪物的数字从哪来？</h3>
       <div class="numbered" style="margin-top:13px">
-        <div><span class="round">1</span><div><h3>先有基础配置</h3><p id="enemyBaseText">史莱姆基础 HP 14，攻击 8，速度 30。</p></div></div>
+        <div><span class="round">1</span><div><h3>先有基础配置</h3><p id="enemyBaseText">史莱姆基础 HP 19，攻击 10，速度 55。</p></div></div>
         <div><span class="round">2</span><div><h3>波次提高 HP 和攻击</h3><p>前期按波次线性上涨；第 15 波之后还有额外的二次增长，后期会明显更硬。</p></div></div>
-        <div><span class="round">3</span><div><h3>玩家等级影响怪物 HP</h3><p>每达到 5 的一个完整等级档（5/10/15…），HP 再乘 1.03。</p></div></div>
-        <div><span class="round">4</span><div><h3>精英倍率与小幅随机速度</h3><p>精英 HP ×8、攻击 ×1.5、速度 ×0.8；正常速度还带随机抖动。</p></div></div>
+        <div><span class="round">3</span><div><h3>玩家等级不影响怪物</h3><p>v46 起等级不再参与怪物 HP；等级只提高属性强化出现高稀有度的概率。</p></div></div>
+        <div><span class="round">4</span><div><h3>精英倍率与小幅随机速度</h3><p>精英 HP ×3.5、攻击 ×1.6、速度 ×0.8；正常速度还带随机抖动。</p></div></div>
       </div>
-      <div class="note warn"><b>注意：</b>这是新生成怪物的数值，不是“怪物每过一波自动加一次血”。你现在看到的数值是按选择的波次和等级计算出的生成结果。</div>
-      <details style="margin-top:16px"><summary>想看更精确的怪物成长公式？</summary><p>HP = 基础 HP × [1 + (波次−1)×0.18 + max(0,波次−15)²×0.06] × 1.03 的 floor(玩家等级/5) 次方 × (精英?8:1)。</p><p>攻击 = 基础攻击 × [1 + (波次−1)×0.05 + max(0,波次−15)²×0.012] × (精英?1.5:1)。</p><p>速度 = 基础速度 × (精英?0.8:1) × 随机抖动（0.9～1.1）。</p></details>
+      <div class="note warn"><b>注意：</b>这是新生成怪物的数值，不是“怪物每过一波自动加一次血”。你现在看到的数值是按选择的波次和精英状态计算出的生成结果。</div>
+      <details style="margin-top:16px"><summary>想看更精确的怪物成长公式？</summary><p>HP = 基础 HP × [1 + (波次−1)×0.18 + max(0,波次−15)²×0.06] × (精英?3.5:1)。</p><p>攻击 = 基础攻击 × [1 + (波次−1)×0.055 + max(0,波次−15)²×0.012] × (精英?1.6:1)。</p><p>速度 = 基础速度 × (精英?0.8:1) × 随机抖动（0.9～1.1）。</p><p>v46 起血量不再乘玩家等级项（原为 1.03 的 floor(等级/5) 次方）。</p></details>
     </div>
   </div>
 </section>
@@ -285,7 +284,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;back
     <details><summary>真实伤害是不是一定能伤害敌人？</summary><p>真实伤害绕过的是护甲、元素抗性和韧性这三种数值减伤，并不代表无视碰撞、闪避、护盾、无敌时间或其他战斗门控。它也不是“不会触发暴击”；是否能暴击取决于此次伤害的请求规则。</p></details>
     <details><summary>攻击力 0.5 为什么有时打出了 1 点？</summary><p>针对敌人的离散命中，完整伤害算完后如果结果大于 0，会四舍五入且至少为 1；但结果严格等于 0 就不会突然冒出 1。玩家受击和燃烧等持续伤害则会保留小数，避免每帧“白送”1点伤害。</p></details>
     <details><summary>为什么改了角色属性，飞出去的子弹没有立刻变化？</summary><p>因为发射那一刻会保存攻击相关的“属性照片”，后续属性变化不会修改那发已经在飞的子弹。自爆虫是引爆时拍照，接触攻击是接触时取最新属性。不同攻击不能随意换快照时机。</p></details>
-    <details><summary>怪物被我打残，再提升波次会自动满血吗？</summary><p>不会。波次与玩家等级公式主要用于新生成的敌人，已有怪物的当前 HP 是运行状态。类似地，角色改变天赋时会重新计算最大 HP，但不能因此把当前 HP、护盾和技能冷却随便重置。</p></details>
+    <details><summary>怪物被我打残，再提升波次会自动满血吗？</summary><p>不会。波次公式主要用于新生成的敌人，已有怪物的当前 HP 是运行状态。类似地，角色改变天赋时会重新计算最大 HP，但不能因此把当前 HP、护盾和技能冷却随便重置。</p></details>
     <details><summary>新增“冰霜伤害”就会自动出现冻结效果吗？</summary><p>不会。伤害类型注册表只让伤害计算器知道这次是冰霜、该用什么减伤方式。发射冰弹、造成冻结、播放特效和显示图标是另外的游戏规则，需要后续实现。技能专属增伤同理，目前部分普通攻击入口还没有把技能标识传到底层。</p></details>
   </div>
   <div class="note"><b>想验证一条自己的规则？</b>先想好“这是基础属性、技能自身威力、伤害增伤，还是减伤/运行状态”，再去对应的滑块调整。这样不会把两个不同系统的数字混在一起。</div>
@@ -384,31 +383,31 @@ function updateArmor(){
 }
 $("curveDef").addEventListener("input",updateArmor);
 var mobs={
- slime:{name:"史莱姆",hp:14,dmg:8,speed:30,w0:1},
- bat:{name:"蝙蝠",hp:9,dmg:6,speed:62,w0:3},
- brute:{name:"重甲怪",hp:65,dmg:15,speed:20,w0:5},
- shooter:{name:"射手",hp:16,dmg:10,speed:38,w0:6},
- bomber:{name:"自爆虫",hp:12,dmg:16,speed:72,w0:8}
+ slime:{name:"史莱姆",hp:19,dmg:10,speed:55,w0:1},
+ bat:{name:"蝙蝠",hp:13,dmg:8,speed:62,w0:3},
+ brute:{name:"重甲怪",hp:65,dmg:18,speed:22,w0:5},
+ shooter:{name:"射手",hp:22,dmg:12,speed:40,w0:4},
+ bomber:{name:"自爆虫",hp:16,dmg:20,speed:72,w0:8}
 };
-function calculateEnemy(cfg,w,l,elite){
-  var over=Math.max(0,w-15), hpScale=1+(w-1)*.18+over*over*.06, dmgScale=1+(w-1)*.05+over*over*.012, levelScale=Math.pow(1.03,Math.floor(l/5));
-  return {hp:cfg.hp*hpScale*levelScale*(elite?8:1),dmg:cfg.dmg*dmgScale*(elite?1.5:1),speed:cfg.speed*(elite?.8:1)};
+function calculateEnemy(cfg,w,elite){
+  var over=Math.max(0,w-15), hpScale=1+(w-1)*.18+over*over*.06, dmgScale=1+(w-1)*.055+over*over*.012;
+  return {hp:cfg.hp*hpScale*(elite?3.5:1),dmg:cfg.dmg*dmgScale*(elite?1.6:1),speed:cfg.speed*(elite?.8:1)};
 }
 function enemyLine(values,stroke,max){
   var pts=values.map(function(v,i){return (42+i/29*478)+","+(169-(v/max)*140);});
   return '<polyline points="'+pts.join(" ")+'" stroke="'+stroke+'" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>';
 }
 function updateEnemy(){
-  var id=$("enemyType").value,cfg=mobs[id],w=num("wave"),lv=num("level"),elite=$("elite").checked,e=calculateEnemy(cfg,w,lv,elite),base=calculateEnemy(cfg,1,1,false);
-  $("wavev").textContent=w;$("levelv").textContent=lv;
+  var id=$("enemyType").value,cfg=mobs[id],w=num("wave"),elite=$("elite").checked,e=calculateEnemy(cfg,w,elite),base=calculateEnemy(cfg,1,false);
+  $("wavev").textContent=w;
   $("enemyHp").textContent=fmt(e.hp);$("enemyDmg").textContent=fmt(e.dmg);$("enemySpeed").textContent=fmt(e.speed);
   $("hpRatio").textContent="相比初始 ×"+fmt(e.hp/base.hp);$("dmgRatio").textContent="相比初始 ×"+fmt(e.dmg/base.dmg);
-  var over=Math.max(0,w-15),hpFactor=1+(w-1)*.18+over*over*.06,dmgFactor=1+(w-1)*.05+over*over*.012,lvlFactor=Math.pow(1.03,Math.floor(lv/5));
-  $("enemyLiveHp").textContent="HP = "+fmt(cfg.hp)+"（基础） × "+fmt(hpFactor)+"（波次） × "+fmt(lvlFactor)+"（玩家等级） × "+(elite?8:1)+"（精英） = "+fmt(e.hp);
-  $("enemyLiveDmg").textContent="攻击 = "+fmt(cfg.dmg)+"（基础） × "+fmt(dmgFactor)+"（波次） × "+(elite?1.5:1)+"（精英） = "+fmt(e.dmg);
+  var over=Math.max(0,w-15),hpFactor=1+(w-1)*.18+over*over*.06,dmgFactor=1+(w-1)*.055+over*over*.012;
+  $("enemyLiveHp").textContent="HP = "+fmt(cfg.hp)+"（基础） × "+fmt(hpFactor)+"（波次） × "+(elite?3.5:1)+"（精英） = "+fmt(e.hp);
+  $("enemyLiveDmg").textContent="攻击 = "+fmt(cfg.dmg)+"（基础） × "+fmt(dmgFactor)+"（波次） × "+(elite?1.6:1)+"（精英） = "+fmt(e.dmg);
   $("enemyLiveSpeed").textContent="参考速度 = "+fmt(cfg.speed)+" × "+(elite?.8:1)+"（精英） × 1.0（暂不含随机抖动） = "+fmt(e.speed);
   $("enemyBaseText").textContent=cfg.name+"基础 HP "+cfg.hp+"、攻击 "+cfg.dmg+"、速度 "+cfg.speed+"；从第 "+cfg.w0+" 波开始可自然刷出。";
-  var waveValues=Array.from({length:30},function(_,i){return calculateEnemy(cfg,i+1,lv,elite);}),hp=waveValues.map(function(x){return x.hp;}),dmg=waveValues.map(function(x){return x.dmg;});
+  var waveValues=Array.from({length:30},function(_,i){return calculateEnemy(cfg,i+1,elite);}),hp=waveValues.map(function(x){return x.hp;}),dmg=waveValues.map(function(x){return x.dmg;});
   var out='<g stroke="#34465d" stroke-width="1" opacity=".7"><line x1="42" y1="169" x2="520" y2="169"/><line x1="42" y1="100" x2="520" y2="100"/><line x1="42" y1="30" x2="520" y2="30"/></g>';
   out+='<g fill="#92a9c2" font-size="12"><text x="40" y="189">第1波</text><text x="470" y="189">第30波</text><text x="6" y="38">高</text><text x="6" y="168">低</text></g>';
   out+=enemyLine(hp,"#6beac3",Math.max(...hp))+enemyLine(dmg,"#ffd38c",Math.max(...dmg));
@@ -417,7 +416,7 @@ function updateEnemy(){
   out+='<circle cx="'+ix+'" cy="'+(169-e.hp/Math.max(...hp)*140)+'" r="5" fill="#6beac3"/><circle cx="'+ix+'" cy="'+(169-e.dmg/Math.max(...dmg)*140)+'" r="5" fill="#ffd38c"/>';
   $("enemyChart").innerHTML=out;
 }
-["enemyType","wave","level","elite"].forEach(function(id){$(id).addEventListener("input",updateEnemy);$(id).addEventListener("change",updateEnemy);});
+["enemyType","wave","elite"].forEach(function(id){$(id).addEventListener("input",updateEnemy);$(id).addEventListener("change",updateEnemy);});
 updateStat();updateDamage();updateArmor();updateEnemy();
 })();
 </script>
