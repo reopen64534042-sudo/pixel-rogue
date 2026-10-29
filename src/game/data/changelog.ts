@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v69",
+    date: "2026-10-30",
+    title: "法师初始射程与双修前置",
+    items: [
+      "法师初始施法距离 260 → 150：第一波怪会先进入屏幕再被锁定，施法距离属性仍可继续成长。",
+      "双修改为需要「元素共振」前置；没有共振时不会在第一波直接刷出。",
+    ],
+  },
+  {
     version: "v68",
     date: "2026-10-30",
     title: "图鉴怪物属性与冻结表现优化",
