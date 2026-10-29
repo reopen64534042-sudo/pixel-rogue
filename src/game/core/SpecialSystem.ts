@@ -234,3 +234,16 @@ export function gainSpecialXp(this: GameCore, amount: number) {
   if (this.specialLevel >= SPECIAL_LEVELS.length) this.specialXp = 0;
   this.shake = Math.min(this.shake + 1, 3);
 }
+
+/** DEV：直接把强化箭设置到指定等级，并按等级重建升级（L4 起每级 1 条）。 */
+export function devSetSpecialLevel(this: GameCore, level: number) {
+  const target = Math.max(
+    1,
+    Math.min(SPECIAL_LEVELS.length, Math.floor(level) || 1),
+  );
+  this.specialLevel = target;
+  this.specialXp = 0;
+  const grants = Math.max(0, target - 3);
+  this.specialUpgrades = SPECIAL_UPGRADES.slice(0, grants).map((u) => u.id);
+  this.audio.beep(1046, 0.12, "triangle", 0.05, 200);
+}

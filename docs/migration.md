@@ -2492,3 +2492,70 @@ ctx.stroke();      // → strokePath()
   - 开始界面教程入口 → 选法师：3 个木桩、0/5；实际站定法阵命中 3 个后从 3/5 进到 4/5；跳过写 seen.mage=true 并正式开局。
   - 教学经验球真实生成并被磁吸拾取后进入 5/5。
 - 说明：入口永远可用；首次自动仅按职业各一次；教程不弹初始天赋，正式开局后照常。旧 `pixelrogue_tutorial_v1` 未知/损坏时视为未看。
+
+## D-91 法师构筑与星陨路线（v87）
+
+- 用户裁定（2026-10-30）：法师体系优化先做「构筑与星陨路线」；星陨死卡转为陨星收益；残域走「引力残域」；双修/三修不再依赖抽卡。
+- 改动：
+  1. `TalentSystem.rollPicks` 新增秘传保底：`双修`/`三修` 在 `canOffer` 为真且未出现在候选时，替换最后一个槽位（不额外消耗 `Math.random`）；刷新仍可放弃。
+  2. `MageSystem` 新增 `mageMeteorFall`（速咏 −30%）、`mageMeteorInterval`（连咏 −20%）、`mageMeteorRadius`（属性范围 × 广域符印 × 三连聚爆）、`mageDomainRadius`（属性范围 × 广域符印）、`mageDomainSlowFactor`（引力残域）。
+  3. `updateMeteorRoute` 的落点提前量、落地时间、间隔、陨星/残域半径全部改走上述函数。
+  4. `EnemySystem` 法师路径移速乘 `mageDomainSlowFactor`（射手路径不调用，保持逐位不变）。
+  5. `mageBalance.domainSlow = 0.25`、`domainStatusInterval = 1`；速咏/连咏/广域符印/元素残域的卡面动态文案在星陨路线下切换口径；元素残域的当前效果写明「引力残域：领域内敌人移速 −25%」，机制说明按当前持有元素特化为燃烧领域 / 霜冻领域 / 电场（伤害类型随元素）。
+  6. 元素残域每秒给领域内敌人补一次对应元素状态（火 +1 层灼烧 / 冰 +1 层凝冰 / 雷刷新麻痹），与 DoT tick 独立；只走 `applyElementStack`，不触发闪电链、反应与冻结音效。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓（74 modules）。按 2026-10-29 标准未运行 Vitest / Playwright。
+- 基线：法师满足前置后的三选一序列会变化；若测试断言法师抽卡序列/星陨半径/间隔，会过期，留待授权测试批次。
+- 环境：本机 Git Bash 的 PATH 无 node/npm，本次使用 `C:\Users\Administrator\.workbuddy\binaries\node\versions\24.22.1\node-v24.22.1-win-x64`（先 export PATH）。
+
+## D-92 新手教程节奏修复（v88）
+
+- 用户反馈（2026-10-30）：法师的新手教程中间几步一下就跳过去，没看清。
+- 原因：教程步骤按条件即时推进。法师开局自动施法，步骤 2「自动攻击命中」与步骤 3「站定法阵命中至少 2 个」都会瞬间达成；步骤 4 的教学经验球生成在 24px 外、磁吸范围 36px，生成即被吸走。三步几乎连跳。
+- 改动：
+  1. `GameCore` 新增 `tutorialStepReady`；`TutorialSystem.updateTutorial` 只判定条件，满足后 HUD 出现「下一步」按钮，由玩家点击 `advanceTutorial` 推进（不再自动跳步）。
+  2. 教学经验球改为在玩家身后 64px（磁吸范围外）生成，玩家需要走过去；步骤 4 文案同步为「走过去拾取」。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
+- 兼容：只影响教程模式；正式局不变。射手教程同样受 2.5s 最短停留（原先也可能被自动攻击瞬间推过步骤 2）。
+
+## D-93 C 面板一次性天赋文案精简（v89）
+
+- 用户反馈（2026-10-30）：C 面板一次性天赋显示「Lv.1 / 1」与「当前等级生效效果」，和机制说明重复。
+- 改动：`GameUI.renderTooltip` 仅对 `u.max > 1` 的卡显示等级行与「当前等级生效效果」区块；一次性天赋只保留机制说明（`dyn`/`d`）。`cur` 数据保留，置换结果等其它路径继续使用。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
+
+## D-94 波末宝箱自动飞行修复（v90）
+
+- 用户反馈（2026-10-30，作弊服）：有时宝箱不在每波结束后自动飞向角色，属性选择界面迟迟不开。
+- 原因：v79 的「满血不吸附」同时作用于宝箱波末自动飞行（`b.auto && p.hp < p.maxhp`）；收球阶段 `WaveSystem` 要等 `gems.length === 0 && boxes.length === 0` 才 `enterRest()` / 开面板，满血时宝箱留在原地，流程被卡住。
+- 改动：`ProgressionSystem` 的宝箱波末自动飞行去掉 `p.hp < p.maxhp` 条件；血瓶的满血不吸附保留（不阻塞面板）。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
+- 口径：v79 的「宝箱满血不吸附」撤销——波末清场属于流程收尾，优先保证属性面板能开；满血拾取仍回 0 血、属性照常。
+
+## D-95 射手教程修复与强化箭教学（v91）
+
+- 用户反馈（2026-10-30，作弊服）：射手教程的木桩会被击退越推越远；教程没有说明射手最核心的「攻击叠条解锁新形态」。
+- 原因：
+  1. 木桩 `speed = 0` 只停 AI 移动；子弹命中写入的 `kx/ky` 仍由 `applyKnockback` 每帧位移。
+  2. 射手教程第 3 步只讲「保持距离」，未提强化箭、黄条与升级。
+- 改动：
+  1. `Enemy.noKnock?`（可选字段，仅教程木桩设为 true）；`applyKnockback` 遇 noKnock 清零 `kx/ky`。
+  2. `GameCore.tutorialSpecialHits` 计数；`ProjectileSystem` 在 tutorialMode 下每次强化箭命中 +1；进入第 3 步时清零。
+  3. 射手第 3 步条件 = 目标保持在 60% 射程外 + 命中 3 发强化箭；文案改为「强化箭：每 3 发自动变成强化箭；命中填充角色下方黄条；升级解锁导弹 / 激光 / 追踪等新形态」。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
+- 说明：`noKnock` 为可选字段，普通敌人不设置，parity 实体形状不变。
+
+## D-96 作弊面板清空天赋（v92）
+
+- 用户需求（2026-10-30）：作弊服增加「清空身上所有天赋」。
+- 实现：`GameCore.devClearTalents()` 清空 `player.picks/upCounts`，并重置依赖天赋的运行态（护盾/狂热/冷却、冲刺窗口、法阵读条、充能/陨星/残域/护盾/残影、元素补选待办），随后 `recompute()` 重算属性；保留属性加点、等级/经验、强化箭等级与升级、血包永久成长。
+- `DevPanel` 新增「清空天赋」按钮（仅 `import.meta.env.DEV` 实例化），生产包不暴露。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
+- 说明：C 面板重新打开即可看到清空后的列表；若在选卡面板打开时清空，当前面板不自动关闭（DEV 工具，保持简单）。
+
+## D-97 教程首步响应与强化箭阶段调试（v93）
+
+- 用户反馈（2026-10-30，作弊服）：教程第一步按 WASD 后半天不出现「下一步」；作弊服需要能把强化箭回退到指定阶段。
+- 教程：步骤 0 原先只判定与起点距离 ≥40px（基础移速下约 0.6s），短按不明显。新增 `tutorialMoved`：`PlayerSystem` 检测到任意移动输入即置位，步骤 0 条件改为 `tutorialMoved || 距离 ≥40`。
+- 作弊服：`SpecialSystem.devSetSpecialLevel(level)` 设置 `specialLevel`（1–12）、`specialXp = 0`，并按等级重建升级（L4 起每级 1 条，确定性取 `SPECIAL_UPGRADES` 前 N 条）；DevPanel 新增「强化箭」下拉 + 应用按钮。
+- 保留：属性、等级、血包成长；强化箭升级按阶段重建（非随机）。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。

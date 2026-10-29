@@ -110,7 +110,10 @@ export function updateProjectiles(this: GameCore, dt: number) {
             : {}),
           ...(partialTrue ? { trueFraction: PARTIAL_TRUE_FRACTION } : {}),
         });
-        if (special) this.gainSpecialXp(1);
+        if (special) {
+          this.gainSpecialXp(1);
+          if (this.tutorialMode) this.tutorialSpecialHits += 1;
+        }
         b.hitList.push(e);
         if (b.pierce > 0) {
           b.pierce--;

@@ -244,6 +244,7 @@ function applyElementStack(
   core: GameCore,
   e: Enemy,
   element: MageElement,
+  silent = false,
 ): void {
   if (element === "fire") {
     // 灼烧：每层独立计时（§4.1）
@@ -262,12 +263,27 @@ function applyElementStack(
       e.elemFrozenT = MB.frostFreezeDuration;
       // 不再刷「冻结」飘字：元素共振会一次冻住一片怪，满屏文字比伤害数字还乱。
       // 状态改由敌人身上的冰壳表现（rendering/draw.ts 的 drawFrozenOverlay）。
-      core.audio.beep(880, 0.1, "sine", 0.04, 300);
+      if (!silent) core.audio.beep(880, 0.1, "sine", 0.04, 300);
     }
     return;
   }
   // 闪电：麻痹（可刷新，单值计时）
   e.elemParaT = MB.paraDuration;
+}
+
+/**
+ * 元素残域每秒给领域内敌人补一次元素状态。
+ *
+ * 只走上状态，不走 `applyMageHit`：残域不触发闪电链、不触发反应，
+ * 也不刷冻结音效（一次覆盖多个敌人时音效会叠成噪音）。
+ */
+export function applyDomainElement(
+  core: GameCore,
+  e: Enemy,
+  type: DamageTypeId,
+): void {
+  if (type === "fire" || type === "frost" || type === "lightning")
+    applyElementStack(core, e, type, true);
 }
 
 /** 共振对本次连锁的加成（雷共振才有）。 */

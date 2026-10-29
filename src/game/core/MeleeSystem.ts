@@ -122,6 +122,11 @@ export function updateMelee(this: GameCore, dt: number) {
 
 /** 击退位移与衰减；由 EnemySystem 在每个敌人每帧调用 */
 export function applyKnockback(e: Enemy, dt: number) {
+  if (e.noKnock) {
+    e.kx = 0;
+    e.ky = 0;
+    return;
+  }
   const kx = e.kx ?? 0,
     ky = e.ky ?? 0;
   if (!kx && !ky) return;

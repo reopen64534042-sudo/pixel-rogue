@@ -1,6 +1,7 @@
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { WORLD, clamp } from "../data/constants";
 import {
+  applyDomainElement,
   applyDotDamage,
   applyMageHit,
   mageDamageType,
@@ -80,6 +81,49 @@ export function mageCircleRadius(core: GameCore, isCharge: boolean): number {
   if ((p.upCounts["广域符印"] || 0) > 0) r *= MB.wideSealAreaMul;
   if (isCharge && (p.upCounts["三连聚爆"] || 0) > 0) r *= MB.burstRadiusMul;
   return r;
+}
+
+/** 陨星落地时间（速咏 −30%，与施法前摇共用同一系数）。 */
+export function mageMeteorFall(core: GameCore): number {
+  const mul =
+    (core.player.upCounts["速咏"] || 0) > 0 ? MB.quickCastWindupMul : 1;
+  return MB.meteorFall * mul;
+}
+
+/** 陨星间隔（连咏 −20%，与施法间隔共用同一系数）。 */
+export function mageMeteorInterval(core: GameCore): number {
+  const mul =
+    (core.player.upCounts["连咏"] || 0) > 0
+      ? MB.continuousCastIntervalMul
+      : 1;
+  return MB.meteorInterval * mul;
+}
+
+/** 陨星半径：属性范围、广域符印（+20%）、满充能三连聚爆（+50%）。 */
+export function mageMeteorRadius(core: GameCore, isCharge: boolean): number {
+  const p = core.player;
+  let r = MB.meteorRadius * p.area;
+  if ((p.upCounts["广域符印"] || 0) > 0) r *= MB.wideSealAreaMul;
+  if (isCharge && (p.upCounts["三连聚爆"] || 0) > 0) r *= MB.burstRadiusMul;
+  return r;
+}
+
+/** 残域半径：与陨星同样吃属性范围与广域符印。 */
+export function mageDomainRadius(core: GameCore): number {
+  const p = core.player;
+  let r = MB.domainRadius * p.area;
+  if ((p.upCounts["广域符印"] || 0) > 0) r *= MB.wideSealAreaMul;
+  return r;
+}
+
+/** 引力残域：敌人在任一残域内时的移速倍率（1 = 不受影响）。 */
+export function mageDomainSlowFactor(core: GameCore, e: Enemy): number {
+  for (const d of core.mageDomains) {
+    const dx = e.x - d.x;
+    const dy = e.y - d.y;
+    if (dx * dx + dy * dy <= d.R * d.R) return 1 - MB.domainSlow;
+  }
+  return 1;
 }
 
 /** 法阵伤害（元素蓄能 / 三连聚爆 只作用于满充能的那一发；站定 ×1.5）。 */
@@ -418,15 +462,14 @@ function updateMeteorRoute(core: GameCore, dt: number) {
   const p = core.player;
   core.mageMeteorT -= dt;
   if (core.mageMeteorT <= 0) {
-    core.mageMeteorT = MB.meteorInterval;
+    core.mageMeteorT = mageMeteorInterval(core);
     const multi = (p.upCounts["多重陨星"] || 0) > 0;
     const count = multi ? MB.meteorCount : 1;
     // 密度按本波陨星的实际半径统计；满充能的三连聚爆半径也要提前算入，
     // 否则统计用的是基础半径、实际落点却更大，密集处会选偏。
     const isCharge = core.mageCharge + 1 >= MB.chargeFull;
-    let R = MB.meteorRadius;
-    if (isCharge && (p.upCounts["三连聚爆"] || 0) > 0)
-      R *= MB.burstRadiusMul;
+    const R = mageMeteorRadius(core, isCharge);
+    const fall = mageMeteorFall(core);
     const points = findDensestPoints(core, p.attackRange, count, R);
     if (points.length) {
       const type = mageDamageType(p);
@@ -455,12 +498,12 @@ function updateMeteorRoute(core: GameCore, dt: number) {
       ) => {
         // 落点提前量：按敌人**真实速度**外推落地时长。旧实现假设敌人朝玩家
         // 移动，射手后撤时落点会落在玩家与敌人中间，永远打空。
-        const leadX = (base.e.vx ?? 0) * MB.meteorFall;
-        const leadY = (base.e.vy ?? 0) * MB.meteorFall;
+        const leadX = (base.e.vx ?? 0) * fall;
+        const leadY = (base.e.vy ?? 0) * fall;
         core.mageMeteors.push({
           x: clamp(base.x + ox + leadX, 16, WORLD.w - 16),
           y: clamp(base.y + oy + leadY, 16, WORLD.h - 16),
-          t: MB.meteorFall,
+          t: fall,
           R,
           element: type,
           dmg,
@@ -527,9 +570,10 @@ function updateMeteorRoute(core: GameCore, dt: number) {
       core.mageDomains.push({
         x: m.x,
         y: m.y,
-        R: MB.domainRadius,
+        R: mageDomainRadius(core),
         t: MB.domainDuration,
         tick: MB.domainTick,
+        statusT: MB.domainStatusInterval,
         element: m.element,
       });
     core.shake = Math.min(core.shake + 3, 6);
@@ -547,15 +591,27 @@ function updateMeteorRoute(core: GameCore, dt: number) {
       continue;
     }
     d.tick -= dt;
-    if (d.tick > 0) continue;
-    d.tick += MB.domainTick;
+    d.statusT -= dt;
+    const dotDue = d.tick <= 0;
+    const statusDue = d.statusT <= 0;
+    if (!dotDue && !statusDue) continue;
+    if (dotDue) d.tick += MB.domainTick;
+    if (statusDue) d.statusT += MB.domainStatusInterval;
     for (const e of core.enemies) {
       if (e.dead) continue;
       const dx = e.x - d.x;
       const dy = e.y - d.y;
       if (dx * dx + dy * dy > d.R * d.R) continue;
-      applyDotDamage(core, e, dps * MB.domainTick, d.element);
-      if (e.hp <= 0) core.killEnemy(e);
+      if (dotDue) {
+        applyDotDamage(core, e, dps * MB.domainTick, d.element);
+        if (e.hp <= 0) {
+          core.killEnemy(e);
+          continue;
+        }
+      }
+      // 引力残域：每秒给领域内敌人补一次对应元素状态（灼烧/凝冰/麻痹），
+      // 不触发闪电链与反应；与 DoT tick 独立。
+      if (statusDue) applyDomainElement(core, e, d.element);
     }
   }
 }

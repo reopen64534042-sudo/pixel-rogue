@@ -81,13 +81,14 @@ export function updateProgression(this: GameCore, dt: number) {
     }
   }
   // 宝箱：平时留在原地等玩家踩上去；波次结束（auto）后像经验球一样飞过来。
-  // v79：满血时取消自动飞行（吸附），玩家仍可走到箱子上手动拾取。
+  // 波末自动飞行**不看血量**：收球阶段要等 boxes 清空才开属性面板，
+  // 满血不飞会让面板一直卡住（v90 修复）。「满血不吸附」只保留给血瓶。
   for (let i = this.boxes.length - 1; i >= 0; i--) {
     const b = this.boxes[i];
     const dx = p.x - b.x,
       dy = p.y - b.y;
     const d = Math.hypot(dx, dy);
-    if (b.auto && p.hp < p.maxhp && d > 0.01) {
+    if (b.auto && d > 0.01) {
       b.x += (dx / d) * 300 * dt;
       b.y += (dy / d) * 300 * dt;
     }
