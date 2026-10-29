@@ -84,24 +84,40 @@
   <!-- 开始界面 -->
   <div id="ov-start" class="overlay">
     <h1>像素秘境</h1>
-    <p>动作割草肉鸽 · 活下去，变强，再活下去</p>
+    <p>活下去，变强，再活下去</p>
     <p class="version" id="start-version">Pixel Rogue · 试玩版</p>
-    <div class="keys">
-      <span class="key">WASD / 方向键 移动</span>
-      <span class="key">攻击全自动</span>
-      <span class="key">空格 冲刺</span>
-      <span class="key">C 属性面板</span>
-      <span class="key">P 暂停</span>
-      <span class="key">M 静音</span>
-    </div>
-    <p style="font-size:1.3vmin">敌潮一波接一波，波与波之间有休整时间 · 地图四周有边界</p>
     <!-- S3 法师池：开局职业选择。门控决定玩法——射手靠距离，法师靠时间。 -->
     <div class="prof-select">
       <button class="btn prof-btn" id="btn-start" disabled aria-busy="true">射 手<small>远程 · 距离门控</small></button>
       <button class="btn prof-btn" id="btn-prof-mage" disabled aria-busy="true">法 师<small>范围 · 站定增伤</small></button>
     </div>
-    <button class="btn" id="btn-changelog" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">📜 更新日志</button>
-    <button class="btn" id="btn-codex" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">图 鉴</button>
+    <div class="start-actions">
+      <button class="btn" id="btn-tutorial" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">新 手 教 程</button>
+      <button class="btn" id="btn-changelog" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">📜 更新日志</button>
+      <button class="btn" id="btn-codex" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">图 鉴</button>
+    </div>
+  </div>
+
+  <!-- 新手教程入口：选择练习职业（v83） -->
+  <div id="ov-tutorial-pick" class="overlay hidden">
+    <h2>新 手 教 程</h2>
+    <p class="settings-hint">选择要练习的职业；练习场里可以随时跳过。</p>
+    <div class="prof-select">
+      <button class="btn prof-btn" id="btn-tutorial-shooter">射 手<small>保持距离</small></button>
+      <button class="btn prof-btn" id="btn-tutorial-mage">法 师<small>站定施法</small></button>
+    </div>
+    <button class="btn" id="btn-tutorial-pick-back">返 回</button>
+  </div>
+
+  <!-- 新手教程 HUD（v83：练习场内的分步指引，不挡操作） -->
+  <div id="tutorial-hud" class="hidden">
+    <div class="tutorial-step" id="tutorial-step"></div>
+    <div class="tutorial-title" id="tutorial-title"></div>
+    <div class="tutorial-body" id="tutorial-body"></div>
+    <div class="tutorial-hud-actions">
+      <button class="btn" id="btn-tutorial-skip">跳过教程</button>
+      <button class="btn btn-primary hidden" id="btn-tutorial-start">开始正式战斗</button>
+    </div>
   </div>
 
   <div id="ov-changelog" class="overlay hidden">
@@ -164,14 +180,28 @@
     <p id="pause-version" class="pause-version"></p>
   </div>
 
-  <!-- 设置（v79：键位） -->
+  <!-- 设置菜单（v81：子窗口结构，后续设置项继续加在这里） -->
   <div id="ov-settings" class="overlay hidden">
     <h2>设 置</h2>
+    <div class="settings-menu">
+      <button class="btn settings-menu-btn" id="btn-settings-keys">
+        键 位
+        <small>移动 / 冲刺 / 暂停 / 角色属性</small>
+      </button>
+    </div>
+    <div class="settings-actions">
+      <button class="btn" id="btn-settings-close">返 回</button>
+    </div>
+  </div>
+
+  <!-- 设置子窗口：键位 -->
+  <div id="ov-keybinds" class="overlay hidden">
+    <h2>键 位 设 置</h2>
     <p class="settings-hint" id="keybind-hint"></p>
     <div id="keybind-list" class="keybind-list"></div>
     <div class="settings-actions">
       <button class="btn" id="btn-keyreset">恢 复 默 认</button>
-      <button class="btn" id="btn-settings-close">返 回</button>
+      <button class="btn" id="btn-keybinds-back">返 回 设 置</button>
     </div>
   </div>
 

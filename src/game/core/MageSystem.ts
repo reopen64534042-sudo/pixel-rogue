@@ -235,6 +235,13 @@ function detonate(core: GameCore, steady: boolean) {
     dmg,
     reactionBase,
   );
+  if (
+    core.tutorialMode &&
+    core.tutorialProf === "mage" &&
+    steady &&
+    hits >= 2
+  )
+    core.tutorialProfDone = true;
   // 回响：施法命中后获得少量护盾（可叠加，总量有上限）
   if (hits > 0 && (p.upCounts["回响"] || 0) > 0) {
     grantMageShield(

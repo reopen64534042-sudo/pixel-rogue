@@ -56,6 +56,7 @@ export function updatePlayer(this: GameCore, dt: number) {
     p.dashT = 0.16;
     p.dashCharges--;
     if (p.dashCharges === dchMax - 1 && p.dashRe <= 0) p.dashRe = p.dashMax;
+    if (this.tutorialMode) this.tutorialDashed = true;
     // S3 法师：冲刺中断施法（设计：施法前摇可被冲刺打断）。
     // 只打断「抬手」段；收束段（法阵已经成形）不可打断。
     this.interruptMageCast();

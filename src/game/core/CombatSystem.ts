@@ -56,6 +56,7 @@ export function hurtEnemy(
 ): DamageResult | undefined {
   if (e.dead || this.state !== "play") return undefined;
   const p = this.player;
+  if (this.tutorialMode) this.tutorialHit = true;
   // §3.4 步骤 3：暴击判定留在编排层，掷骰条件与次数与旧路径一致。
   // PR #4 评审 P2：暴击率与倍率同源——弹丸命中优先读发射时快照的 critChance，
   // 其余路径读当前玩家；不新增随机调用、不改变命中执行顺序

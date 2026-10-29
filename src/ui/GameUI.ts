@@ -25,6 +25,7 @@ import {
   type KeyAction,
 } from "../game/data/keybindings";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
+import { markTutorialSeen, tutorialSeen } from "../game/data/tutorialState";
 import {
   SPECIAL_LEVELS,
   SPECIAL_UPGRADES,
@@ -72,10 +73,14 @@ export class GameUI {
   private restartTimer: number | undefined;
   /** 低血量屏幕边缘提示层（index.html 的静态节点） */
   private lowHpEl: HTMLElement | null = null;
-  /** 设置面板与改键捕获态（v79） */
+  /** 设置菜单 / 键位子窗口 / 改键捕获态（v79，v81 拆子窗口） */
   private settingsOpen = false;
+  private keybindsOpen = false;
   private captureAction: KeyAction | null = null;
   private settingsHint = "";
+  private tutorialPickOpen = false;
+  private tutorialHudEl: HTMLElement | null = null;
+  private tutorialSig = "";
   constructor(public core: GameCore) {
     this.codex = new CodexUI(core);
     core.keybinds = loadKeyBindings();
@@ -88,9 +93,15 @@ export class GameUI {
           "ov-pause",
           "ov-stats",
           "ov-settings",
+          "ov-keybinds",
+          "ov-tutorial-pick",
         ].forEach(hide);
         this.settingsOpen = false;
+        this.keybindsOpen = false;
         this.captureAction = null;
+        this.tutorialPickOpen = false;
+        this.tutorialHudEl?.classList.add("hidden");
+        this.tutorialSig = "";
         // S2 修订（用户反馈）：开局送 1 次天赋 → 选完再进入战斗。
         // 面板由**UI 层**弹出而不是 GameCore.startGame：core 里开面板会走
         // rollPicks，消耗 Math.random 打乱确定性序列，所有基于种子随机的
@@ -142,11 +153,18 @@ export class GameUI {
     // #btn-start 保留在「射手」按钮上（id 与位置都不动，e2e 仍可直接点它）；
     // 法师走 #btn-prof-mage。职业必须在 startGame 里先定，
     // 否则 openLevelPanel 会按上一个职业抽第一批卡。
-    element("btn-start").onclick = () => this.core.startGame("shooter");
-    element("btn-prof-mage").onclick = () => this.core.startGame("mage");
+    element("btn-start").onclick = () => this.startProfession("shooter");
+    element("btn-prof-mage").onclick = () => this.startProfession("mage");
     // Issue #55：开始界面版本号 + 更新日志面板
     element("start-version").textContent =
       `Pixel Rogue · ${CURRENT_VERSION} · 试玩版`;
+    element("btn-tutorial").onclick = () => this.openTutorialPick();
+    element("btn-tutorial-shooter").onclick = () =>
+      this.startTutorialFor("shooter");
+    element("btn-tutorial-mage").onclick = () => this.startTutorialFor("mage");
+    element("btn-tutorial-pick-back").onclick = () => this.closeTutorialPick();
+    element("btn-tutorial-skip").onclick = () => this.skipTutorial();
+    element("btn-tutorial-start").onclick = () => this.finishTutorialRun();
     element("btn-changelog").onclick = () => {
       element("changelog-list").innerHTML = CHANGELOG.map(
         (e) =>
@@ -164,6 +182,7 @@ export class GameUI {
     // Issue #100：触屏没有 C 键，属性面板从暂停界面进入
     element("btn-pause-stats").onclick = () => this.core.openStatsFromPause();
     element("btn-pause-settings").onclick = () => this.openSettings();
+    element("btn-settings-keys").onclick = () => this.openKeybinds();
     element("btn-keyreset").onclick = () => {
       this.core.keybinds = { ...DEFAULT_KEYBINDS };
       saveKeyBindings(this.core.keybinds);
@@ -171,6 +190,7 @@ export class GameUI {
       this.settingsHint = "已恢复默认键位";
       this.renderKeybindings();
     };
+    element("btn-keybinds-back").onclick = () => this.closeKeybinds();
     element("btn-settings-close").onclick = () => this.closeSettings();
     element("btn-restart").onclick = () => {
       if (!this.restartArmed) {
@@ -242,9 +262,22 @@ export class GameUI {
     element("btn-prof-mage").removeAttribute("aria-busy");
   }
   reset() {
-    ["bottom-bar", "bp-level", "bp-attr", "bp-rest", "bp-swap", "ov-settings"].forEach(hide);
+    [
+      "bottom-bar",
+      "bp-level",
+      "bp-attr",
+      "bp-rest",
+      "bp-swap",
+      "ov-settings",
+      "ov-keybinds",
+      "ov-tutorial-pick",
+    ].forEach(hide);
     this.settingsOpen = false;
+    this.keybindsOpen = false;
     this.captureAction = null;
+    this.tutorialPickOpen = false;
+    this.tutorialHudEl?.classList.add("hidden");
+    this.tutorialSig = "";
     if (this.lowHpEl) this.lowHpEl.style.opacity = "0";
   }
   /**
@@ -991,20 +1024,149 @@ export class GameUI {
     mb.style.opacity = mb.disabled ? "0.4" : "1";
   }
 
-  /** 打开键位设置（从暂停界面进入）。 */
+  /** 首次选职业自动进入教程；已看过的职业直接正式开局。 */
+  private startProfession(prof: "shooter" | "mage"): void {
+    if (tutorialSeen(prof)) this.core.startGame(prof);
+    else this.core.startTutorial(prof);
+  }
+
+  /** 开始界面的教程入口：选择要练习的职业，可重看。 */
+  private openTutorialPick(): void {
+    if (this.core.state !== "start") return;
+    this.tutorialPickOpen = true;
+    show("ov-tutorial-pick");
+  }
+
+  private closeTutorialPick(): void {
+    this.tutorialPickOpen = false;
+    hide("ov-tutorial-pick");
+  }
+
+  private startTutorialFor(prof: "shooter" | "mage"): void {
+    this.closeTutorialPick();
+    this.core.startTutorial(prof);
+  }
+
+  /** 教程内跳过 / 完成后开始正式战斗；两者都记该职业已看。 */
+  private skipTutorial(): void {
+    this.completeTutorial();
+  }
+
+  private finishTutorialRun(): void {
+    this.completeTutorial();
+  }
+
+  private completeTutorial(): void {
+    if (!this.core.tutorialMode) return;
+    const prof = this.core.tutorialProf ?? this.core.prof;
+    if (prof !== "common") markTutorialSeen(prof);
+    this.tutorialSig = "";
+    this.core.finishTutorial();
+  }
+
+  /** 每帧同步练习场顶部的教程 HUD（不挡操作）。 */
+  syncTutorial(): void {
+    const hud =
+      this.tutorialHudEl ??
+      (this.tutorialHudEl = document.getElementById("tutorial-hud"));
+    if (!hud) return;
+    if (!this.core.tutorialMode) {
+      if (!hud.classList.contains("hidden")) hud.classList.add("hidden");
+      this.tutorialSig = "";
+      return;
+    }
+    const prof = this.core.tutorialProf ?? this.core.prof;
+    const step = this.core.tutorialStep;
+    const kb = this.core.keybinds;
+    const sig = `${prof}:${step}:${kb.up}:${kb.down}:${kb.left}:${kb.right}:${kb.dash}`;
+    if (sig === this.tutorialSig) return;
+    this.tutorialSig = sig;
+    hud.classList.remove("hidden");
+    const content = this.tutorialContent(prof, step);
+    element("tutorial-step").textContent =
+      step >= 5 ? "新手教程" : `新手教程 · ${step + 1} / 5`;
+    element("tutorial-title").textContent = content.title;
+    element("tutorial-body").textContent = content.body;
+    element("btn-tutorial-skip").classList.toggle("hidden", step >= 5);
+    element("btn-tutorial-start").classList.toggle("hidden", step < 5);
+  }
+
+  private tutorialContent(
+    prof: string,
+    step: number,
+  ): { title: string; body: string } {
+    const kb = this.core.keybinds;
+    switch (step) {
+      case 0:
+        return {
+          title: "移动",
+          body: `用 ${keyLabel(kb.up)} / ${keyLabel(kb.left)} / ${keyLabel(kb.down)} / ${keyLabel(kb.right)} 移动（方向键始终可用）。`,
+        };
+      case 1:
+        return {
+          title: "冲刺",
+          body: `按 ${keyLabel(kb.dash)} 冲刺。冲刺期间短暂无敌，被围住时用来脱身。`,
+        };
+      case 2:
+        return {
+          title: "自动攻击",
+          body: "靠近敌人就会自动出手，不需要按键。",
+        };
+      case 3:
+        return prof === "mage"
+          ? {
+              title: "站定施法",
+              body: "法阵会自动落在怪最密集处；读条最后 40% 停下，伤害 ×1.5。试着站定命中至少 2 个目标。",
+            }
+          : {
+              title: "保持距离",
+              body: "离敌人越远越安全；试着在远距离命中一次。被贴身时用冲刺拉开。",
+            };
+      case 4:
+        return {
+          title: "经验球",
+          body: "清完怪后捡起经验球。升级和波末会给你属性 / 天赋选择。",
+        };
+      default:
+        return {
+          title: "教程完成",
+          body: "准备好了，开始正式战斗。",
+        };
+    }
+  }
+
+  /** 打开设置菜单（从暂停界面进入）；具体设置项走子窗口。 */
   private openSettings(): void {
     if (this.core.state !== "pause") return;
     this.settingsOpen = true;
+    this.keybindsOpen = false;
     this.captureAction = null;
-    this.settingsHint = "点击按键后按下新键 · Esc 取消 · 方向键与 Esc 始终可用";
-    this.renderKeybindings();
+    hide("ov-keybinds");
     show("ov-settings");
   }
 
   private closeSettings(): void {
     this.settingsOpen = false;
+    this.keybindsOpen = false;
     this.captureAction = null;
+    hide("ov-keybinds");
     hide("ov-settings");
+  }
+
+  /** 设置子窗口：键位。 */
+  private openKeybinds(): void {
+    if (!this.settingsOpen) return;
+    this.keybindsOpen = true;
+    this.captureAction = null;
+    this.settingsHint = "点击按键后按下新键 · Esc 取消 · 方向键与 Esc 始终可用";
+    this.renderKeybindings();
+    show("ov-keybinds");
+  }
+
+  private closeKeybinds(): void {
+    this.keybindsOpen = false;
+    this.captureAction = null;
+    hide("ov-keybinds");
   }
 
   /** 重建设置列表；捕获中的动作显示「按下新键...」。 */
@@ -1042,7 +1204,8 @@ export class GameUI {
    * 返回 true 表示本事件已被设置面板消费，游戏不再处理。
    */
   handleSettingsKey(event: KeyboardEvent): boolean {
-    if (!this.settingsOpen && !this.captureAction) return false;
+    if (!this.settingsOpen && !this.keybindsOpen && !this.captureAction)
+      return false;
     if (this.captureAction) {
       event.preventDefault();
       event.stopPropagation();
@@ -1082,14 +1245,25 @@ export class GameUI {
       this.renderKeybindings();
       return true;
     }
-    // 设置面板打开但未捕获：吞掉所有游戏键，只允许 Esc 返回暂停。
+    // 设置/键位子窗口打开但未捕获：吞掉所有游戏键；Esc 逐层返回。
     event.preventDefault();
-    if (event.key === "Escape") this.closeSettings();
+    if (event.key === "Escape") {
+      if (this.keybindsOpen) this.closeKeybinds();
+      else this.closeSettings();
+    }
     return true;
   }
 
   /** 关闭最上层覆盖面板；返回是否关闭了某层（键位路由据此决定是否继续处理）。 */
   dismissOverlay(): boolean {
+    if (this.tutorialPickOpen) {
+      this.closeTutorialPick();
+      return true;
+    }
+    if (this.keybindsOpen) {
+      this.closeKeybinds();
+      return true;
+    }
     if (this.settingsOpen) {
       this.closeSettings();
       return true;
@@ -1103,7 +1277,12 @@ export class GameUI {
 
   /** 是否有覆盖面板打开：用于屏蔽 C 键等战斗内快捷键。 */
   hasOverlay(): boolean {
-    return this.codex.isOpen || this.settingsOpen;
+    return (
+      this.codex.isOpen ||
+      this.settingsOpen ||
+      this.keybindsOpen ||
+      this.tutorialPickOpen
+    );
   }
 
   private renderPause(): void {
@@ -1128,9 +1307,18 @@ export class GameUI {
     this.core.state = "start";
     this.core.view.reset();
     if (this.settingsOpen) this.closeSettings();
-    ["ov-pause", "ov-over", "ov-stats", "ov-changelog", "ov-settings"].forEach(
-      hide,
-    );
+    [
+      "ov-pause",
+      "ov-over",
+      "ov-stats",
+      "ov-changelog",
+      "ov-settings",
+      "ov-keybinds",
+      "ov-tutorial-pick",
+    ].forEach(hide);
+    this.tutorialPickOpen = false;
+    this.tutorialHudEl?.classList.add("hidden");
+    this.tutorialSig = "";
     show("ov-start");
     for (const id of ["btn-start", "btn-prof-mage"]) {
       const button = element(id) as HTMLButtonElement;
