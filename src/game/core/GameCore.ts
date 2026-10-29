@@ -35,6 +35,7 @@ import {
   canOffer,
   chooseSlot,
   learnTalent,
+  legacyAvailTalents,
   openBoxPanel,
   openLevelPanel,
   pickTier,
@@ -62,6 +63,7 @@ import type {
   Particle,
   Player,
   Point,
+  Profession,
   Slash,
   Slot,
   WavePhase,
@@ -79,6 +81,47 @@ export class GameCore {
   boxes: Box[] = [];
   /** Issue #45：焦土燃烧地带 */
   burnZones: { x: number; y: number; R: number; t: number }[] = [];
+  /**
+   * S2「贯穿轨迹」：子弹路径上留下的能量线。
+   * 每个 zone 只对一个敌人结算一次（`hit` 记录），存活 0.6 秒。
+   */
+  trailZones: {
+    x: number;
+    y: number;
+    R: number;
+    t: number;
+    dmg: number;
+    hit: Enemy[];
+  }[] = [];
+  /** S2「疾行」：冲刺结束后的移速加成剩余时间（秒）。 */
+  dashBoostT = 0;
+  /**
+   * S2 射手「生存」槽的闪避窗口状态。
+   *
+   * 都放在 GameCore 而不是 Player：它们是**计时/一次性标记**，不是属性。
+   * 放进 Player 会被 `recompute` 的 `Object.assign(statBase())` 抹掉，
+   * 或者被迫进 RuntimeStateProtection 白名单——两者都会让「闪避后下一击」
+   * 这类一次性语义在重算时产生歧义。
+   */
+  /** 「冷读」：闪避后的一次性必暴，命中即消费。 */
+  dodgeNextCrit = false;
+  /** 「余韵」：闪避后的一次性伤害倍率，用掉即重置为 1。 */
+  dodgeNextDmg = 1;
+  /** 「赌命」：闪避后的全必暴窗口剩余秒数（2s；生命 <30% 时为 4s）。 */
+  dodgeProcT = 0;
+  /** 「滞空」：闪避后的移速加成剩余秒数。 */
+  dodgeBoostT = 0;
+  /** S2「惊弓」：接触弹开的冷却剩余秒数。 */
+  contactKnockCd = 0;
+  /** S2「逆矢」：近身反击的冷却剩余秒数。 */
+  counterCd = 0;
+  /**
+   * S2：本波是否已经发过节点天赋。
+   *
+   * 天赋改由「每 4 波 + 终局」的**节点精英**发放，一局 8 次。用每波一个开关
+   * 保证同一波只发一次（该波有多只精英时，只有第一只算节点）。
+   */
+  waveTalentGiven = false;
   /** Issue #71：剩余宝箱点数转为经验 + 血包（无强化项时的兜底） */
   drainBoxPicks() {
     while (this.boxPicks > 0) {
@@ -111,6 +154,14 @@ export class GameCore {
    * 空数组时属性零贡献，行为与改动前完全一致。
    */
   attributePicks: AttributePoint[] = [];
+  /**
+   * S2：当前职业池。
+   *
+   * S2 只实现射手，因此暂时固定为 `"shooter"`（不考虑开局选择——S3 才有三职业，
+   * 现在加入口会让玩家选到没有池子的职业）。`canOffer` 用它过滤职业卡，
+   * 职业被动通过 `professionModifiers(prof)` 并入属性投影。
+   */
+  prof: Profession = "shooter";
   /**
    * S1：本波剩余的可选次数（波次发放，波末消费）。为 0 时属性面板不出现。
    * 不进 parity 快照白名单：它只驱动面板流程，不参与任何数值计算。
@@ -214,6 +265,7 @@ export class GameCore {
   tierWeights = tierWeights.bind(this);
   pickTier = pickTier.bind(this);
   availTalents = availTalents.bind(this);
+  legacyAvailTalents = legacyAvailTalents.bind(this);
   canOffer = canOffer.bind(this);
   recompute = recompute.bind(this);
   rollPicks = rollPicks.bind(this);
@@ -267,6 +319,16 @@ export class GameCore {
     this.potions = [];
     this.boxes = [];
     this.burnZones = [];
+    this.trailZones = [];
+    this.dashBoostT = 0;
+    this.dodgeNextCrit = false;
+    this.dodgeNextDmg = 1;
+    this.dodgeProcT = 0;
+    this.dodgeBoostT = 0;
+    this.contactKnockCd = 0;
+    this.counterCd = 0;
+    // S2：精英天赋发放（每波一次）
+    this.waveTalentGiven = false;
     this.parts = [];
     this.texts = [];
     this.meteors = [];
@@ -281,6 +343,8 @@ export class GameCore {
     this.shake = 0;
     this.hurtFlash = 0;
     this.pendingLevels = 0;
+    // S2：职业池固定射手（S3 才有开局选择）
+    this.prof = "shooter";
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
     this.attrPicks = attrPicksPerWave(1);

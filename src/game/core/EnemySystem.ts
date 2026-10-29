@@ -1,6 +1,8 @@
 import { WORLD, clamp } from "../data/constants";
 import { enemyWeight, ETYPES } from "../data/enemies";
-import { getEnemyCombatStats } from "./CombatStats";
+import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
+import { professionPierce } from "./AttributeSources";
+import { boltDamage } from "./DamageMath";
 import { resolveEnemyAttackBonuses, resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
@@ -66,6 +68,10 @@ export function spawnEnemy(
     burnT: 0,
     burnDps: 0,
     burnStacks: 0,
+    // S2「猎杀标记」：标记是敌人的属性，不是玩家的——同一目标才累计
+    markHits: 0,
+    markStacks: 0,
+    markT: 0,
     frostStacks: 0,
     frozenT: 0,
     frostImmuneT: 0,
@@ -148,6 +154,15 @@ export function updateEnemies(this: GameCore, dt: number) {
         life: 0.25,
         c: "#ff8a2b",
       });
+    }
+    // S2「猎杀标记」维持：换目标 5 秒内未再命中则清空累计与层数。
+    // 递减放在这里（敌人自己的状态），不引入新的随机调用。
+    if (e.markT > 0) {
+      e.markT -= dt;
+      if (e.markT <= 0) {
+        e.markHits = 0;
+        e.markStacks = 0;
+      }
     }
     // 灼烧：数值经 applyBurnDot（fire/dot/preserve-float）结算，表现与死亡判定留在本处
     if (e.burnT > 0) {
@@ -259,14 +274,46 @@ export function updateEnemies(this: GameCore, dt: number) {
     const dx = p.x - e.x,
       dy = p.y - e.y,
       rr = e.r + p.r;
-    if (dx * dx + dy * dy < rr * rr && p.hurtCd <= 0 && p.dashT <= 0) {
-      const hit = this.damagePlayer(e.dmg, {
-        melee: true,
-        src: e,
-        type: "physical",
-        form: "melee",
-      });
-      if (hit.killed) return true;
+    if (dx * dx + dy * dy < rr * rr) {
+      // S2 射手「脱离」槽：被贴身的自救手段。两者的共同前提是「接触」，
+      // 但效果不同——惊弓把玩家推离（保距离），逆矢原地反击（换伤害）。
+      // 都不消耗随机数，只写冷却，所以不改变 parity 的随机序列。
+      const dist = Math.hypot(dx, dy) || 1;
+      if ((p.upCounts["惊弓"] || 0) > 0 && this.contactKnockCd <= 0) {
+        p.x = clamp(p.x + (dx / dist) * 40, 24, WORLD.w - 24);
+        p.y = clamp(p.y + (dy / dist) * 40, 24, WORLD.h - 24);
+        this.contactKnockCd = 3;
+        this.addText(p.x, p.y - 12, "惊弓", "#57e6ff");
+        this.audio.beep(520, 0.08, "square", 0.04, 260);
+      }
+      if ((p.upCounts["逆矢"] || 0) > 0 && this.counterCd <= 0) {
+        const a = Math.atan2(e.y - p.y, e.x - p.x);
+        this.bullets.push({
+          x: p.x,
+          y: p.y - 3,
+          vx: Math.cos(a) * p.projSpeed,
+          vy: Math.sin(a) * p.projSpeed,
+          dmg: boltDamage(p) * 2,
+          pierce: p.pierce + professionPierce(this.prof),
+          falloff: p.pierceFalloff,
+          life: p.attackRange / p.projSpeed,
+          size: 2 * p.area,
+          jumps: 0,
+          hitList: [],
+          stats: getPlayerCombatStats(p),
+        });
+        this.counterCd = 3;
+        this.addText(p.x, p.y - 12, "逆矢", "#ffd24a");
+      }
+      if (p.hurtCd <= 0 && p.dashT <= 0) {
+        const hit = this.damagePlayer(e.dmg, {
+          melee: true,
+          src: e,
+          type: "physical",
+          form: "melee",
+        });
+        if (hit.killed) return true;
+      }
     }
   }
   // 敌人分离

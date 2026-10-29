@@ -37,7 +37,10 @@ test("real Phaser input, UI commands, pause, choices, furnace, death, history, r
   await page.evaluate(() => {
     const g = window.__PIXEL_ROGUE__!.core;
     g.gems.push({ x: g.player.x + 1, y: g.player.y, vx: 0, vy: 0, v: 18 });
-    // 基线更新依据：Issue #67（v14 波末统一执行）——升级不再立即弹面板，受控夹具显式打开
+    // 基线更新依据：Issue #67（v14 波末统一执行）——升级不再立即弹面板，受控夹具显式打开。
+    // S2：升级也不再**产生**待选天赋（改由每 4 波的节点精英发放，一局 8 次），
+    // 所以这里显式给 2 次，让「连选两张 → 面板关闭」的交互仍有对象。
+    g.pendingLevels = 2;
     g.openLevelPanel();
   });
   await expect(page.locator("#bp-level")).toBeVisible();

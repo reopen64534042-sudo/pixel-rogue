@@ -14,6 +14,22 @@ export function updateProjectiles(this: GameCore, dt: number) {
     b.x += b.vx * travelTime;
     b.y += b.vy * travelTime;
     b.life -= travelTime;
+    // S2「贯穿轨迹」：沿路径投放能量线节点（节流 0.05s，寿命 0.6s）。
+    // 用节点而不是连续几何，是为了让结算保持 O(节点数 × 敌人数) 的简单上界。
+    if (b.trail && b.trail > 0) {
+      b.trailT = (b.trailT ?? 0) - travelTime;
+      if (b.trailT <= 0) {
+        b.trailT = 0.05;
+        this.trailZones.push({
+          x: b.x,
+          y: b.y,
+          R: 7,
+          t: 0.6,
+          dmg: b.dmg * 0.15,
+          hit: [],
+        });
+      }
+    }
     let remove = false;
     for (const e of this.enemies) {
       if (e.dead || b.hitList.includes(e)) continue;
@@ -23,16 +39,24 @@ export function updateProjectiles(this: GameCore, dt: number) {
       if (dx * dx + dy * dy < rr * rr) {
         const kx = (b.vx / p.projSpeed) * 4,
           ky = (b.vy / p.projSpeed) * 4;
+        // S2「距离即收益」满档：发射时固化的暴击加成，在命中这一刻并入快照。
+        // 用浅拷贝而不是改 b.stats（快照是只读的，且多发子弹可能共享同一对象）。
+        const stats =
+          b.critBonus && b.stats
+            ? { ...b.stats, critChance: b.stats.critChance + b.critBonus }
+            : b.stats;
         this.hurtEnemy(e, b.dmg, kx, ky, {
           src: "bullet",
           type: "physical",
           form: "ranged",
-          attackerStats: b.stats,
+          attackerStats: stats,
         });
         b.hitList.push(e);
         if (b.pierce > 0) {
           b.pierce--;
-          b.dmg *= 0.85;
+          // S2：衰减系数从硬编码 0.85 改为发射时固化的属性值
+          //（射手职业 0.5、穿透之矢 0.8、弹道贯穿 1.0）
+          b.dmg *= b.falloff;
         } else if (b.jumps > 0) {
           // 弹射: 转向最近的未命中敌人
           const t = this.nearestEnemy(b.x, b.y, 95, e);
@@ -53,6 +77,32 @@ export function updateProjectiles(this: GameCore, dt: number) {
       }
     }
     if (remove || b.life <= 0) this.bullets.splice(i, 1);
+  }
+
+  // ---- S2「贯穿轨迹」能量线结算 ----
+  // 每个节点对同一个敌人只结算一次（hit 记录），所以「穿过其间」的敌人
+  // 无论停留多久都只吃一次 15%，符合「擦过即受伤」的直觉且有明确上界。
+  for (let i = this.trailZones.length - 1; i >= 0; i--) {
+    const z = this.trailZones[i];
+    z.t -= dt;
+    if (z.t <= 0) {
+      this.trailZones.splice(i, 1);
+      continue;
+    }
+    for (const e of this.enemies) {
+      if (e.dead || z.hit.includes(e)) continue;
+      const dx = e.x - z.x,
+        dy = e.y - z.y;
+      const rr = z.R + e.r;
+      if (dx * dx + dy * dy < rr * rr) {
+        z.hit.push(e);
+        this.hurtEnemy(e, z.dmg, 0, 0, {
+          src: "bullet",
+          type: "physical",
+          form: "ranged",
+        });
+      }
+    }
   }
 
   // ---- 敌方弹幕 ----

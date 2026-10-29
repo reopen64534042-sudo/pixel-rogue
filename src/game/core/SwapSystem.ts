@@ -81,7 +81,7 @@ export function melt(this: GameCore) {
       return null;
   }
   // Preserve original output-pool timing, including prerequisite checks before consumption.
-  const pool = this.availTalents(this.swTarget);
+  const pool = this.legacyAvailTalents(this.swTarget);
   if (!pool.length) return null;
   const output = pool[Math.floor(Math.random() * pool.length)];
   for (const [name, count] of Object.entries(this.swSel)) {

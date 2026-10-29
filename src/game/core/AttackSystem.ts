@@ -1,5 +1,6 @@
 import type { GameCore } from "./GameCore";
 import { getPlayerCombatStats } from "./CombatStats";
+import { professionPierce } from "./AttributeSources";
 import {
   boltDamage,
   meteorDamage,
@@ -19,6 +20,22 @@ export function updateAttacks(this: GameCore, dt: number) {
         1 /
         (p.fireRate * (1 + p.haste * 0.1 + (p.rageT > 0 ? 0.2 * p.rageLv : 0)));
       const base = Math.atan2(tgt.y - (p.y - 3), tgt.x - p.x);
+      // S2「距离即收益」：按目标距离占射程的比例分档，发射时固化到这一发。
+      // 为什么按比例而不是固定 px：射程会随长弓/属性成长，固定 px 档位在后期
+      // 会退化成「贴身档」，同一句描述的语义就崩了。
+      const dist = Math.hypot(tgt.x - p.x, tgt.y - p.y);
+      let distMul = 1;
+      let critBonus = 0;
+      if (p.distanceDmg > 0) {
+        const ratio = dist / p.attackRange;
+        if (ratio >= 0.92) {
+          distMul = 1.25;
+          critBonus = 0.1;
+        } else if (ratio >= 0.75) distMul = 1.15;
+        else if (ratio >= 0.5) distMul = 1.05;
+      }
+      // S2「贯穿轨迹」：弹道留下 0.6 秒能量线（机制在 ProjectileSystem 结算）
+      const hasTrail = (p.upCounts["贯穿轨迹"] || 0) > 0;
       for (let i = 0; i < p.multishot; i++) {
         // Issue #36 动态散布：目标附近敌人越少，弹道越收拢（孤立目标近平行）
         const near = this.enemies.reduce(
@@ -32,12 +49,18 @@ export function updateAttacks(this: GameCore, dt: number) {
           y: p.y - 3,
           vx: Math.cos(a) * p.projSpeed,
           vy: Math.sin(a) * p.projSpeed,
-          dmg: boltDamage(p),
-          pierce: p.pierce,
+          dmg: boltDamage(p) * distMul,
+          // S2：穿透次数 = 天赋写入值 + 职业基础（射手 +1）。
+          // 职业基础不进 Player 字段：旧表穿透之矢靠 f 写同一字段，
+          // 写进去会互相覆盖（见 core/AttributeSources.ts 的说明）。
+          pierce: p.pierce + professionPierce(this.prof),
+          falloff: p.pierceFalloff,
           life: p.attackRange / p.projSpeed,
           size: 2 * p.area,
           jumps: p.ricochet,
           hitList: [],
+          trail: hasTrail ? 0.6 : 0,
+          critBonus,
           // S3-B 定稿接口：攻击方属性发射时固化，与敌方弹丸快照对称
           stats: getPlayerCombatStats(p),
         });

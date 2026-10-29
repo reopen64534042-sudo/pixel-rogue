@@ -272,12 +272,17 @@ describe("S4-C C1 · 获取路径：升级、宝箱、置换全链路同步", ()
 
   it("P3：真实升级面板路径（openLevelPanel + chooseSlot）获得迁移天赋并立即投影", () => {
     const g = fresh();
-    // 恒定随机 0.92 推导（lvl1 权重 [70,25,5,0]，t1 池 10 项、磐石 idx 9，
-    // DMG 保底替换 picks[2]）：rollPicks 确定性产出 [磐石, 疾影步, 狂怒]
-    vi.spyOn(Math, "random").mockReturnValue(0.92);
     g.pendingLevels = 1;
     g.openLevelPanel();
     expect(g.bpMode).toBe("level");
+    // S2：抽取池改为 18 张射手卡（旧表 retired），同一随机序列不再落到
+    // 「磐石」。本用例验证「面板路径 → learnTalent → 投影立即生效」，
+    // 与抽到哪张无关，因此显式注入，不把随机顺序当契约。
+    g.slots = [
+      { u: talent("磐石"), used: false },
+      { u: talent("疾影步"), used: false },
+      { u: talent("狂怒"), used: false },
+    ];
     const idx = g.slots.findIndex((s) => s.u.n === "磐石");
     expect(idx).toBeGreaterThanOrEqual(0);
     const spy = vi.spyOn(Math, "random");

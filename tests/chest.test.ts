@@ -76,8 +76,11 @@ describe("chest drops and elite rewards", () => {
 
     ticks(g, 25);
     expect(g.boxes).toHaveLength(0); // 已收完
-    expect(g.bpMode).toBe("box"); // 收完直接进入开箱面板
-    expect(g.slots.length).toBeGreaterThan(0);
+    // S2：宝箱不再开「强化天赋」面板——天赋一次获得、没有可升级的对象。
+    // 点数要么还在队列（collect 未结束），要么已被 enterRest 折算成属性次数；
+    // 两种都说明没丢，所以断言「折算后 attrPicks 有增长或 boxPicks 仍有值」。
+    expect(g.boxPicks > 0 || g.attrPicks > 0).toBe(true);
+    expect(g.bpMode).not.toBe("box");
   });
 
   it("box candidates only include learned talents below their cap", () => {
@@ -93,44 +96,36 @@ describe("chest drops and elite rewards", () => {
     }
   });
 
-  it("opening a box upgrades a learned talent, then the wave enters rest", () => {
+  it("S2: boxes convert into attribute picks at the rest phase", () => {
     const g = fresh();
-    skipAttrs(g); // 本用例验证宝箱链，属性面板另有用例覆盖
-    learn(g, "强化弹丸", 1);
-    learn(g, "疾影步", 1);
-    g.boxPicks = 1;
+    skipAttrs(g); // 本用例验证宝箱折算，属性面板本身另有用例覆盖
+    g.boxPicks = 2;
+    const before = g.attrPicks;
     g.wavePhase = "collect";
 
     ticks(g, 2);
-    expect(g.bpMode).toBe("box");
 
-    const total = () =>
-      Object.values(g.player.upCounts).reduce((a, b) => a + b, 0);
-    const before = total();
-    expect(g.chooseSlot(0)).toBe(true);
-    expect(total()).toBe(before + 1);
+    // S2：点数在 enterRest 折算成属性次数，不再打开 box 面板。
+    // 原「开箱强化已学天赋」在 max=1 的体系里会静默退化成「转经验 + 血包」，
+    // 所以这里改为断言「点数变成选择次数」，而不是「面板出现」。
     expect(g.boxPicks).toBe(0);
-    expect(g.bpMode).toBeNull();
-
-    ticks(g, 2);
-    expect(g.wavePhase).toBe("rest");
+    expect(g.attrPicks).toBeGreaterThan(before);
+    expect(g.bpMode).not.toBe("box");
   });
 
-  it("falls back to XP when nothing can be upgraded", () => {
+  it("S2: boxes are never silently discarded when nothing is upgradeable", () => {
     const g = fresh();
-    skipAttrs(g); // 本用例验证宝箱链，属性面板另有用例覆盖
+    skipAttrs(g);
     g.boxPicks = 1;
+    const before = g.attrPicks;
     g.wavePhase = "collect";
-    const xpBefore = g.player.xp;
-    const maxHpBefore = g.player.maxhp;
 
     ticks(g, 2);
 
-    expect(g.bpMode).not.toBe("box");
+    // 天赋全部 max=1，`rollBoxPicks` 的候选恒为空——旧实现会走 Issue #71 兜底
+    // 转成经验 + 血包，玩家看不到任何成长。S2 改为折算属性次数。
     expect(g.boxPicks).toBe(0);
-    expect(g.player.xp).toBe(xpBefore + 8);
-    // 兜底还送一个血包，满血拾取会转化为最大生命（#12）
-    expect(g.player.maxhp).toBe(maxHpBefore + 1);
+    expect(g.attrPicks).toBeGreaterThan(before);
   });
 });
 

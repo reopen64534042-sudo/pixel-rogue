@@ -287,19 +287,19 @@ describe("S4-C C2-B · 交错学习与无关天赋", () => {
 });
 
 describe("S4-C C2-B · 获取路径：升级面板、宝箱强化、置换全链路", () => {
-  it("真实升级面板路径：random 0.4 → [磁力护符, 强化弹丸, 荆棘护甲]，chooseSlot 立即投影", () => {
+  it("真实面板路径：选择后立即投影，学习步骤零额外 RNG", () => {
     const g = fresh();
-    // 恒定随机 0.4（t0 池 12 项：floor(0.4×12)=4 → 磁力护符；DMG 保底替换
-    // picks[1] → 强化弹丸）：rollPicks 确定性产出两张本批卡
-    vi.spyOn(Math, "random").mockReturnValue(0.4);
     g.pendingLevels = 1;
     g.openLevelPanel();
     expect(g.bpMode).toBe("level");
-    expect(g.slots.map((s) => s.u.n)).toEqual([
-      "磁力护符",
-      "强化弹丸",
-      "荆棘护甲",
-    ]);
+    // S2：抽取池由 41 张变为 18 张射手卡（旧表 retired），同一随机序列不再
+    // 落到这批 C2-B 卡上。本用例验证的是「面板路径 → learnTalent → 投影立即
+    // 生效」，与抽到哪张无关，因此显式注入三张卡——不把随机顺序当契约。
+    g.slots = [
+      { u: talent("磁力护符"), used: false },
+      { u: talent("强化弹丸"), used: false },
+      { u: talent("荆棘护甲"), used: false },
+    ];
     const spy = vi.spyOn(Math, "random");
     const before = spy.mock.calls.length;
     expect(g.chooseSlot(0)).toBe(true);

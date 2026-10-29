@@ -34,7 +34,10 @@ export function updateProgression(this: GameCore, dt: number) {
         p.xp -= p.xpNext;
         p.lvl++;
         p.xpNext = Math.ceil(p.xpNext * 1.13);
-        this.pendingLevels++;
+        // S2：**升级不再发放天赋**。天赋改由「每 4 波节点精英 + 终局」发放
+        //（一局 8 次），属性强化由波末结算发放。等级只保留两个职责：
+        // 怪物强度采样（resolveEnemySpawnStats 的 playerLevel）与 HUD 显示。
+        // 这样「等级高 → 天赋好」这条隐性耦合被彻底切断（RAMP 已同时改按波次）。
       }
     }
   }

@@ -17,6 +17,9 @@
       "fireRate": 2.2,
       "multishot": 1,
       "pierce": 0,
+      "pierceFalloff": 0.5,
+      "distanceDmg": 0,
+      "dashDistMul": 1,
       "area": 1,
       "crit": 0.05,
       "critMul": 2,
@@ -1831,6 +1834,748 @@
             "fire": 0.30000000000000004,
             "lightning": 0.30000000000000004
           },
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "破甲箭": {
+      "tier": 1,
+      "cat": "核心",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "pierce": 1,
+          "pierceFalloff": 0.3
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 2,
+          "critExp": 1.05,
+          "dpsIndex": 50.82,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "pierce": 1,
+          "pierceFalloff": 0.3
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 2,
+          "critExp": 1.05,
+          "dpsIndex": 50.82,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "弹道贯穿": {
+      "tier": 2,
+      "cat": "核心",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "pierce": 1,
+          "pierceFalloff": 0.2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 2,
+          "critExp": 1.05,
+          "dpsIndex": 50.82,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "pierce": 1,
+          "pierceFalloff": 0.2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 2,
+          "critExp": 1.05,
+          "dpsIndex": 50.82,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "贯穿轨迹": {
+      "tier": 3,
+      "cat": "核心",
+      "max": 1,
+      "lv1": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "三重射击": {
+      "tier": 2,
+      "cat": "核心",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "boltDmgMul": -0.5,
+          "multishot": 2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 3,
+          "critExp": 1.05,
+          "dpsIndex": 38.115,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "boltDmgMul": -0.5,
+          "multishot": 2
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 3,
+          "critExp": 1.05,
+          "dpsIndex": 38.115,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "猎杀标记": {
+      "tier": 1,
+      "cat": "标记",
+      "max": 1,
+      "lv1": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "深痕": {
+      "tier": 2,
+      "cat": "标记",
+      "max": 1,
+      "lv1": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "处决": {
+      "tier": 3,
+      "cat": "标记",
+      "max": 1,
+      "lv1": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "长弓": {
+      "tier": 0,
+      "cat": "距离",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "attackRange": 19.5
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "attackRange": 19.5
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "短弓": {
+      "tier": 0,
+      "cat": "距离",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "attackRange": -13,
+          "fireRate": 0.44
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 30.492,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "attackRange": -13,
+          "fireRate": 0.44
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 30.492,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "距离即收益": {
+      "tier": 1,
+      "cat": "距离",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "distanceDmg": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "distanceDmg": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "冷读": {
+      "tier": 0,
+      "cat": "生存",
+      "max": 1,
+      "lv1": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "滞空": {
+      "tier": 0,
+      "cat": "生存",
+      "max": 1,
+      "lv1": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "余韵": {
+      "tier": 1,
+      "cat": "生存",
+      "max": 1,
+      "lv1": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "赌命": {
+      "tier": 2,
+      "cat": "生存",
+      "max": 1,
+      "lv1": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "惊弓": {
+      "tier": 0,
+      "cat": "脱离",
+      "max": 1,
+      "lv1": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "逆矢": {
+      "tier": 0,
+      "cat": "脱离",
+      "max": 1,
+      "lv1": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {},
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "双段疾冲": {
+      "tier": 0,
+      "cat": "机动",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "dashChargeLv": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "dashChargeLv": 1
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      }
+    },
+    "疾行": {
+      "tier": 0,
+      "cat": "机动",
+      "max": 1,
+      "lv1": {
+        "fields": {
+          "dashDistMul": 0.25
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
+          "formDamageBonus": {},
+          "coverage": 1,
+          "critExp": 1.05,
+          "dpsIndex": 25.41,
+          "ehpIndex": 100
+        }
+      },
+      "lvMax": {
+        "fields": {
+          "dashDistMul": 0.25
+        },
+        "indices": {
+          "attack": 11,
+          "defense": 0,
+          "critChance": 0.05,
+          "critMultiplier": 2,
+          "tough": 0,
+          "globalDamageBonus": 0,
+          "typeDamageBonus": {},
           "formDamageBonus": {},
           "coverage": 1,
           "critExp": 1.05,

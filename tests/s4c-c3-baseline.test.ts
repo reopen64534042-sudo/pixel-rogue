@@ -196,9 +196,14 @@ describe("S4-C C3-0 · 冲刺解锁/充能（旧行为基线）", () => {
 
   it("B11 二段冲刺前置（req 只约束卡池 canOffer）与充能上限 dchMax = 1 + dashChargeLv", () => {
     const g = fresh();
-    expect(g.canOffer(talent("二段冲刺"))).toBe(false); // dashLv=0
+    // S2：旧卡「二段冲刺」已 `retired`（不进任何抽取池），但 `learnTalent`
+    // 仍可学习——`hidden`/`retired` 只约束投放，不约束直接学习。
+    // 原先的「req 只约束 canOffer」断言改由射手链式依赖覆盖（见 game.test
+    // 的「chain prerequisites」用例），这里保留充能上限公式的验证。
+    expect(g.canOffer(talent("二段冲刺"))).toBe(false);
+    // 冲刺必须先解锁（dashLv>0 是充能逻辑的前提）
     learn(g, "疾影步");
-    expect(g.canOffer(talent("二段冲刺"))).toBe(true);
+    expect(g.player.dashLv).toBe(1);
     learn(g, "二段冲刺");
     expect(g.player.dashChargeLv).toBe(1);
     // 充能行为：0 → 1 → 2 充满后停（隔离刷怪）

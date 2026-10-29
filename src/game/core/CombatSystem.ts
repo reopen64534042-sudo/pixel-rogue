@@ -49,19 +49,46 @@ export function hurtEnemy(
   opts: HitOptions = {},
 ): DamageResult | undefined {
   if (e.dead || this.state !== "play") return undefined;
+  const p = this.player;
   // §3.4 步骤 3：暴击判定留在编排层，掷骰条件与次数与旧路径一致。
   // PR #4 评审 P2：暴击率与倍率同源——弹丸命中优先读发射时快照的 critChance，
   // 其余路径读当前玩家；不新增随机调用、不改变命中执行顺序
-  const critChance = opts.attackerStats?.critChance ?? this.player.crit;
+  // S2：必暴来源统一在这里裁决——冷读（闪避后一次性）、赌命（闪避后窗口内全部）、
+  // 处决（低血标记目标）。三者都只把 critChance 抬到 1，**掷骰次数不变**，
+  // 因此不改变随机序列（parity 的种子 LCG 依赖调用次数恒定）。
+  const forcedByDodge = this.dodgeNextCrit || this.dodgeProcT > 0;
+  const executing =
+    (p.upCounts["处决"] || 0) > 0 && e.markStacks > 0 && e.hp <= e.maxhp * 0.2;
+  const critChance =
+    !opts.noCrit && (forcedByDodge || executing)
+      ? 1
+      : (opts.attackerStats?.critChance ?? p.crit);
   let crit = false;
   if (!opts.noCrit && Math.random() < critChance) {
     crit = true;
   }
+  // 冷读是「下一次命中」，命中即消费；赌命是窗口，不消费
+  if (crit && this.dodgeNextCrit) this.dodgeNextCrit = false;
   // Issue #42 灼热易伤：灼烧目标受伤增加——条件天赋增伤折叠进 rawAmount
   //（§3.1：D_raw 已包含天赋效果）。该天赋不在 v8 严格对照集内（NOT_IN_V8），
   // 乘法顺序变化不影响 parity
-  if (e.burnStacks > 0 && this.player.scorchVuln)
-    dmg *= scorchVulnMultiplier(this.player);
+  if (e.burnStacks > 0 && p.scorchVuln)
+    dmg *= scorchVulnMultiplier(p);
+  // S2「猎杀标记」/「深痕」：标记层数按受击方结算，每层 +15%
+  if (e.markStacks > 0) dmg *= 1 + 0.15 * e.markStacks;
+  // S2「余韵」：闪避后的一次性伤害加成，用掉即清
+  if (this.dodgeNextDmg > 1) {
+    dmg *= this.dodgeNextDmg;
+    this.dodgeNextDmg = 1;
+  }
+  // 处决的暴伤 +40% 走攻击方快照（与暴击率同源，避免第二次取属性）
+  const baseStats = opts.attackerStats ?? getPlayerCombatStats(p);
+  const attackerStats = executing
+    ? {
+        ...baseStats,
+        critMultiplier: baseStats.critMultiplier + 0.4,
+      }
+    : baseStats;
   // §3.4 步骤 4：数值交给 DamageSystem。敌方离散命中用 round-min-one，
   // 与旧 Math.max(1, Math.round(dmg × 暴击倍率（含 #41 觉醒）× 易伤)) 一致
   const calc = calculateDamage(DAMAGE_TYPES, {
@@ -72,10 +99,23 @@ export function hurtEnemy(
     kind: "hit",
     precision: "round-min-one",
     isCritical: crit,
-    attackerStats: opts.attackerStats ?? getPlayerCombatStats(this.player),
+    attackerStats,
     defenderStats: getEnemyCombatStats(e),
   });
   dmg = calc.settledDamage;
+  // S2「猎杀标记」累计：同一目标命中 3 次转为一层标记（上限由深痕决定）。
+  // 放在伤害结算之后——本次命中吃的是「已有」层数，不自我加成。
+  if ((p.upCounts["猎杀标记"] || 0) > 0) {
+    const cap = (p.upCounts["深痕"] || 0) > 0 ? 2 : 1;
+    e.markT = 5;
+    if (e.markStacks < cap) {
+      e.markHits++;
+      if (e.markHits >= 3) {
+        e.markHits = 0;
+        e.markStacks++;
+      }
+    }
+  }
   const hpBefore = e.hp;
   e.hp -= dmg;
   e.flash = 0.08;
@@ -181,6 +221,17 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   // 掉落 (自爆虫自毁不掉落)
   if (!e.noDrop) {
     if (e.elite) {
+      // S2：节点精英发天赋。
+      // 发放点是「每 4 波 + 终局」，一局 8 次（4/8/12/16/20/24/28/30 波）。
+      // 用每波开关保证同一波多只精英里只有第一只算节点；其余精英仍走宝箱。
+      // 这样天赋次数与 eliteQuota 解耦——怪物侧想怎么调精英数量都不会改次数。
+      const isNodeWave = this.waveN % 4 === 0 || this.waveN === 30;
+      if (isNodeWave && !this.waveTalentGiven) {
+        this.waveTalentGiven = true;
+        this.pendingLevels++;
+        this.addText(e.x, e.y - 20, "天赋 +1", "#ffd24a");
+        this.audio.beep(1180, 0.16, "triangle", 0.07, 120);
+      }
       // #17：精英经验随波次成长，避免后期相对升级阈值贬值
       const eliteXp = 25 + (this.waveN - 1) * ELITE_XP_STEP;
       this.gems.push({ x: e.x, y: e.y, vx: 0, vy: 0, v: eliteXp, e: true });
@@ -287,8 +338,21 @@ export function damagePlayer(
   if (p.dodge > 0 && Math.random() < p.dodge) {
     this.addText(p.x, p.y - 10, "闪避!", "#4dff88");
     this.audio.beep(700, 0.06, "sine", 0.04, 200);
+    // S2 射手「生存」槽：四种卡的窗口都在闪避成功这一刻开。
+    // 这里只写窗口，不写属性——消费点在 hurtEnemy（必暴/增伤）与 PlayerSystem（移速）。
+    if ((p.upCounts["冷读"] || 0) > 0) this.dodgeNextCrit = true;
+    if ((p.upCounts["滞空"] || 0) > 0) {
+      // 0.5 秒无敌走受击无敌计时（与受击后的无敌同一套语义）
+      p.hurtCd = Math.max(p.hurtCd, 0.5);
+      this.dodgeBoostT = 0.5;
+    }
+    if ((p.upCounts["余韵"] || 0) > 0) this.dodgeNextDmg = 1.3;
+    if ((p.upCounts["赌命"] || 0) > 0)
+      this.dodgeProcT = p.hp <= p.maxhp * 0.3 ? 4 : 2;
     return blockedHit(dmg, { dodged: true, shieldUsed: "none" });
   }
+  // S2「赌命」的代价：窗口内所有命中必暴，但受到的伤害 +25%
+  if (this.dodgeProcT > 0 && (p.upCounts["赌命"] || 0) > 0) dmg *= 1.25;
   // 壁垒: 临时护盾优先消耗
   if (p.tempShield > 0) {
     p.tempShield--;
