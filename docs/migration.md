@@ -2492,3 +2492,17 @@ ctx.stroke();      // → strokePath()
   - 开始界面教程入口 → 选法师：3 个木桩、0/5；实际站定法阵命中 3 个后从 3/5 进到 4/5；跳过写 seen.mage=true 并正式开局。
   - 教学经验球真实生成并被磁吸拾取后进入 5/5。
 - 说明：入口永远可用；首次自动仅按职业各一次；教程不弹初始天赋，正式开局后照常。旧 `pixelrogue_tutorial_v1` 未知/损坏时视为未看。
+
+## D-91 飘字固定槽位性能优化（v87）
+
+- 用户反馈：后期强化弹满级后仍有轻微卡顿；要求不改变数字内容/样式，只优化渲染。
+- 根因定位：
+  1. 静态对照：160 个固定真实伤害 label 同时渲染，帧间隔约 4ms；
+  2. 动态高压（80 怪、161 条飘字、266 个 label、手动提高攻速/多重）：帧间隔约 150ms；
+  3. `PixelPainter.fillText` 按绘制顺序分配 label，飘字过期后后续文字整体前移，导致大部分 label 每帧 `setText`/颜色/字号变化，Phaser Text 重建 canvas 并上传纹理。贵的不是 label 数量，而是每帧重建。
+- 改动：
+  1. `rendering/PixelPainter.ts`：拆出 `TextLabelPool`；HUD 使用顺序池，浮动文字使用独立固定槽位池；公开 `fillTextSlot(slot, ...)`；`counts.text` 合计两个池。
+  2. `rendering/draw.ts`：用按 GameCore 隔离的 `WeakMap` 维护每条 `FloatingText` 的固定槽位组（普通 2 层、真实 3 层、真实暴击 4 层）；文字过期时回收槽位，新文字只在首次绘制时建纹理，之后只更新坐标/透明度/深度。
+  3. HUD 文字保持原顺序池与缓存逻辑，不受影响。
+- 验证：`npm run typecheck`、`npm run build` 通过；同一高压沙盒（80 怪、136 条飘字、497 label、34 弹，已恢复真实伤害分层样式）帧间隔约 **150ms → 5.4ms**（p95 8.5ms、max 16.7ms）；截图确认数字逐条显示、颜色/字号不变。按 2026-10-29 标准未运行 Vitest / Playwright。
+- 沙盒：新增 `?test=special-swarm`（满级强化箭 + 全部升级 + 80 只 5000 HP、0 伤害、0 经验的沙包，死亡自动补充），用于复现后期多目标真实伤害飘字压力；与 `?test=special-max`、`?test=dash-special` 一样仅在 DEV/E2E 生效。
