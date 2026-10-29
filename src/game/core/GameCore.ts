@@ -216,6 +216,8 @@ export class GameCore {
   devInvincible = false;
   /** 充能条：每 MB.chargeFull 次成功施法满一次，满时结算循环轴。 */
   mageCharge = 0;
+  /** 满充能触发后「三格全亮」的剩余时间（秒）——读条旁 1→2→3 的计数反馈。 */
+  mageChargeFlashT = 0;
   /** 值型限时护盾现值（与既有层数制护盾是两套模型）。 */
   mageShield = 0;
   /** 值型限时护盾剩余时间（秒）。 */
@@ -450,6 +452,7 @@ export class GameCore {
     this.magePrevX = this.player.x;
     this.magePrevY = this.player.y;
     this.mageCharge = 0;
+    this.mageChargeFlashT = 0;
     this.mageShield = 0;
     this.mageShieldT = 0;
     this.magePhaseCd = 0;

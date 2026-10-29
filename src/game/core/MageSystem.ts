@@ -63,21 +63,21 @@ export function mageIsSteady(core: GameCore): boolean {
   return core.time - core.mageLastMoveAt >= mageWindup(core) * MB.steadyHoldRatio;
 }
 
-/** 法阵半径（广域符印 +20%，聚爆 +50%，站定 +20%）。 */
-export function mageCircleRadius(
-  core: GameCore,
-  isCharge: boolean,
-  steady = false,
-): number {
+/**
+ * 法阵半径（广域符印 +20%，聚爆 +50%）。
+ *
+ * **不看站定**：半径只由天赋/属性决定，移动和站定必须一致——
+ * 否则玩家会以为「范围天赋只在站定时生效」。
+ */
+export function mageCircleRadius(core: GameCore, isCharge: boolean): number {
   const p = core.player;
   let r = MB.circleRadius * p.area;
   if ((p.upCounts["广域符印"] || 0) > 0) r *= MB.wideSealAreaMul;
   if (isCharge && (p.upCounts["三连聚爆"] || 0) > 0) r *= MB.burstRadiusMul;
-  if (steady) r *= MB.steadyRadiusMul;
   return r;
 }
 
-/** 法阵伤害（元素蓄能 / 三连聚爆 只作用于满充能的那一发；站定 +20%）。 */
+/** 法阵伤害（元素蓄能 / 三连聚爆 只作用于满充能的那一发；站定 ×1.5）。 */
 export function mageCircleDamage(
   core: GameCore,
   isCharge: boolean,
@@ -177,8 +177,10 @@ function explodeCircle(
 function detonate(core: GameCore, steady: boolean) {
   const p = core.player;
   const isCharge = core.mageCharge + 1 >= MB.chargeFull;
+  // 满充能触发：三格全亮 0.35 秒（1→2→3 的计数反馈），随后清零
+  if (isCharge) core.mageChargeFlashT = MB.chargeFlash;
   const dmg = mageCircleDamage(core, isCharge, steady);
-  const R = mageCircleRadius(core, isCharge, steady);
+  const R = mageCircleRadius(core, isCharge);
   const hits = explodeCircle(core, core.castX, core.castY, R, dmg);
   // 回响：施法命中后获得少量护盾（可叠加，总量有上限）
   if (hits > 0 && (p.upCounts["回响"] || 0) > 0) {
@@ -376,7 +378,12 @@ function updateMeteorRoute(core: GameCore, dt: number) {
             false,
           );
       }
-      const spawnMeteor = (base: { x: number; y: number; e: Enemy }, ox = 0, oy = 0) => {
+      const spawnMeteor = (
+        base: { x: number; y: number; e: Enemy },
+        ox = 0,
+        oy = 0,
+        chargeMarker = false,
+      ) => {
         // 落点提前量：按敌人**真实速度**外推落地时长。旧实现假设敌人朝玩家
         // 移动，射手后撤时落点会落在玩家与敌人中间，永远打空。
         const leadX = (base.e.vx ?? 0) * MB.meteorFall;
@@ -389,6 +396,7 @@ function updateMeteorRoute(core: GameCore, dt: number) {
           element: type,
           dmg,
           charged: isCharge,
+          chargeMarker,
         });
       };
       for (let i = 0; i < count; i++) {
@@ -399,12 +407,13 @@ function updateMeteorRoute(core: GameCore, dt: number) {
         const a = extra >= 0 ? (extra / count) * Math.PI * 2 : 0;
         const ox = extra >= 0 ? Math.cos(a) * MB.meteorSpread : 0;
         const oy = extra >= 0 ? Math.sin(a) * MB.meteorSpread : 0;
-        spawnMeteor(base, ox, oy);
+        // 只有这一波的第一颗带充能标记：落地时才推进一次点数
+        spawnMeteor(base, ox, oy, i === 0);
       }
       // 过载：满充能波次额外再落一颗（落在第一个目标群）
       if (isCharge && (p.upCounts["过载"] || 0) > 0) spawnMeteor(points[0]);
-      // 充能推进：每波陨星算一次成功施法
-      core.mageCharge = (core.mageCharge + 1) % MB.chargeFull;
+      // 充能推进不在这里——改到陨星落地那一帧（见下方 impact 段），
+      // 让点数与出伤同步，观感更自然。
     }
   }
   for (let i = core.mageMeteors.length - 1; i >= 0; i--) {
@@ -427,6 +436,11 @@ function updateMeteorRoute(core: GameCore, dt: number) {
         form: "other",
       });
       applyMageHit(core, e, dmg);
+    }
+    // 充能：这一波的第一颗落地时推进一次（与出伤同步）；满充能波次三格闪一下
+    if (m.chargeMarker) {
+      if (m.charged) core.mageChargeFlashT = MB.chargeFlash;
+      core.mageCharge = (core.mageCharge + 1) % MB.chargeFull;
     }
     // 回响：陨星命中后给盾（可叠层，总量上限见 grantMageShield）
     if (hits > 0 && (p.upCounts["回响"] || 0) > 0)
@@ -496,6 +510,7 @@ export function updateMageCasting(this: GameCore, dt: number) {
       this.mageShield = 0;
     }
   }
+  if (this.mageChargeFlashT > 0) this.mageChargeFlashT -= dt;
   if (this.magePhaseCd > 0) this.magePhaseCd -= dt;
   if (this.mageMirrorCd > 0) this.mageMirrorCd -= dt;
   if (this.magePhaseT > 0) this.magePhaseT -= dt;

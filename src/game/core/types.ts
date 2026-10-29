@@ -449,6 +449,8 @@ export interface MageMeteor extends Point {
   dmg: number;
   /** 是否为满充能波次（表现用：预警圈提亮）。 */
   charged: boolean;
+  /** 是否携带本波次的充能标记（一波只有第一颗为 true，落地时推进一次点数）。 */
+  chargeMarker: boolean;
 }
 
 /** 元素残域：落点留下的持续伤害区域。 */
