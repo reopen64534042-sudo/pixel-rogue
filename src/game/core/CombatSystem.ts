@@ -420,7 +420,9 @@ export function damagePlayer(
     const absorbed = Math.min(this.mageShield, dmg);
     this.mageShield -= absorbed;
     dmg -= absorbed;
-    this.addText(p.x, p.y - 10, "护盾 -" + Math.round(absorbed), "#57e6ff");
+    // 只显示被护盾抵消的数值（青色），不再带「护盾」字样——
+    // 玩家要的是「这一下被挡了多少」，前缀是噪音。
+    this.addText(p.x, p.y - 10, String(Math.round(absorbed)), "#57e6ff");
     if (dmg <= 0)
       return blockedHit(rawDmg, { dodged: false, shieldUsed: "temporary" });
   }

@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v58",
+    date: "2026-10-29",
+    title: "护盾吸收飘字只显示数值",
+    items: [
+      "法师护盾吸收伤害时的飘字从「护盾 -5」改为只显示被抵消的数值（青色），不再带「护盾」字样。",
+    ],
+  },
+  {
     version: "v57",
     date: "2026-10-29",
     title: "充能点改为 1→2→3 实心计数",
