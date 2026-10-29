@@ -4,6 +4,7 @@ import { CodexStore, type CodexStorage } from "../codex/CodexStore";
 import { CodexSystem } from "../codex/CodexSystem";
 import { WORLD } from "../data/constants";
 import { statBase } from "../data/stats";
+import type { SpecialUpgradeId } from "../data/specialShot";
 import {
   addText,
   applyBurnDot,
@@ -30,6 +31,7 @@ import {
   updateMageCasting,
 } from "./MageSystem";
 import { meleeSwing } from "./MeleeSystem";
+import { gainSpecialXp } from "./SpecialSystem";
 import { update } from "./Simulation";
 import {
   melt,
@@ -70,6 +72,7 @@ import type {
   MageDomain,
   MageMeteor,
   Meteor,
+  Missile,
   Mode,
   Panel,
   Particle,
@@ -92,7 +95,17 @@ export class GameCore {
   potions: Point[] = [];
   boxes: Box[] = [];
   /** Issue #45：焦土燃烧地带 */
-  burnZones: { x: number; y: number; R: number; t: number }[] = [];
+  burnZones: {
+    x: number;
+    y: number;
+    R: number;
+    t: number;
+    dps?: number;
+    /** 导弹残留：每 0.5 秒把累计伤害合并成一次飘字 */
+    showDamage?: boolean;
+    tickT?: number;
+    tickDmg?: number;
+  }[] = [];
   /**
    * S2「贯穿轨迹」：子弹路径上留下的能量线。
    * 每个 zone 只对一个敌人结算一次（`hit` 记录），存活 0.6 秒。
@@ -104,9 +117,10 @@ export class GameCore {
     t: number;
     dmg: number;
     hit: Enemy[];
+    lifestealMul?: number;
   }[] = [];
-  /** S2「疾行」：冲刺结束后的移速加成剩余时间（秒）。 */
-  dashBoostT = 0;
+  /** S2「疾行」：冲刺结束后的射速加成剩余时间（秒）。 */
+  dashFireBoostT = 0;
   /**
    * S2 射手「生存」槽的闪避窗口状态。
    *
@@ -151,6 +165,8 @@ export class GameCore {
   parts: Particle[] = [];
   texts: FloatingText[] = [];
   meteors: Meteor[] = [];
+  /** 导弹升级：独立飞行的追踪弹 */
+  missiles: Missile[] = [];
   bolts: Bolt[] = [];
   slashes: Slash[] = [];
   cam = { x: 0, y: 0 };
@@ -266,6 +282,14 @@ export class GameCore {
   /** 本「次选择」的刷新额度是否已用掉（每次选择各有一次，选完重置） */
   attrRefreshUsed = false;
   chainCd = 0;
+  /** 射手职业被动：普通射击计数，每第 3 次触发强化箭 */
+  shotCounter = 0;
+  /** 强化箭等级/经验/已获得升级（一局内成长，resetGame 重置） */
+  specialLevel = 1;
+  specialXp = 0;
+  specialUpgrades: SpecialUpgradeId[] = [];
+  /** 激光升级的短寿命表现层 */
+  lasers: { x1: number; y1: number; x2: number; y2: number; t: number }[] = [];
   wavePhase: WavePhase = "fight";
   waveN = 1;
   quota = 20;
@@ -402,6 +426,7 @@ export class GameCore {
   triggerMirrorDecoy = triggerMirrorDecoy.bind(this);
   addText = addText.bind(this);
   damagePlayer = damagePlayer.bind(this);
+  gainSpecialXp = gainSpecialXp.bind(this);
   update = update.bind(this);
   waveQuota = waveQuota.bind(this);
   startNextWave = startNextWave.bind(this);
@@ -425,6 +450,7 @@ export class GameCore {
       picks: [],
       ...statBase(prof),
     };
+    this.player.hp = this.player.maxhp;
     this.enemies = [];
     this.bullets = [];
     this.gems = [];
@@ -432,7 +458,7 @@ export class GameCore {
     this.boxes = [];
     this.burnZones = [];
     this.trailZones = [];
-    this.dashBoostT = 0;
+    this.dashFireBoostT = 0;
     this.dodgeNextCrit = false;
     this.dodgeNextDmg = 1;
     this.dodgeProcT = 0;
@@ -444,6 +470,7 @@ export class GameCore {
     this.parts = [];
     this.texts = [];
     this.meteors = [];
+    this.missiles = [];
     this.bolts = [];
     this.slashes = [];
     this.ebullets = [];
@@ -487,6 +514,11 @@ export class GameCore {
     this.attrChoices = [];
     this.attrRefreshUsed = false;
     this.chainCd = 0;
+    this.shotCounter = 0;
+    this.specialLevel = 1;
+    this.specialXp = 0;
+    this.specialUpgrades = [];
+    this.lasers = [];
     this.wavePhase = "fight";
     this.waveN = 1;
     this.quota = this.waveQuota(1);

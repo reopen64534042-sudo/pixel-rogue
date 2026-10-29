@@ -1,8 +1,20 @@
 import type { GameCore } from "./GameCore";
+import { SPECIAL_SHOT_EVERY } from "../data/constants";
+import {
+  BOUNCE_COUNT,
+  DOUBLE_SHOT_DAMAGE_MUL,
+  getSpecialLevelStats,
+} from "../data/specialShot";
 import { getPlayerCombatStats } from "./CombatStats";
+import {
+  fireSpecialLaser,
+  launchSpecialMissile,
+  updateSpecialMissiles,
+} from "./SpecialSystem";
 import { professionPierce } from "./AttributeSources";
 import {
   boltDamage,
+  chargedShotDamage,
   meteorDamage,
   multishotSpread,
   burnGroundDps,
@@ -21,7 +33,9 @@ export function updateAttacks(this: GameCore, dt: number) {
     if (tgt) {
       p.fireCd =
         1 /
-        (p.fireRate * (1 + p.haste * 0.1 + (p.rageT > 0 ? 0.2 * p.rageLv : 0)));
+        (p.fireRate *
+          (1 + p.haste * 0.1 + (p.rageT > 0 ? 0.2 * p.rageLv : 0)) *
+          (this.dashFireBoostT > 0 ? 1.2 : 1));
       const base = Math.atan2(tgt.y - (p.y - 3), tgt.x - p.x);
       // S2「距离即收益」：按目标距离占射程的比例分档，发射时固化到这一发。
       // 为什么按比例而不是固定 px：射程会随长弓/属性成长，固定 px 档位在后期
@@ -39,6 +53,17 @@ export function updateAttacks(this: GameCore, dt: number) {
       }
       // S2「贯穿轨迹」：弹道留下 0.6 秒能量线（机制在 ProjectileSystem 结算）
       const hasTrail = (p.upCounts["贯穿轨迹"] || 0) > 0;
+      // 射手职业被动：每次开火事件计数一次；多弹道同属一次事件，强化箭覆盖整轮弹幕。
+      this.shotCounter = (this.shotCounter + 1) % SPECIAL_SHOT_EVERY;
+      const special = this.shotCounter === 0;
+      const specialStats = getSpecialLevelStats(this.specialLevel);
+      const baseDmg = boltDamage(p) * distMul;
+      const shotDmg = special
+        ? chargedShotDamage(baseDmg, specialStats.mul)
+        : baseDmg;
+      const copies =
+        special && this.specialUpgrades.includes("doubleShot") ? 2 : 1;
+      const copyDamageMul = copies > 1 ? DOUBLE_SHOT_DAMAGE_MUL : 1;
       for (let i = 0; i < p.multishot; i++) {
         // Issue #36 动态散布：目标附近敌人越少，弹道越收拢（孤立目标近平行）
         const near = this.enemies.reduce(
@@ -46,29 +71,63 @@ export function updateAttacks(this: GameCore, dt: number) {
             (e.x - tgt.x) ** 2 + (e.y - tgt.y) ** 2 < 110 * 110 ? n + 1 : n,
           0,
         );
-        const a = base + (i - (p.multishot - 1) / 2) * multishotSpread(near);
-        this.bullets.push({
-          x: p.x,
-          y: p.y - 3,
-          vx: Math.cos(a) * p.projSpeed,
-          vy: Math.sin(a) * p.projSpeed,
-          dmg: boltDamage(p) * distMul,
-          // S2：穿透次数 = 天赋写入值 + 职业基础（射手 +1）。
-          // 职业基础不进 Player 字段：旧表同名卡靠 f 写同一字段，
-          // 写进去会互相覆盖（见 core/AttributeSources.ts 的说明）。
-          pierce: p.pierce + professionPierce(this.prof),
-          falloff: p.pierceFalloff,
-          life: p.attackRange / p.projSpeed,
-          size: 2 * p.area,
-          jumps: p.ricochet,
-          hitList: [],
-          trail: hasTrail ? 0.6 : 0,
-          critBonus,
-          // S3-B 定稿接口：攻击方属性发射时固化，与敌方弹丸快照对称
-          stats: getPlayerCombatStats(p),
-        });
+        const center = base + (i - (p.multishot - 1) / 2) * multishotSpread(near);
+        for (let copy = 0; copy < copies; copy++) {
+          const a = center + (copy - (copies - 1) / 2) * 0.05;
+          // 出膛横向错开：多弹道/连发从枪口就看得见，避免贴在一起像命中后才分裂。
+          const lateral =
+            (copy - (copies - 1) / 2) * 5 +
+            (i - (p.multishot - 1) / 2) * 3;
+          const sx = p.x + Math.cos(a + Math.PI / 2) * lateral;
+          const sy = p.y - 3 + Math.sin(a + Math.PI / 2) * lateral;
+          this.bullets.push({
+            x: sx,
+            y: sy,
+            vx: Math.cos(a) * p.projSpeed,
+            vy: Math.sin(a) * p.projSpeed,
+            dmg: shotDmg * copyDamageMul,
+            // S2：穿透次数 = 天赋写入值 + 职业基础（射手 +1）。
+            // 职业基础不进 Player 字段：旧表同名卡靠 f 写同一字段，
+            // 写进去会互相覆盖（见 core/AttributeSources.ts 的说明）。
+            pierce:
+              p.pierce +
+              professionPierce(this.prof) +
+              (special ? specialStats.pierceBonus : 0),
+            falloff: p.pierceFalloff,
+            life:
+              special && specialStats.infinitePierce
+                ? Number.POSITIVE_INFINITY
+                : p.attackRange / p.projSpeed,
+            size: 2 * p.area,
+            jumps: p.ricochet,
+            hitList: [],
+            trail: hasTrail ? 0.6 : 0,
+            critBonus,
+            ...(special ? { special: true } : {}),
+            ...(special && specialStats.infinitePierce
+              ? { infinitePierce: true }
+              : {}),
+            ...(special && this.specialUpgrades.includes("bounce")
+              ? { bounces: BOUNCE_COUNT }
+              : {}),
+            // S3-B 定稿接口：攻击方属性发射时固化，与敌方弹丸快照对称
+            stats: getPlayerCombatStats(p),
+          });
+        }
       }
-      this.audio.beep(620, 0.05, "square", 0.02, -250);
+      if (special && this.specialUpgrades.includes("laser")) {
+        fireSpecialLaser.call(this, tgt, shotDmg);
+      }
+      if (special && this.specialUpgrades.includes("missile")) {
+        launchSpecialMissile.call(this, tgt, shotDmg);
+      }
+      this.audio.beep(
+        special ? 880 : 620,
+        special ? 0.08 : 0.05,
+        special ? "triangle" : "square",
+        special ? 0.04 : 0.02,
+        special ? -160 : -250,
+      );
     } else p.fireCd = 0.06;
   }
 
@@ -104,6 +163,9 @@ export function updateAttacks(this: GameCore, dt: number) {
     const z = this.burnZones[i];
     z.t -= dt;
     if (z.t <= 0) {
+      const shown = Math.round(z.tickDmg ?? 0);
+      if (z.showDamage && shown > 0)
+        this.addText(z.x, z.y - 8, shown, "#ff9a3d");
       this.burnZones.splice(i, 1);
       continue;
     }
@@ -114,8 +176,23 @@ export function updateAttacks(this: GameCore, dt: number) {
       if (dx * dx + dy * dy < z.R * z.R) {
         // PR #4 评审 P1：经 fire/dot/preserve-float 管线结算（吃火抗与火系增伤），
         // 死亡/掉落顺序与旧直算一致；中性敌人数值逐位不变
-        this.applyBurnGroundDot(e, burnGroundDps(p), dt);
+        const result = this.applyBurnGroundDot(
+          e,
+          z.dps ?? burnGroundDps(p),
+          dt,
+        );
+        if (z.showDamage)
+          z.tickDmg = (z.tickDmg ?? 0) + result.effectiveHpLoss;
         if (e.hp <= 0) this.killEnemy(e);
+      }
+    }
+    if (z.showDamage && z.tickT !== undefined) {
+      z.tickT -= dt;
+      if (z.tickT <= 0) {
+        const shown = Math.round(z.tickDmg ?? 0);
+        if (shown > 0) this.addText(z.x, z.y - 8, shown, "#ff9a3d");
+        z.tickDmg = 0;
+        z.tickT = 0.5;
       }
     }
   }
@@ -181,4 +258,10 @@ export function updateAttacks(this: GameCore, dt: number) {
       this.audio.beep(90, 0.25, "sawtooth", 0.07, -40);
     }
   }
+
+  for (let i = this.lasers.length - 1; i >= 0; i--) {
+    this.lasers[i].t -= dt;
+    if (this.lasers[i].t <= 0) this.lasers.splice(i, 1);
+  }
+  updateSpecialMissiles.call(this, dt);
 }

@@ -1,0 +1,260 @@
+import {
+  LASER_DAMAGE_MUL,
+  LASER_RANGE_MUL,
+  LASER_WIDTH,
+  MISSILE_BURN_DPS_MUL,
+  MISSILE_BURN_DURATION,
+  MISSILE_DAMAGE_MUL,
+  MISSILE_LATERAL_KICK,
+  MISSILE_RADIUS,
+  MISSILE_TURN_RATE,
+  OFFHAND_OFFSET,
+  SPECIAL_LEVELS,
+  SPECIAL_UPGRADES,
+  getSpecialLevelStats,
+} from "../data/specialShot";
+import { boltDamage } from "./DamageMath";
+import type { GameCore } from "./GameCore";
+import type { Enemy } from "./types";
+
+function pointSegmentDistance(
+  px: number,
+  py: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len2 = dx * dx + dy * dy;
+  const t = len2
+    ? Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2))
+    : 0;
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
+/** 最近的敌人；没有敌人时返回 null。 */
+function nearestTarget(core: GameCore) {
+  const p = core.player;
+  let target: Enemy | null = null;
+  let best = Infinity;
+  for (const e of core.enemies) {
+    if (e.dead) continue;
+    const d = (e.x - p.x) ** 2 + (e.y - p.y) ** 2;
+    if (d < best) {
+      best = d;
+      target = e;
+    }
+  }
+  return target;
+}
+
+/** 从玩家指定侧肩位取发射点。 */
+function shoulderPoint(core: GameCore, side: number) {
+  const p = core.player;
+  return {
+    x: p.x + side * OFFHAND_OFFSET,
+    y: p.y - 3,
+  };
+}
+
+/** 「激光」升级：从另一侧肩位独立索敌并发射穿透光束。 */
+export function fireSpecialLaser(
+  this: GameCore,
+  specialTarget: Enemy,
+  damage: number,
+) {
+  const p = this.player;
+  const target = nearestTarget(this) ?? specialTarget;
+  // 与导弹相反：激光从特殊弹同侧肩位出射，避免两条效果重合。
+  const side = Math.sign(specialTarget.x - p.x) || 1;
+  const start = shoulderPoint(this, side);
+  const angle = Math.atan2(target.y - start.y, target.x - start.x);
+  const length = p.attackRange * LASER_RANGE_MUL;
+  const x1 = start.x;
+  const y1 = start.y;
+  const x2 = x1 + Math.cos(angle) * length;
+  const y2 = y1 + Math.sin(angle) * length;
+  const type = this.specialUpgrades.includes("trueDamage") ? "true" : "physical";
+  const laserDamage = damage * LASER_DAMAGE_MUL;
+  for (const e of this.enemies) {
+    if (e.dead) continue;
+    if (pointSegmentDistance(e.x, e.y, x1, y1, x2, y2) <= LASER_WIDTH + e.r) {
+      this.hurtEnemy(e, laserDamage, 0, 0, {
+        src: "bullet",
+        type,
+        form: "other",
+        noCrit: true,
+        noChain: true,
+        noLifesteal: true,
+      });
+    }
+  }
+  this.lasers.push({ x1, y1, x2, y2, t: 0.12 });
+  this.audio.beep(1320, 0.08, "sawtooth", 0.035, -300);
+}
+
+/** 「导弹」升级：从另一侧肩位独立索敌，带侧向初速的弧线追踪弹。 */
+export function launchSpecialMissile(
+  this: GameCore,
+  specialTarget: Enemy,
+  damage: number,
+) {
+  // 导弹直接锁最近敌人，允许和特殊弹同目标。
+  const target = nearestTarget(this) ?? specialTarget;
+  // 从特殊弹的反侧肩位出膛，形成交叉火力。
+  const side = -(Math.sign(specialTarget.x - this.player.x) || 1);
+  const start = shoulderPoint(this, side);
+  const speed = 220;
+  const angle = Math.atan2(target.y - start.y, target.x - start.x);
+  const perp = angle - Math.PI / 2;
+  this.missiles.push({
+    x: start.x,
+    y: start.y,
+    vx:
+      Math.cos(angle) * speed +
+      Math.cos(perp) * MISSILE_LATERAL_KICK,
+    vy:
+      Math.sin(angle) * speed +
+      Math.sin(perp) * MISSILE_LATERAL_KICK,
+    target,
+    damage: damage * MISSILE_DAMAGE_MUL,
+    t: 1.2,
+  });
+  this.audio.beep(300, 0.12, "sawtooth", 0.03, 180);
+  return target;
+}
+
+export function updateSpecialMissiles(this: GameCore, dt: number) {
+  for (let i = this.missiles.length - 1; i >= 0; i--) {
+    const m = this.missiles[i];
+    m.t -= dt;
+    // 追踪：目标死亡/丢失时重新索敌最近的敌人，始终保持飞行方向修正。
+    if (!m.target || m.target.dead) {
+      let best = null;
+      let bestD = Infinity;
+      for (const e of this.enemies) {
+        if (e.dead) continue;
+        const d = (e.x - m.x) ** 2 + (e.y - m.y) ** 2;
+        if (d < bestD) {
+          bestD = d;
+          best = e;
+        }
+      }
+      m.target = best;
+    }
+    if (m.target && !m.target.dead) {
+      const speed = Math.hypot(m.vx, m.vy) || 220;
+      const desired = Math.atan2(m.target.y - m.y, m.target.x - m.x);
+      const current = Math.atan2(m.vy, m.vx);
+      let diff = desired - current;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      const turn = MISSILE_TURN_RATE * dt;
+      const next = current + Math.max(-turn, Math.min(turn, diff));
+      m.vx = Math.cos(next) * speed;
+      m.vy = Math.sin(next) * speed;
+    }
+    m.x += m.vx * dt;
+    m.y += m.vy * dt;
+    const hit =
+      m.target &&
+      !m.target.dead &&
+      Math.hypot(m.target.x - m.x, m.target.y - m.y) <= m.target.r + 8;
+    if (m.t > 0 && !hit) continue;
+
+    this.missiles.splice(i, 1);
+    for (const e of this.enemies) {
+      if (e.dead) continue;
+      if (Math.hypot(e.x - m.x, e.y - m.y) <= MISSILE_RADIUS + e.r) {
+        this.hurtEnemy(e, m.damage, 0, 0, {
+          src: "explode",
+          type: "physical",
+          form: "other",
+          fromExplode: true,
+          noChain: true,
+          noLifesteal: true,
+        });
+      }
+    }
+    this.burnZones.push({
+      x: m.x,
+      y: m.y,
+      R: MISSILE_RADIUS * 0.8,
+      t: MISSILE_BURN_DURATION,
+      dps: m.damage * MISSILE_BURN_DPS_MUL,
+      showDamage: true,
+      tickT: 0.5,
+      tickDmg: 0,
+    });
+    for (let j = 0; j < 8; j++) {
+      const a = (j / 8) * Math.PI * 2;
+      this.parts.push({
+        x: m.x,
+        y: m.y,
+        vx: Math.cos(a) * 90,
+        vy: Math.sin(a) * 90,
+        life: 0.3,
+        c: "#ff9a3d",
+      });
+    }
+    this.shake = Math.min(this.shake + 1.5, 6);
+    this.audio.beep(120, 0.2, "sawtooth", 0.05, -60);
+  }
+}
+
+/**
+ * 强化箭命中积累经验；升级时按等级表提升伤害/穿透，
+ * 并在 L4-L12 随机获得一条尚未拥有的升级。
+ */
+export function gainSpecialXp(this: GameCore, amount: number) {
+  if (!Number.isFinite(amount) || amount <= 0) return;
+  if (this.specialLevel >= SPECIAL_LEVELS.length) return;
+  this.specialXp += amount;
+
+  while (this.specialLevel < SPECIAL_LEVELS.length) {
+    const current = getSpecialLevelStats(this.specialLevel);
+    if (current.xpToNext === null || this.specialXp < current.xpToNext) break;
+    this.specialXp -= current.xpToNext;
+    this.specialLevel++;
+
+    const next = getSpecialLevelStats(this.specialLevel);
+    let upgradeText = "";
+    if (next.grantsUpgrade) {
+      const pool = SPECIAL_UPGRADES.filter(
+        (upgrade) => !this.specialUpgrades.includes(upgrade.id),
+      );
+      if (pool.length) {
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        this.specialUpgrades.push(pick.id);
+        upgradeText = ` · ${pick.name}`;
+        this.texts.push({
+          x: this.player.x,
+          y: this.player.y - 20 - (this.specialLevel - 2) * 8,
+          s: `获得：${pick.name} — ${pick.desc}`,
+          c: "#ffd24a",
+          life: 2.8,
+          vy: -6,
+          big: false,
+        });
+      }
+    }
+
+    const pierceText = next.infinitePierce ? "∞" : `+${next.pierceBonus}`;
+    const damageText = (boltDamage(this.player) * next.mul).toFixed(1);
+    const maxText = next.xpToNext === null ? " · MAX" : "";
+    this.texts.push({
+      x: this.player.x,
+      y: this.player.y - 30 - (this.specialLevel - 2) * 8,
+      s: `强化箭 Lv.${this.specialLevel} · 伤害 ${damageText}（×${next.mul}） · 穿透 ${pierceText}${maxText}${upgradeText}`,
+      c: "#ffd24a",
+      life: 2.2,
+      vy: -8,
+      big: true,
+    });
+    this.audio.beep(1046, 0.12, "triangle", 0.05, 200);
+  }
+  if (this.specialLevel >= SPECIAL_LEVELS.length) this.specialXp = 0;
+  this.shake = Math.min(this.shake + 1, 3);
+}

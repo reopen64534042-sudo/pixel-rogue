@@ -91,7 +91,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;back
     <article class="formula-card">
       <div class="formula-kicker">05 / 怪物最大生命随波次增长</div>
       <div class="mathline"><strong>怪物 HP</strong> = <span class="sym">基础HP</span> × [1 + (波次−1)×0.18 + max(0,波次−15)<sup>2</sup>×0.06] × 精英倍率</div>
-      <p>越到后面波次成长越快。v46 起玩家等级不再影响怪物 HP——等级只影响属性强化的稀有度；精英的 HP 倍率是 ×3.5。</p>
+      <p>越到后面波次成长越快。v46 起玩家等级不再影响怪物 HP——等级只影响属性强化的稀有度；精英的 HP 倍率是 ×5。</p>
       <div class="formula-gloss"><span>平方²：一个数乘自己</span><span>floor：向下取整</span></div>
     </article>
     <article class="formula-card">
@@ -245,10 +245,10 @@ table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;back
         <div><span class="round">1</span><div><h3>先有基础配置</h3><p id="enemyBaseText">史莱姆基础 HP 19，攻击 10，速度 55。</p></div></div>
         <div><span class="round">2</span><div><h3>波次提高 HP 和攻击</h3><p>前期按波次线性上涨；第 15 波之后还有额外的二次增长，后期会明显更硬。</p></div></div>
         <div><span class="round">3</span><div><h3>玩家等级不影响怪物</h3><p>v46 起等级不再参与怪物 HP；等级只提高属性强化出现高稀有度的概率。</p></div></div>
-        <div><span class="round">4</span><div><h3>精英倍率与小幅随机速度</h3><p>精英 HP ×3.5、攻击 ×1.6、速度 ×0.8；正常速度还带随机抖动。</p></div></div>
+        <div><span class="round">4</span><div><h3>精英倍率与小幅随机速度</h3><p>精英 HP ×5、攻击 ×1.6、速度 ×0.8；正常速度还带随机抖动。</p></div></div>
       </div>
       <div class="note warn"><b>注意：</b>这是新生成怪物的数值，不是“怪物每过一波自动加一次血”。你现在看到的数值是按选择的波次和精英状态计算出的生成结果。</div>
-      <details style="margin-top:16px"><summary>想看更精确的怪物成长公式？</summary><p>HP = 基础 HP × [1 + (波次−1)×0.18 + max(0,波次−15)²×0.06] × (精英?3.5:1)。</p><p>攻击 = 基础攻击 × [1 + (波次−1)×0.055 + max(0,波次−15)²×0.012] × (精英?1.6:1)。</p><p>速度 = 基础速度 × (精英?0.8:1) × 随机抖动（0.9～1.1）。</p><p>v46 起血量不再乘玩家等级项（原为 1.03 的 floor(等级/5) 次方）。</p></details>
+      <details style="margin-top:16px"><summary>想看更精确的怪物成长公式？</summary><p>HP = 基础 HP × [1 + (波次−1)×0.18 + max(0,波次−15)²×0.06] × (精英?5:1)。</p><p>攻击 = 基础攻击 × [1 + (波次−1)×0.055 + max(0,波次−15)²×0.012] × (精英?1.6:1)。</p><p>速度 = 基础速度 × (精英?0.8:1) × 随机抖动（0.9～1.1）。</p><p>v46 起血量不再乘玩家等级项（原为 1.03 的 floor(等级/5) 次方）。</p></details>
     </div>
   </div>
 </section>
@@ -386,12 +386,12 @@ var mobs={
  slime:{name:"史莱姆",hp:19,dmg:10,speed:55,w0:1},
  bat:{name:"蝙蝠",hp:13,dmg:8,speed:62,w0:3},
  brute:{name:"重甲怪",hp:65,dmg:18,speed:22,w0:5},
- shooter:{name:"射手",hp:22,dmg:12,speed:40,w0:4},
+ shooter:{name:"射手",hp:22,dmg:10,speed:40,w0:4},
  bomber:{name:"自爆虫",hp:16,dmg:20,speed:72,w0:8}
 };
 function calculateEnemy(cfg,w,elite){
   var over=Math.max(0,w-15), hpScale=1+(w-1)*.18+over*over*.06, dmgScale=1+(w-1)*.055+over*over*.012;
-  return {hp:cfg.hp*hpScale*(elite?3.5:1),dmg:cfg.dmg*dmgScale*(elite?1.6:1),speed:cfg.speed*(elite?.8:1)};
+  return {hp:cfg.hp*hpScale*(elite?5:1),dmg:cfg.dmg*dmgScale*(elite?1.6:1),speed:cfg.speed*(elite?.8:1)};
 }
 function enemyLine(values,stroke,max){
   var pts=values.map(function(v,i){return (42+i/29*478)+","+(169-(v/max)*140);});
@@ -403,7 +403,7 @@ function updateEnemy(){
   $("enemyHp").textContent=fmt(e.hp);$("enemyDmg").textContent=fmt(e.dmg);$("enemySpeed").textContent=fmt(e.speed);
   $("hpRatio").textContent="相比初始 ×"+fmt(e.hp/base.hp);$("dmgRatio").textContent="相比初始 ×"+fmt(e.dmg/base.dmg);
   var over=Math.max(0,w-15),hpFactor=1+(w-1)*.18+over*over*.06,dmgFactor=1+(w-1)*.055+over*over*.012;
-  $("enemyLiveHp").textContent="HP = "+fmt(cfg.hp)+"（基础） × "+fmt(hpFactor)+"（波次） × "+(elite?3.5:1)+"（精英） = "+fmt(e.hp);
+  $("enemyLiveHp").textContent="HP = "+fmt(cfg.hp)+"（基础） × "+fmt(hpFactor)+"（波次） × "+(elite?5:1)+"（精英） = "+fmt(e.hp);
   $("enemyLiveDmg").textContent="攻击 = "+fmt(cfg.dmg)+"（基础） × "+fmt(dmgFactor)+"（波次） × "+(elite?1.6:1)+"（精英） = "+fmt(e.dmg);
   $("enemyLiveSpeed").textContent="参考速度 = "+fmt(cfg.speed)+" × "+(elite?.8:1)+"（精英） × 1.0（暂不含随机抖动） = "+fmt(e.speed);
   $("enemyBaseText").textContent=cfg.name+"基础 HP "+cfg.hp+"、攻击 "+cfg.dmg+"、速度 "+cfg.speed+"；从第 "+cfg.w0+" 波开始可自然刷出。";

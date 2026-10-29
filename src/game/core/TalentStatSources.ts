@@ -263,7 +263,7 @@ export function talentStatModifiers(
         });
         break;
       // 「双段疾冲」（射手机动槽）的声明在下方 C3-C 段
-      case "疾行": // 冲刺距离 +25%
+      case "疾行": // 冲刺距离 +25%；冲刺后的射速窗口是运行时状态
         scalars.push({
           sourceId: "天赋:疾行",
           stat: "dashDistMul",

@@ -11,6 +11,7 @@ import { SPR } from "../rendering/sprites";
 import { registerSprite } from "../rendering/assetRegistry";
 import { W, H, WORLD } from "../data/constants";
 import { UPGRADES } from "../data/talents";
+import { SPECIAL_LEVELS, SPECIAL_UPGRADES } from "../data/specialShot";
 import type { Talent } from "../core/types";
 
 declare global {
@@ -47,6 +48,9 @@ export class GameScene extends Phaser.Scene {
   /** 开发者作弊面板：仅 DEV 构建存在（生产包无入口、无控制桥） */
   private dev?: DevPanel;
   private clock = new FixedClock();
+  private specialTest = false;
+  private testReady = false;
+  private testAnchors: { x: number; y: number }[] = [];
   private stars = Array.from({ length: 60 }, () => ({
     x: Math.random() * W,
     y: Math.random() * H,
@@ -144,6 +148,78 @@ export class GameScene extends Phaser.Scene {
         counts: () => this.painter.counts,
       };
     void this.loadSpriteOverrides();
+    this.specialTest =
+      import.meta.env.DEV &&
+      import.meta.env.MODE === "e2e" &&
+      new URLSearchParams(window.location.search).get("test") ===
+        "special-max";
+    if (this.specialTest) this.core.startGame();
+  }
+
+  private tickSpecialTest() {
+    const core = this.core;
+    if (!this.testReady) {
+      if (core.state !== "play" || core.phase !== "play") return;
+      core.specialLevel = SPECIAL_LEVELS.length;
+      core.specialXp = 0;
+      core.specialUpgrades = SPECIAL_UPGRADES.map((upgrade) => upgrade.id);
+      core.quota = 0;
+      core.spawnedThisWave = 0;
+      core.wavePhase = "fight";
+      core.enemies = [];
+      core.bullets = [];
+      core.ebullets = [];
+      core.gems = [];
+      core.potions = [];
+      core.boxes = [];
+      core.burnZones = [];
+      core.missiles = [];
+      core.lasers = [];
+      this.testAnchors = [{ x: core.player.x + 110, y: core.player.y }];
+      for (const anchor of this.testAnchors) this.spawnTestElite(anchor);
+      core.addText(
+        core.player.x,
+        core.player.y - 30,
+        "测试：强化箭 Lv.12 · 全升级 · 10000 HP 精英",
+        "#ffd24a",
+        true,
+      );
+      this.testReady = true;
+      return;
+    }
+    core.quota = 0;
+    core.spawnedThisWave = 0;
+    core.wavePhase = "fight";
+    if (core.bpMode) core.bpMode = null;
+    core.gems = [];
+    core.boxes = [];
+    core.potions = [];
+    const living = core.enemies.filter((e) => e.elite && !e.dead);
+    this.testAnchors.forEach((anchor, index) => {
+      const e = living[index];
+      if (e) {
+        e.x = anchor.x;
+        e.y = anchor.y;
+        e.kx = 0;
+        e.ky = 0;
+      } else {
+        this.spawnTestElite(anchor);
+      }
+    });
+  }
+
+  private spawnTestElite(anchor: { x: number; y: number }) {
+    const core = this.core;
+    core.spawnEnemy("brute", true);
+    const e = core.enemies[core.enemies.length - 1];
+    e.maxhp = 10000;
+    e.hp = 10000;
+    e.speed = 0;
+    e.dmg = 0;
+    e.x = anchor.x;
+    e.y = anchor.y;
+    e.kx = 0;
+    e.ky = 0;
   }
 
   /**
@@ -186,6 +262,7 @@ export class GameScene extends Phaser.Scene {
     if (this.core.state === "play")
       this.clock.advance(delta / 1000, (dt) => this.core.step(dt));
     else this.clock.reset();
+    if (this.specialTest) this.tickSpecialTest();
     this.painter.begin();
     if (this.core.state === "start") {
       this.cameras.main.setScroll(0, 0);
