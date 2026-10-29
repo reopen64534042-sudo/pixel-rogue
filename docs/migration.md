@@ -2047,5 +2047,7 @@ ctx.stroke();      // → strokePath()
   2. 前置灰显：`requires`（链前置）与 `req`（自定义条件）未满足时置灰不可点；提示优先用新增的 `Talent.reqHint`（「需 星陨」/「需 元素卡」/「需 循环卡」），否则「前置未满足」；400ms 轮询自动解锁。职业/互斥/变体仍绕过。
   3. 无敌：`GameCore.devInvincible` + `damagePlayer` 首行拦截，条件 `import.meta.env.DEV && this.devInvincible`，生产恒假并整段 tree-shake；跨重开保留。
   4. 输入框 keydown/keyup `stopPropagation`，避免数字被当成选卡快捷键。
+  5. 「属性 +5」改为**立即弹出**属性选择面板（`openAttrPanel`），不再等休整；若当前已有面板则按原逻辑排队。
+  6. 前置判定补齐**互斥（双向）与变体组 N 选 1**（含 `variantBypass` 豁免）：法师三元素只能三选一、双修与星陨路线互斥；职业仍不限制（作弊面板允许跨职业测试）。
 - 验证：`typecheck` ✓、`build` ✓；跳波后 picks 保留；星陨 → 多重陨星 → 元素残域链式解锁；无敌开启时 9999 伤害被拦截、关闭后正常扣血。
 - 生产安全：面板仍只在 `import.meta.env.DEV` 实例化；线上 bundle 搜不到「天赋作弊 / 无敌：」字样。

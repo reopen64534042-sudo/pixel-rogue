@@ -107,6 +107,9 @@ export class DevPanel {
     };
     mk("属性 +5", () => {
       this.core.attrPicks += 5;
+      // 立即弹出属性选择面板，不用等到休整环节；若当前已有面板，
+      // openAttrPanel 会早退，这 5 次仍排在波末使用。
+      if (this.core.state === "play") this.core.openAttrPanel();
     });
     mk("重开本局", () => {
       this.core.startGame(this.core.prof);
@@ -223,12 +226,31 @@ export class DevPanel {
       document.getElementById(id)?.classList.add("hidden");
   }
 
-  /** 正常游玩的前置判定：`requires`（链前置）与 `req`（自定义条件）。 */
+  /**
+   * 正常游玩的前置判定：`requires`（链前置）、`req`（自定义条件）、
+   * 互斥（双向）与变体组 N 选 1（含 `variantBypass` 豁免）。
+   * 职业不在此列——作弊面板仍允许跨职业测试。
+   */
   private prereq(u: Talent): { ok: boolean; hint: string } {
-    if (u.requires && !this.core.player.picks.includes(u.requires))
+    const picks = this.core.player.picks;
+    if (u.requires && !picks.includes(u.requires))
       return { ok: false, hint: `需 ${u.requires}` };
     if (u.req && !u.req(this.core.player))
       return { ok: false, hint: u.reqHint ?? "前置未满足" };
+    if (u.excludes?.some((n) => picks.includes(n)))
+      return { ok: false, hint: "与已选卡互斥" };
+    if (UPGRADES.some((o) => o.excludes?.includes(u.n) && picks.includes(o.n)))
+      return { ok: false, hint: "与已选卡互斥" };
+    if (u.variant) {
+      const bypass = UPGRADES.some(
+        (o) => o.variantBypass === u.variant && picks.includes(o.n),
+      );
+      if (
+        !bypass &&
+        UPGRADES.some((o) => o.variant === u.variant && picks.includes(o.n))
+      )
+        return { ok: false, hint: "同组已选" };
+    }
     return { ok: true, hint: "" };
   }
 
