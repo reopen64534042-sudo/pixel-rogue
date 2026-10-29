@@ -180,7 +180,7 @@ export class GameScene extends Phaser.Scene {
       core.addText(
         core.player.x,
         core.player.y - 30,
-        "测试：强化箭 Lv.12 · 全升级 · 10000 HP 精英",
+        `测试：强化箭 Lv.${SPECIAL_LEVELS.length} · 全升级 · 10000 HP 精英`,
         "#ffd24a",
         true,
       );

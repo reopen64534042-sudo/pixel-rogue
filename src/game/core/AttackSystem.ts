@@ -95,7 +95,7 @@ export function updateAttacks(this: GameCore, dt: number) {
               (special ? specialStats.pierceBonus : 0),
             falloff: p.pierceFalloff,
             life:
-              special && specialStats.infinitePierce
+              special && specialStats.infiniteFlight
                 ? Number.POSITIVE_INFINITY
                 : p.attackRange / p.projSpeed,
             size: 2 * p.area,
@@ -104,9 +104,6 @@ export function updateAttacks(this: GameCore, dt: number) {
             trail: hasTrail ? 0.6 : 0,
             critBonus,
             ...(special ? { special: true } : {}),
-            ...(special && specialStats.infinitePierce
-              ? { infinitePierce: true }
-              : {}),
             ...(special && this.specialUpgrades.includes("bounce")
               ? { bounces: BOUNCE_COUNT }
               : {}),

@@ -390,8 +390,6 @@ export interface Bullet extends Point {
   critBonus?: number;
   /** 射手强化箭标记；普通弹不写该键，保持旧对象形状。 */
   special?: boolean;
-  /** 强化箭 Lv.3+：命中后不消耗穿透次数，直到寿命结束。 */
-  infinitePierce?: boolean;
   /** 反弹升级：剩余反弹次数 */
   bounces?: number;
   /**

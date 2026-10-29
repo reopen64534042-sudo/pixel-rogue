@@ -2359,3 +2359,15 @@ ctx.stroke();      // → strokePath()
   - 陨星路线未下调（4.0× ≈22 DPS），相对法阵（≈18 DPS）变强；是否下调到 ~3.0 待试玩。
   - 第一下仍可能秒杀没有状态的小怪（B 方案是平削，不是起手减伤）；若高攻击下仍看不到反应，下一步可加起手 ×0.7 或继续下调到 0.85/0.8。
   - 基线：反应伤害口径未变；但直伤系数变化会让 mage/parity/browser 的旧数值断言过期；按 2026-10-29 验证标准未跑/未改测试，留待授权批次。
+
+## D-81 强化箭穿透上限与属性面板（v77）
+
+- 用户反馈：强化箭的追踪升级配合无限穿透会导致弹体不消失、可持续造成伤害；要求取消无限穿透、保留无限飞行，穿透最高 6，并保持 12 级结构（L1-L6 累计到 6，L7-L12 不再增加）。同时把强化箭信息移入 C 属性面板，并移除升级飘字。
+- 改动：
+  1. `data/specialShot.ts`：删除 `infinitePierce` 字段，新增独立的 `infiniteFlight` 字段（L3-L12 为 true）；`pierceBonus` 改为当前等级的累计额外穿透数：L1-L6 = 1/2/3/4/5/6，L7-L12 = 6。12 级 / 9 条升级规则不变。
+  2. `core/AttackSystem.ts`：强化箭 `life` 在 `infiniteFlight` 时仍为 `Number.POSITIVE_INFINITY`，其余等级为 `attackRange / projSpeed`；不再向 Bullet 写 `infinitePierce`。
+  3. `core/ProjectileSystem.ts`：删除 `b.infinitePierce` 不消耗穿透的分支；强化箭与其他弹丸一样按穿透次数递减，耗尽后消失。
+  4. `core/types.ts`：删除 `Bullet.infinitePierce` 可选字段。
+  5. `core/SpecialSystem.ts`：删除升级/升级获得的世界飘字，保留升级音效与震屏；升级结果改由属性面板显示。
+  6. `index.html` + `ui/GameUI.ts` + `styles/game.css`：C 属性面板新增「强化箭」组（仅射手显示），展示等级 `Lv.x / 12`、强化穿透 `+n`、飞行状态（有限/无限）、下一级经验 `current / required`、当前升级列表；长列表跨两列换行。
+- 验证：`npm run typecheck`、`npm run build` 通过；按 2026-10-29 标准未运行 Vitest / Playwright。现有测试无 `infinitePierce` 直接断言，历史 balance/parity 基线仍按更早数值保留。受控运行（普通 dev + e2e `?test=special-max`）：射手 C 面板显示 Lv.1/12、强化穿透 +1、飞行有限、经验 0/8、当前升级「暂无」；法师面板整组隐藏；满级显示 Lv.12/12 · MAX、+6、飞行无限、MAX 与 9 条升级；调用 `gainSpecialXp` 升级前后 `core.texts.length` 均为 8，确认升级不再产生飘字。

@@ -145,10 +145,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
         });
         if (special) this.gainSpecialXp(1);
         b.hitList.push(e);
-        if (b.infinitePierce) {
-          // Lv.3+：不消耗穿透次数，但仍按 falloff 衰减；hitList 防止重复命中。
-          b.dmg *= b.falloff;
-        } else if (b.pierce > 0) {
+        if (b.pierce > 0) {
           b.pierce--;
           // S2：衰减系数从硬编码 0.85 改为发射时固化的属性值
           //（射手职业 0.5、破甲箭 0.8、弹道贯穿 1.0）
