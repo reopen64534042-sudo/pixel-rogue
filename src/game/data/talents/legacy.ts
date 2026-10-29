@@ -1,22 +1,20 @@
-import type { Talent } from "../core/types";
+import type { Talent } from "../../core/types";
 import {
   frostFreezeDuration,
   burnStackDps,
   critMultiplier,
-} from "../core/DamageMath";
-import { COMBAT_BALANCE } from "./combatBalance";
+} from "../../core/DamageMath";
+import { hasteCap, physMitPct } from "./common";
 
-/** 击杀狂热叠层上限：随天赋等级提高（Lv1→4 层，Lv2→5 层，Lv3→6 层） */
-export function hasteCap(hasteLv: number) {
-  return 3 + hasteLv;
-}
-
-/** 磐石预览用：护甲对应的物理减伤百分比（K/(K+DEF) 公式与 DamageSystem 一致） */
-function physMitPct(def: number) {
-  const k = COMBAT_BALANCE.armorK;
-  return Math.round((1 - k / (k + Math.max(0, def))) * 100);
-}
-
+/**
+ * 旧版通用天赋表（v40 及以前）。
+ *
+ * S2 起本表整体退役：`UPGRADES` 的条目全部标记 `hidden`，不再进入抽取池，
+ * 但**不能删除**——`tests/parity.test.ts` 的「41 张逐字段对照」要求它们仍在表内，
+ * 卡名同时是图鉴 id（`codex.syncTalents`），删除会让旧存档条目变孤儿。
+ *
+ * 真正的退役（迁移到属性系统 / 彻底移除）在 S4 处理。
+ */
 export const UPGRADES: Talent[] = [
   {
     n: "强化弹丸",
@@ -610,15 +608,14 @@ export const UPGRADES: Talent[] = [
       `火焰/雷电伤害 +${((p.typeDamageBonus?.fire ?? 0) * 100).toFixed(0)}%`,
   },
 ];
-export const TIERS = ["普通", "稀有", "史诗", "传奇"];
-export const TIER_VAL = [1, 2, 4, 8];
-export const TIER_COLOR = ["#e8e8f0", "#4dff88", "#c07bff", "#ffd24a"];
-export const RAMP = [
-  { min: 1, w: [70, 25, 5, 0] },
-  { min: 5, w: [45, 35, 15, 5] },
-  { min: 10, w: [25, 35, 25, 15] },
-  { min: 16, w: [10, 30, 35, 25] },
-];
+
+/**
+ * 「三选一里至少有一张伤害系」的硬保底名单。
+ *
+ * S2 起必须删除：新体系的天赋不提供伤害（伤害来自属性成长与职业基础形态），
+ * 这条保底会把清场类机制卡强行塞进每一次三选一，破坏取舍。
+ * 删除动作与 `rollPicks` 的改写在同一次提交内完成。
+ */
 export const DMG_POOL = [
   "强化弹丸",
   "致命一击",
@@ -631,15 +628,3 @@ export const DMG_POOL = [
   "狂怒",
   "毁灭本能",
 ];
-export const CAT_COLOR: Record<string, string> = {
-  攻击: "#ff6b9d",
-  增幅: "#4dff88",
-  技能: "#57e6ff",
-  防御: "#ffd24a",
-};
-export const CAT_ICO: Record<string, string> = {
-  攻击: "⚔",
-  增幅: "📈",
-  技能: "✨",
-  防御: "🛡",
-};
