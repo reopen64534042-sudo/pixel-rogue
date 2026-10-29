@@ -13,7 +13,7 @@ import type { Player } from "../src/game/core/types";
 import { fresh, talent } from "./helpers";
 
 /**
- * 伤害重做 · 基线快照（v40，41 张卡 + 怪物压力）
+ * 伤害重做 · 基线快照（v40 起，S2 扩到 56 张卡 + 怪物压力）
  *
  * 目的：换掉整张天赋表之前先留一把尺子。之后任何一批改动都能回答
  * 「变强还是变弱」，而不是靠体感。
@@ -23,7 +23,7 @@ import { fresh, talent } from "./helpers";
  * - `talents[name]`：学 1 级 / 满级后**相对 base 的增量**（只记变了的字段）+ 指标比值。
  * - `enemyPressure`：标准怪（slime）在采样波次的单怪数值与配额压力。
  *
- * 为什么用「增量」而不是「绝对值」：41 张 × 2 档 × 全字段的绝对值会把
+ * 为什么用「增量」而不是「绝对值」：56 张 × 2 档 × 全字段的绝对值会把
  * 差异埋进几百个相同数字里；增量表能直接看出「这张卡改了什么、改了多少」。
  *
  * 派生指标是**参考指标，不是权威公式**（假设写在 INDICES_NOTES 里）。
@@ -328,7 +328,7 @@ describe("基线快照 · 玩家基础（未学天赋）", () => {
   });
 });
 
-describe("基线快照 · 单卡增量（41 张）", () => {
+describe("基线快照 · 单卡增量（56 张 = 38 退役 + 18 射手）", () => {
   it("卡数与基线条目一致（换表时这里会先红）", () => {
     expect(Object.keys(snapshot.talents).length).toBe(
       Object.keys(baseline.talents).length,

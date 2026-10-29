@@ -37,6 +37,11 @@ const BASE_ENEMY_KEYS = [
   "burnT",
   "burnDps",
   "burnStacks",
+  // S2「猎杀标记」：标记是敌人自己的状态（同一目标才累计），
+  // 所以这三个键属于冻结实体形状的一部分，新增时必须显式登记。
+  "markHits",
+  "markStacks",
+  "markT",
   "frostStacks",
   "frozenT",
   "frostImmuneT",

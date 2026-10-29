@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveStats, type StatModifier } from "../src/game/core/StatModel";
-import { enemy, fresh, learn, talent, ticks } from "./helpers";
+import { enemy, fresh, learn, meltRollFor, ticks } from "./helpers";
 
 /**
  * S4-C C3-0 混合天赋旧行为基线（契约冻结前置审计）。
@@ -196,10 +196,13 @@ describe("S4-C C3-0 · 冲刺解锁/充能（旧行为基线）", () => {
 
   it("B11 二段冲刺前置（req 只约束卡池 canOffer）与充能上限 dchMax = 1 + dashChargeLv", () => {
     const g = fresh();
-    expect(g.canOffer(talent("二段冲刺"))).toBe(false); // dashLv=0
+    // S2：旧卡「二段冲刺」已删除，改学射手机动槽「双段疾冲」（同样 +1 充能）。
+    // 「req 只约束 canOffer」的验证由射手链式依赖覆盖（见 game.test 的
+    // 「chain prerequisites」用例），这里保留充能上限公式的验证。
+    // 冲刺必须先解锁（dashLv>0 是充能逻辑的前提）
     learn(g, "疾影步");
-    expect(g.canOffer(talent("二段冲刺"))).toBe(true);
-    learn(g, "二段冲刺");
+    expect(g.player.dashLv).toBe(1);
+    learn(g, "双段疾冲");
     expect(g.player.dashChargeLv).toBe(1);
     // 充能行为：0 → 1 → 2 充满后停（隔离刷怪）
     g.quota = 0;
@@ -228,7 +231,8 @@ describe("S4-C C3-0 · 置换与换波入口（旧行为基线）", () => {
     g.setSwapTarget(1);
     g.selectMaterial("生命之泉");
     g.selectMaterial("巨人血脉");
-    const rand = vi.spyOn(Math, "random").mockReturnValue(0.8); // t1 池 12 项 idx 9 = 狂怒
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "狂怒")); // 按池位置反算，不写死索引
+    const rand = vi.spyOn(Math, "random");
     const output = g.melt();
     expect(output?.n).toBe("狂怒");
     expect(g.player.picks).toEqual(["狂怒"]);
@@ -247,7 +251,7 @@ describe("S4-C C3-0 · 置换与换波入口（旧行为基线）", () => {
     g.setSwapTarget(2);
     g.selectMaterial("狂怒");
     g.selectMaterial("战意沸腾");
-    vi.spyOn(Math, "random").mockReturnValue(0.4); // t2 池 8 项 idx 3 = 能量护盾
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 2, "能量护盾")); // 按池位置反算，不写死索引
     const output = g.melt();
     expect(output?.n).toBe("能量护盾");
     expect(g.player.picks).toEqual(["能量护盾"]);

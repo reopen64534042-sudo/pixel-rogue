@@ -16,6 +16,14 @@ export function statBase() {
     fireRate: 2.2,
     multishot: 1,
     pierce: 0,
+    // S2：穿透衰减系数从 ProjectileSystem 的硬编码 0.85 提为属性。
+    // **射手基础 0.5**（职业被动「第二目标 50%」）。这是 S2 的临时落点：
+    // S2 只有射手一个职业，把基础值直接写成 0.5 最简单；S3 引入三职业后
+    // 应改为 `applyTalentStatProjection` 的职业 base 参数，而不是改这里。
+    pierceFalloff: 0.5,
+    // S2：「距离即收益」开关与冲刺距离倍率；默认无效果
+    distanceDmg: 0,
+    dashDistMul: 1,
     area: 1,
     crit: 0.05,
     critMul: 2,

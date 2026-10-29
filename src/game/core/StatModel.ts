@@ -73,6 +73,15 @@ export const STAT_IDS = [
   "boltDmgMul",
   "magnet",
   "area",
+  // S2 射手池：核心链与机动/距离链需要的标量槽位。
+  // pierce 与 pierceFalloff 成对使用（穿几个、每次穿完剩多少）；
+  // multishot 用 final 区表达「一次射几发」（旧卡是 flat +1，两种语义都能表达）；
+  // distanceDmg 是 0/1 开关；dashDistMul 是冲刺位移倍率。
+  "pierce",
+  "pierceFalloff",
+  "multishot",
+  "distanceDmg",
+  "dashDistMul",
 ] as const;
 
 /**

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { createContext, runInContext } from "node:vm";
 import { it, expect, vi, afterEach } from "vitest";
 import { fresh, seeded, learn, enemy } from "./helpers";
-import { UPGRADES } from "../src/game/data/talents";
+import { LEGACY_UPGRADES, SHOOTER_TALENTS } from "../src/game/data/talents";
 import { ETYPES } from "../src/game/data/enemies";
 import type { EnemyConfig } from "../src/game/core/types";
 import {
@@ -29,7 +29,7 @@ afterEach(() => vi.restoreAllMocks());
  *
  * 基线更新依据：Issue #36（用户已批准的手感变更）。
  * 多弹道散布改为动态（孤立目标收拢 0.04 / 密集目标 0.16），
- * 分裂射击不参与 v8 对照，由 D-05 显式断言保护。
+ * 多弹道卡不参与 v8 对照，由 D-05 显式断言保护（S2 起改用射手「三重射击」，旧卡已删除）。
  * 任何其他天赋出现与 v8 的差异都按 bug 处理。
  */
 const BASELINE_EXCLUDED = [
@@ -55,7 +55,7 @@ const NOT_IN_V8 = [
   "磐石",
   "元素亲和",
 ] as const;
-const parityTalents = UPGRADES.filter(
+const parityTalents = LEGACY_UPGRADES.filter(
   (u) =>
     !BASELINE_EXCLUDED.includes(u.n as (typeof BASELINE_EXCLUDED)[number]) &&
     !NOT_IN_V8.includes(u.n as (typeof NOT_IN_V8)[number]),
@@ -221,6 +221,69 @@ function takeAttackRange(snapshot: unknown) {
   return { rest: snapshot, attackRange };
 }
 /**
+ * 基线更新依据：S2 射手纵切（职业基础形态 + 新增字段）。
+ *
+ * 三件事同时发生，都不能用「删断言」处理：
+ * 1. 射手职业被动让 `pierce` 从 0 变 1，并新增 `pierceFalloff`（0.5）——v8 没有职业概念；
+ * 2. 「距离即收益」「疾行」新增 `distanceDmg` / `dashDistMul` 两个开关字段，
+ *    未学时分别是 0 / 1；
+ * 3. 弹丸新增 `falloff/trail/critBonus`，敌人新增 `markHits/markStacks/markT`。
+ *
+ * 摘出后仍然显式断言：
+ * - v8 一侧没有 `pierceFalloff/distanceDmg/dashDistMul` 三键（证明是新增不是改名）；
+ * - 当前实现 `pierceFalloff ∈ (0,1]`、`distanceDmg ≥ 0`、`dashDistMul ≥ 1`，
+ *   且 `pierce` 不小于 v8（职业被动只增不减）；
+ * - 具体数值（穿透 1、衰减 0.5、长弓 149.5 等）由 `tests/s2-shooter-pool.test.ts` 钉住。
+ */
+function takeShooterBase(snapshot: unknown) {
+  const snap = snapshot as { player: Record<string, unknown> } & Record<
+    string,
+    unknown
+  >;
+  const out = {
+    pierce: snap.player.pierce as number,
+    pierceFalloff: snap.player.pierceFalloff as number | undefined,
+    distanceDmg: snap.player.distanceDmg as number | undefined,
+    dashDistMul: snap.player.dashDistMul as number | undefined,
+  };
+  delete snap.player.pierce;
+  delete snap.player.pierceFalloff;
+  delete snap.player.distanceDmg;
+  delete snap.player.dashDistMul;
+  return { rest: snapshot, ...out };
+}
+/** 摘出弹丸/敌人上的 S2 新增键（v8 没有这些概念，逐字段对照对它们无意义）。 */
+function stripS2Only(snapshot: unknown) {
+  const snap = snapshot as {
+    bullets?: {
+      falloff?: unknown;
+      trail?: unknown;
+      trailT?: unknown;
+      critBonus?: unknown;
+      hitList?: Record<string, unknown>[];
+    }[];
+    enemies?: Record<string, unknown>[];
+    trailZones?: unknown;
+  };
+  const stripEnemy = (e: Record<string, unknown>) => {
+    delete e.markHits;
+    delete e.markStacks;
+    delete e.markT;
+  };
+  for (const b of snap.bullets ?? []) {
+    delete b.falloff;
+    delete b.trail;
+    delete b.trailT;
+    delete b.critBonus;
+    // 穿透后的子弹在 hitList 里持有敌人引用，这些敌人**不在** snap.enemies 里
+    // （可能已经死亡并移出数组），必须单独剥离，否则深比较仍会看到 mark 字段。
+    for (const e of b.hitList ?? []) stripEnemy(e);
+  }
+  for (const e of snap.enemies ?? []) stripEnemy(e);
+  delete snap.trailZones;
+  return snapshot;
+}
+/**
  * 基线更新依据：伤害重做 S1（属性发放）。
  *
  * 休整期新增「属性强化面板」并排在链首（属性 → 天赋 → 宝箱 → 报告），所以到达
@@ -330,7 +393,29 @@ function expectParity(actual: unknown, expected: unknown, wave: number) {
     expect(st.attack).toBeGreaterThanOrEqual(dmg);
     expect(st.attack).toBeGreaterThan(0);
   }
-  expect(aB.rest).toEqual(eB.rest);
+  // S2 射手纵切：职业基础形态与新增字段（依据见 takeShooterBase 注释）
+  const aS = takeShooterBase(aB.rest);
+  const eS = takeShooterBase(eB.rest);
+  expect(eS.pierceFalloff).toBeUndefined();
+  expect(eS.distanceDmg).toBeUndefined();
+  expect(eS.dashDistMul).toBeUndefined();
+  expect(aS.pierceFalloff).toBeGreaterThan(0);
+  expect(aS.pierceFalloff).toBeLessThanOrEqual(1);
+  expect(aS.distanceDmg).toBeGreaterThanOrEqual(0);
+  expect(aS.dashDistMul).toBeGreaterThanOrEqual(1);
+  expect(aS.pierce).toBeGreaterThanOrEqual(eS.pierce);
+  // S2：天赋发放从「升级」改为「节点精英」，所以同一波结算后 v8 有若干次
+  // 待发（pendingLevels=2），我方为 0。这是**有意的设计变更**，不是分叉：
+  // 摘出后显式断言我方必须为 0（不得由升级产生），节点发放由
+  // tests/s2-shooter-pool.test.ts 的「一局 8 次」用例钉住。
+  const aP = aS.rest as { pendingLevels?: number };
+  const eP = eS.rest as { pendingLevels?: number };
+  expect(aP.pendingLevels).toBe(0);
+  delete aP.pendingLevels;
+  delete eP.pendingLevels;
+  stripS2Only(aS.rest);
+  stripS2Only(eS.rest);
+  expect(aS.rest).toEqual(eS.rest);
 }
 /**
  * 基线更新依据：Combat Foundation S3-B（玩家弹丸发射时快照，定稿接口）。
@@ -470,7 +555,7 @@ function original() {
     'UPGRADES.push({ n: "灼热易伤", ico: "🌡️", t: 2, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["烈焰印记"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "烈焰蔓延", ico: "🌋", t: 3, cat: "技能", d: "", max: 2, mech: 1, req: (p) => (p.upCounts["灼热易伤"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "天眼制导", ico: "👁️", t: 2, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "焦土燃烧", ico: "🏜️", t: 3, cat: "技能", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["天眼制导"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "魔刃回旋", ico: "🪞", t: 1, cat: "防御", d: "", max: 1, mech: 1, req: (p) => (p.upCounts["守护之刃"] || 0) > 0, pv: () => "", f: () => {}, cur: () => "", __stub: 1 });',
     context,
   );
-  // 基线随 S3-B 方案甲注入 2 张新卡桩，并**按我们 UPGRADES 的顺序整体重排**
+  // 基线随 S3-B 方案甲注入 2 张新卡桩，并**按我们 LEGACY_UPGRADES 的顺序整体重排**
   // v8 的卡池（PR #4 评审 P2 排障定论）：
   // 1) 桩必须无 req、展示字段与真卡一致、f 空操作——req 恒假会把桩排除出
   //    v8 卡池，升级抽卡池 38≠40 不对称，伤害保底触发时机改变随机消耗数，
@@ -478,7 +563,7 @@ function original() {
   // 2) 仅同位追加仍不够：#55 四张桩在 v8 尾部、我们同名真卡在数组中部，
   //    档位池顺序本就不一致（38 张时代种子未踩中的既有隐患）；新卡把
   //    档位池长度 N→N+1 后索引平移踩中错位（tick 879 升级抽卡实测）。
-  //    因此以我方数组为基准重排 v8 UPGRADES，两侧卡池在数量、顺序、
+  //    因此以我方数组为基准重排 v8 LEGACY_UPGRADES，两侧卡池在数量、顺序、
   //    可序列化内容上逐位镜像；桩 f 不写字段，v8 模拟中无人学习它。
   runInContext(
     'UPGRADES.push({ n: "磐石", ico: "🪨", t: 1, cat: "防御", d: "护甲 +15/级（物理减伤，与通用减伤乘算）", max: 3, mech: 1, pv: () => "", f: () => {}, cur: () => "", __stub: 1 }, { n: "元素亲和", ico: "🔮", t: 2, cat: "技能", d: "火焰与雷电伤害 +10%/级", max: 3, pv: () => "", f: () => {}, cur: () => "", __stub: 1 });',
@@ -489,7 +574,7 @@ function original() {
   // 新卡改变档位池长度后索引平移踩中，tick 879 实测）。此处同步补 hidden。
   runInContext('UPGRADES.find(u=>u.n==="不屈").hidden = 1;', context);
   runInContext(
-    `const _order = ${JSON.stringify(UPGRADES.map((u) => u.n))};
+    `const _order = ${JSON.stringify(LEGACY_UPGRADES.map((u) => u.n))};
      const _byName = new Map(UPGRADES.map((u) => [u.n, u]));
      UPGRADES.length = 0;
      for (const _n of _order) UPGRADES.push(_byName.get(_n));`,
@@ -503,7 +588,7 @@ function original() {
 }
 it("every talent effect, cap and tier matches the protected original", () => {
   const baseline = original();
-  for (const u of UPGRADES) {
+  for (const u of LEGACY_UPGRADES) {
     // 基线已按 Issue 更新/新增的天赋跳过 v8 对照，由文件末尾显式公式断言保护
     if (
       (BASELINE_EXCLUDED as readonly string[]).includes(u.n) ||
@@ -530,12 +615,23 @@ it("every talent effect, cap and tier matches the protected original", () => {
       expect({
         ...g.player,
         attackRange: undefined,
+        // S2：职业基础与开关字段（v8 无此概念，见 takeShooterBase 注释）
+        pierceFalloff: undefined,
+        distanceDmg: undefined,
+        dashDistMul: undefined,
         upCounts: {},
         picks: [],
       }).toEqual(expected.player);
     } else {
       u.f(g.player);
-      expect({ ...g.player, attackRange: undefined }).toEqual(expected.player);
+      expect({
+        ...g.player,
+        attackRange: undefined,
+        // S2：见上方 takeShooterBase 注释
+        pierceFalloff: undefined,
+        distanceDmg: undefined,
+        dashDistMul: undefined,
+      }).toEqual(expected.player);
     }
     expect(u.max).toBe(expected.max);
     expect(u.t).toBe(expected.t);
@@ -571,6 +667,14 @@ function runWaveParity(wave: number) {
   );
   vi.spyOn(Math, "random").mockImplementation(seeded(900 + wave));
   const g = fresh();
+  // 基线更新依据：S2 射手纵切（职业基础形态）。
+  // v8 没有职业概念，而射手的基础穿透 1 + 穿透衰减 0.5 会直接改变清场效率
+  //（实测同一波 maxhp 相差 51：杀得多 → 血包多 → 上限高）。这不是 bug，
+  // 是「距离门控职业」的既定设计，所以对照场景**中和职业被动**，
+  // 保留「无职业基线」的逐字段保护；射手相对基线的差异
+  //（穿透 1、衰减 0.5、长弓 149.5 等）由 tests/s2-shooter-pool.test.ts 钉住。
+  g.prof = "common";
+  g.player.pierceFalloff = 0.85;
   g.waveN = wave;
   g.quota = g.waveQuota(wave);
   g.keys.d = true;
@@ -621,9 +725,21 @@ function runAllTalentsParity(wave: number) {
   );
   vi.spyOn(Math, "random").mockImplementation(seeded(400 + wave));
   const g = fresh();
+  // 基线更新依据：S2 射手纵切（职业基础形态）。
+  // v8 没有职业概念，而射手的基础穿透 1 + 穿透衰减 0.5 会直接改变清场效率
+  //（实测同一波 maxhp 相差 51：杀得多 → 血包多 → 上限高）。这不是 bug，
+  // 是「距离门控职业」的既定设计，所以对照场景**中和职业被动**，
+  // 保留「无职业基线」的逐字段保护；射手相对基线的差异
+  //（穿透 1、衰减 0.5、长弓 149.5 等）由 tests/s2-shooter-pool.test.ts 钉住。
+  g.prof = "common";
+  g.player.pierceFalloff = 0.85;
   g.waveN = wave;
   g.quota = g.waveQuota(wave);
   for (const u of parityTalents) g.learnTalent(u);
+  // 中和必须放在**学满卡之后**：learnTalent 会走属性投影，把 pierceFalloff
+  // 按 base 重算回 0.5（射手基础），提前设置会被抹掉。
+  g.prof = "common";
+  g.player.pierceFalloff = 0.85;
   g.keys.s = true;
   g.keys[" "] = true;
   for (let i = 0; i < 1200; i++) g.update(1 / 60);
@@ -742,7 +858,7 @@ it("D-02 强化弹丸只加成魔弹：boltDmgMul ×1.25，p.damage 不变，上
   learn(g, "强化弹丸", 2);
   expect(g.player.boltDmgMul).toBeCloseTo(1.5625);
   expect(g.player.damage).toBe(dmg0);
-  const u = UPGRADES.find((x) => x.n === "强化弹丸");
+  const u = LEGACY_UPGRADES.find((x) => x.n === "强化弹丸");
   expect(u?.max).toBe(30);
 });
 
@@ -793,6 +909,14 @@ it.each([
   [25, 3],
 ])("D-04 波 %i 的 BOSS 配额 = %i 只", (wave, expected) => {
   const g = fresh();
+  // 基线更新依据：S2 射手纵切（职业基础形态）。
+  // v8 没有职业概念，而射手的基础穿透 1 + 穿透衰减 0.5 会直接改变清场效率
+  //（实测同一波 maxhp 相差 51：杀得多 → 血包多 → 上限高）。这不是 bug，
+  // 是「距离门控职业」的既定设计，所以对照场景**中和职业被动**，
+  // 保留「无职业基线」的逐字段保护；射手相对基线的差异
+  //（穿透 1、衰减 0.5、长弓 149.5 等）由 tests/s2-shooter-pool.test.ts 钉住。
+  g.prof = "common";
+  g.player.pierceFalloff = 0.85;
   g.waveN = wave;
   g.quota = g.waveQuota(wave);
   g.wavePhase = "fight";
@@ -831,9 +955,10 @@ it("D-05 动态散布：孤立目标收拢 0.04，密集目标展开 0.16", () =
   const angle = (b: { vx: number; vy: number }) => Math.atan2(b.vy, b.vx);
   // 孤立目标 → 收拢
   const g = fresh();
-  const split = UPGRADES.find((u) => u.n === "分裂射击");
-  g.learnTalent(split!);
-  g.learnTalent(split!); // multishot 3
+  // S2：旧卡「分裂射击」已删除，改用射手核心 L3「三重射击」（同样 3 发）。
+  // 新卡 max=1，一次学习即生效——不再靠叠级涨弹道。
+  const split = SHOOTER_TALENTS.find((u) => u.n === "三重射击")!;
+  g.learnTalent(split);
   enemy(g);
   g.player.fireCd = 0;
   g.update(1 / 60);
@@ -844,8 +969,7 @@ it("D-05 动态散布：孤立目标收拢 0.04，密集目标展开 0.16", () =
   for (const d of tight) expect(d).toBeCloseTo(0.04, 1);
   // 密集目标 → 展开
   const g2 = fresh();
-  g2.learnTalent(split!);
-  g2.learnTalent(split!);
+  g2.learnTalent(split);
   enemy(g2);
   for (let i = 0; i < 5; i++)
     enemy(g2, g2.player.x + 60 + i * 8, g2.player.y + (i % 2) * 10);

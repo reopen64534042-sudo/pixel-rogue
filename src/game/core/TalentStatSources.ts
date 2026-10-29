@@ -17,7 +17,7 @@
  *   C3-C 六张等级型机制卡：「击杀狂热」hasteLv flat +1/级、「疾影步」dashLv
  *   flat +1/级 且 dashMax 有序 flat −0.4/级（每级一条独立修饰符，base 2.4
  *   逐次累加逐位复现旧 f 序列 2.0/1.6/1.2000000000000002，B16 验证；**禁止**
- *   折叠式 2.4−0.4×lv）、「二段冲刺」dashChargeLv flat +1/级、「壁垒」
+ *   折叠式 2.4−0.4×lv）、「双段疾冲」dashChargeLv flat +1/级、「壁垒」
  *   barrierLv flat +1/级、「不屈」nd flat +1（max=1，保持数字 0/1 与旧 f
  *   `p.nd = 1` 一致）、「战意沸腾」rageLv flat +1/级。对应运行状态
  *   （haste/hasteT、rageT、dashT/dashCharges/dashRe、tempShield、ndUsed）
@@ -175,6 +175,92 @@ export function talentStatModifiers(
           value: 0.5,
         });
         break;
+      // ---- S2 射手池：核心链（穿透）/ 距离链 / 机动链 ----
+      // 基础链：全局 pierceFalloff 0.85，射手职业被动 −0.35 → 0.5（第二目标 50%）。
+      // 下面两张卡按有序 flat 继续改这个值，语义是「设为」，不是「乘以」。
+      case "破甲箭": // 穿透 +1（共 2 个），穿透伤害 50% → 80%
+        scalars.push(
+          {
+            sourceId: "天赋:破甲箭",
+            stat: "pierce",
+            stage: "flat",
+            value: 1,
+          },
+          {
+            sourceId: "天赋:破甲箭",
+            stat: "pierceFalloff",
+            stage: "flat",
+            value: 0.3,
+          },
+        );
+        break;
+      case "弹道贯穿": // 穿透 +1（共 3 个），穿透后不再衰减（100%）
+        scalars.push(
+          {
+            sourceId: "天赋:弹道贯穿",
+            stat: "pierce",
+            stage: "flat",
+            value: 1,
+          },
+          {
+            sourceId: "天赋:弹道贯穿",
+            stat: "pierceFalloff",
+            stage: "flat",
+            value: 0.2,
+          },
+        );
+        break;
+      case "三重射击": // 同时射出 3 发，每发 50% 伤害。
+        // 弹道数（multishot）由卡的 f 直接置 3——它是离散数量，且旧卡
+        // 旧表同名卡也用 f 写同一字段；投影若声明 multishot 会覆盖它。
+        scalars.push({
+          sourceId: "天赋:三重射击",
+          stat: "boltDmgMul",
+          stage: "final",
+          value: 0.5,
+        });
+        break;
+      case "长弓": // 射程 +15%
+        scalars.push({
+          sourceId: "天赋:长弓",
+          stat: "attackRange",
+          stage: "final",
+          value: 1.15,
+        });
+        break;
+      case "短弓": // 射程 −10%，攻速 +20%
+        scalars.push(
+          {
+            sourceId: "天赋:短弓",
+            stat: "attackRange",
+            stage: "final",
+            value: 0.9,
+          },
+          {
+            sourceId: "天赋:短弓",
+            stat: "fireRate",
+            stage: "final",
+            value: 1.2,
+          },
+        );
+        break;
+      case "距离即收益": // 开关：发射时按目标距离占射程比例追加伤害
+        scalars.push({
+          sourceId: "天赋:距离即收益",
+          stat: "distanceDmg",
+          stage: "flat",
+          value: 1,
+        });
+        break;
+      // 「双段疾冲」（射手机动槽）的声明在下方 C3-C 段
+      case "疾行": // 冲刺距离 +25%
+        scalars.push({
+          sourceId: "天赋:疾行",
+          stat: "dashDistMul",
+          stage: "final",
+          value: 1.25,
+        });
+        break;
       case "元素亲和": // data/talents.ts：火/雷 typeDamageBonus 各 +0.1/级
         for (const key of ELEMENT_TDB_KEYS)
           typeDamageBonus.push({
@@ -315,9 +401,11 @@ export function talentStatModifiers(
           value: -0.4,
         });
         break;
-      case "二段冲刺": // data/talents.ts：dashChargeLv++（max 1）
+      // 机动槽「双段疾冲」：冲刺充能 +1 段。
+      // 旧表的同名卡「二段冲刺」已随 S2 退役删除（名字与卡位都被本卡接管）。
+      case "双段疾冲":
         scalars.push({
-          sourceId: "天赋:二段冲刺",
+          sourceId: "天赋:冲刺充能+1",
           stat: "dashChargeLv",
           stage: "flat",
           value: 1,
@@ -445,6 +533,11 @@ export function applyTalentStatProjection(
       moveSpeed: base.speed,
       magnet: base.magnet,
       area: base.area,
+      // S2：射手基础穿透衰减（0.5）与冲刺距离倍率（1）必须进 base，
+      // 否则 final/flat 修饰符从 0 起算（0.5 被算成 0.3、1.25 被算成 0）。
+      // 这两键没有任何旧卡写入，因此进 base 不会覆盖 f 的结果。
+      pierceFalloff: base.pierceFalloff,
+      dashDistMul: base.dashDistMul,
     },
     // S1：天赋修饰符在前、外部（属性）修饰符在后，同一次解析完成
     modifiers: externalModifiers.length
@@ -483,6 +576,19 @@ export function applyTalentStatProjection(
   p.area = resolved.area ?? base.area;
   // S1：射程写回（base 130；属性/天赋都未改动时写回 130，与旧硬编码等价）
   p.attackRange = resolved.attackRange ?? base.attackRange;
+  // S2 射手池：核心/距离/机动三个槽位的标量。
+  // **只在有来源时才写**：旧表仍有卡靠 `f` 直接写
+  // `p.pierce` / `p.multishot`，无条件写回会把它们的值覆盖成 base
+  //（表现为「旧卡学了没用」，parity 的全天赋场景会立刻对不上）。
+  // 这五个键不在上方 base 里，因此无来源时 resolved 中不存在 → 保留 f 的值。
+  if (resolved.pierce !== undefined) p.pierce = resolved.pierce;
+  if (resolved.pierceFalloff !== undefined)
+    p.pierceFalloff = resolved.pierceFalloff;
+  if (resolved.multishot !== undefined) p.multishot = resolved.multishot;
+  if (resolved.distanceDmg !== undefined)
+    p.distanceDmg = resolved.distanceDmg;
+  if (resolved.dashDistMul !== undefined)
+    p.dashDistMul = resolved.dashDistMul;
   // defense 无 base（键缺席 = 0），有来源才出现——与旧 f 的键存在性一致
   if (resolved.defense !== undefined) p.defense = resolved.defense;
   else delete p.defense;

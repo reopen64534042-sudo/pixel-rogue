@@ -1,24 +1,23 @@
-import type { Talent } from "../core/types";
+import type { Talent } from "../../core/types";
 import {
   frostFreezeDuration,
   burnStackDps,
   critMultiplier,
-} from "../core/DamageMath";
-import { COMBAT_BALANCE } from "./combatBalance";
+} from "../../core/DamageMath";
+import { hasteCap, physMitPct } from "./common";
 
-/** 击杀狂热叠层上限：随天赋等级提高（Lv1→4 层，Lv2→5 层，Lv3→6 层） */
-export function hasteCap(hasteLv: number) {
-  return 3 + hasteLv;
-}
-
-/** 磐石预览用：护甲对应的物理减伤百分比（K/(K+DEF) 公式与 DamageSystem 一致） */
-function physMitPct(def: number) {
-  const k = COMBAT_BALANCE.armorK;
-  return Math.round((1 - k / (k + Math.max(0, def))) * 100);
-}
-
-export const UPGRADES: Talent[] = [
+/**
+ * 旧版通用天赋表（v40 及以前）。
+ *
+ * S2 起本表整体退役：`UPGRADES` 的条目全部标记 `hidden`，不再进入抽取池，
+ * 但**不能删除**——`tests/parity.test.ts` 的「41 张逐字段对照」要求它们仍在表内，
+ * 卡名同时是图鉴 id（`codex.syncTalents`），删除会让旧存档条目变孤儿。
+ *
+ * 真正的退役（迁移到属性系统 / 彻底移除）在 S4 处理。
+ */
+export const LEGACY_UPGRADES: Talent[] = [
   {
+    retired: 1,
     n: "强化弹丸",
     ico: "🔥",
     t: 0,
@@ -35,6 +34,7 @@ export const UPGRADES: Talent[] = [
       `魔弹伤害 ${(p.damage * p.boltDmgMul).toFixed(1)}（仅魔弹，全局伤害 ${p.damage.toFixed(1)}）`,
   },
   {
+    retired: 1,
     n: "疾速扳机",
     ico: "⚡",
     t: 0,
@@ -49,6 +49,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `当前攻速 ${p.fireRate.toFixed(2)}/秒`,
   },
   {
+    retired: 1,
     n: "疾风之靴",
     ico: "👟",
     t: 0,
@@ -62,6 +63,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `当前移速 ${Math.round(p.speed)}`,
   },
   {
+    retired: 1,
     n: "生命之泉",
     ico: "❤️",
     t: 0,
@@ -76,28 +78,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `当前生命上限 ${p.maxhp}`,
   },
   {
-    n: "分裂射击",
-    ico: "🔱",
-    t: 1,
-    cat: "技能",
-    d: "+1 条弹道",
-    max: 4,
-    pv: (p) => `弹道 ${p.multishot} → ${p.multishot + 1}`,
-    f: (p) => p.multishot++,
-    cur: (p) => `当前弹道数 ${p.multishot}`,
-  },
-  {
-    n: "穿透之矢",
-    ico: "🏹",
-    t: 1,
-    cat: "技能",
-    d: "子弹穿透 +1 个敌人",
-    max: 4,
-    pv: (p) => `穿透 ${p.pierce} → ${p.pierce + 1}`,
-    f: (p) => p.pierce++,
-    cur: (p) => `当前穿透次数 ${p.pierce}`,
-  },
-  {
+    retired: 1,
     n: "磁力护符",
     ico: "🧲",
     t: 0,
@@ -111,6 +92,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `当前拾取范围 ${Math.round(p.magnet)}`,
   },
   {
+    retired: 1,
     n: "致命一击",
     ico: "💥",
     t: 1,
@@ -129,6 +111,7 @@ export const UPGRADES: Talent[] = [
       }`,
   },
   {
+    retired: 1,
     n: "守护之刃",
     ico: "🗡️",
     t: 1,
@@ -140,6 +123,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `当前飞刃 ${p.orbit} 把`,
   },
   {
+    retired: 1,
     n: "修复微光",
     ico: "✨",
     t: 0,
@@ -152,6 +136,7 @@ export const UPGRADES: Talent[] = [
   },
   // ---- 机制型天赋 ----
   {
+    retired: 1,
     n: "广域法印",
     ico: "🌐",
     t: 1,
@@ -167,6 +152,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `施法范围加成 ×${p.area.toFixed(2)}`,
   },
   {
+    retired: 1,
     n: "会心深渊",
     ico: "🌑",
     t: 2,
@@ -182,6 +168,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `暴击伤害倍率 ×${p.critMul.toFixed(1)}`,
   },
   {
+    retired: 1,
     n: "弹射魔符",
     ico: "🪃",
     t: 2,
@@ -194,6 +181,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `当前弹射次数 ${p.ricochet} 次`,
   },
   {
+    retired: 1,
     n: "烈焰印记",
     ico: "♨️",
     t: 1,
@@ -207,6 +195,7 @@ export const UPGRADES: Talent[] = [
       `灼烧叠层制 · 每层 ${Math.round(burnStackDps(p, 1))} DPS（上限 4 层）`,
   },
   {
+    retired: 1,
     n: "冰霜之力",
     ico: "❄️",
     t: 1,
@@ -220,6 +209,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `冰冻时长 ${frostFreezeDuration(p).toFixed(1)}s（3 层触发）`,
   },
   {
+    retired: 1,
     n: "雷霆连锁",
     ico: "🌩️",
     t: 2,
@@ -236,6 +226,7 @@ export const UPGRADES: Talent[] = [
       `闪电跳跃 ${p.chain} 次 · 伤害加成 +${Math.round(p.chainDmg * 100)}%`,
   },
   {
+    retired: 1,
     n: "星辰坠落",
     ico: "☄️",
     t: 3,
@@ -249,6 +240,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `轰炸间隔 ${Math.max(2.2, 4.6 - p.meteor * 0.4).toFixed(1)}s`,
   },
   {
+    retired: 1,
     n: "吸血獠牙",
     ico: "🦷",
     t: 1,
@@ -262,6 +254,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `伤害吸血 ${(p.lifesteal * 100).toFixed(1)}%`,
   },
   {
+    retired: 1,
     n: "荆棘护甲",
     ico: "🌵",
     t: 0,
@@ -274,6 +267,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `反伤 ${p.thorns} 点`,
   },
   {
+    retired: 1,
     n: "能量护盾",
     ico: "🛡️",
     t: 2,
@@ -290,6 +284,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `护盾 ${p.shield}/${p.shieldMax} 层 · 破碎反震 200%`,
   },
   {
+    retired: 1,
     n: "疾影步",
     ico: "💨",
     t: 1,
@@ -308,6 +303,7 @@ export const UPGRADES: Talent[] = [
       `冲刺冷却 ${p.dashMax.toFixed(1)}s · 充能上限 ${1 + p.dashChargeLv} 次`,
   },
   {
+    retired: 1,
     n: "屠戮之欲",
     ico: "💣",
     t: 2,
@@ -325,6 +321,7 @@ export const UPGRADES: Talent[] = [
       `爆炸半径 ${Math.round(26 + p.explode * 6)} · 伤害加成 +${Math.round(p.explodeDmg * 100)}%`,
   },
   {
+    retired: 1,
     n: "击杀狂热",
     ico: "🩸",
     t: 3,
@@ -343,6 +340,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `上限 3 层(+30% 攻速) · 持续 ${(2 + p.hasteLv).toFixed(0)}s`,
   },
   {
+    retired: 1,
     n: "幸运之星",
     ico: "🍀",
     t: 0,
@@ -358,6 +356,7 @@ export const UPGRADES: Talent[] = [
   },
   // ---- 伤害成长线 (拓宽加伤渠道) ----
   {
+    retired: 1,
     n: "磨刃",
     ico: "🔪",
     t: 0,
@@ -372,6 +371,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `当前伤害 ${p.damage.toFixed(1)}`,
   },
   {
+    retired: 1,
     n: "狂怒",
     ico: "😤",
     t: 1,
@@ -385,6 +385,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `当前伤害 ${p.damage.toFixed(1)}`,
   },
   {
+    retired: 1,
     n: "毁灭本能",
     ico: "☠️",
     t: 2,
@@ -399,6 +400,7 @@ export const UPGRADES: Talent[] = [
   },
   // ---- 防御/生存扩展 ----
   {
+    retired: 1,
     n: "闪避本能",
     ico: "🌀",
     t: 0,
@@ -412,6 +414,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `闪避率 ${(p.dodge * 100).toFixed(0)}%`,
   },
   {
+    retired: 1,
     n: "铁布衫",
     ico: "🥋",
     t: 0,
@@ -428,6 +431,7 @@ export const UPGRADES: Talent[] = [
       `减伤 ${(Math.min(0.6, p.tough) * 100).toFixed(0)}%${p.tough >= 0.6 ? " (已达上限)" : ""}`,
   },
   {
+    retired: 1,
     n: "巨人血脉",
     ico: "💪",
     t: 0,
@@ -442,6 +446,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `当前生命上限 ${p.maxhp}`,
   },
   {
+    retired: 1,
     n: "战意沸腾",
     ico: "😡",
     t: 1,
@@ -457,6 +462,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `受伤后攻速 +${p.rageLv * 20}% (持续 3 秒)`,
   },
   {
+    retired: 1,
     n: "壁垒",
     ico: "🧱",
     t: 2,
@@ -473,22 +479,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `每波临时护盾 ${p.barrierLv} 层`,
   },
   {
-    n: "二段冲刺",
-    ico: "🚀",
-    t: 2,
-    cat: "防御",
-    d: "冲刺充能 +1 段（需先学疾影步）",
-    max: 1,
-    mech: 1,
-    req: (p) => p.dashLv > 0,
-    pv: (p) => `充能 ${1 + p.dashChargeLv} → ${2 + p.dashChargeLv} 段`,
-    // S4-C C3-C：dashChargeLv +1/级 由权威来源表声明（core/TalentStatSources.ts，
-    // dashChargeLv flat）；dashCharges/dashRe 属运行状态（消耗/充能/倒计时），
-    // recompute 由 RuntimeStateProtection 快照保留、上限降低时夹紧（D-C3-06）。
-    f: () => {},
-    cur: (p) => `冲刺充能上限 ${1 + p.dashChargeLv} 段`,
-  },
-  {
+    hidden: 1,
     n: "不屈",
     ico: "🏅",
     t: 3,
@@ -496,7 +487,6 @@ export const UPGRADES: Talent[] = [
     d: "受到致命伤害时以 1 点 HP 存活（每波一次）",
     max: 1,
     mech: 1,
-    hidden: 1,
     pv: (p) => (p.nd ? "已解锁" : "解锁: 每波一次免死"),
     // S4-C C3-C：nd = 1（max=1）由权威来源表声明（core/TalentStatSources.ts，
     // nd flat +1，保持数字 0/1 形状）；ndUsed 属运行状态（触发置 true/换波
@@ -505,6 +495,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `每波一次致命免死 · ${p.ndUsed ? "本波已触发" : "本波可用"}`,
   },
   {
+    retired: 1,
     n: "灼热易伤",
     ico: "🌡️",
     t: 2,
@@ -519,6 +510,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `灼烧目标易伤 +${(p.scorchVuln * 100).toFixed(0)}%`,
   },
   {
+    retired: 1,
     n: "烈焰蔓延",
     ico: "🌋",
     t: 3,
@@ -532,6 +524,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => `死亡蔓延至 ${1 + p.burnSpread} 个目标`,
   },
   {
+    retired: 1,
     n: "天眼制导",
     ico: "👁️",
     t: 2,
@@ -545,6 +538,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => (p.meteorGuided ? "智能落点已解锁" : "未解锁"),
   },
   {
+    retired: 1,
     n: "焦土燃烧",
     ico: "🏜️",
     t: 3,
@@ -558,6 +552,7 @@ export const UPGRADES: Talent[] = [
     cur: (p) => (p.burnGround ? "燃烧地带已解锁" : "未解锁"),
   },
   {
+    retired: 1,
     n: "魔刃回旋",
     ico: "🪞",
     t: 1,
@@ -572,6 +567,7 @@ export const UPGRADES: Talent[] = [
   },
   // —— Combat Foundation S3-B 方案甲（用户已批准）——
   {
+    retired: 1,
     n: "磐石",
     ico: "🪨",
     t: 1,
@@ -592,6 +588,7 @@ export const UPGRADES: Talent[] = [
     },
   },
   {
+    retired: 1,
     n: "元素亲和",
     ico: "🔮",
     t: 2,
@@ -610,15 +607,14 @@ export const UPGRADES: Talent[] = [
       `火焰/雷电伤害 +${((p.typeDamageBonus?.fire ?? 0) * 100).toFixed(0)}%`,
   },
 ];
-export const TIERS = ["普通", "稀有", "史诗", "传奇"];
-export const TIER_VAL = [1, 2, 4, 8];
-export const TIER_COLOR = ["#e8e8f0", "#4dff88", "#c07bff", "#ffd24a"];
-export const RAMP = [
-  { min: 1, w: [70, 25, 5, 0] },
-  { min: 5, w: [45, 35, 15, 5] },
-  { min: 10, w: [25, 35, 25, 15] },
-  { min: 16, w: [10, 30, 35, 25] },
-];
+
+/**
+ * 「三选一里至少有一张伤害系」的硬保底名单。
+ *
+ * S2 起必须删除：新体系的天赋不提供伤害（伤害来自属性成长与职业基础形态），
+ * 这条保底会把清场类机制卡强行塞进每一次三选一，破坏取舍。
+ * 删除动作与 `rollPicks` 的改写在同一次提交内完成。
+ */
 export const DMG_POOL = [
   "强化弹丸",
   "致命一击",
@@ -631,15 +627,3 @@ export const DMG_POOL = [
   "狂怒",
   "毁灭本能",
 ];
-export const CAT_COLOR: Record<string, string> = {
-  攻击: "#ff6b9d",
-  增幅: "#4dff88",
-  技能: "#57e6ff",
-  防御: "#ffd24a",
-};
-export const CAT_ICO: Record<string, string> = {
-  攻击: "⚔",
-  增幅: "📈",
-  技能: "✨",
-  防御: "🛡",
-};

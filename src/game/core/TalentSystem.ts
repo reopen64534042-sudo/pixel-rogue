@@ -1,6 +1,6 @@
 import { hash01 } from "../data/constants";
 import { statBase } from "../data/stats";
-import { DMG_POOL, RAMP, UPGRADES } from "../data/talents";
+import { LEGACY_UPGRADES, RAMP, UPGRADES } from "../data/talents";
 import type { GameCore } from "./GameCore";
 import { applyOnAcquireEffect } from "./OnAcquireEffects";
 import {
@@ -13,8 +13,9 @@ import { attributeModifiers } from "./AttributeSources";
 import { applyTalentStatProjection } from "./TalentStatSources";
 import type { Talent } from "./types";
 export function tierWeights(this: GameCore) {
+  // S2：按**波次**分档（v40 按 player.lvl）。见 data/talents/common.ts 的 RAMP 注释。
   let w = RAMP[0].w;
-  for (const r of RAMP) if (this.player.lvl >= r.min) w = r.w;
+  for (const r of RAMP) if (this.waveN >= r.min) w = r.w;
   return w;
 }
 
@@ -31,12 +32,54 @@ export function availTalents(this: GameCore, t: number) {
   return UPGRADES.filter((u) => this.canOffer(u) && u.t === t);
 }
 
-export function canOffer(this: GameCore, u: Talent) {
-  return (
-    !u.hidden &&
-    (this.player.upCounts[u.n] || 0) < u.max &&
-    (!u.req || u.req(this.player))
+/**
+ * 熔炉专用候选池（S2 过渡）。
+ *
+ * 熔炉的语义是「2 张同档 → 1 张高一档」，它的产出必须是**已存在于本局成长线**
+ * 的卡。S2 让旧表整体 `hidden` 后，`availTalents` 只剩 18 张射手卡，而它们
+ * 大多需要前置（L2 需 L1、L3 需 L2），三档池经常为空 → `melt()` 直接返回 null。
+ *
+ * 所以 S2 期间熔炉继续只处理旧表（`hidden` 不参与判定），保持 v40 行为；
+ * 熔炉的最终去向（关闭入口 / 改为只推进已拥有的链）在 S4 决定。
+ */
+export function legacyAvailTalents(this: GameCore, t: number) {
+  return LEGACY_UPGRADES.filter(
+    (u) =>
+      // 原版 `hidden`（如「不屈」）仍然排除；只有 S2 的 `retired` 被放行
+      !u.hidden &&
+      (this.player.upCounts[u.n] || 0) < u.max &&
+      (!u.req || u.req(this.player)) &&
+      u.t === t,
   );
+}
+
+export function canOffer(this: GameCore, u: Talent) {
+  // retired：S2 起整体退役的旧表（不进抽取池，但仍在表内供 parity/图鉴使用）
+  if (u.hidden || u.retired) return false;
+  if ((this.player.upCounts[u.n] || 0) >= u.max) return false;
+  if (u.req && !u.req(this.player)) return false;
+  // S2：职业池归属。`common` 或未填 prof 的卡不受职业限制
+  //（旧表已整体 hidden，实际不会再进池）。
+  if (u.prof && u.prof !== "common" && u.prof !== this.prof) return false;
+  const picks = this.player.picks;
+  // S2 链式依赖（混合式抽取）：未持有前置时 L2/L3 不进池。
+  if (u.requires && !picks.includes(u.requires)) return false;
+  // S2 互斥：双向判定——本卡声明的排斥 + 别处声明排斥本卡的。
+  // 双向是必须的：只在单侧写 excludes 会让「先抽到 B 后 A 仍可抽」漏网。
+  if (u.excludes?.some((n) => picks.includes(n))) return false;
+  if (
+    picks.length > 0 &&
+    UPGRADES.some((o) => o.excludes?.includes(u.n) && picks.includes(o.n))
+  )
+    return false;
+  // S2 变体组（N 选 1）：同组已取过任意一张则本卡不进池。
+  // 与 excludes 的差别是规模可变，且语义上不是「相互排斥」而是「同一格位的不同实现」。
+  if (
+    u.variant &&
+    UPGRADES.some((o) => o.variant === u.variant && picks.includes(o.n))
+  )
+    return false;
+  return true;
 }
 
 export function recompute(this: GameCore) {
@@ -231,23 +274,10 @@ export function rollPicks(this: GameCore) {
     }
     picks.push(cand);
   }
-  // 三选一里保证至少一个伤害系天赋（遵守稀有度权重，低级优先——修复低等级刷出传奇的bug）
-  if (picks.length === 3 && !picks.some((u) => DMG_POOL.includes(u.n))) {
-    const dpool = avail.filter(
-      (u) => DMG_POOL.includes(u.n) && !picks.includes(u),
-    );
-    if (dpool.length) {
-      const w = this.tierWeights();
-      let cand = null;
-      for (let tries = 0; tries < 12 && !cand; tries++) {
-        const t = this.pickTier(w);
-        const pool = dpool.filter((u) => u.t === t);
-        if (pool.length) cand = pool[Math.floor(Math.random() * pool.length)];
-      }
-      if (!cand) cand = dpool.sort((a, b) => a.t - b.t)[0];
-      picks[Math.floor(Math.random() * 3)] = cand;
-    }
-  }
+  // S2：删除「三选一里保证至少一个伤害系天赋」的硬保底（DMG_POOL）。
+  // 理由：新体系的天赋**不提供伤害**（伤害来自属性成长与职业基础形态），
+  // 这条保底会把清场类机制卡强行塞进每一次三选一，破坏取舍；
+  // 且它会消耗一次随机抽签，改变抽取序列。
   return picks;
 }
 

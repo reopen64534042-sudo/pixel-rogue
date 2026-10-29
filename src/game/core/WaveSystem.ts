@@ -18,6 +18,8 @@ export function startNextWave(this: GameCore) {
   this.swTarget = 0;
   this.swSel = {};
   this.waveN++;
+  // S2：每波重置节点天赋开关（同一波多只精英只发一次）
+  this.waveTalentGiven = false;
   // S1：属性次数按波发放，波末消费
   this.attrPicks += attrPicksPerWave(this.waveN);
   this.beginWaveReport();
@@ -60,6 +62,21 @@ export function enterRest(this: GameCore) {
   this.wavePhase = "rest";
   this.bpMode = "rest";
   this.swapUsedThisRest = false;
+  // S2：宝箱改为「属性选择次数」。
+  // 天赋已是一次性获得（max=1），原来的「宝箱强化已学天赋」没有对象可强化，
+  // 且 rollBoxPicks 的 `lv > 0 && lv < max` 会恒假——不报错，只会静默退化成
+  // 「转经验 + 血包」（Issue #71 兜底）。在属性阶段之前折算，属性面板一次拿到
+  // 全部次数，休整链保持「属性 → 天赋 → 报告」三步。
+  if (this.boxPicks > 0) {
+    this.attrPicks += this.boxPicks;
+    this.addText(
+      this.player.x,
+      this.player.y - 20,
+      `宝箱 +${this.boxPicks} 次属性`,
+      "#ffd24a",
+    );
+    this.boxPicks = 0;
+  }
   // Issue #67：休整面板依次执行——升级 → 宝箱 → 报告/置换
   // S1：属性选择排在最前（高频低决策的先做，且它可能要连选多次）
   if (this.attrPicks > 0) {

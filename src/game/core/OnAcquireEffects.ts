@@ -53,7 +53,7 @@ export function applyOnAcquireEffect(
     default:
       // 未登记卡牌均为 no-op，分两类：已迁移但无获得时效果（疾影步——解锁
       // 等级与冷却由属性投影承担，本无运行副作用）；未迁移天赋（星辰坠落、
-      // 穿透之矢等——属性与效果仍全部由旧 f 承载，本模块不参与）。
+      // 其余旧卡——属性与效果仍全部由旧 f 承载，本模块不参与）。
       void lvBefore;
       break;
   }

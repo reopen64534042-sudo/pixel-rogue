@@ -59,6 +59,13 @@ function aliasesOf(name: string): string[] | undefined {
 }
 
 export const TALENT_ENTRIES: readonly CodexEntry[] = UPGRADES.filter(
+  // S2：只排除**原版隐藏**（`hidden`，如「不屈」）。
+  // `retired` 的旧表**保留在图鉴里**——这是有意的裁决：旧存档里的已解锁记录
+  //（`codex.syncTalents` 以卡名为键）必须有条目可落，否则会变成孤儿；
+  // 玩家上一局见过的卡突然消失也更像 bug。
+  // 代价是收集分母包含 40 张当前拿不到的卡，所以图鉴描述里对 retired 的卡
+  // 标注「已退役」（见 `CodexUI` 的 tier 文案），后续若要做「已退役」分区，
+  // 在这里加分组而不是重新过滤。
   (u) => !u.hidden,
 ).map(
   (u): CodexEntry => ({

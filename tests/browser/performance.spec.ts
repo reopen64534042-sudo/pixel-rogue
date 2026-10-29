@@ -27,6 +27,7 @@ test("measure 160 enemies and 120 projectiles without changing production algori
         vy: 0,
         dmg: 1,
         pierce: 10000,
+        falloff: 0.85,
         jumps: 0,
         life: 1000,
         size: 2,

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fresh, learn, talent, enemy, ticks, seeded, skipAttrs } from "./helpers";
-import { UPGRADES, RAMP, TIER_VAL, DMG_POOL } from "../src/game/data/talents";
+import { UPGRADES, RAMP, TIER_VAL } from "../src/game/data/talents";
 import { WORLD } from "../src/game/data/constants";
 import { FixedClock } from "../src/game/core/FixedClock";
 afterEach(() => vi.restoreAllMocks());
@@ -37,14 +37,18 @@ describe("game flow and state", () => {
     expect(far.hp).toBe(19);
     expect(g.gems.length + g.player.xp).toBeGreaterThan(0);
   });
-  it("XP levels and defers talent selection to the rest phase (Issue #67)", () => {
+  it("XP levels but no longer grants talents (S2: node elites do)", () => {
     const g = fresh();
     g.gems.push({ x: g.player.x, y: g.player.y, vx: 0, vy: 0, v: 8 });
     ticks(g, 1);
     expect(g.player.lvl).toBe(2);
     expect(g.player.xpNext).toBe(7);
-    expect(g.pendingLevels).toBe(1);
+    // S2：天赋发放从「升级」改为「每 4 波节点精英 + 终局」（一局 8 次）。
+    // 等级只保留怪物强度采样与 HUD 显示两个职责，不再产生待选天赋。
+    expect(g.pendingLevels).toBe(0);
     expect(g.phase).toBe("play"); // 升级不再立即弹面板
+    // 面板本身的交互不变：仍可手动开、仍不暂停模拟、选完仍在 rest 收尾
+    g.pendingLevels = 1;
     g.openLevelPanel();
     expect(g.phase).toBe("levelup");
     const slots = g.slots;
@@ -82,13 +86,12 @@ describe("game flow and state", () => {
     g.gems.push({ x: g.player.x + 5, y: g.player.y, vx: 0, vy: 0, v: 8 });
     ticks(g, 1);
     expect(g.wavePhase).toBe("collect");
-    expect(g.pendingLevels).toBe(1);
-    ticks(g, 2);
-    expect(g.wavePhase).toBe("rest"); // 收齐即进休整，级联先选天赋
-    expect(g.bpMode).toBe("level");
-    g.chooseSlot(0);
+    // S2：升级不再产生待选天赋（改由节点精英发放），本用例已清空属性额度，
+    // 所以收齐经验球后直接进入报告/置换。
     expect(g.pendingLevels).toBe(0);
-    expect(g.phase).toBe("report"); // 无宝箱可开 → 直接报告/置换
+    ticks(g, 2);
+    expect(g.wavePhase).toBe("rest");
+    expect(g.phase).toBe("report");
     expect(g.openSwap()).toBe(true);
     expect(g.phase).toBe("swap");
     g.player.barrierLv = 2;
@@ -143,29 +146,35 @@ describe("game flow and state", () => {
 });
 
 describe("34 talents, card pools and combat", () => {
-  it("retains all 34 unique names, tier ramp and prerequisite", () => {
-    expect(UPGRADES).toHaveLength(41);
-    expect(new Set(UPGRADES.map((u) => u.n)).size).toBe(41);
+  it("retains 56 unique names, wave-based tier ramp and chain prerequisites", () => {
+    // S2：41 张旧表（retired）+ 18 张射手池
+    expect(UPGRADES).toHaveLength(56);
+    expect(new Set(UPGRADES.map((u) => u.n)).size).toBe(56);
     const g = fresh();
+    // S2：稀有度按**波次**分档（v40 按 player.lvl）
     for (const r of RAMP) {
-      g.player.lvl = r.min;
+      g.waveN = r.min;
       expect(g.tierWeights()).toEqual(r.w);
     }
-    expect(g.canOffer(talent("二段冲刺"))).toBe(false);
-    learn(g, "疾影步");
-    expect(g.canOffer(talent("二段冲刺"))).toBe(true);
+    // 旧卡「双段疾冲」已随 S2 删除；射手机动槽的「双段疾冲」接管该卡位
+    expect(g.canOffer(talent("双段疾冲"))).toBe(true);
+    // 新卡链式依赖：未持有 L1 时 L2 不进池
+    expect(g.canOffer(talent("弹道贯穿"))).toBe(false);
+    learn(g, "破甲箭");
+    expect(g.canOffer(talent("弹道贯穿"))).toBe(true);
   });
-  it("caps every talent and excludes capped choices, enforces damage option", () => {
+  it("caps every talent and excludes capped choices", () => {
     const g = fresh();
     vi.spyOn(Math, "random").mockImplementation(seeded());
     for (const u of UPGRADES) g.player.upCounts[u.n] = u.max;
     expect(g.rollPicks()).toEqual([]);
     expect(g.rollOne([])).toBe(null);
     g.player.upCounts = {};
+    // S2：删除了 DMG_POOL 硬保底——新体系天赋不提供伤害，保底会把清场卡
+    // 强行塞进三选一。这里改为断言「三张互不重复、且不带前置不进池」。
     for (let i = 0; i < 100; i++) {
       const picks = g.rollPicks();
       expect(new Set(picks).size).toBe(3);
-      expect(picks.some((u) => DMG_POOL.includes(u.n))).toBe(true);
       expect(picks.every((u) => u.t < 3)).toBe(true);
     }
     learn(g, "疾速扳机", 8);
@@ -235,7 +244,7 @@ describe("34 talents, card pools and combat", () => {
     g.keys = {};
     ticks(g, 121);
     expect(g.player.dashCharges).toBe(1);
-    learn(g, "二段冲刺");
+    learn(g, "双段疾冲");
     ticks(g, 121);
     expect(g.player.dashCharges).toBe(2);
   });
@@ -255,6 +264,7 @@ describe("34 talents, card pools and combat", () => {
         vy: 0,
         dmg: 11,
         pierce: mechanic === "pierce" ? 1 : 0,
+        falloff: 0.85,
         jumps: mechanic === "jumps" ? 1 : 0,
         life: 1.4,
         size: 2,
@@ -403,10 +413,10 @@ describe("furnace economics and regressions", () => {
     expect(g.player.damage).toBe(11);
     expect(g.player.hp).toBe(40);
   });
-  it("all 34 talents provide cur(p) returning current effective value descriptions", () => {
+  it("all 56 talents provide cur(p) returning current effective value descriptions", () => {
     const g = fresh();
     const talents = UPGRADES;
-    expect(talents).toHaveLength(41);
+    expect(talents).toHaveLength(56);
     for (const t of talents) {
       expect(typeof t.cur).toBe("function");
       const desc = t.cur!(g.player);

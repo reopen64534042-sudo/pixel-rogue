@@ -135,7 +135,21 @@ export interface Player extends Point {
   bladeReflect: number;
   fireRate: number;
   multishot: number;
+  /**
+   * 穿透次数（还能穿过几个敌人）。
+   * 与 `pierceFalloff` 配对：每穿过一个目标，剩余伤害乘以该系数。
+   */
   pierce: number;
+  /**
+   * 穿透衰减系数（S2）：每穿一个目标后剩余伤害的倍率。
+   * v40 硬编码 0.85；射手职业被动把它改为 0.5（"第二目标 50%"），
+   * 核心链 L1「破甲箭」提升到 0.8、L2「弹道贯穿」提升到 1.0。
+   */
+  pierceFalloff: number;
+  /** 「距离即收益」开关（0/1）：发射时按目标距离占射程的比例追加伤害。 */
+  distanceDmg: number;
+  /** 冲刺距离倍率（1 = 基础 280 px/s × 0.28s）。 */
+  dashDistMul: number;
   area: number;
   crit: number;
   critMul: number;
@@ -193,6 +207,15 @@ export interface Player extends Point {
 }
 export interface Talent {
   hidden?: number;
+  /**
+   * S2 退役标记：卡仍在表内（parity 的逐字段对照、图鉴 id、存档兼容都要它），
+   * 但不进任何抽取池。
+   *
+   * 与 `hidden` 分开是必要的：`hidden` 是**原版就有**的语义（如「不屈」），
+   * 熔炉在 S2 过渡期仍要按原样排除它；`retired` 只表示「被新体系取代」，
+   * 熔炉继续认这些卡（见 `legacyAvailTalents`）。
+   */
+  retired?: number;
   n: string;
   ico: string;
   t: number;
@@ -204,7 +227,23 @@ export interface Talent {
   pv: (p: Player) => string;
   f: (p: Player) => void;
   cur?: (p: Player) => string;
+  // ---- S2 职业池 / 链 / 互斥 ----
+  /** 职业池归属。不填视为「不属于任何职业池」（旧版通用卡）。 */
+  prof?: Profession;
+  /** 槽位轴名。同一槽位内的卡构成一条链，槽位由门控推导而来。 */
+  slot?: string;
+  /** 链的层级：1 开通（从无到有）、2 放大（从有到强）、3 转向（从强到变）。 */
+  layer?: 1 | 2 | 3;
+  /** 前置卡名：未持有该卡时本卡不进抽取池（混合式抽取的依赖侧）。 */
+  requires?: string;
+  /** 互斥卡名：持有其中任意一张时本卡不进池，反之亦然。 */
+  excludes?: string[];
+  /** 变体组：同一组在一局内只能取一张。与 excludes 的区别是组合规模可变（N 选 1）。 */
+  variant?: string;
 }
+/** 职业标识。`common` 表示三职业共用池。 */
+export type Profession = "shooter" | "mage" | "warrior" | "common";
+
 export interface Enemy extends Point {
   type: string;
   spr: string;
@@ -222,6 +261,12 @@ export interface Enemy extends Point {
   burnT: number;
   burnDps: number;
   burnStacks: number;
+  /** S2「猎杀标记」：同一目标累计命中次数（满 3 次转为标记层数）。 */
+  markHits: number;
+  /** 标记层数（0/1/2，上限由「深痕」决定）。 */
+  markStacks: number;
+  /** 标记维持计时：归零时清空累计与层数（换目标 5 秒未再命中）。 */
+  markT: number;
   frostStacks: number;
   frozenT: number;
   frostImmuneT: number;
@@ -272,10 +317,18 @@ export interface Bullet extends Point {
   vy: number;
   dmg: number;
   pierce: number;
+  /** 每穿一个目标后的剩余伤害倍率（发射时从玩家属性固化）。 */
+  falloff: number;
   life: number;
   size: number;
   jumps: number;
   hitList: Enemy[];
+  /** 「贯穿轨迹」：>0 时在飞行路径上留下能量线（秒），沿途敌人受一次 15% 伤害。 */
+  trail?: number;
+  /** 轨迹投放节流计时（内部用）。 */
+  trailT?: number;
+  /** 「距离即收益」满档的暴击加成，发射时固化到暴击判定上。 */
+  critBonus?: number;
   /**
    * 发射时攻击者快照（Combat Foundation S3-B 定稿接口）：
    * 与 EnemyBullet.stats 对称——增伤等攻击方属性按发射时固化，

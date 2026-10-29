@@ -25,8 +25,13 @@ export function updatePlayer(this: GameCore, dt: number) {
     p.dx = mx;
     p.dy = my;
   }
+  const dashingBefore = p.dashT > 0;
   p.dashT -= dt;
-  // 冲刺充能制 (二段冲刺增加上限)
+  // S2「疾行」：冲刺刚结束的那一帧开一个 0.5 秒移速窗口
+  if (dashingBefore && p.dashT <= 0 && (p.upCounts["疾行"] || 0) > 0)
+    this.dashBoostT = 0.5;
+  if (this.dashBoostT > 0) this.dashBoostT -= dt;
+  // 冲刺充能制（「双段疾冲」增加上限）
   const dchMax = 1 + p.dashChargeLv;
   if (p.dashLv && p.dashCharges < dchMax) {
     p.dashRe -= dt;
@@ -47,8 +52,10 @@ export function updatePlayer(this: GameCore, dt: number) {
     this.audio.beep(300, 0.1, "sine", 0.06, 500);
   }
   if (p.dashT > 0) {
-    p.x += p.dx * 280 * dt;
-    p.y += p.dy * 280 * dt;
+    // S2：冲刺位移按 dashDistMul 缩放（疾行 +25%）
+    const dashSpeed = 280 * p.dashDistMul;
+    p.x += p.dx * dashSpeed * dt;
+    p.y += p.dy * dashSpeed * dt;
     this.parts.push({
       x: p.x,
       y: p.y + 2,
@@ -58,8 +65,12 @@ export function updatePlayer(this: GameCore, dt: number) {
       c: "#57e6ff",
     });
   } else {
-    p.x += mx * p.speed * dt;
-    p.y += my * p.speed * dt;
+    // S2「疾行」：冲刺结束 0.5 秒内的移速加成
+    // S2「滞空」：闪避成功后 0.5 秒的移速加成（两者可叠乘，来源不同）
+    const boost =
+      (this.dashBoostT > 0 ? 1.15 : 1) * (this.dodgeBoostT > 0 ? 1.2 : 1);
+    p.x += mx * p.speed * boost * dt;
+    p.y += my * p.speed * boost * dt;
   }
   // 世界边界
   p.x = clamp(p.x, 24, WORLD.w - 24);
@@ -81,5 +92,11 @@ export function updatePlayer(this: GameCore, dt: number) {
     if (p.hasteT <= 0) p.haste = 0;
   }
   if (p.rageT > 0) p.rageT -= dt;
+  // S2 闪避窗口递减（冷读/余韵是一次性标记，不在这里递减）
+  if (this.dodgeProcT > 0) this.dodgeProcT -= dt;
+  if (this.dodgeBoostT > 0) this.dodgeBoostT -= dt;
+  // S2「惊弓 / 逆矢」冷却
+  if (this.contactKnockCd > 0) this.contactKnockCd -= dt;
+  if (this.counterCd > 0) this.counterCd -= dt;
   this.chainCd -= dt;
 }

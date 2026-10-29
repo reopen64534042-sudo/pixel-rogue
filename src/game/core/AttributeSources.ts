@@ -1,3 +1,4 @@
+import type { Profession } from "./types";
 import type { ModifierStage, StatId, StatModifier } from "./StatModel";
 
 /**
@@ -43,3 +44,19 @@ export function attributeModifiers(
     value: point.value,
   }));
 }
+
+/**
+ * 职业基础形态的**派生值**（S2）。
+ *
+ * 为什么是派生函数而不是写进 Player 或属性投影：
+ * - 写进 Player 会被 `recompute` 的 `Object.assign(player, statBase())` 抹掉；
+ * - 写进属性投影会覆盖旧卡 `f` 对同一字段的写入（旧表的同名卡曾是
+ *   `p.pierce++`），导致 parity 的全天赋场景对不上。
+ *
+ * 所以职业基础只在**消费点**叠加：`pierce` 在发射时加 1，`pierceFalloff`
+ * 由 `statBase()` 提供 0.5（S3 引入三职业后再改为按职业的 base 参数）。
+ */
+export function professionPierce(prof: Profession): number {
+  return prof === "shooter" ? 1 : 0;
+}
+
