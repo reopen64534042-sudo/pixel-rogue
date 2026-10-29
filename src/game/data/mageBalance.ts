@@ -127,10 +127,18 @@ export interface MageBalance {
   meteorFall: number;
   /** 陨星半径（px）。 */
   meteorRadius: number;
-  /** 陨星伤害系数（× 玩家 damage）。 */
+  /**
+   * 陨星伤害系数（× 玩家 damage）。
+   *
+   * 配平依据：星陨**整体替换**主施法，L1 必须与基础法阵同量级。
+   * 基础法阵 = 11 × 1.2 / 0.55 ≈ 24 DPS；陨星 = 11 × 4.0 / 2.0 = 22 DPS
+   *（旧值 2.5 / 3.0s = 9.2 DPS，选到星陨反而变弱）。
+   */
   meteorDamageMul: number;
   /** 多重陨星同时落下的颗数。 */
   meteorCount: number;
+  /** 多颗陨星之间的最小间距（px）：优先砸向不同敌群，避免同一目标双份伤害。 */
+  meteorMinSep: number;
   /** 元素残域持续时间（秒）。 */
   domainDuration: number;
   /** 元素残域半径（px）。 */
@@ -169,8 +177,6 @@ export interface MageBalance {
   mirrorDuration: number;
   /** 镜像：残影存在时间（秒）。 */
   mirrorDecoyDuration: number;
-  /** 镜像：残影相对玩家的生成偏移（px，沿垂直于「玩家→最近敌人」的方向）。 */
-  mirrorDecoyOffset: number;
 }
 
 export const MAGE_BALANCE: MageBalance = {
@@ -219,11 +225,12 @@ export const MAGE_BALANCE: MageBalance = {
   echoShieldDuration: 3,
   echoShieldCapPct: 0.25,
 
-  meteorInterval: 3,
+  meteorInterval: 2,
   meteorFall: 0.8,
   meteorRadius: 42,
-  meteorDamageMul: 2.5,
+  meteorDamageMul: 4,
   meteorCount: 2,
+  meteorMinSep: 70,
   domainDuration: 4,
   domainRadius: 46,
   domainDpsMul: 0.4,
@@ -243,5 +250,4 @@ export const MAGE_BALANCE: MageBalance = {
   mirrorCooldown: 12,
   mirrorDuration: 1,
   mirrorDecoyDuration: 3,
-  mirrorDecoyOffset: 36,
 };

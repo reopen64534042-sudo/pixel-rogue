@@ -282,37 +282,15 @@ export function triggerPhaseEscape(this: GameCore): boolean {
 }
 
 /**
- * 残影落点方向：与「玩家→最近敌人」垂直。
- *
- * 为什么不留在玩家脚下：实机反馈「怪物仍围着玩家的虚影打」——残影和玩家
- * 同坐标时，敌人只是在原地继续打同一个点，看不出仇恨被拉走。偏到侧面
- * 36px 后，敌人会明显转向，玩家才有脱离窗口。
- */
-function decoyAngle(core: GameCore): number {
-  const p = core.player;
-  let nearest: Enemy | null = null;
-  let best = Infinity;
-  for (const e of core.enemies) {
-    if (e.dead) continue;
-    const d = Math.hypot(e.x - p.x, e.y - p.y);
-    if (d < best) {
-      best = d;
-      nearest = e;
-    }
-  }
-  if (!nearest) return Math.atan2(p.dy, p.dx) + Math.PI / 2;
-  return Math.atan2(nearest.y - p.y, nearest.x - p.x) + Math.PI / 2;
-}
-
-/**
- * 镜像：留下残影吸引仇恨，自身进入 1 秒虚影。
+ * 镜像：在**受击位置**留下残影吸引仇恨，自身进入 1 秒虚影。
  *
  * 虚影期间：不可受击（damagePlayer 直接挡下）、无视碰撞（敌人接触判定跳过）、
  * 不能施法（施法状态机跳过）。
  *
  * 残影是**限时仇恨源**（`mirrorDecoyDuration` 秒），不因接触而破碎：
  * 旧实现 hp=1，而触发条件正是「被贴脸打中」——残影生成当帧就被同一个敌人
- * 打掉，仇恨转移从未发生。现在它活满时长，敌人会持续追它。
+ * 打掉，仇恨转移从未发生。位置取受击点而不是侧方偏移点：假体留在原地、
+ * 玩家在无敌帧里脱离，敌人才会继续围着「刚才的你」打。
  */
 export function triggerMirrorDecoy(this: GameCore): boolean {
   const core = this;
@@ -320,10 +298,9 @@ export function triggerMirrorDecoy(this: GameCore): boolean {
   if ((p.upCounts["镜像"] || 0) <= 0) return false;
   if (core.mageMirrorCd > 0) return false;
   core.mageMirrorCd = MB.mirrorCooldown;
-  const a = decoyAngle(core);
   core.mageDecoys.push({
-    x: clamp(p.x + Math.cos(a) * MB.mirrorDecoyOffset, 24, WORLD.w - 24),
-    y: clamp(p.y + Math.sin(a) * MB.mirrorDecoyOffset, 24, WORLD.h - 24),
+    x: p.x,
+    y: p.y,
     t: MB.mirrorDecoyDuration,
   });
   core.magePhaseT = MB.mirrorDuration;
@@ -334,33 +311,64 @@ export function triggerMirrorDecoy(this: GameCore): boolean {
 
 /* ================= 路线B：星陨 / 多重陨星 / 元素残域 ================= */
 
+/**
+ * 取「最密集且彼此分开」的若干落点。
+ *
+ * 多重陨星如果都砸在同一个点上，单目标会被双倍伤害——等于把路线B的
+ * 单体伤害偷偷翻倍。这里按「局部密度降序 + 与已选点保持 meteorMinSep」
+ * 挑选；颗数不足时只落实际存在的敌群，不为了凑数重复砸同一处。
+ * 排序以敌人顺序为稳定次级键，不引入随机数。
+ */
+function findDensestPoints(
+  core: GameCore,
+  range: number,
+  count: number,
+): { x: number; y: number; e: Enemy }[] {
+  const p = core.player;
+  const cands: { e: Enemy; n: number; d: number }[] = [];
+  for (const c of core.enemies) {
+    if (c.dead) continue;
+    const d = Math.hypot(c.x - p.x, c.y - p.y);
+    if (d > range) continue;
+    let n = 0;
+    for (const o of core.enemies) {
+      if (o.dead) continue;
+      if (Math.hypot(o.x - c.x, o.y - c.y) < 90) n++;
+    }
+    cands.push({ e: c, n, d });
+  }
+  cands.sort((a, b) => b.n - a.n || a.d - b.d);
+  const out: { x: number; y: number; e: Enemy }[] = [];
+  for (const c of cands) {
+    if (out.length >= count) break;
+    if (
+      out.every((o) => Math.hypot(o.x - c.e.x, o.y - c.e.y) >= MB.meteorMinSep)
+    )
+      out.push({ x: c.e.x, y: c.e.y, e: c.e });
+  }
+  return out;
+}
+
 function updateMeteorRoute(core: GameCore, dt: number) {
   const p = core.player;
   core.mageMeteorT -= dt;
   if (core.mageMeteorT <= 0) {
     core.mageMeteorT = MB.meteorInterval;
-    const target = findDensest(core, p.attackRange);
-    if (target) {
-      const count =
-        (p.upCounts["多重陨星"] || 0) > 0 ? MB.meteorCount : 1;
-      const type = mageDamageType(p);
+    const count = (p.upCounts["多重陨星"] || 0) > 0 ? MB.meteorCount : 1;
+    const points = findDensestPoints(core, p.attackRange, count);
+    const type = mageDamageType(p);
+    for (const pt of points) {
       // 落点提前量：陨星有 0.8 秒预警，敌人这段时间会朝玩家移动；
       // 不算提前量时落点永远在敌人身后，整条路线打空（实测 dmgBy.meteor=0）。
-      const toPlayer = Math.atan2(p.y - target.y, p.x - target.x);
-      const lead = target.speed * MB.meteorFall;
-      const leadX = target.x + Math.cos(toPlayer) * lead;
-      const leadY = target.y + Math.sin(toPlayer) * lead;
-      for (let i = 0; i < count; i++) {
-        // 多颗陨星的偏移用固定角度排布（不用随机数，保持确定性）
-        const a = (i / count) * Math.PI * 2;
-        core.mageMeteors.push({
-          x: clamp(leadX + Math.cos(a) * 26, 16, WORLD.w - 16),
-          y: clamp(leadY + Math.sin(a) * 26, 16, WORLD.h - 16),
-          t: MB.meteorFall,
-          R: MB.meteorRadius,
-          element: type,
-        });
-      }
+      const toPlayer = Math.atan2(p.y - pt.y, p.x - pt.x);
+      const lead = pt.e.speed * MB.meteorFall;
+      core.mageMeteors.push({
+        x: clamp(pt.x + Math.cos(toPlayer) * lead, 16, WORLD.w - 16),
+        y: clamp(pt.y + Math.sin(toPlayer) * lead, 16, WORLD.h - 16),
+        t: MB.meteorFall,
+        R: MB.meteorRadius,
+        element: type,
+      });
     }
   }
   for (let i = core.mageMeteors.length - 1; i >= 0; i--) {
@@ -457,6 +465,10 @@ export function updateMageCasting(this: GameCore, dt: number) {
   }
   // 路线B：法术整体换成周期性陨星
   if ((p.upCounts["星陨"] || 0) > 0) {
+    // 选卡时可能正在读条：切到星陨路线必须清掉残留的施法状态，
+    // 否则 castPhase 会永远停在 windup/cast，读条卡住不动。
+    this.castPhase = "idle";
+    this.castT = 0;
     updateMeteorRoute(this, dt);
     return;
   }

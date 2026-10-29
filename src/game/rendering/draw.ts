@@ -173,7 +173,10 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       this.castPhase === "windup" ? this.castT + castPart : this.castT;
     const prog = Math.max(0, Math.min(1, 1 - remain / total));
     const bw = 22;
-    const bx = Math.round(this.player.x - bw / 2);
+    // 取整基准必须与角色贴图一致：先 round 玩家坐标、再减一个**整数**偏移。
+    // 之前写 round(x - bw/2)，bw 为奇数时（冲刺格 5px）偏移是 ±2.5，
+    // 相邻帧会在 -2/-3 之间跳，表现为横移时小方块左右摆动。
+    const bx = Math.round(this.player.x) - Math.floor(bw / 2);
     const by = Math.round(this.player.y) + 6;
     // 外框（深蓝）+ 底槽（更亮的蓝灰）+ 进度（青/橙）：空槽时也看得见形状，
     // 只画一条纯色会随进度缩成一个点，看不出「正在读条」。
@@ -198,6 +201,31 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       3,
     );
     ctx.globalAlpha = 1;
+  } else if (
+    // 星陨路线整体替换主施法：没有前摇，所以没有施法读条。
+    // 但玩家的节奏感知不能丢——同一条位置改为显示「下一次陨星」的冷却，
+    // 填满即落星（落点有独立的预警圈），紫色与施法读条区分。
+    this.prof === "mage" &&
+    (this.player.upCounts["星陨"] || 0) > 0
+  ) {
+    const prog = Math.max(
+      0,
+      Math.min(1, 1 - this.mageMeteorT / MB.meteorInterval),
+    );
+    const bw = 22;
+    // 取整基准必须与角色贴图一致：先 round 玩家坐标、再减一个**整数**偏移。
+    // 之前写 round(x - bw/2)，bw 为奇数时（冲刺格 5px）偏移是 ±2.5，
+    // 相邻帧会在 -2/-3 之间跳，表现为横移时小方块左右摆动。
+    const bx = Math.round(this.player.x) - Math.floor(bw / 2);
+    const by = Math.round(this.player.y) + 6;
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#3a4a7a";
+    ctx.fillRect(bx - 1, by, bw + 2, 5);
+    ctx.fillStyle = "#2a3560";
+    ctx.fillRect(bx, by + 1, bw, 3);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#c07bff";
+    ctx.fillRect(bx, by + 1, Math.max(1, Math.round(bw * prog)), 3);
   }
   // ---- S3 法师：元素残域（持续伤害领域）----
   for (const d of this.mageDomains) {
@@ -399,7 +427,8 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     const chh = 3;
     const gap = 2;
     const pw = dchMax * cw + (dchMax - 1) * gap;
-    const px = Math.round(this.player.x - pw / 2);
+    // 同读条：整数偏移居中，避免奇数宽度导致横移时左右抖动
+    const px = Math.round(this.player.x) - Math.floor(pw / 2);
     const py = Math.round(this.player.y) + 12;
     const recharge =
       this.player.dashCharges < dchMax && this.player.dashRe > 0
