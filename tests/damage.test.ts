@@ -178,7 +178,7 @@ describe("combat foundation s1 damage calculator", () => {
     ).toBe(1);
   });
 
-  it("元素抗性 clamp(0, 75%)：未声明/0 → 1；超上限截断；负值按 0", () => {
+  it("元素抗性 clamp(-50%, 75%)：未声明/0 → 1；超上限截断；负值按弱点放大", () => {
     expect(typeMitigationFactor(DAMAGE_TYPES, "fire", snap())).toBe(1);
     expect(
       typeMitigationFactor(
@@ -200,7 +200,7 @@ describe("combat foundation s1 damage calculator", () => {
         "fire",
         snap({ resistances: { fire: -0.5 } }),
       ),
-    ).toBe(1);
+    ).toBe(1.5);
   });
 
   it("真实伤害绕过护甲、抗性与通用减伤", () => {
@@ -267,7 +267,7 @@ describe("combat foundation s1 damage calculator", () => {
   });
 
   it("未注册的伤害属性运行时显式报错（含原型链成员）", () => {
-    expect(() => typeMitigationFactor(DAMAGE_TYPES, "frost", snap())).toThrow(
+    expect(() => typeMitigationFactor(DAMAGE_TYPES, "holy", snap())).toThrow(
       /未注册/,
     );
     // 原型链上的成员（对象/函数均为真值）不得通过真值判断混入注册表

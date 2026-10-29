@@ -146,10 +146,10 @@ describe("game flow and state", () => {
 });
 
 describe("34 talents, card pools and combat", () => {
-  it("retains 56 unique names, wave-based tier ramp and chain prerequisites", () => {
-    // S2：41 张旧表（retired）+ 18 张射手池
-    expect(UPGRADES).toHaveLength(56);
-    expect(new Set(UPGRADES.map((u) => u.n)).size).toBe(56);
+  it("retains 75 unique names, wave-based tier ramp and chain prerequisites", () => {
+    // S3/S5：41 旧表（retired）+ 18 射手 + 19 法师池
+    expect(UPGRADES).toHaveLength(75);
+    expect(new Set(UPGRADES.map((u) => u.n)).size).toBe(75);
     const g = fresh();
     // S2：稀有度按**波次**分档（v40 按 player.lvl）
     for (const r of RAMP) {
@@ -411,10 +411,10 @@ describe("furnace economics and regressions", () => {
     expect(g.player.damage).toBe(11);
     expect(g.player.hp).toBe(40);
   });
-  it("all 56 talents provide cur(p) returning current effective value descriptions", () => {
+  it("all 75 talents provide cur(p) returning current effective value descriptions", () => {
     const g = fresh();
     const talents = UPGRADES;
-    expect(talents).toHaveLength(56);
+    expect(talents).toHaveLength(75);
     for (const t of talents) {
       expect(typeof t.cur).toBe("function");
       const desc = t.cur!(g.player);

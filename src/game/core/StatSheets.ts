@@ -190,6 +190,32 @@ export interface EnemyShadowStats {
   tough: number;
 }
 
+/**
+ * 键控抗性影子的负值处理：StatModel 的 base 必须 ≥ 0，负抗性（弱点）
+ * 用 flat 负修饰符表达，与权威解析路径一致。
+ */
+function resistanceShadow(
+  source: Readonly<Record<string, number>> | undefined,
+): Record<string, number> {
+  const base: Record<string, number> = {};
+  const mods: (StatModifier & { stat: "resistance"; key: string })[] = [];
+  for (const [key, value] of Object.entries(source ?? {})) {
+    if (value < 0) {
+      base[key] = 0;
+      mods.push({
+        sourceId: "enemy-shadow",
+        stat: "resistance",
+        key,
+        stage: "flat",
+        value,
+      });
+    } else {
+      base[key] = value;
+    }
+  }
+  return resolveKeyedMap("resistance", base, mods);
+}
+
 /** 来源 A（敌人）：实体当前值打包 */
 export function enemyShadowFromEntity(
   e: Pick<Enemy, "defense" | "resistances" | "tough">,
@@ -198,7 +224,7 @@ export function enemyShadowFromEntity(
     defense:
       resolveStats({ base: { defense: e.defense ?? 0 }, modifiers: [] })
         .defense ?? 0,
-    resistances: resolveKeyedMap("resistance", { ...e.resistances }, []),
+    resistances: resistanceShadow(e.resistances),
     tough:
       resolveStats({ base: { tough: e.tough ?? 0 }, modifiers: [] }).tough ?? 0,
   };
@@ -214,11 +240,7 @@ export function enemyShadowFromConfig(cfg: EnemyConfig): EnemyShadowStats {
     defense:
       resolveStats({ base: { defense: cfg.defense ?? 0 }, modifiers: [] })
         .defense ?? 0,
-    resistances: resolveKeyedMap(
-      "resistance",
-      cfg.resistances ? { ...cfg.resistances } : {},
-      [],
-    ),
+    resistances: resistanceShadow(cfg.resistances),
     tough:
       resolveStats({ base: { tough: cfg.tough ?? 0 }, modifiers: [] }).tough ??
       0,

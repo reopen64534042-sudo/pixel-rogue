@@ -58,9 +58,12 @@ const EXPECTED_DEFENSE: Record<
 > = {
   slime: { defense: 25, resistances: { fire: 0.15, lightning: 0.05 } },
   bat: { defense: 10, resistances: { fire: 0.15 } },
-  brute: { defense: 60 },
-  shooter: { defense: 30, resistances: { fire: 0.1, lightning: 0.45 } },
-  bomber: { defense: 18, resistances: { fire: 0.55 } },
+  brute: { defense: 60, resistances: { fire: 0.3, frost: -0.2 } },
+  shooter: {
+    defense: 30,
+    resistances: { fire: 0.1, frost: 0.15, lightning: 0.45 },
+  },
+  bomber: { defense: 18, resistances: { fire: 0.55, frost: -0.2 } },
 };
 
 function expectedKeys(kind: EnemyKind): string[] {
@@ -109,11 +112,11 @@ function spawnedEnemy(kind: EnemyKind): { core: ReturnType<typeof fresh>; enemy:
 }
 
 describe("Combat Foundation S4-D1 · 敌人防御属性权威迁移", () => {
-  it("D1-01 brute 只写 defense，保留冻结实体键集合", () => {
+  it("D1-01 brute 写 defense 与火/冰抗性，保留冻结实体键集合", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     const { enemy: e } = spawnedEnemy("brute");
     expect(e.defense).toBe(60);
-    expect("resistances" in e).toBe(false);
+    expect(e.resistances).toEqual({ fire: 0.3, frost: -0.2 });
     expect("tough" in e).toBe(false);
     expect(Object.keys(e)).toEqual(expectedKeys("brute"));
     expect(e.hp).toBe(e.maxhp);
@@ -130,15 +133,15 @@ describe("Combat Foundation S4-D1 · 敌人防御属性权威迁移", () => {
 
   it("D1-02 shooter 保留护甲和配置抗性，不物化 tough", () => {
     const { enemy: e } = spawnedEnemy("shooter");
-    expect(e.resistances).toEqual({ fire: 0.1, lightning: 0.45 });
+    expect(e.resistances).toEqual({ fire: 0.1, frost: 0.15, lightning: 0.45 });
     expect(e.defense).toBe(30);
     expect("tough" in e).toBe(false);
     expect(Object.keys(e)).toEqual(expectedKeys("shooter"));
   });
 
-  it("D1-03 bomber 保留护甲与火抗，不物化 tough", () => {
+  it("D1-03 bomber 保留护甲与火抗/冰弱，不物化 tough", () => {
     const { enemy: e } = spawnedEnemy("bomber");
-    expect(e.resistances).toEqual({ fire: 0.55 });
+    expect(e.resistances).toEqual({ fire: 0.55, frost: -0.2 });
     expect(e.defense).toBe(18);
     expect("tough" in e).toBe(false);
     expect(Object.keys(e)).toEqual(expectedKeys("bomber"));
@@ -169,7 +172,7 @@ describe("Combat Foundation S4-D1 · 敌人防御属性权威迁移", () => {
       const elite = eliteCore.enemies.at(-1)!;
 
       expect(pickDeclaredDefense(elite)).toEqual(pickDeclaredDefense(normal));
-      expect(elite.hp).toBe(normal.hp * 7);
+      expect(elite.hp).toBe(normal.hp * 3.5);
       expect(elite.dmg).toBe(normal.dmg * 1.6);
       expect(elite.r).toBe(ETYPES[kind].r * 1.8);
       expect(elite.speed).toBe(ETYPES[kind].speed * 0.8 * (0.9 + 0.5 * 0.2));
@@ -191,8 +194,9 @@ describe("Combat Foundation S4-D1 · 敌人防御属性权威迁移", () => {
     expect(e.hp).toBe(994);
   });
 
-  it("D1-07 brute 火、雷、真实伤害不受物理护甲影响", () => {
+  it("D1-07 brute 火抗/冰弱生效，雷与真实伤害不受物理护甲影响", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.99);
+    const expected = { fire: 8, lightning: 11, true: 11 } as const;
     for (const type of ["fire", "lightning", "true"] as const) {
       const { core, enemy: e } = spawnedEnemy("brute");
       e.hp = e.maxhp = 999;
@@ -201,8 +205,8 @@ describe("Combat Foundation S4-D1 · 敌人防御属性权威迁移", () => {
         noChain: true,
         type,
       });
-      expect(result?.settledDamage).toBe(11);
-      expect(e.hp).toBe(988);
+      expect(result?.settledDamage).toBe(expected[type]);
+      expect(e.hp).toBe(999 - expected[type]);
     }
   });
 
@@ -302,8 +306,8 @@ describe("Combat Foundation S4-D1 · 敌人防御属性权威迁移", () => {
     const { enemy: e } = spawnedEnemy("bomber");
     const snapshot = getEnemyCombatStats(e);
     e.resistances!.fire = 0.9;
-    expect(e.resistances).toEqual({ fire: 0.9 });
-    expect(snapshot.resistances).toEqual({ fire: 0.55 });
+    expect(e.resistances).toEqual({ fire: 0.9, frost: -0.2 });
+    expect(snapshot.resistances).toEqual({ fire: 0.55, frost: -0.2 });
     expect(snapshot.resistances).not.toBe(e.resistances);
   });
 
@@ -503,7 +507,7 @@ describe("Combat Foundation S4-D1 · 敌人防御属性权威迁移", () => {
     });
   });
 
-  it("D1-Q1 负 defense、tough 或任意 resistance 在权威边界抛 RangeError", () => {
+  it("D1-Q1 负 defense/tough 抛 RangeError；负 resistance 作为弱点解析", () => {
     const brute = ETYPES.brute;
     const originalDefense = brute.defense;
     try {
@@ -528,7 +532,9 @@ describe("Combat Foundation S4-D1 · 敌人防御属性权威迁移", () => {
     const originalResistances = shooter.resistances;
     try {
       shooter.resistances = { lightning: -0.1 };
-      expect(() => resolveEnemyDefense(shooter)).toThrow(RangeError);
+      expect(resolveEnemyDefense(shooter).resistances).toEqual({
+        lightning: -0.1,
+      });
     } finally {
       shooter.resistances = originalResistances;
     }

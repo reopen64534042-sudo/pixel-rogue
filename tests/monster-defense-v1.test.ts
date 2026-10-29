@@ -10,9 +10,9 @@ describe("怪物防御 v1", () => {
   it.each([
     ["slime", 25, { fire: 0.15, lightning: 0.05 }],
     ["bat", 10, { fire: 0.15 }],
-    ["brute", 60, undefined],
-    ["shooter", 30, { fire: 0.1, lightning: 0.45 }],
-    ["bomber", 18, { fire: 0.55 }],
+    ["brute", 60, { fire: 0.3, frost: -0.2 }],
+    ["shooter", 30, { fire: 0.1, frost: 0.15, lightning: 0.45 }],
+    ["bomber", 18, { fire: 0.55, frost: -0.2 }],
   ])("%s 生成时按波次解析并由精英继承", (kind, base, resistance) => {
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     for (const [wave, bonus] of [[1, 0], [8, 0], [15, 8.4], [20, 14.4], [28, 24], [30, 24]] as const) {

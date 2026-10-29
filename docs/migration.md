@@ -2300,3 +2300,15 @@ ctx.stroke();      // → strokePath()
   2. `DevPanel` 新增「复活：开/关」开关；「← 上一波 / 下一波 →」按钮调用 `jumpWave(±1)`，走现有 `startAtWave` 的游玩中分支，保留当前构筑。
 - 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`）：devRevive 开启后 9999 伤害致死 → `state=play`、`waveN=5`、HP 回满、天赋/等级原样、死亡页未出现；`jumpWave(+1/-1)` 后波次 6/5 切换，构筑保持。
 - 基线：DEV-only，生产构建不实例化面板且 `import.meta.env.DEV` 分支被 tree-shake；不影响正常玩法/验收。
+
+## D-77 测试基线清理：本轮相关（2026-10-30）
+
+- 用户授权「只清本轮直接相关的过期基线」，不重写更早的 balance/parity/s4d-d2a 历史快照。
+- 更新：
+  1. `damage.test`：负抗性按弱点放大（-50% → ×1.5）；「未注册属性」用例改用真正未注册的 `holy`（frost 早已注册）。
+  2. `monster-defense-v1` / `s4d-d1` / `shadow-stats`：蛮牛 `{fire:.3,frost:-.2}`、射手补 frost .15、自爆虫 `{fire:.55,frost:-.2}`；D1-Q1 负抗性改为可解析（弱点），负 defense/tough 仍抛错；精英 HP 期望按现行 ×3.5；蛮牛火伤按 30% 抗性结算。
+  3. `StatSheets` 影子构建器：负抗性改用 flat 负修饰符，修复「配置推导 shadow 遇 -0.2 直接 RangeError」的真实缺陷。
+  4. `codex` / `game`：卡数 75、可见 74（38 旧 + 18 射手 + 19 法师含秘传三修）。
+  5. `parity`：`dmgBy` 对照前统一摘除 `melee/cast/element/reaction` 新分项，其余分项仍严格对照。
+- 结果：目标 6 个测试文件 **127/127** 通过；全量 `656/693`，剩余 37 项失败均集中在 `balance-baseline`、`parity`、`s1-attribute-dispatch`、`s4d-d2a-acceptance`、`s4d-d2a-enemy-spawn` 的更早历史快照，按「只清本轮」保留并留痕。
+- 验证：`typecheck` ✓、`build` ✓；未运行 Playwright。
