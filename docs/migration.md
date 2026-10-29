@@ -2429,3 +2429,35 @@ ctx.stroke();      // → strokePath()
   2. `draw.ts` 法阵预览：把原本在下面读条用的 `prog` 计算提前，半径改为 `R * (1 - (1-prog)^2)`（缓动），透明度改为 `0.2 + 0.3*prog`；起手时从 1px 圆点开始，结束时正好等于实际伤害半径，windup→cast 不再跳变。伤害半径/数值不变。
 - 验证：`typecheck` ✓、`build` ✓；e2e 5930：法师局面板中射手 18 张全部「职业不符」，法师池正常；射手局面板中法师 19 张全部「职业不符」，射手池正常。法阵为绘制变化，受 in-app 浏览器隐藏视口限制未截图；代码路径已编译，冻结站实机可看展开过程。
 - 说明：作弊面板仍允许旧表卡与同职业卡；跨职业测试需回到主界面换职业。
+
+## D-85 设置菜单与键位子窗口（v81）
+
+- 用户反馈：设置里应该有一个「键位」子窗口，点进去才直接改键；以后还会在设置里塞别的东西。
+- 改动：
+  1. `index.html`：`#ov-settings` 改为菜单层（「键位」按钮 + 返回）；新增 `#ov-keybinds` 子窗口（提示、键位列表、恢复默认、返回设置）。
+  2. `game.css`：`#ov-keybinds` z80，位于设置菜单 z70 之上；新增 `.settings-menu` / `.settings-menu-btn`。
+  3. `GameUI`：新增 `keybindsOpen` 状态；`openSettings` 只开菜单，`openKeybinds` 打开子窗口，`closeKeybinds` 返回菜单，`closeSettings` 关闭两层；`handleSettingsKey` 支持 Esc 逐层返回；`dismissOverlay`/`hasOverlay`/生命周期隐藏列表同步。
+  4. 后续设置项直接加在设置菜单层；键位子窗口保持独立。
+- 验证：`typecheck` ✓、`build` ✓；e2e 5931：设置菜单时键位窗口隐藏；点「键位」后显示 7 行；改冲刺 Q 成功；「返回设置」回到菜单；Esc 从键位回菜单、再 Esc 回暂停；关闭两层后 state=pause。
+- 说明：只改设置 UI 结构，不改键位数据/默认值/持久化格式；旧 `pixelrogue_keys` v1 直接沿用。
+
+## D-86 开始界面清理（v82）
+
+- 用户需求：把开始界面的按键提示全删；再删掉「动作割草肉鸽」这几个字。
+- 改动：`index.html` 开始界面移除 `.keys` 六个按键提示、敌潮提示和「动作割草肉鸽」前缀（保留「活下去，变强，再活下去」）；职业按钮下改为 `start-actions`（教程 / 更新日志 / 图鉴）。
+- 说明：本批最初的 4 页文字教程已被 D-87 的练习场教程替代；v82 只保留开始界面清理。
+
+## D-87 新手教程练习场（v83）
+
+- 用户反馈：4 页文字教程太简陋，且形式不对；希望在打怪界面里做指引，顺便教选定职业的特殊玩法；同时保留教学入口，方便以后重看。
+- 改动：
+  1. 新增 `core/TutorialSystem.ts`：`startTutorial/updateTutorial/finishTutorial`。复用同一 GameCore/战斗画面，`tutorialMode` 冻结波次（`WaveSystem.updateWave` 直接返回），放 0 伤害、9999 血、无掉落的木桩；玩家不会在教程里死亡。
+  2. 步骤：0 移动 → 1 冲刺 → 2 自动攻击命中 → 3 职业课 → 4 捡经验球 → 5 完成。射手：目标保持在 60% 射程外；法师：站定法阵一次命中 ≥2 个木桩。经验球在步骤 4 生成，拾取后完成。
+  3. 钩子：`PlayerSystem` 记录冲刺、`CombatSystem` 记录命中、`MageSystem.detonate` 记录法师站定多目标、`ProgressionSystem` 记录教学经验球拾取；`Simulation` 末尾推进教程。
+  4. `GameUI`：开始界面保留「新手教程」入口（先选射手/法师，随时可重看）；首次选择职业自动进入练习场；顶部 `#tutorial-hud` 非阻塞步骤条（当前键位动态显示、跳过教程、完成后「开始正式战斗」）。
+  5. `data/tutorialState.ts`：`pixelrogue_tutorial_v1` v1 按职业记录已看；完成/跳过后写回，之后选择该职业直接正式开局。教程完成/跳过均 `startGame(prof)` 正式开局，练习场经验/构筑不保留，初始天赋面板照常。
+- 验证：`typecheck` ✓、`build` ✓；e2e 5933：
+  - 首次点射手自动进入教程（1 个 0 伤害木桩），HUD 1/5；移动/冲刺/命中/远距离/经验球逐步推进到 5/5，点击开始后 tutorialMode=false、pendingLevels=1、seen.shooter=true。
+  - 开始界面教程入口 → 选法师：3 个木桩、0/5；实际站定法阵命中 3 个后从 3/5 进到 4/5；跳过写 seen.mage=true 并正式开局。
+  - 教学经验球真实生成并被磁吸拾取后进入 5/5。
+- 说明：入口永远可用；首次自动仅按职业各一次；教程不弹初始天赋，正式开局后照常。旧 `pixelrogue_tutorial_v1` 未知/损坏时视为未看。

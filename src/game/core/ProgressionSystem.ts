@@ -28,6 +28,8 @@ export function updateProgression(this: GameCore, dt: number) {
       g.y += (dy / d) * s * dt;
     }
     if (d < 6) {
+      if (this.tutorialMode && this.tutorialStep === 4)
+        this.tutorialGemPicked = true;
       p.xp += g.v;
       this.gems.splice(i, 1);
       this.audio.beep(920 + Math.random() * 120, 0.05, "sine", 0.04);

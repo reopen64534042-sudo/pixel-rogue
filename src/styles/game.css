@@ -310,9 +310,9 @@ p {
   font-size: 1.4vmin !important;
   padding: 1vmin 1.6vmin !important;
 }
-.keys {
+.start-actions {
   display: flex;
-  gap: 1vmin;
+  gap: 1.2vmin;
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -1297,6 +1297,68 @@ p {
 }
 #ov-settings {
   z-index: 70;
+}
+#ov-keybinds {
+  z-index: 80;
+}
+#ov-tutorial-pick {
+  z-index: 95;
+}
+#tutorial-hud {
+  position: absolute;
+  top: 1.2vmin;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(86vmin, 620px);
+  z-index: 6;
+  pointer-events: none;
+  background: rgba(8, 12, 24, 0.92);
+  border: 0.25vmin solid #3a4a7a;
+  border-radius: 4px;
+  padding: 1vmin 1.4vmin;
+  text-align: left;
+}
+.tutorial-step {
+  color: #7d8ec4;
+  font-size: 1.2vmin;
+  letter-spacing: 0.1vmin;
+}
+.tutorial-title {
+  color: #ffd24a;
+  font-size: 1.6vmin;
+  margin: 0.3vmin 0;
+}
+.tutorial-body {
+  color: #cfe0ff;
+  font-size: 1.3vmin;
+  line-height: 1.6;
+}
+.tutorial-hud-actions {
+  display: flex;
+  gap: 1vmin;
+  justify-content: flex-end;
+  margin-top: 0.6vmin;
+  pointer-events: auto;
+}
+#tutorial-hud .btn {
+  font-size: 1.2vmin;
+  padding: 0.4vmin 0.8vmin;
+}
+.settings-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vmin;
+  width: min(66vmin, 460px);
+}
+.settings-menu-btn {
+  width: 100%;
+  text-align: left;
+}
+.settings-menu-btn small {
+  display: block;
+  margin-top: 0.4vmin;
+  color: #7d8ec4;
+  font-size: 1.1vmin;
 }
 .settings-hint {
   color: #9aa3c7;

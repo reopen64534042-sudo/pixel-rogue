@@ -113,6 +113,8 @@ export function enterRest(this: GameCore) {
 }
 
 export function updateWave(this: GameCore, dt: number) {
+  // v83：教程练习场冻结波次，不刷怪、不结算、不进入休整。
+  if (this.tutorialMode) return;
   // ---- 波次推进: 刷满配额且全部清空才算过波 ----
   if (this.wavePhase === "fight") {
     if (this.spawnedThisWave < this.quota) {

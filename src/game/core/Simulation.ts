@@ -29,4 +29,5 @@ export function update(this: GameCore, dt: number) {
   if (updateEnemies.call(this, dt)) return;
   updateProgression.call(this, dt);
   updateEffects.call(this, dt);
+  this.updateTutorial(dt);
 }

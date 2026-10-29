@@ -33,6 +33,11 @@ import {
 } from "./MageSystem";
 import { meleeSwing } from "./MeleeSystem";
 import { gainSpecialXp } from "./SpecialSystem";
+import {
+  finishTutorial,
+  startTutorial,
+  updateTutorial,
+} from "./TutorialSystem";
 import { update } from "./Simulation";
 import {
   melt,
@@ -198,6 +203,17 @@ export class GameCore {
    * 否则玩家会选到一个空池职业。
    */
   prof: Profession = "shooter";
+  /** 新手教程（v83）：练习场标记与分步状态 */
+  tutorialMode = false;
+  tutorialStep = 0;
+  tutorialProf: Profession | null = null;
+  tutorialStartX = 0;
+  tutorialStartY = 0;
+  tutorialDashed = false;
+  tutorialHit = false;
+  tutorialProfDone = false;
+  tutorialGemPicked = false;
+  tutorialGemSpawned = false;
   /* —— S3 法师池运行态 ——
    *
    * 全部放 GameCore 而不是 Player：`recompute` 会用
@@ -427,6 +443,9 @@ export class GameCore {
   interruptMageCast = interruptMageCast.bind(this);
   triggerPhaseEscape = triggerPhaseEscape.bind(this);
   triggerMirrorDecoy = triggerMirrorDecoy.bind(this);
+  startTutorial = startTutorial.bind(this);
+  updateTutorial = updateTutorial.bind(this);
+  finishTutorial = finishTutorial.bind(this);
   addText = addText.bind(this);
   damagePlayer = damagePlayer.bind(this);
   gainSpecialXp = gainSpecialXp.bind(this);
@@ -440,6 +459,14 @@ export class GameCore {
     // 法师的施法速度/施法距离来自职业 base。
     this.prof = prof;
     this.audio.cancelCues();
+    this.tutorialMode = false;
+    this.tutorialStep = 0;
+    this.tutorialProf = null;
+    this.tutorialDashed = false;
+    this.tutorialHit = false;
+    this.tutorialProfDone = false;
+    this.tutorialGemPicked = false;
+    this.tutorialGemSpawned = false;
     this.player = {
       x: WORLD.w / 2,
       y: WORLD.h / 2,

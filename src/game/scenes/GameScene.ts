@@ -290,5 +290,7 @@ export class GameScene extends Phaser.Scene {
     }
     // v77：低血量屏幕边缘提示（DOM 覆盖层；只改 opacity，不碰画布）
     this.ui.syncLowHp();
+    // v83：新手教程 HUD（练习场内分步指引）
+    this.ui.syncTutorial();
   }
 }
