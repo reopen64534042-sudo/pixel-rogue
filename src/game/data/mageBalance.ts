@@ -41,8 +41,17 @@ export interface MageBalance {
   castRange: number;
   /** 法阵半径（px，base）：随 area 乘区缩放。 */
   circleRadius: number;
-  /** 法阵单次伤害系数（× 玩家 damage）。 */
+  /** 法阵单次伤害系数（× 玩家 damage）。v74：1.2 → 0.9，降低本体直伤。 */
   castDamageMul: number;
+  /**
+   * 反应伤害基数（× 玩家 damage）。
+   *
+   * 融化 / 超导 / 闪电链按「命中伤害」折算；v74 下调法阵直伤后，若继续
+   * 用新的直伤，反应数字也会跟着降。这里保留旧的 1.2 系数，让反应伤害
+   * 与 v73 完全一致——玩家感知到的是「本体变轻、反应不变」。
+   * 灼烧 / 超载 / 残域本来就用 p.damage，不经过本系数。
+   */
+  reactionBaseMul: number;
   /** 无目标时的重试间隔（秒）：避免每帧空转找目标。 */
   castIdleRetry: number;
   /**
@@ -151,8 +160,10 @@ export interface MageBalance {
    * 陨星伤害系数（× 玩家 damage）。
    *
    * 配平依据：星陨**整体替换**主施法，L1 必须与基础法阵同量级。
-   * 基础法阵 = 11 × 1.2 / 0.55 ≈ 24 DPS；陨星 = 11 × 4.0 / 2.0 = 22 DPS
+   * v73：基础法阵 = 11 × 1.2 / 0.55 ≈ 24 DPS；陨星 = 11 × 4.0 / 2.0 = 22 DPS
    *（旧值 2.5 / 3.0s = 9.2 DPS，选到星陨反而变弱）。
+   * v74 法阵直伤下调至 0.9（≈18 DPS）后，陨星暂保持 4.0（≈22 DPS）；
+   * 是否跟随下调到 ~3.0（≈16.5 DPS）待试玩决定——本次只改法阵本体。
    */
   meteorDamageMul: number;
   /**
@@ -223,7 +234,8 @@ export const MAGE_BALANCE: MageBalance = {
   castInterval: 0.2,
   castRange: 150,
   circleRadius: 34,
-  castDamageMul: 1.2,
+  castDamageMul: 0.9,
+  reactionBaseMul: 1.2,
   castIdleRetry: 0.1,
   steadyDamageMul: 1.5,
   steadyHoldRatio: 0.4,

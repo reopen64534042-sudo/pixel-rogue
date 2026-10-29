@@ -335,6 +335,12 @@ export class GameUI {
         "💥 暴击/暴伤",
         (p.crit * 100).toFixed(0) + "% / ×" + critMultiplier(p).toFixed(1),
       ],
+      // v74：闪避与吸血归入核心战斗（用户裁定），不再放在生存防御。
+      ["🌀 闪避", p.dodge ? (p.dodge * 100).toFixed(0) + "%" : "—"],
+      [
+        "🦷 吸血",
+        p.lifesteal ? (p.lifesteal * 100).toFixed(1) + "%" : "—",
+      ],
       // S3：法师显示施法距离/当前元素/法阵范围；射手只显示穿透
       //（弹道数量对玩家没有决策价值，已移除）。
       ...(isMage
@@ -364,7 +370,6 @@ export class GameUI {
       ["❄️ 冰霜增伤", typeBonus.frost ? "+" + pct(typeBonus.frost) : "—"],
     ];
     const defenseRows: [string, string | number][] = [
-      ["🌀 闪避", p.dodge ? (p.dodge * 100).toFixed(0) + "%" : "—"],
       [
         "🥋 减伤",
         p.tough ? (Math.min(0.6, p.tough) * 100).toFixed(0) + "%" : "—",
@@ -394,7 +399,6 @@ export class GameUI {
           : "—",
       ],
       ["✨ 生命回复", p.regen ? p.regen.toFixed(1) + " /秒" : "—"],
-      ["🦷 吸血", p.lifesteal ? (p.lifesteal * 100).toFixed(1) + "%" : "—"],
     ];
 
     const renderRows = (items: [string, string | number][]) =>

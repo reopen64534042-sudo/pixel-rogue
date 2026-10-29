@@ -546,6 +546,12 @@ export interface HitOptions {
   form?: AttackForm;
   /** 发射时攻击者快照（S3-B）：玩家弹丸命中按发射时属性结算；缺省读当前实体 */
   attackerStats?: Readonly<CombatStatsSnapshot>;
+  /**
+   * v74 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多
+   * 留 1 HP，让后续反应完成击杀。只允许法阵/陨星直伤使用；反应、连锁、
+   * 灼烧等伤害不得传本选项（否则反应永远收不了尾）。
+   */
+  lethalCap?: boolean;
 }
 export interface PlayerHitOptions {
   melee?: boolean;

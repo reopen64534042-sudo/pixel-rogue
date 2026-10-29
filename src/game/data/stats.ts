@@ -6,7 +6,7 @@ import type { Profession } from "../core/types";
  *
  * 以下字段按职业分叉，其余字段三职业共用：
  * - 射手：50 HP / 70 移速 / 13 攻击 / 130 索敌 / 2.2 发每秒；
- * - 法师：100 HP / 62 移速 / 11 攻击 / MAGE_BALANCE.castRange / 1 / castCycle。
+ * - 法师：40 HP（v76 用户裁定） / 62 移速 / 11 攻击 / 150px 施法距离 / 1 / castCycle。
  *   法师的施法前摇与间隔都按「当前施法速度 ÷ 基础施法速度」同比缩放，
  *   因此属性「施法速度」对法师是从施法周期生效的。
  *
@@ -17,7 +17,9 @@ import type { Profession } from "../core/types";
 export function statBase(prof: Profession = "shooter") {
   const mage = prof === "mage";
   return {
-    maxhp: mage ? 100 : 50,
+    // v76：法师基础生命 40（用户裁定）；护盾/回复按最大生命百分比结算，
+    // 会随之下调。射手保持 50。
+    maxhp: mage ? 40 : 50,
     speed: mage ? 62 : 70,
     projSpeed: 260,
     // S1：攻击射程从 AttackSystem 的硬编码 130 提为属性（base 130，数值不变）

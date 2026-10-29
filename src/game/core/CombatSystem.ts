@@ -126,6 +126,12 @@ export function hurtEnemy(
     settled += trueCalc.settledDamage;
   }
   dmg = settled;
+  // v76 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多留
+  // 1 HP，让随后结算的反应完成击杀。只压低实际应用值；反应基数由调用方
+  // 另行传入，不受本处影响（反应/连锁不得使用 lethalCap）。
+  if (opts.lethalCap && e.hp > 1 && dmg >= e.hp) {
+    dmg = e.hp - 1;
+  }
   // S2「猎杀标记」累计：同一目标命中 3 次转为一层标记（上限由深痕决定）。
   // 放在伤害结算之后——本次命中吃的是「已有」层数，不自我加成。
   if ((p.upCounts["猎杀标记"] || 0) > 0) {

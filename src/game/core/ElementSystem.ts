@@ -126,65 +126,92 @@ function spawnReactionFx(
   }
 }
 
-/**
- * 一次直接命中结算所有满足条件的法印反应（三修 = 全部触发）。
- *
- * - 融化：火命中冻结（消耗冻结），伤害 = 本次 hitDamage × 2.5
- * - 超载：雷命中 ≥2 层灼烧（消耗全部灼烧），伤害 = 层数 × 每层 DPS × 3 秒
- * - 超导：雷命中冻结或带凝冰（不消耗），直接雷伤 + 保证链 +2 + 雷易伤 15%
- *
- * 判定用命中前快照；三个反应各有独立 ICD，互不阻塞。反应先于本发印记
- * 结算，随后才叠灼烧/凝冰/麻痹。
- */
-function resolveMageReactions(
-  core: GameCore,
-  e: Enemy,
-  hitDamage: number,
-): MageReaction[] {
-  const p = core.player;
-  const out: MageReaction[] = [];
-  if (e.dead) return out;
-  const snap = hitStatusSnapshot(e);
-  const els = mageElements(p);
-  const has = (el: MageElement) => els.includes(el);
+interface ReactionState {
+  snap: HitStatusSnapshot;
+  reactions: MageReaction[];
+}
 
-  if (has("fire") && has("frost") && snap.frozen && snap.meltCd <= 0) {
-    e.elemFrozenT = 0;
-    reactionDamage(core, e, hitDamage * MB.meltDamageMul, "fire");
-    e.elemMeltCd = MB.reactionIcdMelt;
-    spawnReactionFx(core, e, "melt");
-    out.push("melt");
-  }
+/** 命中前快照下会触发的反应列表（纯查询，不消耗状态、不设 CD）。 */
+function reactionState(e: Enemy, els: MageElement[]): ReactionState {
+  const snap = hitStatusSnapshot(e);
+  const has = (el: MageElement) => els.includes(el);
+  const reactions: MageReaction[] = [];
+  if (has("fire") && has("frost") && snap.frozen && snap.meltCd <= 0)
+    reactions.push("melt");
   if (
     has("fire") &&
     has("lightning") &&
     snap.burn >= MB.overloadMinStacks &&
     snap.overloadCd <= 0
-  ) {
-    const layers = snap.burn;
-    e.elemFire = [];
-    reactionDamage(
-      core,
-      e,
-      layers * p.damage * MB.burnDpsPerStack * MB.overloadSeconds,
-      "fire",
-    );
-    e.elemOverloadCd = MB.reactionIcdOverload;
-    spawnReactionFx(core, e, "overload");
-    out.push("overload");
-  }
+  )
+    reactions.push("overload");
   if (
     has("frost") &&
     has("lightning") &&
     (snap.frozen || snap.frost > 0) &&
     snap.superCd <= 0
-  ) {
-    // 冰壳/凝冰都不消耗；这一发雷伤先结算，再设置超导易伤（避免自乘）。
-    reactionDamage(core, e, hitDamage * MB.superDamageMul, "lightning");
-    e.elemSuperT = MB.superVulnDuration;
-    e.elemSuperCd = MB.reactionIcdSuper;
-    spawnReactionFx(core, e, "superconduct");
-    out.push("superconduct");
+  )
+    reactions.push("superconduct");
+  return { snap, reactions };
+}
+
+/**
+ * 法阵/陨星直伤在结算前调用：目标当前是否满足某个反应的触发条件。
+ * 只查询、不结算，供 v74 的「击杀保护」决定是否让出最后一击。
+ */
+export function mageReactionAvailable(core: GameCore, e: Enemy): boolean {
+  if (e.dead) return false;
+  return reactionState(e, mageElements(core.player)).reactions.length > 0;
+}
+
+/**
+ * 一次直接命中结算所有满足条件的法印反应（三修 = 全部触发）。
+ *
+ * - 融化：火命中冻结（消耗冻结），伤害 = 反应基数 × 2.5
+ * - 超载：雷命中 ≥2 层灼烧（消耗全部灼烧），伤害 = 层数 × 每层 DPS × 3 秒
+ * - 超导：雷命中冻结或带凝冰（不消耗），直接雷伤 + 保证链 +2 + 雷易伤 15%
+ *
+ * 判定用命中前快照；三个反应各有独立 ICD，互不阻塞。反应先于本发印记
+ * 结算，随后才叠灼烧/凝冰/麻痹。`reactionBase` 由调用方传入「反应基数」，
+ * 与 v74 下调后的直伤解耦（见 mageBalance.reactionBaseMul）。
+ */
+function resolveMageReactions(
+  core: GameCore,
+  e: Enemy,
+  reactionBase: number,
+): MageReaction[] {
+  const p = core.player;
+  const out: MageReaction[] = [];
+  if (e.dead) return out;
+  const { snap, reactions } = reactionState(e, mageElements(p));
+
+  for (const reaction of reactions) {
+    if (reaction === "melt") {
+      e.elemFrozenT = 0;
+      reactionDamage(core, e, reactionBase * MB.meltDamageMul, "fire");
+      e.elemMeltCd = MB.reactionIcdMelt;
+      spawnReactionFx(core, e, "melt");
+      out.push("melt");
+    } else if (reaction === "overload") {
+      const layers = snap.burn;
+      e.elemFire = [];
+      reactionDamage(
+        core,
+        e,
+        layers * p.damage * MB.burnDpsPerStack * MB.overloadSeconds,
+        "fire",
+      );
+      e.elemOverloadCd = MB.reactionIcdOverload;
+      spawnReactionFx(core, e, "overload");
+      out.push("overload");
+    } else {
+      // 冰壳/凝冰都不消耗；这一发雷伤先结算，再设置超导易伤（避免自乘）。
+      reactionDamage(core, e, reactionBase * MB.superDamageMul, "lightning");
+      e.elemSuperT = MB.superVulnDuration;
+      e.elemSuperCd = MB.reactionIcdSuper;
+      spawnReactionFx(core, e, "superconduct");
+      out.push("superconduct");
+    }
   }
   return out;
 }
@@ -336,18 +363,19 @@ function triggerChainLightning(
 /**
  * 一次命中带来的元素结算：反应 → 印记 → 共振 → 连锁。
  *
- * @param hitDamage 本次命中的伤害（融化/超导按它折算，闪电链也按它折算）
+ * @param reactionBase 反应伤害基数（融化/超导/闪电链按它折算）。
+ *   调用方传入与直伤解耦的基数；v74 下调法阵直伤后，反应数字保持不变。
  */
 export function applyMageHit(
   core: GameCore,
   e: Enemy,
-  hitDamage: number,
+  reactionBase: number,
 ): void {
   const p = core.player;
   const els = mageElements(p);
   if (!els.length || e.dead) return;
   // 三修：所有满足条件的反应都结算；双修通常只有一个配对。
-  const reactions = resolveMageReactions(core, e, hitDamage);
+  const reactions = resolveMageReactions(core, e, reactionBase);
   if (e.dead) return;
   const superconduct = reactions.includes("superconduct");
   const hasResonance = (p.upCounts["元素共振"] || 0) > 0;
@@ -365,7 +393,7 @@ export function applyMageHit(
         MB.chainJumps + (superconduct ? MB.superChainBonusJumps : 0) + bonusJumps;
       const chance = superconduct ? 1 : MB.chainChance;
       if (Math.random() < chance)
-        triggerChainLightning(core, e, hitDamage, jumps, rangeMul);
+        triggerChainLightning(core, e, reactionBase, jumps, rangeMul);
     }
   }
 }
