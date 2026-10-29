@@ -150,6 +150,11 @@ export class GameCore {
   hurtFlash = 0;
   pendingLevels = 0;
   /**
+   * #136：开局天赋尚未选定。为 true 期间 `step()` 冻结整个模拟
+   * （选完天赋才开始游戏）；由 `chooseSlot` 成功后清除。
+   */
+  startTalentPending = false;
+  /**
    * S1：本局已选的属性强化（来源，不是缓存）。`recompute` 每次由它重建
    * 属性修饰符——禁止在此基础上维护累加值，否则重算会重放两次。
    * 空数组时属性零贡献，行为与改动前完全一致。
@@ -353,6 +358,7 @@ export class GameCore {
     this.shake = 0;
     this.hurtFlash = 0;
     this.pendingLevels = 0;
+    this.startTalentPending = false;
     // S2：职业池固定射手（S3 才有开局选择）
     this.prof = "shooter";
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
@@ -428,6 +434,7 @@ export class GameCore {
     // 把基于种子的确定性测试与 parity 全部打乱。
     // 其余 7 次在 3/7/11/15/19/23/27 波末发放（见 WaveSystem.enterRest）。
     this.pendingLevels = 1;
+    this.startTalentPending = true; // #136：选完天赋才开跑（step 冻结）
     this.view.started();
     this.audio.startCue();
   }
@@ -491,7 +498,13 @@ export class GameCore {
     return "play";
   }
   step(dt: number) {
-    if (this.state === "play") this.update(dt);
+    // #136：开局天赋未选定时冻结整个模拟——选完天赋才开始游戏。
+    // 局中升级/报告/熔炉面板的「非暂停」语义不变（v14 设计）。
+    if (
+      this.state === "play" &&
+      !(this.startTalentPending && this.bpMode === "level")
+    )
+      this.update(dt);
   }
   showRestBar() {
     this.view.rest();

@@ -244,6 +244,8 @@ export function chooseSlot(this: GameCore, index: number) {
   )
     return false;
   this.pendingLevels--;
+  // #136：开局天赋选完即解除模拟冻结（对局中升级此标记本就为 false，无副作用）
+  this.startTalentPending = false;
   this.audio.beep(880, 0.12, "square", 0.07, 300);
   if (this.pendingLevels > 0)
     this.slots = this.rollPicks().map((u) => ({ u, used: false }));

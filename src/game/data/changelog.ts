@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v45",
+    date: "2026-10-29",
+    title: "开局体验修正（#136/#137）",
+    items: [
+      "修复：开局天赋选择与战斗同时进行——现在选完天赋才开始游戏（startTalentPending 冻结整个模拟）；局中升级/报告/熔炉面板的「非暂停」语义不变。",
+      "修复：开局自带基础冲刺（docs/talent-pool-design-rules.md 前提共识「共享基础动作」的漏落地）——dashLv 基础 0→1、冷却 2.4s；疾影步改为在其上每级再 −0.4s，机动轴充能/距离卡恢复生效；触屏冲刺键开局即可用。",
+    ],
+  },
+  {
     version: "v44",
     date: "2026-10-29",
     title: "首轮试玩反馈：天赋发放前移与界面修正",

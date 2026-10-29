@@ -250,6 +250,11 @@ function takeShooterBase(snapshot: unknown) {
   delete snap.player.pierceFalloff;
   delete snap.player.distanceDmg;
   delete snap.player.dashDistMul;
+  // 基线更新依据：Issue #137（2026-10-29 用户实测）——开局自带基础冲刺
+  // （docs/talent-pool-design-rules.md 前提共识「共享基础动作」的漏落地修正），
+  // statBase dashLv 0→1，与 v8（疾影步解锁、开局 0）在本字段上刻意分叉。
+  // 新基值由 s2-shooter-pool「#136/#137」describe 与 balance-baseline 快照咬住。
+  delete snap.player.dashLv;
   return { rest: snapshot, ...out };
 }
 /** 摘出弹丸/敌人上的 S2 新增键（v8 没有这些概念，逐字段对照对它们无意义）。 */
@@ -601,6 +606,10 @@ it("every talent effect, cap and tier matches the protected original", () => {
         baseline,
       ),
     );
+    // 基线更新依据：Issue #137——开局自带基础冲刺（statBase dashLv 0→1），
+    // 与 v8（疾影步解锁、开局 0）在本字段刻意分叉，两侧同删后由
+    // s2-shooter-pool「#136/#137」describe 与 balance-baseline 快照咬住
+    delete (expected.player as Record<string, unknown>).dashLv;
     const g = fresh();
     if (
       S4C_AUTHORITY_MIGRATED.includes(
@@ -619,6 +628,8 @@ it("every talent effect, cap and tier matches the protected original", () => {
         pierceFalloff: undefined,
         distanceDmg: undefined,
         dashDistMul: undefined,
+        // 基线更新依据：Issue #137——开局自带基础冲刺（见 stripS2Only 注释）
+        dashLv: undefined,
         upCounts: {},
         picks: [],
       }).toEqual(expected.player);
@@ -631,6 +642,8 @@ it("every talent effect, cap and tier matches the protected original", () => {
         pierceFalloff: undefined,
         distanceDmg: undefined,
         dashDistMul: undefined,
+        // 基线更新依据：Issue #137——开局自带基础冲刺（见 stripS2Only 注释）
+        dashLv: undefined,
       }).toEqual(expected.player);
     }
     expect(u.max).toBe(expected.max);

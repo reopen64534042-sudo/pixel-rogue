@@ -27,6 +27,7 @@ export function fresh(
     core.pendingLevels = 0;
     core.bpMode = null;
     core.slots = [];
+    core.startTalentPending = false; // #136：白纸对局不受开局冻结影响
   }
   return core;
 }

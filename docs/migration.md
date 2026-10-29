@@ -1869,3 +1869,20 @@ ctx.stroke();      // → strokePath()
 - 量化预期：一局属性选择 ≈120 → ≈75 次（基础 50 + 宝箱补足 ≤25）；全点攻击白档总量 ≈600 → ≈100+ 稀有度浮动，第 3 波 TTK 影响有限（第 3 波前至多 1 次基础发放）。**本条为静态推算，真机体感待用户试玩反馈。**
 - 测试：`s1-attribute-dispatch.test.ts` 适配次数表（60→50）与攻击白/金档（2/6）；新增限幅 describe（单波合计封顶、非法输入拒绝、开局发放与换波清零、宝箱折算满额飘字链路）。
 - 遗留：③/④ 的叠加上限（issue 建议第 4 条）与天赋数值锚点（第 5 条）留待真机反馈后再裁决。
+
+## D-39 开局冻结与基础冲刺（#136/#137，2026-10-29）
+
+- **#136**：v44 的开局天赋面板沿用了局中升级「非暂停」语义，导致选天赋时怪已在打人。新增 `GameCore.startTalentPending`：`startGame()` 置位，`step()` 在「置位且 bpMode=level」时整体跳过 `update`（模拟全冻结），`chooseSlot` 成功后清除；局中升级/报告/熔炉非暂停不变。resetGame 同步清位。
+- **#137**：docs/talent-pool-design-rules.md 前提共识「共享基础动作（冲刺/受伤/拾取）」在 S2 漏落地——dashLv 无任何来源可到 1，机动轴（充能/距离）形同虚设。修复：`statBase()` dashLv 0→1（冷却维持 dashMax 2.4s），疾影步语义变为「在其上每级再 −0.4s」（首级 dashMax 2.0 与旧解锁序列逐位一致）。
+- **基线更新依据：Issue #136/#137**（用户实测反馈 + 2026-10-28 已确认的设计前提）。改动面：
+  - parity：`stripS2Only` 与逐卡对照两处对 dashLv 双侧归一（v8 为疾影步解锁、开局 0，刻意分叉）；新值由 s2-shooter-pool 新 describe 与 balance-baseline 快照咬住。
+  - balance-baseline 夹具经 `UPDATE_BALANCE_BASELINE=1` 再生成，diff 仅 `dashLv: 0→1`。
+  - game.test dash 用例改写为「开局即可冲刺，充能/冷却机制照旧咬住（144 帧充能）」；
+    s4c-c3-baseline B10/B11、s4c-c3c-runtime G-15/16/17/19/21/宝箱入口、s4c-recompute-audit、
+    touch-input：dashLv 期望统一改为「基础 1 + 疾影步级数」；G-19 的「失去疾影步无法触发」
+    旧断言作废，改为「基础冲刺仍在、重学降 dashMax」。
+  - e2e：新增共享助手 `tests/browser/e2e-helpers.ts#dismissStartTalent`（开局面板冻结后
+    所有 spec 必须先消费开局天赋）；touch.spec 冲刺按钮用例改为「开局即出现」；
+    tooltip 用例的 `#stat-combat` 点击改 force（模拟运行中数值刷新导致 stable 检查不满足）。
+- 验证：tsc ✓；vitest **674/674（35 文件）**；build ✓；core-ui Playwright **16/16**。
+- 遗留：真机体感待确认（开局冲刺冷却 2.4s 是否合适；疾影步在 #137 后定位为纯降冷却档）。
