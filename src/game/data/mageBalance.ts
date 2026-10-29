@@ -151,6 +151,8 @@ export interface MageBalance {
   domainRadius: number;
   /** 元素残域每秒伤害系数（× 玩家 damage）。 */
   domainDpsMul: number;
+  /** 元素残域的 DoT 结算间隔（秒）。按 tick 结算，避免逐帧取整成 1 点伤害。 */
+  domainTick: number;
 
   // —— 节律 —
   /** 速咏：前摇倍率（0.7 = 前摇 −30%）。 */
@@ -241,6 +243,7 @@ export const MAGE_BALANCE: MageBalance = {
   domainDuration: 4,
   domainRadius: 46,
   domainDpsMul: 0.4,
+  domainTick: 0.25,
 
   quickCastWindupMul: 0.7,
   continuousCastIntervalMul: 0.8,

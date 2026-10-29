@@ -410,7 +410,8 @@ export const LEGACY_UPGRADES: Talent[] = [
     mech: 1,
     pv: (p) =>
       `闪避 ${(p.dodge * 100).toFixed(0)}% → ${((p.dodge + 0.08) * 100).toFixed(0)}%`,
-    f: (p) => (p.dodge += 0.08),
+    // S5：闪避已迁入 TalentStatSources 的 flat 来源（0.08/级），f 只保留空操作
+    f: () => {},
     cur: (p) => `闪避率 ${(p.dodge * 100).toFixed(0)}%`,
   },
   {

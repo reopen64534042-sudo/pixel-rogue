@@ -73,8 +73,8 @@ export function mageHasElement(
   );
 }
 
-/** 持有任意一个元素 L1（用于「元素共振」「双修」的前置判定）。 */
-function hasAnyElement(p: Player): boolean {
+/** 持有任意一个元素 L1（用于「元素共振」「双修」「元素残域」的前置判定）。 */
+export function hasAnyElement(p: Player): boolean {
   return MAGE_ELEMENT_CARDS.some((c) => (p.upCounts[c.card] || 0) > 0);
 }
 
@@ -144,6 +144,7 @@ export const MAGE_TALENTS: Talent[] = [
     layer: 2,
     prof: "mage",
     req: hasAnyElement,
+    reqHint: "需 元素卡",
     d: "印记触发时，60px 内的敌人按元素获得不同强化（火：继承灼烧层数；冰：各 +1 层凝冰；雷：闪电链多跳 1 个）",
     max: 1,
     pv: () => `共振半径 ${MB.resonanceRadius}px`,
@@ -161,6 +162,7 @@ export const MAGE_TALENTS: Talent[] = [
     layer: 3,
     prof: "mage",
     req: hasAnyElement,
+    reqHint: "需 元素卡",
     excludes: ["星陨", "多重陨星", "元素残域"],
     // 双修的机制就是「同时挂两种元素」，必须能同时持有两个元素 L1，
     // 因此持有本卡时豁免元素变体组的 N 选 1 排他。
@@ -212,7 +214,10 @@ export const MAGE_TALENTS: Talent[] = [
     layer: 3,
     prof: "mage",
     requires: "多重陨星",
-    d: "落点留下元素领域（燃烧 / 霜冻 / 电场），持续造成元素伤害",
+    // 残域继承施法者的元素；没有元素卡时无从谈起（否则会留下“物理领域”）。
+    req: hasAnyElement,
+    reqHint: "需 元素卡",
+    d: "落点留下元素领域（燃烧 / 霜冻 / 电场），持续造成元素伤害（需持有元素卡）",
     max: 1,
     pv: () =>
       `领域半径 ${MB.domainRadius}px · 持续 ${MB.domainDuration} 秒 · 每秒 ${Math.round(MB.domainDpsMul * 100)}% 伤害`,
@@ -328,6 +333,7 @@ export const MAGE_TALENTS: Talent[] = [
     layer: 2,
     prof: "mage",
     req: hasAnyCycleL1,
+    reqHint: "需 循环卡",
     d: "充能满时该次施法伤害 +40%",
     max: 1,
     pv: () => `满充能发伤害 +${Math.round((MB.chargeDamageMul - 1) * 100)}%`,

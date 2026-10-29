@@ -114,6 +114,18 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     kind: "dec",
     unit: "/秒",
   },
+  // S5：闪避（完全免伤）。上限 60% 取自设计文档附录 E 的成长预算；
+  // 白档 +3%（与暴击同档），金色 8.7%，集中投入约 7 次到顶。
+  // 来源迁移：旧卡「闪避本能」已进 TalentStatSources，投影不会互相抹。
+  {
+    group: "defense",
+    label: "闪避",
+    stat: "dodge",
+    stage: "flat",
+    base: 0.03,
+    kind: "pct",
+    capped: (p) => p.dodge >= 0.6,
+  },
 
   { group: "utility", label: "移速", stat: "moveSpeed", stage: "percent", base: 0.04, kind: "pct" },
   // 「拾取范围」：magnet 决定经验球与血瓶的自动吸附半径（ProgressionSystem）。
