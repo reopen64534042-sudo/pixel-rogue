@@ -139,6 +139,12 @@ export interface MageBalance {
   meteorCount: number;
   /** 多颗陨星之间的最小间距（px）：优先砸向不同敌群，避免同一目标双份伤害。 */
   meteorMinSep: number;
+  /**
+   * 敌群不足时，补足颗数用的落点偏移（px）。
+   * 多重陨星必须「始终落下 meteorCount 颗」——面对单个敌人时围绕它铺开，
+   * 不能因为是单目标就少落一颗。
+   */
+  meteorSpread: number;
   /** 元素残域持续时间（秒）。 */
   domainDuration: number;
   /** 元素残域半径（px）。 */
@@ -231,6 +237,7 @@ export const MAGE_BALANCE: MageBalance = {
   meteorDamageMul: 4,
   meteorCount: 2,
   meteorMinSep: 70,
+  meteorSpread: 26,
   domainDuration: 4,
   domainRadius: 46,
   domainDpsMul: 0.4,

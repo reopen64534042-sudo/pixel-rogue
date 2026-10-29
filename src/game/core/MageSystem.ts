@@ -356,19 +356,28 @@ function updateMeteorRoute(core: GameCore, dt: number) {
     core.mageMeteorT = MB.meteorInterval;
     const count = (p.upCounts["多重陨星"] || 0) > 0 ? MB.meteorCount : 1;
     const points = findDensestPoints(core, p.attackRange, count);
-    const type = mageDamageType(p);
-    for (const pt of points) {
-      // 落点提前量：陨星有 0.8 秒预警，敌人这段时间会朝玩家移动；
-      // 不算提前量时落点永远在敌人身后，整条路线打空（实测 dmgBy.meteor=0）。
-      const toPlayer = Math.atan2(p.y - pt.y, p.x - pt.x);
-      const lead = pt.e.speed * MB.meteorFall;
-      core.mageMeteors.push({
-        x: clamp(pt.x + Math.cos(toPlayer) * lead, 16, WORLD.w - 16),
-        y: clamp(pt.y + Math.sin(toPlayer) * lead, 16, WORLD.h - 16),
-        t: MB.meteorFall,
-        R: MB.meteorRadius,
-        element: type,
-      });
+    if (points.length) {
+      const type = mageDamageType(p);
+      for (let i = 0; i < count; i++) {
+        // 敌群够多：一颗一个群；敌群不足（例如只剩一个敌人）：围绕同一个
+        // 目标按固定角度铺开，保证「同时落下 count 颗」这条卡面承诺永远成立。
+        const base = points[i % points.length];
+        const extra = i >= points.length ? i : -1;
+        const a = extra >= 0 ? (extra / count) * Math.PI * 2 : 0;
+        const ox = extra >= 0 ? Math.cos(a) * MB.meteorSpread : 0;
+        const oy = extra >= 0 ? Math.sin(a) * MB.meteorSpread : 0;
+        // 落点提前量：陨星有 0.8 秒预警，敌人这段时间会朝玩家移动；
+        // 不算提前量时落点永远在敌人身后，整条路线打空（实测 dmgBy.meteor=0）。
+        const toPlayer = Math.atan2(p.y - base.y, p.x - base.x);
+        const lead = base.e.speed * MB.meteorFall;
+        core.mageMeteors.push({
+          x: clamp(base.x + ox + Math.cos(toPlayer) * lead, 16, WORLD.w - 16),
+          y: clamp(base.y + oy + Math.sin(toPlayer) * lead, 16, WORLD.h - 16),
+          t: MB.meteorFall,
+          R: MB.meteorRadius,
+          element: type,
+        });
+      }
     }
   }
   for (let i = core.mageMeteors.length - 1; i >= 0; i--) {
