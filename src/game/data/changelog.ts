@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v95",
+    date: "2026-10-30",
+    title: "教程木桩免击退补全",
+    items: [
+      "修复射手教程木桩仍被子弹推动：hurtEnemy 的命中直接位移与敌人分离现在也遵守 noKnock。",
+      "普通敌人行为不变。",
+    ],
+  },
+  {
     version: "v94",
     date: "2026-10-30",
     title: "教程首步响应与强化箭阶段调试",
