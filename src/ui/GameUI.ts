@@ -30,6 +30,7 @@ const DMG_NAMES: Record<string, string> = {
   // 缺这两项时报告按 DMG_NAMES 的键遍历，法师的主要伤害会整行消失。
   cast: "🔮法阵",
   element: "✹元素",
+  reaction: "☯反应",
 };
 const show = (id: string) => element(id).classList.remove("hidden");
 const hide = (id: string) => element(id).classList.add("hidden");
@@ -255,7 +256,9 @@ export class GameUI {
       // 而不是随手拿一张卡。
       const chainInfo = u.layer
         ? `<div class="chain">L${u.layer}${u.requires ? ` · 需 ${u.requires}` : ""}</div>`
-        : "";
+        : u.slot === "秘传"
+          ? `<div class="chain">秘传${u.requires ? ` · 需 ${u.requires}` : ""}</div>`
+          : "";
       el.innerHTML = `${u.t > 0 ? `<div class="tier">${TIERS[u.t]}</div>` : ""}
       <div class="cat" style="color:${CAT_COLOR[u.cat]}">${CAT_ICO[u.cat]} ${u.cat}</div>
       <div class="ico">${u.ico}</div><div class="nm">${u.n}${u.mech && lv === 0 ? " ✦NEW" : ""}</div>
@@ -639,23 +642,27 @@ export class GameUI {
     element("bp-boxskip").classList.toggle("hidden", mode !== "box");
     // 升级面板与宝箱面板共用同一套卡片，只换标题文案
     const box = mode === "box";
-    const second = this.core.mageSecondElementPending;
+    const pending = this.core.mageElementPickPending;
     const title = document.querySelector<HTMLElement>("#bp-level .bp-title");
     if (title)
       title.textContent = box
         ? `🎁 开启宝箱 · 剩余 ${this.core.boxPicks} 次强化 · 强化一项已学天赋`
-        : second
+        : pending === "second"
           ? "☯️ 双修 · 选择第二个元素"
-          : "⬆ 等级提升！选择一项天赋强化";
+          : pending === "third"
+            ? "✴️ 三修 · 选择第三个元素"
+            : "⬆ 等级提升！选择一项天赋强化";
     const hint = document.querySelector<HTMLElement>(
       "#bp-level .level-subhint",
     );
     if (hint)
       hint.textContent = box
         ? "只强化已学天赋 · 键盘 1 / 2 / 3 快捷选取"
-        : second
+        : pending === "second"
           ? "只显示尚未持有的元素 · 键盘 1 / 2 快捷选取"
-          : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷新」换一张";
+          : pending === "third"
+            ? "只显示尚未持有的元素 · 键盘 1 快捷选取"
+            : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷新」换一张";
     this.drawCards();
     element("bp-level").classList.remove("hidden");
     element("bp-rest").classList.add("hidden");

@@ -77,11 +77,12 @@ export function canOffer(this: GameCore, u: Talent) {
   // S3 豁免：若玩家持有某张卡的 `variantBypass` 指向本组，则该组不再排他
   //（法师「双修」必须让玩家同时持有两个元素 L1）。
   //
-  // 元素组例外：双修豁免排他，但**最多两种元素**。三元素混合形态尚未设计，
-  // 放开会抽到第三张元素卡，`applyMageHit` 会同时施加三种印记/反应。
+  // 元素组例外：双修豁免后最多两种元素；持有秘传「三修」后上限升到三种。
+  // 三元素混合形态只通过三修开放，普通双修仍然不能抽第三张元素卡。
+  const elementCap = picks.includes("三修") ? 3 : 2;
   if (
     u.variant === MAGE_VARIANT_ELEMENT &&
-    mageElements(this.player).length >= 2
+    mageElements(this.player).length >= elementCap
   )
     return false;
   if (
@@ -227,23 +228,29 @@ export function openBoxPanel(this: GameCore) {
   this.view.level();
 }
 /**
- * 双修补选：选到「双修」且当前只有 1 个元素时，强制弹出另外两个元素。
+ * 双修/三修的补选：选到卡后强制补第二/第三个元素。
  *
- * 设计上「双修」必须同时持有两种元素才能触发反应；旧流程选完直接关面板，
- * 第二个元素只能等后续随机抽到，玩家会以为这张卡是空的。补选不消耗额外
- * 升级次数，只列未持有的元素，且不可刷新。
+ * - 双修：当前只有 1 个元素时，补第二个（列出另外两个）；
+ * - 三修：当前有 2 个元素时，补第三个（列出剩下那个）。
+ *
+ * 补选不消耗额外升级次数，只列未持有的元素，且不可刷新。
  */
-function openMageSecondElement(this: GameCore, card: Talent): boolean {
-  if (card.n !== "双修") return false;
+function openMageElementPick(this: GameCore, card: Talent): boolean {
   const owned = mageElements(this.player);
-  if (owned.length !== 1) return false;
+  const pending: "second" | "third" | null =
+    card.n === "双修" && owned.length === 1
+      ? "second"
+      : card.n === "三修" && owned.length === 2
+        ? "third"
+        : null;
+  if (!pending) return false;
   const candidates = MAGE_ELEMENT_CARDS.filter(
     (c) => !owned.includes(c.element),
   )
     .map((c) => UPGRADES.find((u) => u.n === c.card))
     .filter((u): u is Talent => !!u);
   if (!candidates.length) return false;
-  this.mageSecondElementPending = true;
+  this.mageElementPickPending = pending;
   this.slots = candidates.map((u) => ({ u, used: true }));
   return true;
 }
@@ -273,10 +280,10 @@ export function chooseSlot(this: GameCore, index: number) {
     return true;
   }
 
-  // ---- 双修补选：选完双修后先补第二个元素 ----
-  if (this.mageSecondElementPending) {
+  // ---- 双修/三修补选：先补第二/第三个元素 ----
+  if (this.mageElementPickPending) {
     if (this.bpMode !== "level" || !this.learnTalent(slot.u)) return false;
-    this.mageSecondElementPending = false;
+    this.mageElementPickPending = null;
     this.audio.beep(880, 0.12, "square", 0.07, 300);
     if (this.pendingLevels > 0)
       this.slots = this.rollPicks().map((u) => ({ u, used: false }));
@@ -299,8 +306,8 @@ export function chooseSlot(this: GameCore, index: number) {
   // #136：开局天赋选完即解除模拟冻结（对局中升级此标记本就为 false，无副作用）
   this.startTalentPending = false;
   this.audio.beep(880, 0.12, "square", 0.07, 300);
-  // 双修：选到后强制补第二个元素，再继续剩余升级/宝箱链。
-  if (openMageSecondElement.call(this, slot.u)) {
+  // 双修/三修：选到后强制补第二/第三个元素，再继续剩余升级/宝箱链。
+  if (openMageElementPick.call(this, slot.u)) {
     this.view.level();
     return true;
   }

@@ -20,7 +20,9 @@ export type DamageSource =
   // 基线影响：parity 的 dmgBy 逐字段对照需要摘除这两个键
   // （沿用 takeMelee 先例），登记在 docs/migration.md。
   | "cast"
-  | "element";
+  | "element"
+  /** 双修三法印反应（融化/超载/超导）的独立伤害分项。 */
+  | "reaction";
 export type DamageTotals = Record<DamageSource, number>;
 /* ---------- Combat Foundation v1（S1 契约，未接入运行时战斗） ---------- */
 /** 攻击方式：决定近战/远程增伤乘区适用范围；由技能显式指定，不按距离推断 */
@@ -260,7 +262,7 @@ export interface Talent {
    * 变体组是「N 选 1」，但有些机制卡**本身就要打破这个排他**：
    * 法师的元素槽是三变体组（火/冰/雷），而「双修」的机制是
    * 「同时施加两种元素状态」——玩家必须能同时持有两个元素 L1，
-   * 否则这张卡无对象可作用。
+   * 否则这张卡无对象可作用；「三修」再把上限升到三种。
    *
    * 因此持有本卡的玩家，不再受 `variant` 组的排他限制。
    * 值为**被豁免的变体组 id**（不是卡名）。
@@ -317,6 +319,10 @@ export interface Enemy extends Point {
   elemFrozenT?: number;
   /** 超导：剩余秒数（冰+雷反应标记）。 */
   elemSuperT?: number;
+  /** 双修/三修反应内置冷却（秒，各自独立）：防止同一目标每次命中都触发。 */
+  elemMeltCd?: number;
+  elemOverloadCd?: number;
+  elemSuperCd?: number;
   seed: number;
   shootCd: number;
   fuse: number;

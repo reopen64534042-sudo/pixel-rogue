@@ -20,7 +20,7 @@ import type { Enemy } from "./types";
  * 承担三件事（docs/talent-pool-design-rules.md 附录 B）：
  * 1. **印记**：灼烧 / 凝冰 / 麻痹 的施加与推进（每层独立计时，§4.1）；
  * 2. **共振**：「元素共振」——印记触发时影响周围敌人；
- * 3. **反应**：双修的三种元素反应（超载 / 融化 / 超导）。
+ * 3. **反应**：双修/三修的三种法印反应（超载 / 融化 / 超导）。
  *
  * 设计上的三条硬约束：
  * - **不与旧表的 burn/frostLv/chain 混用**。旧机制是单值刷新模型
@@ -49,8 +49,166 @@ export function mageDamageType(
   return el ?? "physical";
 }
 
+type MageReaction = "melt" | "overload" | "superconduct";
+
+interface HitStatusSnapshot {
+  frozen: boolean;
+  burn: number;
+  frost: number;
+  meltCd: number;
+  overloadCd: number;
+  superCd: number;
+}
+
+/** 命中前快照：反应只认这一发之前的元素状态，避免同一发自己喂自己。 */
+function hitStatusSnapshot(e: Enemy): HitStatusSnapshot {
+  return {
+    frozen: isFrozen(e),
+    burn: fireLayers(e),
+    frost: frostLayers(e),
+    meltCd: e.elemMeltCd ?? 0,
+    overloadCd: e.elemOverloadCd ?? 0,
+    superCd: e.elemSuperCd ?? 0,
+  };
+}
+
+/** 反应伤害统一走命中管线，但单独记入 `reaction` 分项，不吃暴击/连锁。 */
+function reactionDamage(
+  core: GameCore,
+  e: Enemy,
+  amount: number,
+  type: "fire" | "lightning",
+): void {
+  core.hurtEnemy(e, amount, 0, 0, {
+    noCrit: true,
+    noChain: true,
+    src: "reaction",
+    type,
+    form: "other",
+  });
+}
+
+/** 反应粒子：固定角度，不消耗随机数。 */
+function spawnReactionFx(
+  core: GameCore,
+  e: Enemy,
+  reaction: MageReaction,
+): void {
+  const colors =
+    reaction === "melt"
+      ? ["#e8f7ff", "#9fe1ff"]
+      : reaction === "overload"
+        ? ["#ff9a3d", "#ff5b5b", "#ffd24a"]
+        : ["#d9a6ff", "#c07bff", "#57e6ff"];
+  const count = reaction === "overload" ? 10 : 8;
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2;
+    const speed =
+      reaction === "overload" ? 56 + (i % 3) * 10 : 34 + (i % 3) * 7;
+    core.parts.push({
+      x: e.x,
+      y: e.y,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      life: reaction === "overload" ? 0.32 : 0.26,
+      c: colors[i % colors.length],
+    });
+  }
+  if (reaction === "overload") {
+    core.shake = Math.min(core.shake + 3, 8);
+    core.audio.beep(90, 0.18, "sawtooth", 0.06, -40);
+  } else if (reaction === "melt") {
+    core.shake = Math.min(core.shake + 1.5, 5);
+    core.audio.beep(1040, 0.1, "sine", 0.05, 320);
+  } else {
+    core.shake = Math.min(core.shake + 1, 4);
+    core.audio.beep(1200, 0.1, "sawtooth", 0.05, -600);
+  }
+}
+
 /**
- * 施加一层元素印记。
+ * 一次直接命中结算所有满足条件的法印反应（三修 = 全部触发）。
+ *
+ * - 融化：火命中冻结（消耗冻结），伤害 = 本次 hitDamage × 2.5
+ * - 超载：雷命中 ≥2 层灼烧（消耗全部灼烧），伤害 = 层数 × 每层 DPS × 3 秒
+ * - 超导：雷命中冻结或带凝冰（不消耗），直接雷伤 + 保证链 +2 + 雷易伤 15%
+ *
+ * 判定用命中前快照；三个反应各有独立 ICD，互不阻塞。反应先于本发印记
+ * 结算，随后才叠灼烧/凝冰/麻痹。
+ */
+function resolveMageReactions(
+  core: GameCore,
+  e: Enemy,
+  hitDamage: number,
+): MageReaction[] {
+  const p = core.player;
+  const out: MageReaction[] = [];
+  if (e.dead) return out;
+  const snap = hitStatusSnapshot(e);
+  const els = mageElements(p);
+  const has = (el: MageElement) => els.includes(el);
+
+  if (has("fire") && has("frost") && snap.frozen && snap.meltCd <= 0) {
+    e.elemFrozenT = 0;
+    reactionDamage(core, e, hitDamage * MB.meltDamageMul, "fire");
+    e.elemMeltCd = MB.reactionIcdMelt;
+    spawnReactionFx(core, e, "melt");
+    out.push("melt");
+  }
+  if (
+    has("fire") &&
+    has("lightning") &&
+    snap.burn >= MB.overloadMinStacks &&
+    snap.overloadCd <= 0
+  ) {
+    const layers = snap.burn;
+    e.elemFire = [];
+    reactionDamage(
+      core,
+      e,
+      layers * p.damage * MB.burnDpsPerStack * MB.overloadSeconds,
+      "fire",
+    );
+    e.elemOverloadCd = MB.reactionIcdOverload;
+    spawnReactionFx(core, e, "overload");
+    out.push("overload");
+  }
+  if (
+    has("frost") &&
+    has("lightning") &&
+    (snap.frozen || snap.frost > 0) &&
+    snap.superCd <= 0
+  ) {
+    // 冰壳/凝冰都不消耗；这一发雷伤先结算，再设置超导易伤（避免自乘）。
+    reactionDamage(core, e, hitDamage * MB.superDamageMul, "lightning");
+    e.elemSuperT = MB.superVulnDuration;
+    e.elemSuperCd = MB.reactionIcdSuper;
+    spawnReactionFx(core, e, "superconduct");
+    out.push("superconduct");
+  }
+  return out;
+}
+
+/** 链上次级目标只允许超载；超导不递归，避免无限连锁。 */
+function resolveChainOverload(core: GameCore, e: Enemy): void {
+  const p = core.player;
+  if (e.dead || (e.elemOverloadCd ?? 0) > 0) return;
+  if (!mageHasElement(p, "fire") || !mageHasElement(p, "lightning")) return;
+  const layers = fireLayers(e);
+  if (layers < MB.overloadMinStacks) return;
+  e.elemFire = [];
+  reactionDamage(
+    core,
+    e,
+    layers * p.damage * MB.burnDpsPerStack * MB.overloadSeconds,
+    "fire",
+  );
+  e.elemOverloadCd = MB.reactionIcdOverload;
+  spawnReactionFx(core, e, "overload");
+}
+
+/**
+ * 施加一层元素印记（反应已经在 resolveMageReactions 里先结算过）。
  *
  * 不含共振与连锁判定——那两步在 applyMageHit 里分开做，
  * 目的是让「共振先于连锁结算」（雷共振会给连锁加跳数与跳跃距离）。
@@ -60,22 +218,7 @@ function applyElementStack(
   e: Enemy,
   element: MageElement,
 ): void {
-  const p = core.player;
   if (element === "fire") {
-    // 融化（双修 火+冰）：对冻结目标施加灼烧 → 立即解除冻结 + 250% 元素伤害
-    if (isFrozen(e) && mageHasElement(p, "frost")) {
-      e.elemFrozenT = 0;
-      const dmg = p.damage * MB.castDamageMul * MB.meltDamageMul;
-      core.hurtEnemy(e, dmg, 0, 0, {
-        noCrit: true,
-        noChain: true,
-        src: "cast",
-        type: "fire",
-        form: "other",
-      });
-      core.addText(e.x, e.y - e.r - 6, "融化", "#9fe1ff");
-      core.audio.beep(1040, 0.1, "sine", 0.05, 320);
-    }
     // 灼烧：每层独立计时（§4.1）
     const arr = e.elemFire ?? (e.elemFire = []);
     if (arr.length < MB.burnStackCap) arr.push(MB.burnDuration);
@@ -158,7 +301,6 @@ function triggerChainLightning(
   jumps: number,
   rangeMul: number,
 ): void {
-  const p = core.player;
   const range = MB.chainRange * rangeMul;
   const near = core.enemies
     .filter(
@@ -171,21 +313,9 @@ function triggerChainLightning(
     core.bolts.push({ x1: px, y1: py, x2: o.x, y2: o.y, life: 0.15 });
     px = o.x;
     py = o.y;
-    // 超载（双修 火+雷）：被灼烧的目标受到闪电链命中 → 立即引燃全部灼烧层数
-    const layers = fireLayers(o);
-    if (layers > 0 && mageHasElement(p, "fire") && mageHasElement(p, "lightning")) {
-      const dps = layers * p.damage * MB.burnDpsPerStack;
-      o.elemFire = [];
-      core.hurtEnemy(o, dps * MB.overloadSeconds, 0, 0, {
-        noCrit: true,
-        noChain: true,
-        src: "cast",
-        type: "fire",
-        form: "other",
-      });
-      core.addText(o.x, o.y - o.r - 6, "超载", "#ffd24a");
-      core.audio.beep(1400, 0.1, "sawtooth", 0.05, 400);
-    }
+    // 链上次级只允许超载；超导不递归，避免无限连锁。
+    resolveChainOverload(core, o);
+    if (o.dead) continue;
     core.hurtEnemy(
       o,
       dmg * MB.chainDamageMul * chainVsParalyzedMultiplier(o),
@@ -204,9 +334,9 @@ function triggerChainLightning(
 }
 
 /**
- * 一次命中带来的元素结算：印记 → 共振 → 连锁。
+ * 一次命中带来的元素结算：反应 → 印记 → 共振 → 连锁。
  *
- * @param hitDamage 本次命中的伤害（闪电链按它折算）
+ * @param hitDamage 本次命中的伤害（融化/超导按它折算，闪电链也按它折算）
  */
 export function applyMageHit(
   core: GameCore,
@@ -215,7 +345,11 @@ export function applyMageHit(
 ): void {
   const p = core.player;
   const els = mageElements(p);
-  if (!els.length) return;
+  if (!els.length || e.dead) return;
+  // 三修：所有满足条件的反应都结算；双修通常只有一个配对。
+  const reactions = resolveMageReactions(core, e, hitDamage);
+  if (e.dead) return;
+  const superconduct = reactions.includes("superconduct");
   const hasResonance = (p.upCounts["元素共振"] || 0) > 0;
   for (const el of els) {
     applyElementStack(core, e, el);
@@ -227,12 +361,9 @@ export function applyMageHit(
       rangeMul = r.chainRangeMul;
     }
     if (el === "lightning") {
-      // 超导（双修 冰+雷）：对携带凝冰的目标造成闪电伤害 → 必定触发连锁且跳跃 +2
-      const superCond = mageHasElement(p, "frost") && frostLayers(e) > 0;
-      if (superCond) e.elemSuperT = MB.paraDuration;
       const jumps =
-        MB.chainJumps + (superCond ? MB.superChainBonusJumps : 0) + bonusJumps;
-      const chance = superCond ? 1 : MB.chainChance;
+        MB.chainJumps + (superconduct ? MB.superChainBonusJumps : 0) + bonusJumps;
+      const chance = superconduct ? 1 : MB.chainChance;
       if (Math.random() < chance)
         triggerChainLightning(core, e, hitDamage, jumps, rangeMul);
     }
@@ -308,5 +439,9 @@ export function updateMageElements(this: GameCore, dt: number) {
     if (e.elemParaT) e.elemParaT = Math.max(0, e.elemParaT - dt);
     if (e.elemFrozenT) e.elemFrozenT = Math.max(0, e.elemFrozenT - dt);
     if (e.elemSuperT) e.elemSuperT = Math.max(0, e.elemSuperT - dt);
+    if (e.elemMeltCd) e.elemMeltCd = Math.max(0, e.elemMeltCd - dt);
+    if (e.elemOverloadCd)
+      e.elemOverloadCd = Math.max(0, e.elemOverloadCd - dt);
+    if (e.elemSuperCd) e.elemSuperCd = Math.max(0, e.elemSuperCd - dt);
   }
 }
