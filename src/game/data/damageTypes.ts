@@ -25,10 +25,18 @@ export interface DamageTypeInfo {
 /** 任意静态注册表的约束形状；键即合法属性 ID */
 export type DamageTypeRegistry = Readonly<Record<string, DamageTypeInfo>>;
 
-/** 正式注册表：keyof typeof DAMAGE_TYPES 即当前合法的 DamageTypeId */
+/**
+ * 正式注册表：keyof typeof DAMAGE_TYPES 即当前合法的 DamageTypeId
+ *
+ * S3 法师池新增 `frost`（冰霜/凝冰/冻结）：
+ * 减伤策略与火/雷同为 `resistance`（吃敌人元素抗性），因此注册表之外
+ * **无需任何分支**——`DamageSystem.typeMitigationFactor` 只按策略分派，
+ * 不认识具体属性名。新增属性时只改这一行。
+ */
 export const DAMAGE_TYPES = {
   physical: { mitigation: "armor", label: "物理" },
   fire: { mitigation: "resistance", label: "火焰" },
+  frost: { mitigation: "resistance", label: "冰霜" },
   lightning: { mitigation: "resistance", label: "雷电" },
   true: { mitigation: "none", label: "真实" },
 } as const satisfies DamageTypeRegistry;

@@ -12,7 +12,16 @@ import { element } from "./dom";
 
 const ALL = "全部" as const;
 const ENEMY = "敌人" as const;
-const GROUPS = ["攻击", "增幅", "技能", "防御"] as const;
+// S3：旧表按旧四类分，职业池按职业分（射手 / 法师）。
+// 槽位轴不进分区——16 个 tab 会让图鉴变成噪音；槽位在条目详情里显示。
+const GROUPS = [
+  "攻击",
+  "增幅",
+  "技能",
+  "防御",
+  "射手",
+  "法师",
+] as const;
 type Filter = typeof ALL | typeof ENEMY | (typeof GROUPS)[number];
 const FILTERS: readonly Filter[] = [ALL, ...GROUPS, ENEMY];
 
@@ -24,6 +33,15 @@ function tierName(entry: CodexEntry): string {
 function accentColor(entry: CodexEntry): string {
   if (entry.cat === "enemy") return entry.elite ? "#ffd24a" : "#c7cff2";
   return TIER_COLOR[entry.tier ?? 0] ?? TIER_COLOR[0];
+}
+
+/**
+ * 职业池卡片的「槽位 · 层级」标注（设计文档 §3.4：变体与流派必须可见）。
+ * 旧表没有槽位概念 → 返回空串。
+ */
+function chainMeta(entry: CodexEntry): string {
+  if (!entry.slot) return "";
+  return entry.layer ? `${entry.slot} · L${entry.layer}` : entry.slot;
 }
 
 /**
@@ -173,7 +191,7 @@ export class CodexUI {
       const meta =
         entry.cat === "enemy"
           ? "敌人 · 未击杀"
-          : `${tierName(entry)} · ${entry.group ?? ""} · 未解锁`;
+          : `${tierName(entry)} · ${entry.group ?? ""}${chainMeta(entry) ? ` · ${chainMeta(entry)}` : ""} · 未解锁`;
       const hint =
         entry.cat === "enemy" ? "击杀该敌人后解锁。" : "在冒险中获得该天赋后解锁。";
       detail.innerHTML = `
@@ -186,7 +204,7 @@ export class CodexUI {
     const meta =
       entry.cat === "enemy"
         ? `敌人 · 累计击杀 ${codex.killCount(entry.id)}`
-        : `${tierName(entry)} · ${entry.group ?? ""} · 历史最高 Lv.${codex.maxLevel(entry.id)}`;
+        : `${tierName(entry)} · ${entry.group ?? ""}${chainMeta(entry) ? ` · ${chainMeta(entry)}` : ""} · 历史最高 Lv.${codex.maxLevel(entry.id)}`;
     detail.innerHTML = `
       <div class="cx-d-name" style="color:${accentColor(entry)}">${entry.icon ? `${entry.icon} ` : ""}${entry.name}</div>
       <div class="cx-d-meta">${meta}</div>

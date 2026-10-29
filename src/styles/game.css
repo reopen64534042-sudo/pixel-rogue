@@ -107,6 +107,28 @@ p {
     transform: translateY(-0.3vmin);
   }
 }
+/* S3 法师池：开局职业选择行。
+   两个职业并排，副标题写明各自的**门控**——这是玩家选职业时唯一需要
+   知道的信息（射手靠距离、法师靠时间），不是数值对比。 */
+.prof-select {
+  display: flex;
+  gap: 1.8vmin;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.prof-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6vmin;
+  min-width: 18vmin;
+  padding: 1.4vmin 3vmin;
+}
+.prof-btn small {
+  font-size: 1.1vmin;
+  letter-spacing: 0;
+  opacity: 0.75;
+}
 #cards {
   display: flex;
   gap: 2vmin;
@@ -801,6 +823,16 @@ p {
   flex: 1 1 auto;
   display: flex;
   align-items: center;
+}
+/* S3 职业池：链层级与前置（L2 · 需 速咏）。
+   让玩家看得见「我在构筑一条链」而不是随手拿卡（设计文档 §3.4）。 */
+#bp-cards .card .chain {
+  color: #c07bff;
+  font-size: 1.05vmin;
+  line-height: 1.3;
+  text-align: center;
+  letter-spacing: 0.04vmin;
+  opacity: 0.9;
 }
 #bp-cards .card .up {
   width: 100%;

@@ -74,8 +74,14 @@ export function canOffer(this: GameCore, u: Talent) {
     return false;
   // S2 变体组（N 选 1）：同组已取过任意一张则本卡不进池。
   // 与 excludes 的差别是规模可变，且语义上不是「相互排斥」而是「同一格位的不同实现」。
+  // S3 豁免：若玩家持有某张卡的 `variantBypass` 指向本组，则该组不再排他
+  //（法师「双修」必须让玩家同时持有两个元素 L1）。
   if (
     u.variant &&
+    !picks.some((n) => {
+      const card = UPGRADES.find((o) => o.n === n);
+      return card?.variantBypass === u.variant;
+    }) &&
     UPGRADES.some((o) => o.variant === u.variant && picks.includes(o.n))
   )
     return false;

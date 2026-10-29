@@ -1,0 +1,296 @@
+import { MAGE_BALANCE as MB, type MageElement } from "../data/mageBalance";
+import { DAMAGE_TYPES } from "../data/damageTypes";
+import { mageElements, mageHasElement } from "../data/talents/mage";
+import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
+import { calculateDamage } from "./DamageSystem";
+import {
+  chainVsParalyzedMultiplier,
+  elementDamageMultiplier,
+  fireLayers,
+  frostLayers,
+  isFrozen,
+} from "./ElementMath";
+import type { GameCore } from "./GameCore";
+import type { Enemy } from "./types";
+
+/**
+ * 法师元素系统（S3）。
+ *
+ * 承担三件事（docs/talent-pool-design-rules.md 附录 B）：
+ * 1. **印记**：灼烧 / 凝冰 / 麻痹 的施加与推进（每层独立计时，§4.1）；
+ * 2. **共振**：「元素共振」——印记触发时影响周围敌人；
+ * 3. **反应**：双修的三种元素反应（超载 / 融化 / 超导）。
+ *
+ * 设计上的三条硬约束：
+ * - **不与旧表的 burn/frostLv/chain 混用**。旧机制是单值刷新模型
+ *   （共享一个 burnT），而新设计要求「每层独立 5 秒」，语义不同；
+ *   混用会让熔炉点亮的旧卡与法师卡互相干扰。新状态用独立的可选字段
+ *   （elemFire/elemFrost/elemParaT/elemFrozenT/elemSuperT）。
+ * - **不递归**。闪电链的次级目标不再施加印记（否则链会无限展开），
+ *   元素施加只由「命中」显式触发（法阵爆裂 / 陨星爆裂）。
+ * - **依赖方向单向**：本模块 → CombatSystem；CombatSystem 只读纯计算层
+ *   ElementMath，不 import 本模块，避免运行时循环。
+ */
+
+/** 玩家当前的主元素（法阵与陨星的伤害属性）。无元素卡时返回 null。 */
+export function magePrimaryElement(p: {
+  upCounts: Record<string, number>;
+}): MageElement | null {
+  const els = mageElements(p);
+  return els.length ? els[0] : null;
+}
+
+/** 主元素对应的伤害属性 ID；无元素时走物理（法术尚未定属性）。 */
+export function mageDamageType(
+  p: { upCounts: Record<string, number> },
+): "fire" | "frost" | "lightning" | "physical" {
+  const el = magePrimaryElement(p);
+  return el ?? "physical";
+}
+
+/**
+ * 施加一层元素印记。
+ *
+ * 不含共振与连锁判定——那两步在 applyMageHit 里分开做，
+ * 目的是让「共振先于连锁结算」（雷共振会给连锁加跳数与跳跃距离）。
+ */
+function applyElementStack(
+  core: GameCore,
+  e: Enemy,
+  element: MageElement,
+): void {
+  const p = core.player;
+  if (element === "fire") {
+    // 融化（双修 火+冰）：对冻结目标施加灼烧 → 立即解除冻结 + 250% 元素伤害
+    if (isFrozen(e) && mageHasElement(p, "frost")) {
+      e.elemFrozenT = 0;
+      const dmg = p.damage * MB.castDamageMul * MB.meltDamageMul;
+      core.hurtEnemy(e, dmg, 0, 0, {
+        noCrit: true,
+        noChain: true,
+        src: "cast",
+        type: "fire",
+        form: "other",
+      });
+      core.addText(e.x, e.y - e.r - 6, "融化", "#9fe1ff");
+      core.audio.beep(1040, 0.1, "sine", 0.05, 320);
+    }
+    // 灼烧：每层独立计时（§4.1）
+    const arr = e.elemFire ?? (e.elemFire = []);
+    if (arr.length < MB.burnStackCap) arr.push(MB.burnDuration);
+    return;
+  }
+  if (element === "frost") {
+    // 冻结期间不能重新叠加凝冰（设计：解除后才能重新叠加）
+    if (isFrozen(e)) return;
+    const arr = e.elemFrost ?? (e.elemFrost = []);
+    if (arr.length < MB.frostStackCap) arr.push(MB.frostDuration);
+    if (arr.length >= MB.frostStackCap) {
+      // 满层冻结：移除全部凝冰
+      arr.length = 0;
+      e.elemFrozenT = MB.frostFreezeDuration;
+      core.addText(e.x, e.y - e.r - 6, "冻结", "#9fe1ff");
+      core.audio.beep(880, 0.1, "sine", 0.04, 300);
+    }
+    return;
+  }
+  // 闪电：麻痹（可刷新，单值计时）
+  e.elemParaT = MB.paraDuration;
+}
+
+/** 共振对本次连锁的加成（雷共振才有）。 */
+interface ResonanceResult {
+  chainBonusJumps: number;
+  chainRangeMul: number;
+}
+
+/**
+ * 元素共振：「印记触发时，60px 内的敌人按元素获得不同强化」。
+ *
+ * - 火：获得目标 50% 的灼烧层数（向下取整，至少 1 层）
+ * - 冰：各 +1 层凝冰（**不因此触发冻结**）
+ * - 雷：闪电链额外跳 1 个目标，跳跃距离 +50%
+ *
+ * 雷的实现说明：设计文档把雷共振写成对「附近敌人」的强化，
+ * 落到机制上等价于「这些敌人成为闪电链的额外目标」。
+ * 这里按「本次连锁多跳 1 个 + 距离 ×1.5」实现——不引入持久状态，
+ * 每次雷印记触发都重新给一次加成。
+ */
+function applyResonance(
+  core: GameCore,
+  target: Enemy,
+  element: MageElement,
+): ResonanceResult {
+  const out: ResonanceResult = { chainBonusJumps: 0, chainRangeMul: 1 };
+  for (const o of core.enemies) {
+    if (o === target || o.dead) continue;
+    if (Math.hypot(o.x - target.x, o.y - target.y) > MB.resonanceRadius) continue;
+    if (element === "fire") {
+      const n = Math.max(1, Math.floor(fireLayers(target) * 0.5));
+      const arr = o.elemFire ?? (o.elemFire = []);
+      for (let i = 0; i < n && arr.length < MB.burnStackCap; i++)
+        arr.push(MB.burnDuration);
+    } else if (element === "frost") {
+      // 不因此触发冻结：只加一层，且满层时不解冻
+      const arr = o.elemFrost ?? (o.elemFrost = []);
+      if (!isFrozen(o) && arr.length < MB.frostStackCap)
+        arr.push(MB.frostDuration);
+    } else {
+      out.chainBonusJumps += 1;
+      out.chainRangeMul = 1.5;
+    }
+  }
+  return out;
+}
+
+/**
+ * 闪电链。
+ *
+ * @param jumps 最大跳跃目标数
+ * @param rangeMul 跳跃距离倍率（雷共振给 1.5）
+ */
+function triggerChainLightning(
+  core: GameCore,
+  origin: Enemy,
+  dmg: number,
+  jumps: number,
+  rangeMul: number,
+): void {
+  const p = core.player;
+  const range = MB.chainRange * rangeMul;
+  const near = core.enemies
+    .filter(
+      (o) => o !== origin && !o.dead && Math.hypot(o.x - origin.x, o.y - origin.y) < range,
+    )
+    .slice(0, jumps);
+  let px = origin.x;
+  let py = origin.y;
+  for (const o of near) {
+    core.bolts.push({ x1: px, y1: py, x2: o.x, y2: o.y, life: 0.15 });
+    px = o.x;
+    py = o.y;
+    // 超载（双修 火+雷）：被灼烧的目标受到闪电链命中 → 立即引燃全部灼烧层数
+    const layers = fireLayers(o);
+    if (layers > 0 && mageHasElement(p, "fire") && mageHasElement(p, "lightning")) {
+      const dps = layers * p.damage * MB.burnDpsPerStack;
+      o.elemFire = [];
+      core.hurtEnemy(o, dps * MB.overloadSeconds, 0, 0, {
+        noCrit: true,
+        noChain: true,
+        src: "cast",
+        type: "fire",
+        form: "other",
+      });
+      core.addText(o.x, o.y - o.r - 6, "超载", "#ffd24a");
+      core.audio.beep(1400, 0.1, "sawtooth", 0.05, 400);
+    }
+    core.hurtEnemy(
+      o,
+      dmg * MB.chainDamageMul * chainVsParalyzedMultiplier(o),
+      0,
+      0,
+      {
+        noCrit: true,
+        noChain: true,
+        src: "chain",
+        type: "lightning",
+        form: "other",
+      },
+    );
+  }
+  if (near.length) core.audio.beep(1200, 0.08, "sawtooth", 0.04, -600);
+}
+
+/**
+ * 一次命中带来的元素结算：印记 → 共振 → 连锁。
+ *
+ * @param hitDamage 本次命中的伤害（闪电链按它折算）
+ */
+export function applyMageHit(
+  core: GameCore,
+  e: Enemy,
+  hitDamage: number,
+): void {
+  const p = core.player;
+  const els = mageElements(p);
+  if (!els.length) return;
+  const hasResonance = (p.upCounts["元素共振"] || 0) > 0;
+  for (const el of els) {
+    applyElementStack(core, e, el);
+    let bonusJumps = 0;
+    let rangeMul = 1;
+    if (hasResonance) {
+      const r = applyResonance(core, e, el);
+      bonusJumps = r.chainBonusJumps;
+      rangeMul = r.chainRangeMul;
+    }
+    if (el === "lightning") {
+      // 超导（双修 冰+雷）：对携带凝冰的目标造成闪电伤害 → 必定触发连锁且跳跃 +2
+      const superCond = mageHasElement(p, "frost") && frostLayers(e) > 0;
+      if (superCond) e.elemSuperT = MB.paraDuration;
+      const jumps =
+        MB.chainJumps + (superCond ? MB.superChainBonusJumps : 0) + bonusJumps;
+      const chance = superCond ? 1 : MB.chainChance;
+      if (Math.random() < chance)
+        triggerChainLightning(core, e, hitDamage, jumps, rangeMul);
+    }
+  }
+}
+
+/** 元素 DoT 结算：每帧按层数 × 每层 DPS 扣血（dot/preserve-float，不暴击）。 */
+function applyElementDot(
+  core: GameCore,
+  e: Enemy,
+  dps: number,
+  dt: number,
+): void {
+  // DoT 不走 hurtEnemy（要避开暴击/连锁），所以受击方加成要在这里显式乘上：
+  // 设计文档「冻结目标受任意伤害 +10%」对灼烧同样成立。
+  const raw = dps * dt * elementDamageMultiplier(e, "fire");
+  const calc = calculateDamage(DAMAGE_TYPES, {
+    rawAmount: raw,
+    type: "fire",
+    form: "other",
+    origin: "element",
+    kind: "dot",
+    precision: "preserve-float",
+    isCritical: false,
+    attackerStats: getPlayerCombatStats(core.player),
+    defenderStats: getEnemyCombatStats(e),
+  });
+  e.hp -= calc.settledDamage;
+  core.dmgBy.element += calc.settledDamage;
+}
+
+/**
+ * 推进元素状态（每帧）。
+ *
+ * 灼烧/凝冰的每层独立倒计时（§4.1）；麻痹/冻结/超导是单值计时。
+ * 死亡判定留在调用侧（与旧 burn 的处理一致）。
+ */
+export function updateMageElements(this: GameCore, dt: number) {
+  const p = this.player;
+  for (const e of this.enemies) {
+    if (e.elemFire?.length) {
+      e.elemFire = e.elemFire.filter((t) => t - dt > 0);
+      const layers = e.elemFire.length;
+      if (layers > 0) {
+        const dps = layers * p.damage * MB.burnDpsPerStack;
+        applyElementDot(this, e, dps, dt);
+        if (e.hp <= 0) {
+          this.killEnemy(e);
+          continue;
+        }
+      } else if (e.elemFire.length === 0) {
+        delete e.elemFire;
+      }
+    }
+    if (e.elemFrost?.length) {
+      e.elemFrost = e.elemFrost.filter((t) => t - dt > 0);
+      if (e.elemFrost.length === 0) delete e.elemFrost;
+    }
+    if (e.elemParaT) e.elemParaT = Math.max(0, e.elemParaT - dt);
+    if (e.elemFrozenT) e.elemFrozenT = Math.max(0, e.elemFrozenT - dt);
+    if (e.elemSuperT) e.elemSuperT = Math.max(0, e.elemSuperT - dt);
+  }
+}

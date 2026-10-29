@@ -1,6 +1,9 @@
 import type { GameCore } from "../core/GameCore";
 import type { PixelPainter } from "./PixelPainter";
 import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
+import { isFrozen, isParalyzed } from "../core/ElementMath";
+import { mageCircleRadius } from "../core/MageSystem";
+import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { spriteEntry } from "./assetRegistry";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
@@ -140,6 +143,57 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
+  // ---- S3 法师：法阵（施法落点）----
+  // 抬手段是半透明圆环（可被打断），收束段更亮（已经成形、不可打断）。
+  if (
+    this.prof === "mage" &&
+    (this.castPhase === "windup" || this.castPhase === "cast")
+  ) {
+    // 预览圈按「下一次施法会不会满充能」取半径，与 detonate 的实际半径一致
+    //（三连聚爆会让满充能发半径 +50%，预览偏小会让玩家误判落点）。
+    const R = Math.round(mageCircleRadius(this, this.mageCharge + 1 >= MB.chargeFull));
+    ctx.globalAlpha = this.castPhase === "cast" ? 0.5 : 0.25;
+    ctx.strokeStyle = "#c07bff";
+    ctx.beginPath();
+    ctx.arc(Math.round(this.castX), Math.round(this.castY), R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "#7a4fd0";
+    ctx.fillRect(Math.round(this.castX - 2), Math.round(this.castY - 2), 4, 4);
+    ctx.globalAlpha = 1;
+  }
+  // ---- S3 法师：元素残域（持续伤害领域）----
+  for (const d of this.mageDomains) {
+    ctx.globalAlpha = 0.22 + Math.sin(this.time * 6) * 0.08;
+    ctx.strokeStyle =
+      d.element === "frost"
+        ? "#9fe1ff"
+        : d.element === "lightning"
+          ? "#c07bff"
+          : "#ff6a2b";
+    ctx.beginPath();
+    ctx.arc(Math.round(d.x), Math.round(d.y), d.R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // ---- S3 法师：陨星预告（路线B）----
+  if (this.mageMeteors.length) {
+    const rings: number[] = [];
+    for (const m of this.mageMeteors)
+      rings.push(
+        Math.round(m.x),
+        Math.round(m.y),
+        Math.round((m.R * m.t) / MB.meteorFall + 8),
+      );
+    ctx.meteorRing(rings, "#c07bff", 0.5 + Math.sin(this.time * 20) * 0.3);
+  }
+  // ---- S3 法师：镜像残影（吸引仇恨的诱饵）----
+  for (const d of this.mageDecoys) {
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = "#c07bff";
+    ctx.fillRect(Math.round(d.x - 4), Math.round(d.y - 6), 8, 10);
+    ctx.globalAlpha = 1;
+  }
+
   // 敌人
   for (const e of this.enemies) {
     // 精英优先用独立贴图；没有时退回「同系列贴图 ×1.8」。
@@ -167,6 +221,32 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     if (e.frozenT > 0) {
       ctx.globalAlpha = 0.5;
       ctx.fillStyle = "#9fe1ff";
+      ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+    }
+    // S3 法师：元素印记染色。层数只体现在浓度上（§3.6：不做逐层特效，
+    // 只在关键节点给反馈），冰/雷/火三色互斥，先判定顺序即显示优先级。
+    if (e.elemFire?.length) {
+      ctx.globalAlpha = Math.min(0.55, 0.18 + e.elemFire.length * 0.1);
+      ctx.fillStyle = "#ff6a2b";
+      ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+    }
+    if (e.elemFrost?.length) {
+      ctx.globalAlpha = Math.min(0.5, 0.16 + e.elemFrost.length * 0.11);
+      ctx.fillStyle = "#9fe1ff";
+      ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+    }
+    if (isFrozen(e)) {
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = "#cfefff";
+      ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+    }
+    if (isParalyzed(e)) {
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = "#c07bff";
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
     }
@@ -209,7 +289,9 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   }
 
   // 玩家 (冲刺时半透明残影感)
-  ctx.globalAlpha = this.player.dashT > 0 ? 0.6 : 1;
+  // S3 法师「镜像」虚影：半透明 + 紫色调（不可受击的状态要看得见）
+  ctx.globalAlpha =
+    this.magePhaseT > 0 ? 0.4 : this.player.dashT > 0 ? 0.6 : 1;
   const playerRect = spriteRect("player", this.player.x, this.player.y);
   if (playerRect)
     ctx.sprite(
@@ -244,6 +326,21 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       Math.round(this.player.x),
       Math.round(this.player.y),
       11,
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // S3 法师：值型限时护盾光环（与上面的层数制护盾是两种表现）
+  if (this.mageShield > 0) {
+    ctx.globalAlpha = 0.4 + Math.sin(this.time * 7) * 0.2;
+    ctx.strokeStyle = "#c07bff";
+    ctx.beginPath();
+    ctx.arc(
+      Math.round(this.player.x),
+      Math.round(this.player.y),
+      13,
       0,
       Math.PI * 2,
     );

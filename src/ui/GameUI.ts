@@ -23,6 +23,10 @@ const DMG_NAMES: Record<string, string> = {
   burn: "♨️灼烧",
   shock: "💥反震",
   reflect: "🌀飞刃反弹",
+  // S3 法师池：法阵爆裂与元素 DoT 的分项（types.DamageSource 的 cast/element）。
+  // 缺这两项时报告按 DMG_NAMES 的键遍历，法师的主要伤害会整行消失。
+  cast: "🔮法阵",
+  element: "✹元素",
 };
 const show = (id: string) => element(id).classList.remove("hidden");
 const hide = (id: string) => element(id).classList.add("hidden");
@@ -84,7 +88,12 @@ export class GameUI {
         }
       },
     };
-    element("btn-start").onclick = () => this.core.startGame();
+    // S3 法师池：开局职业选择。
+    // #btn-start 保留在「射手」按钮上（id 与位置都不动，e2e 仍可直接点它）；
+    // 法师走 #btn-prof-mage。职业必须在 startGame 里先定，
+    // 否则 openLevelPanel 会按上一个职业抽第一批卡。
+    element("btn-start").onclick = () => this.core.startGame("shooter");
+    element("btn-prof-mage").onclick = () => this.core.startGame("mage");
     // Issue #55：开始界面版本号 + 更新日志面板
     element("start-version").textContent =
       `Pixel Rogue · ${CURRENT_VERSION} · 试玩版`;
@@ -98,7 +107,8 @@ export class GameUI {
       show("ov-changelog");
     };
     element("btn-changelog-close").onclick = () => hide("ov-changelog");
-    element("btn-retry").onclick = () => this.core.startGame();
+    // 重开保留当前职业（S3：玩家不该被强制退回射手）
+    element("btn-retry").onclick = () => this.core.startGame(this.core.prof);
     element("btn-resume").onclick = () => this.core.togglePause();
     element("btn-pause-codex").onclick = () => this.codex.open();
     // Issue #100：触屏没有 C 键，属性面板从暂停界面进入
@@ -110,7 +120,7 @@ export class GameUI {
         return;
       }
       this.disarmRestart();
-      this.core.startGame();
+      this.core.startGame(this.core.prof);
     };
     element("btn-statclose").onclick = () => this.core.toggleStats();
     element("btn-pause").onclick = () => {
@@ -170,6 +180,8 @@ export class GameUI {
     };
     (element("btn-start") as HTMLButtonElement).disabled = false;
     element("btn-start").removeAttribute("aria-busy");
+    (element("btn-prof-mage") as HTMLButtonElement).disabled = false;
+    element("btn-prof-mage").removeAttribute("aria-busy");
   }
   reset() {
     ["bottom-bar", "bp-level", "bp-attr", "bp-rest", "bp-swap"].forEach(hide);
@@ -223,9 +235,16 @@ export class GameUI {
       // 的天赋语言：现在天赋一次性获得、不提供数值，这类预览既无意义也占高度。
       // 稀有度文字只在非普通时显示——S2 的射手池暂定全普通（稀有度待讨论），
       // 全普通时逐卡标「普通」纯属噪声；将来恢复分级后自动生效。
+      // S3：补上**链层级与前置**（设计文档 §3.4「变体与流派必须可见」）。
+      // 玩家只有能看见「这是 L2、它的前置是速咏」，才知道自己在构筑一条链
+      // 而不是随手拿一张卡。
+      const chainInfo = u.layer
+        ? `<div class="chain">L${u.layer}${u.requires ? ` · 需 ${u.requires}` : ""}</div>`
+        : "";
       el.innerHTML = `${u.t > 0 ? `<div class="tier">${TIERS[u.t]}</div>` : ""}
       <div class="cat" style="color:${CAT_COLOR[u.cat]}">${CAT_ICO[u.cat]} ${u.cat}</div>
       <div class="ico">${u.ico}</div><div class="nm">${u.n}${u.mech && lv === 0 ? " ✦NEW" : ""}</div>
+      ${chainInfo}
       <div class="ds">${u.d}</div>`;
       if (!s.used && this.core.bpMode === "level") {
         // 每张卡独立刷新 1 次（阻止冒泡，避免误触发"选卡"）；宝箱不提供刷新。

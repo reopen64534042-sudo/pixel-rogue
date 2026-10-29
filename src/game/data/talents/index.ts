@@ -1,5 +1,6 @@
 import type { Talent } from "../../core/types";
 import { LEGACY_UPGRADES } from "./legacy";
+import { MAGE_TALENTS } from "./mage";
 import { SHOOTER_TALENTS } from "./shooter";
 
 /**
@@ -11,18 +12,36 @@ import { SHOOTER_TALENTS } from "./shooter";
  * - `common.ts`  公共常量与纯函数（稀有度、权重曲线、分类颜色、无副作用派生）
  * - `legacy.ts`  v40 及以前的 41 张通用卡（S2 起整体 `hidden`，保留实现）
  * - `shooter.ts` 射手职业池（S2）
- * - `mage.ts` / `warrior.ts` 法师与战士池（S3）
+ * - `mage.ts`    法师职业池（S3）
+ * - `warrior.ts` 战士池（未实现）
  *
  * 外部一律从 `data/talents` 导入，不直接引用子文件。
  */
 export * from "./common";
 export { LEGACY_UPGRADES, DMG_POOL } from "./legacy";
 export { SHOOTER_TALENTS } from "./shooter";
+export {
+  MAGE_TALENTS,
+  MAGE_ELEMENT_CARDS,
+  MAGE_VARIANT_CYCLE,
+  MAGE_VARIANT_ELEMENT,
+  MAGE_VARIANT_ESCAPE,
+  mageElements,
+  mageHasElement,
+} from "./mage";
 
 /**
  * 全局卡表（旧表在前、各职业池在后）。
  *
  * 顺序有语义：`tests/parity.test.ts` 用它重排 v8 卡池并逐项对照，
  * 旧表必须在前且保持 v40 的原顺序（41 张逐字段对照的基线）。
+ *
+ * S3 起职业池按「射手 → 法师」顺序追加：法师池里有 4 张卡与旧表同名
+ * （已改名，见 mage.ts 顶部的改名说明），旧表在前保证 `UPGRADES.find(u.n === ...)`
+ * 仍命中旧卡——同名会让两套机制共用同一个 upCounts 计数器。
  */
-export const UPGRADES: Talent[] = [...LEGACY_UPGRADES, ...SHOOTER_TALENTS];
+export const UPGRADES: Talent[] = [
+  ...LEGACY_UPGRADES,
+  ...SHOOTER_TALENTS,
+  ...MAGE_TALENTS,
+];

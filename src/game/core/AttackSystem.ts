@@ -11,8 +11,11 @@ import {
 export function updateAttacks(this: GameCore, dt: number) {
   const p = this.player;
   // ---- 自动攻击 ----
+  // S3：法师的主输出是法阵施法（MageSystem），不是魔弹。
+  // 只门控「发射弹丸」这一段——环绕飞刃等共享机制仍在下面照常结算。
+  // 射手路径条件恒真，逐位不变。
   p.fireCd -= dt;
-  if (p.fireCd <= 0) {
+  if (this.prof !== "mage" && p.fireCd <= 0) {
     // S1：射程改为玩家属性（base 130）；索敌半径与弹道 life 共用同一值
     const tgt = this.nearestEnemy(p.x, p.y, p.attackRange);
     if (tgt) {

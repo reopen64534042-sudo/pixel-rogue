@@ -1886,3 +1886,24 @@ ctx.stroke();      // → strokePath()
     tooltip 用例的 `#stat-combat` 点击改 force（模拟运行中数值刷新导致 stable 检查不满足）。
 - 验证：tsc ✓；vitest **674/674（35 文件）**；build ✓；core-ui Playwright **16/16**。
 - 遗留：真机体感待确认（开局冲刺冷却 2.4s 是否合适；疾影步在 #137 后定位为纯降冷却档）。
+
+## D-40 法师职业纵切（S3，2026-10-29）
+
+- 背景：设计定稿在 `docs/talent-pool-design-rules.md` 附录 B（18 张卡 + 元素状态/共振/反应/充能条）。交付范围 = 与射手 S2 同规格的完整纵切（施法系统 + 元素 + 充能条 + 18 张卡 + 开局职业选择 + 图鉴分组）。**数值全部为占位，未配平**（用户裁定：等属性系统整体定完再统一配平）。
+- 新增文件：`src/game/data/mageBalance.ts`（法师全部系数）、`src/game/data/talents/mage.ts`（18 张卡 + 元素映射 + 3 个变体组）、`src/game/core/MageSystem.ts`（施法状态机/充能/值型护盾/相位/镜像/星陨路线）、`src/game/core/ElementSystem.ts`（印记、共振、三反应、闪电链、元素 DoT）、`src/game/core/ElementMath.ts`（纯计算层）。
+- 卡名映射（强制）：烈焰印记→**炽焰印记**、冰霜之力→**霜寒之力**、雷霆连锁→**闪电连锁**、广域法印→**广域符印**。旧表保留且排在 `UPGRADES` 前——`upCounts` / 图鉴 id `t:<名字>` / `UPGRADES.find` 都以卡名为键，同名会让两套机制共用计数器。
+- 结构决定：①法师运行态全部放 `GameCore`（`recompute` 会 `Object.assign(player, statBase())` 重建 Player）；②`Enemy` 元素字段为**可选 + 施加时才物化**（射手路径下永不出现，parity 实体形状不变）；③新元素系统与旧 `burn`/`frostLv`/`chain` 完全分离（旧 `frozenT` 与新 `elemFrozenT` 两套并存）；④`CombatSystem` 不 import `MageSystem`，打断/相位/镜像经 `GameCore` 方法引用回调，避免运行时循环；⑤`DamageSource` 新增 `cast`/`element`；⑥`damageTypes` 新增 `frost`（resistance 策略）。
+- 充能条语义：调和附录 B #12（"每 3 次施法第 3 发"）与 §4.5（"满条依次结算"）为——**每第 3 发施法就是满充能发**，循环轴 4 张卡全部作用于第 3、6、9… 发。
+- 本批接手后的修复（交接报告未覆盖或未运行时验证的缺陷）：
+  1. `AttackSystem.updateAttacks` 未按职业门控 → 法师同时发射魔弹（实测 8 秒 `dmgBy.bullet=112`、`cast/meteor=0`）。改为 `prof !== "mage"` 才进入发射段；环绕飞刃等共享机制不受影响。
+  2. 星陨落点没有提前量 → 敌人 0.8 秒预警内走开必打空（实测 `dmgBy.meteor=0`）。新增 `mageBalance.meteorFall=0.8`，落点按「敌人在落地时长内朝玩家移动」估算；绘图预警圈同步读同一系数。
+  3. `GameUI.DMG_NAMES` 未登记 `cast`/`element` → 波末报告按标签键遍历，法师主要伤害整行消失（合计仍包含）。补「🔮法阵」「✹元素」。
+  4. 元素 DoT 不走 `hurtEnemy`，漏掉「冻结目标受任意伤害 +10%」。`applyElementDot` 显式乘 `elementDamageMultiplier(e, "fire")`。
+  5. 法阵预览圈固定按非满充能半径绘制，三连聚爆时与实际落点半径不符。预览改按「下一发是否满充能」取半径。
+- 基线影响（按 2026-10-29 裁定：**不跑测试、不补基线**，留痕待授权批次）：
+  1. `tests/codex.test.ts` 的 `TALENT_TOTAL` / `UPGRADES.length` 由 55/56 → **73/74**；
+  2. `tests/balance-baseline.test.ts` 快照键集合新增 18 张卡，需 `UPDATE_BALANCE_BASELINE=1` 重建；
+  3. `tests/parity.test.ts` 的 `dmgBy` 逐字段对照新增 `cast`/`element`，需照 `takeMelee` 先例摘除并单独断言。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓（chunk >500KB 为既有告警）。e2e 模式受控验证（**未跑 Playwright**）：法师开局选卡与施法（`cast=264`、`element=9.8`、无魔弹）、星陨（`meteor=144`）、受击打断（windup→idle）、相位（传送 80px、10s CD、本次伤害规避）、镜像（残影 + 1s 虚影、虚影免伤）、值型护盾（20 打 50 盾全额吸收；40 打 30 盾剩 10 掉血）、充能条第 3 发授予 12% 生命护盾；射手路径无回归（仅 `bullet`、无元素字段、HP 100）；图鉴「射手 0/18、法师 2/18」；控制台零报错。
+- 未做（延后）：数值配平；熔炉仍走旧表（新池三档恒空，`melt()` 返回 null）；战士池；通用池 4-6 张；图鉴「已退役」文案；移动端法师 UI；自然长局试玩。
+- 解释性决定（可推翻）：相位找不到落点时本次伤害照常结算、只给 0.5s 无敌；镜像为受击时触发；回响可叠层但总量 ≤25% 最大生命；雷共振=本次连锁多跳 1 + 跳跃距离 ×1.5；凝冰持续 5s；多重陨星固定 2 颗；`castDamageMul=1.2`、`castRange=260px` 为三职业总量对齐用的占位。

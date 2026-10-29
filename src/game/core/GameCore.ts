@@ -22,6 +22,13 @@ import {
   type AttrChoice,
 } from "./AttributeSystem";
 import { nearestEnemy, spawnEnemy } from "./EnemySystem";
+import { updateMageElements } from "./ElementSystem";
+import {
+  interruptMageCast,
+  triggerMirrorDecoy,
+  triggerPhaseEscape,
+  updateMageCasting,
+} from "./MageSystem";
 import { meleeSwing } from "./MeleeSystem";
 import { update } from "./Simulation";
 import {
@@ -58,6 +65,10 @@ import type {
   GameState,
   GameView,
   Gem,
+  MageCastPhase,
+  MageDecoy,
+  MageDomain,
+  MageMeteor,
   Meteor,
   Mode,
   Panel,
@@ -161,13 +172,50 @@ export class GameCore {
    */
   attributePicks: AttributePoint[] = [];
   /**
-   * S2：当前职业池。
+   * S3：当前职业池。
    *
-   * S2 只实现射手，因此暂时固定为 `"shooter"`（不考虑开局选择——S3 才有三职业，
-   * 现在加入口会让玩家选到没有池子的职业）。`canOffer` 用它过滤职业卡，
-   * 职业被动通过 `professionModifiers(prof)` 并入属性投影。
+   * S2 只有射手，职业被硬编码；S3 起开局可选「射手 / 法师」，
+   * 由 `startGame(prof)` 写入。`canOffer` 用它过滤职业卡。
+   *
+   * 战士（`"warrior"`）尚未实现，**没有对应的卡池**——开放选择前必须先有池子，
+   * 否则玩家会选到一个空池职业。
    */
   prof: Profession = "shooter";
+  /* —— S3 法师池运行态 ——
+   *
+   * 全部放 GameCore 而不是 Player：`recompute` 会用
+   * `Object.assign(player, statBase())` 重建 Player，计时与标记类状态
+   * 放进去会被抹掉。先例：射手池的 dodgeNextCrit / contactKnockCd。
+   */
+  /** 施法阶段：idle / windup（抬手，可打断）/ cast（收束，不可打断）。 */
+  castPhase: MageCastPhase = "idle";
+  /** 当前施法段的剩余时间（秒）。 */
+  castT = 0;
+  /** 施法间隔倒计时（秒）。 */
+  castCd = 0;
+  /** 本次法阵的落点（起手时固化）。 */
+  castX = 0;
+  castY = 0;
+  /** 充能条：每 MB.chargeFull 次成功施法满一次，满时结算循环轴。 */
+  mageCharge = 0;
+  /** 值型限时护盾现值（与既有层数制护盾是两套模型）。 */
+  mageShield = 0;
+  /** 值型限时护盾剩余时间（秒）。 */
+  mageShieldT = 0;
+  /** 「相位」冷却剩余秒数。 */
+  magePhaseCd = 0;
+  /** 「镜像」冷却剩余秒数。 */
+  mageMirrorCd = 0;
+  /** 「镜像」虚影剩余秒数（期间不可受击、无视碰撞、不能施法）。 */
+  magePhaseT = 0;
+  /** 「镜像」残影（吸引仇恨的诱饵）。 */
+  mageDecoys: MageDecoy[] = [];
+  /** 路线B「星陨」：待爆裂的陨星。 */
+  mageMeteors: MageMeteor[] = [];
+  /** 路线B「元素残域」：持续伤害领域。 */
+  mageDomains: MageDomain[] = [];
+  /** 路线B「星陨」的下一次落下倒计时（秒）。 */
+  mageMeteorT = 0;
   /**
    * S1：本波剩余的可选次数（波次发放，波末消费）。为 0 时属性面板不出现。
    * 不进 parity 快照白名单：它只驱动面板流程，不参与任何数值计算。
@@ -218,6 +266,8 @@ export class GameCore {
     shock: 0,
     melee: 0,
     reflect: 0,
+    cast: 0,
+    element: 0,
   };
   private waveStartDamage: DamageTotals = {
     bullet: 0,
@@ -230,6 +280,8 @@ export class GameCore {
     shock: 0,
     melee: 0,
     reflect: 0,
+    cast: 0,
+    element: 0,
   };
   beginWaveReport() {
     this.waveStartDamage = { ...this.dmgBy };
@@ -306,6 +358,14 @@ export class GameCore {
   applyBurnDot = applyBurnDot.bind(this);
   applyBurnGroundDot = applyBurnGroundDot.bind(this);
   meleeSwing = meleeSwing.bind(this);
+  // S3 法师池：施法状态机、元素状态、以及「脱离」槽的两个触发器。
+  // 后两者由 CombatSystem.damagePlayer 调用——CombatSystem 不 import
+  // MageSystem（避免运行时循环），统一走 GameCore 上的方法引用。
+  updateMageCasting = updateMageCasting.bind(this);
+  updateMageElements = updateMageElements.bind(this);
+  interruptMageCast = interruptMageCast.bind(this);
+  triggerPhaseEscape = triggerPhaseEscape.bind(this);
+  triggerMirrorDecoy = triggerMirrorDecoy.bind(this);
   addText = addText.bind(this);
   damagePlayer = damagePlayer.bind(this);
   update = update.bind(this);
@@ -361,6 +421,22 @@ export class GameCore {
     this.startTalentPending = false;
     // S2：职业池固定射手（S3 才有开局选择）
     this.prof = "shooter";
+    // S3 法师池运行态归零
+    this.castPhase = "idle";
+    this.castT = 0;
+    this.castCd = 0;
+    this.castX = 0;
+    this.castY = 0;
+    this.mageCharge = 0;
+    this.mageShield = 0;
+    this.mageShieldT = 0;
+    this.magePhaseCd = 0;
+    this.mageMirrorCd = 0;
+    this.magePhaseT = 0;
+    this.mageDecoys = [];
+    this.mageMeteors = [];
+    this.mageDomains = [];
+    this.mageMeteorT = 0;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
     // #134：走统一入口，让「第 1 波基础额度」也受单波上限约束
@@ -390,6 +466,8 @@ export class GameCore {
       thorns: 0,
       burn: 0,
       melee: 0,
+      cast: 0,
+      element: 0,
     };
     this.beginWaveReport();
     this.bpMode = null;
@@ -423,8 +501,17 @@ export class GameCore {
     this.moveY = 0;
     this.dashHeld = false;
   }
-  startGame() {
+  /**
+   * 开局。
+   *
+   * @param prof 职业（S3 起可选射手 / 法师）。必须在 `resetGame()` **之后**写：
+   * `resetGame` 会把职业硬编码回 `"shooter"`；而且 `view.started()` 里的
+   * `openLevelPanel` 会立刻按 `this.prof` 过滤卡池——职业必须先定，
+   * 否则第一批卡是按上一个职业抽的。
+   */
+  startGame(prof?: Profession) {
     this.resetGame();
+    this.prof = prof ?? "shooter";
     this.state = "play";
     // S2 修订（用户反馈）：开局送 1 次天赋，让第 1 波起就有一次成长。
     // **必须在 view.started() 之前记账**：面板是 UI 在 started 回调里按
