@@ -249,7 +249,10 @@ export function grantMageShield(
   } else {
     core.mageShield = Math.max(core.mageShield, amount);
   }
-  core.mageShieldT = Math.max(core.mageShieldT, duration);
+  if (duration >= core.mageShieldT) {
+    core.mageShieldT = duration;
+    core.mageShieldMaxT = duration;
+  }
 }
 
 /** 施法被打断（受击或冲刺）。当前处于抬手段时才会被打断。 */
@@ -527,6 +530,7 @@ export function updateMageCasting(this: GameCore, dt: number) {
     if (this.mageShieldT <= 0) {
       this.mageShieldT = 0;
       this.mageShield = 0;
+      this.mageShieldMaxT = 0;
     }
   }
   if (this.mageChargeFlashT > 0) this.mageChargeFlashT -= dt;

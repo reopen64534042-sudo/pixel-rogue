@@ -30,6 +30,40 @@ function spriteRect(key: string, cx: number, cy: number, scale = 1) {
     h,
   };
 }
+
+/**
+ * 冻结冰壳：半透明冰面 + 1px 亮边 + 两道冰裂。
+ *
+ * 替代「冻结」飘字——元素共振会一次冻住一片怪，满屏文字比伤害数字还乱。
+ * 旧表 frozenT 与法师凝冰满层共用这套表现，状态一眼可见且不新增 HUD。
+ */
+function drawFrozenOverlay(
+  ctx: PixelPainter,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  ctx.globalAlpha = 0.42;
+  ctx.fillStyle = "#bfeaff";
+  ctx.fillRect(x, y, w, h);
+  // 1px 外扩冰壳：四边用整数实心条，避免描边半像素发虚
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = "#e8f7ff";
+  ctx.fillRect(x - 1, y - 1, w + 2, 1);
+  ctx.fillRect(x - 1, y + h, w + 2, 1);
+  ctx.fillRect(x - 1, y, 1, h);
+  ctx.fillRect(x + w, y, 1, h);
+  // 冰裂：固定折线，不随帧变化
+  ctx.globalAlpha = 0.85;
+  ctx.strokeStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.moveTo(x + 2, y + h - 2);
+  ctx.lineTo(x + Math.floor(w / 2), y + 2);
+  ctx.lineTo(x + w - 2, y + h - 3);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
 export function draw(this: GameCore, ctx: PixelPainter) {
   const TS = 16,
     tw = WORLD.w / TS,
@@ -298,13 +332,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
     }
-    // Issue #38：冰冻泛蓝
-    if (e.frozenT > 0) {
-      ctx.globalAlpha = 0.5;
-      ctx.fillStyle = "#9fe1ff";
-      ctx.fillRect(x, y, w, h);
-      ctx.globalAlpha = 1;
-    }
+    // Issue #38：冰冻泛蓝（旧表 frozenT 与法师冻结统一由下方冰壳表现）
     // S3 法师：元素印记染色。层数只体现在浓度上（§3.6：不做逐层特效，
     // 只在关键节点给反馈），冰/雷/火三色互斥，先判定顺序即显示优先级。
     if (e.elemFire?.length) {
@@ -319,12 +347,9 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
     }
-    if (isFrozen(e)) {
-      ctx.globalAlpha = 0.45;
-      ctx.fillStyle = "#cfefff";
-      ctx.fillRect(x, y, w, h);
-      ctx.globalAlpha = 1;
-    }
+    // 冻结冰壳（旧 frozenT 与法师凝冰满层共用，替代「冻结」飘字）
+    if (e.frozenT > 0 || isFrozen(e))
+      drawFrozenOverlay(ctx, x, y, w, h);
     if (isParalyzed(e)) {
       ctx.globalAlpha = 0.4;
       ctx.fillStyle = "#c07bff";
@@ -414,27 +439,39 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.globalAlpha = 1;
   }
   // S3 法师：值型限时护盾光环（与上面的层数制护盾是两种表现）
+  // 呼吸底环只表示「护盾存在」；亮色弧从 12 点顺时针绘制，长度 = 剩余时间比例。
+  // 用户要求「直接从护盾本身看还剩多久」，不新增下方状态条。
   if (this.mageShield > 0) {
-    ctx.globalAlpha = 0.4 + Math.sin(this.time * 7) * 0.2;
+    const sx = Math.round(this.player.x);
+    const sy = Math.round(this.player.y);
+    const pulse = Math.sin(this.time * 7);
+    const k =
+      this.mageShieldMaxT > 0
+        ? Math.max(0, Math.min(1, this.mageShieldT / this.mageShieldMaxT))
+        : 1;
+    ctx.globalAlpha = 0.16 + pulse * 0.05;
     ctx.strokeStyle = "#c07bff";
     ctx.beginPath();
-    ctx.arc(
-      Math.round(this.player.x),
-      Math.round(this.player.y),
-      13,
-      0,
-      Math.PI * 2,
-    );
+    ctx.arc(sx, sy, 13, 0, Math.PI * 2);
     ctx.stroke();
+    if (k > 0) {
+      ctx.globalAlpha = 0.75 + pulse * 0.1;
+      ctx.strokeStyle = "#d9a6ff";
+      ctx.beginPath();
+      ctx.arc(sx, sy, 13, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k);
+      ctx.stroke();
+    }
     ctx.globalAlpha = 1;
   }
   // 冲刺充能格（#51 重做）：小格条替代原来的菱形小点。
   // 每格是**无边框的实心块**：亮青=可用，暗色=冷却中，下一格按充能进度从左填充。
   // 不画上下边框与内凹线——用户明确要求去掉；格子之间靠 2px 间距分隔。
+  // v63 减薄到 2px 高；v64 宽度 5→4：格数为奇数时总宽为奇数，无法在整数像素上
+  // 沿角色中轴线轴对称，改成偶数宽后 1/2/3/4 格都能精确居中。
   if (this.player.dashLv > 0) {
     const dchMax = 1 + this.player.dashChargeLv;
-    const cw = 5;
-    const chh = 3;
+    const cw = 4;
+    const chh = 2;
     const gap = 2;
     const pw = dchMax * cw + (dchMax - 1) * gap;
     // 同读条：整数偏移居中，避免奇数宽度导致横移时左右抖动
@@ -461,8 +498,10 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
   // 法师充能点（P0-2）：仅当持有任一充能相关卡时显示，避免给不走循环轴的
-  // 玩家增加噪音。计数是 1→2→3 的实心点：第 3 发落地/爆裂时三格全亮
+  // 玩家增加噪音。计数是 1→2→3 的实心小格：第 3 发落地/爆裂时三格全亮
   // 0.35 秒，然后清零——不再用「空心提示下一发」，那种画法看起来像 3 个点。
+  // v63：高度 3→2；v64：格宽 3→2、间距 2→3——三格总宽 12 为偶数，
+  // 中格正好压在角色中轴线上（旧 3×3 + 2px 间距总宽 13，必然偏半像素）。
   if (
     this.prof === "mage" &&
     this.state === "play" &&
@@ -474,15 +513,16 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       this.player.upCounts["三连聚爆"])
   ) {
     const total = MB.chargeFull;
-    const cw = 3;
-    const gap = 2;
+    const cw = 2;
+    const chh = 2;
+    const gap = 3;
     const pw = total * cw + (total - 1) * gap;
     const px = Math.round(this.player.x) - Math.floor(pw / 2);
     const py = Math.round(this.player.y) + 17;
     const shown = this.mageChargeFlashT > 0 ? total : this.mageCharge;
     for (let i = 0; i < total; i++) {
       ctx.fillStyle = i < shown ? "#57e6ff" : "#1d2440";
-      ctx.fillRect(px + i * (cw + gap), py, cw, cw);
+      ctx.fillRect(px + i * (cw + gap), py, cw, chh);
     }
   }
 

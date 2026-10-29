@@ -228,6 +228,11 @@ export interface Talent {
   t: number;
   cat: string;
   d: string;
+  /**
+   * 动态说明：需要按当前构筑变化的卡面文字（如「元素共振」只列已持有元素）。
+   * 显示时优先于 `d`；图鉴等全局列表仍用 `d`，避免依赖某一局的玩家状态。
+   */
+  dyn?: (p: Player) => string;
   max: number;
   mech?: number;
   req?: (p: Player) => boolean;

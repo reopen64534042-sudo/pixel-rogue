@@ -222,6 +222,8 @@ export class GameCore {
   mageShield = 0;
   /** 值型限时护盾剩余时间（秒）。 */
   mageShieldT = 0;
+  /** 值型护盾本次计时的总时长（秒）：绘制剩余时间弧的基准。 */
+  mageShieldMaxT = 0;
   /** 「相位」冷却剩余秒数。 */
   magePhaseCd = 0;
   /** 「镜像」冷却剩余秒数。 */
@@ -460,6 +462,7 @@ export class GameCore {
     this.mageChargeFlashT = 0;
     this.mageShield = 0;
     this.mageShieldT = 0;
+    this.mageShieldMaxT = 0;
     this.magePhaseCd = 0;
     this.mageMirrorCd = 0;
     this.magePhaseT = 0;
