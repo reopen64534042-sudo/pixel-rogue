@@ -588,8 +588,8 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       }
     }
   }
-  // 强化箭经验条（角色脚下；满级或满经验时整条金色）
-  // 强化箭是射手专属系统；法师不显示，否则空条会压在充能点（y+17）上。
+  // 强化弹经验条（角色脚下；满级或满经验时整条金色）
+  // 强化弹是射手专属系统；法师不显示，否则空条会压在充能点（y+17）上。
   if (this.prof === "shooter") {
     const stats = getSpecialLevelStats(this.specialLevel);
     const ratio = stats.xpToNext
@@ -675,7 +675,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.polyline3(pts, "#aef1ff", 0.9);
   }
 
-  // 强化箭激光（短寿命表现层；与电弧同为一次折线批量绘制）
+  // 强化弹激光（短寿命表现层；与电弧同为一次折线批量绘制）
   if (this.lasers.length) {
     for (const l of this.lasers) {
       const alpha = Math.max(0, Math.min(1, l.t / 0.12));
@@ -694,7 +694,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
-  // 导弹（独立追踪弹；弹体与尾迹和强化箭分开绘制）
+  // 导弹（独立追踪弹；弹体与尾迹和强化弹分开绘制）
   for (const m of this.missiles) {
     const x = Math.round(m.x);
     const y = Math.round(m.y);

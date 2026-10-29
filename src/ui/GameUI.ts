@@ -453,10 +453,21 @@ export class GameUI {
         : isWarrior
           ? ["🪓 重斩", "每 3 下 · 250%"]
           : [
-              "🔥 魔弹伤害",
+              "🏹 普通魔弹",
               boltDamage(p).toFixed(1) +
                 (p.boltDmgMul > 1 ? ` ×${p.boltDmgMul.toFixed(2)}` : ""),
             ],
+      ...(isMage || isWarrior
+        ? []
+        : ([
+            [
+              "✨ 强化弹伤害",
+              (
+                boltDamage(p) *
+                getSpecialLevelStats(this.core.specialLevel).mul
+              ).toFixed(1),
+            ],
+          ] as [string, string | number][])),
       isMage
         ? ["⚡ 施法速度", p.fireRate.toFixed(2) + " 次/秒"]
         : [
@@ -466,7 +477,7 @@ export class GameUI {
               (p.haste ? ` (狂热 +${p.haste * 10}%)` : ""),
           ],
       ["💥 暴击", (p.crit * 100).toFixed(0) + "%"],
-      ["💥 暴击伤害", "×" + critMultiplier(p).toFixed(1)],
+      ["💥 暴击伤害", (critMultiplier(p) * 100).toFixed(0) + "%"],
       // 职业专属输出行：法师当前元素，射手穿透，战士流层数。
       ...(isMage
         ? ([
@@ -489,52 +500,56 @@ export class GameUI {
           : ([
               ["🔱 穿透", p.pierce + professionPierce(this.core.prof)],
             ] as [string, string | number][])),
-      // S3-C：独立增伤乘区展示（与 p.damage 基线区分；0 值按既有惯例显示 —）
-      [
-        "✴️ 全局增伤",
-        p.globalDamageBonus ? "+" + pct(p.globalDamageBonus) : "—",
-      ],
-      ...(isWarrior
-        ? []
-        : ([
+      // 全局增伤：法师保留完整行；射手/战士只在非零时显示。
+      ...(isMage || p.globalDamageBonus
+        ? ([
+            [
+              "✴️ 全局增伤",
+              p.globalDamageBonus ? "+" + pct(p.globalDamageBonus) : "—",
+            ],
+          ] as [string, string | number][])
+        : []),
+      ...(isMage
+        ? ([
             ["🌡️ 火焰增伤", typeBonus.fire ? "+" + pct(typeBonus.fire) : "—"],
             [
               "🌩️ 雷电增伤",
               typeBonus.lightning ? "+" + pct(typeBonus.lightning) : "—",
             ],
             ["❄️ 冰霜增伤", typeBonus.frost ? "+" + pct(typeBonus.frost) : "—"],
-          ] as [string, string | number][])),
+          ] as [string, string | number][])
+        : []),
     ];
     const survivalRows: [string, string | number][] = [
       ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
-      [
-        "🥋 减伤",
-        p.tough ? (Math.min(0.6, p.tough) * 100).toFixed(0) + "%" : "—",
-      ],
       // S3-C：护甲/元素抗性与战斗计算同公式（K/(K+DEF)，与减伤乘算）
       [
         "🪨 护甲",
         p.defense ? `${p.defense}（物理 -${physMit(p.defense)}%）` : "—",
       ],
-      // PR #4 评审 P3：显示值同样受 resistanceCap 裁剪（与战斗实际减伤一致）
-      [
-        "🌋 火焰抗性",
-        resist.fire
-          ? pct(Math.min(resist.fire, COMBAT_BALANCE.resistanceCap))
-          : "—",
-      ],
-      [
-        "🌩️ 雷电抗性",
-        resist.lightning
-          ? pct(Math.min(resist.lightning, COMBAT_BALANCE.resistanceCap))
-          : "—",
-      ],
-      [
-        "❄️ 冰霜抗性",
-        resist.frost
-          ? pct(Math.min(resist.frost, COMBAT_BALANCE.resistanceCap))
-          : "—",
-      ],
+      // 射手当前天赋/属性池没有三系抗性来源，隐藏这些空行；法师保留。
+      ...(isMage
+        ? ([
+            [
+              "🌋 火焰抗性",
+              resist.fire
+                ? pct(Math.min(resist.fire, COMBAT_BALANCE.resistanceCap))
+                : "—",
+            ],
+            [
+              "🌩️ 雷电抗性",
+              resist.lightning
+                ? pct(Math.min(resist.lightning, COMBAT_BALANCE.resistanceCap))
+                : "—",
+            ],
+            [
+              "❄️ 冰霜抗性",
+              resist.frost
+                ? pct(Math.min(resist.frost, COMBAT_BALANCE.resistanceCap))
+                : "—",
+            ],
+          ] as [string, string | number][])
+        : []),
       ["🌀 闪避", p.dodge ? (p.dodge * 100).toFixed(0) + "%" : "—"],
     ];
     const sustainRows: [string, string | number][] = [
@@ -582,11 +597,22 @@ export class GameUI {
     if (utilityEl) utilityEl.innerHTML = renderRows(utilityRows);
     if (infoEl) infoEl.innerHTML = renderRows(infoRows);
 
-    // 强化箭：射手专属成长信息，法师隐藏整组。
+    // 强化弹：射手专属成长信息，法师隐藏整组。
     const specialTitle = document.getElementById("stat-special-title");
     const specialEl = document.getElementById("stat-special");
+    const specialUpgradesTitle = document.getElementById(
+      "stat-special-upgrades-title",
+    );
+    const specialUpgradesEl = document.getElementById(
+      "stat-special-upgrades",
+    );
+    const specialUpgradesList = document.getElementById(
+      "stat-special-upgrades-list",
+    );
     const isShooter = this.core.prof === "shooter";
     if (specialTitle) specialTitle.style.display = isShooter ? "" : "none";
+    if (specialUpgradesEl)
+      specialUpgradesEl.style.display = isShooter ? "" : "none";
     if (specialEl) {
       specialEl.style.display = isShooter ? "" : "none";
       if (isShooter) {
@@ -594,36 +620,37 @@ export class GameUI {
         const specialStats = getSpecialLevelStats(level);
         const maxed =
           level >= SPECIAL_LEVELS.length || specialStats.xpToNext === null;
-        const upgradeNames = this.core.specialUpgrades.map(
-          (id) => SPECIAL_UPGRADES.find((item) => item.id === id)?.name ?? id,
-        );
-        const rows: [string, string, boolean][] = [
+        const upgrades = this.core.specialUpgrades.flatMap((id) => {
+          const found = SPECIAL_UPGRADES.find((item) => item.id === id);
+          return found ? [found] : [];
+        });
+        const rows: [string, string][] = [
           [
             "🏹 等级",
-            `Lv.${level} / ${SPECIAL_LEVELS.length}${maxed ? " · MAX" : ""}`,
-            false,
+            maxed ? "MAX" : `Lv.${level} / ${SPECIAL_LEVELS.length}`,
           ],
-          ["🔱 强化穿透", `+${specialStats.pierceBonus}`, false],
-          ["🕊️ 飞行", specialStats.infiniteFlight ? "无限" : "有限", false],
+          ["🔱 强化穿透", `+${specialStats.pierceBonus}`],
+          ["🕊️ 飞行", specialStats.infiniteFlight ? "无限" : "有限"],
           [
             "📘 下一级经验",
             maxed
               ? "MAX"
               : `${this.core.specialXp} / ${specialStats.xpToNext}`,
-            false,
-          ],
-          [
-            "🧩 当前升级",
-            upgradeNames.length ? upgradeNames.join(" · ") : "暂无",
-            true,
           ],
         ];
-        specialEl.innerHTML = rows
-          .map(([k, v, wide]) => {
-            const dim = v === "暂无";
-            return `<div class="row${wide ? " wide" : ""}${dim ? " dim" : ""}"><span class="k">${k}</span><span class="v${dim ? " dim" : ""}">${v}</span></div>`;
-          })
-          .join("");
+        specialEl.innerHTML = renderRows(rows);
+        if (specialUpgradesTitle)
+          specialUpgradesTitle.textContent =
+            `当前升级 (${upgrades.length}/${SPECIAL_UPGRADES.length})`;
+        if (specialUpgradesList)
+          specialUpgradesList.innerHTML = upgrades.length
+            ? upgrades
+                .map(
+                  (upgrade) =>
+                    `<div class="special-upgrade"><span class="su-name">${upgrade.name}</span><span class="su-desc">${upgrade.desc}</span></div>`,
+                )
+                .join("")
+            : '<div class="special-upgrade-empty">尚未获得强化弹升级</div>';
       }
     }
 
