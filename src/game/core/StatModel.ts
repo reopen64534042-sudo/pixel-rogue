@@ -82,6 +82,11 @@ export const STAT_IDS = [
   "multishot",
   "distanceDmg",
   "dashDistMul",
+  // S2 续航（#135）：生命汲取与生命回复此前是「有消费点、无来源」的死字段
+  //（旧卡吸血獠牙/修复微光已退役，玩家实际拿不到）。属性面板新增这两项后
+  // 必须进白名单，否则 attributeModifiers 会被 resolveStats 以「未知属性」拒绝。
+  "lifesteal",
+  "regen",
 ] as const;
 
 /**
