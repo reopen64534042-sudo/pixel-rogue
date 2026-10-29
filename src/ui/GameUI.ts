@@ -158,13 +158,14 @@ export class GameUI {
         resEl.classList.remove("hidden");
         const p = this.core.player;
         const lv = p.upCounts[output.n] || 1;
-        const curDesc = output.cur ? output.cur(p) : output.d;
+        const desc = output.dyn ? output.dyn(p) : output.d;
+        const curDesc = output.cur ? output.cur(p) : desc;
         element("sw-result-card").className = `sw-card t${output.t}`;
         element("sw-result-card").innerHTML = `
           <div class="sw-tier">${TIERS[output.t]} · ${output.cat}</div>
           <div class="sw-ico">${output.ico}</div>
           <div class="sw-name">${output.n} Lv.${lv}</div>
-          <div class="sw-desc">${output.d}</div>
+          <div class="sw-desc">${desc}</div>
           <div class="sw-cur">${curDesc}</div>
         `;
       }
@@ -230,6 +231,7 @@ export class GameUI {
     this.core.slots.forEach((s, i) => {
       const u = s.u;
       const lv = this.core.player.upCounts[u.n] || 0;
+      const desc = u.dyn ? u.dyn(this.core.player) : u.d;
       const el = document.createElement("div");
       // Issue #35：本局首次选卡时全部标 NEW，之后仅机制型 Lv.0 标记
       const firstPick = this.core.player.picks.length === 0;
@@ -237,7 +239,7 @@ export class GameUI {
         "card r" + u.t + (lv === 0 && (u.mech || firstPick) ? " new" : "");
       el.tabIndex = 0;
       el.setAttribute("role", "button");
-      el.setAttribute("aria-label", `${u.n}，${TIERS[u.t]}，${u.d}`);
+      el.setAttribute("aria-label", `${u.n}，${TIERS[u.t]}，${desc}`);
       el.onkeydown = (event) => {
         if (event.target === el && ["Enter", " "].includes(event.key)) {
           event.preventDefault();
@@ -258,7 +260,7 @@ export class GameUI {
       <div class="cat" style="color:${CAT_COLOR[u.cat]}">${CAT_ICO[u.cat]} ${u.cat}</div>
       <div class="ico">${u.ico}</div><div class="nm">${u.n}${u.mech && lv === 0 ? " ✦NEW" : ""}</div>
       ${chainInfo}
-      <div class="ds">${u.d}</div>`;
+      <div class="ds">${desc}</div>`;
       if (!s.used && this.core.bpMode === "level") {
         // 每张卡独立刷新 1 次（阻止冒泡，避免误触发"选卡"）；宝箱不提供刷新。
         // 用文字而非 🔄：Press Start 2P 不含 emoji，部分环境会渲染成方块。
@@ -483,7 +485,8 @@ export class GameUI {
       if (!tooltip) return;
       const u = UPGRADES.find((item) => item.n === tag.dataset.n)!;
       const lv = p.upCounts[u.n] || 0;
-      const curDesc = u.cur ? u.cur(p) : u.d;
+      const desc = u.dyn ? u.dyn(p) : u.d;
+      const curDesc = u.cur ? u.cur(p) : desc;
       const catColor = CAT_COLOR[u.cat] || "#57e6ff";
 
       tooltip.className = `talent-tooltip tt-t${u.t}`;
@@ -502,7 +505,7 @@ export class GameUI {
         <div class="tt-divider"></div>
         <div class="tt-section">
           <div class="tt-label">天赋机制说明</div>
-          <div class="tt-desc">${u.d}</div>
+          <div class="tt-desc">${desc}</div>
         </div>
         <div class="tt-cur-box">
           <div class="tt-label">当前等级生效效果 (Lv.${lv})</div>

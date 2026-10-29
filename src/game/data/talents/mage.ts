@@ -85,6 +85,19 @@ function hasAnyCycleL1(p: Player): boolean {
   );
 }
 
+/** 元素共振卡面：只写当前持有的元素，未持有的不列（玩家反馈）。 */
+const RESONANCE_EFFECT: Record<"fire" | "frost" | "lightning", string> = {
+  fire: "火：继承灼烧层数",
+  frost: "冰：各 +1 层凝冰",
+  lightning: "雷：闪电链多跳 1 个",
+};
+
+function resonanceDesc(p: Player): string {
+  const owned = mageElements(p).map((e) => RESONANCE_EFFECT[e]);
+  if (!owned.length) return "印记触发时，周围的敌人按你持有的元素获得强化";
+  return `印记触发时，${MB.resonanceRadius}px 内的敌人按你持有的元素获得强化（${owned.join("；")}）`;
+}
+
 export const MAGE_TALENTS: Talent[] = [
   // ================= 元素槽：印记与反应 =================
   {
@@ -145,7 +158,8 @@ export const MAGE_TALENTS: Talent[] = [
     prof: "mage",
     req: hasAnyElement,
     reqHint: "需 元素卡",
-    d: "印记触发时，60px 内的敌人按元素获得不同强化（火：继承灼烧层数；冰：各 +1 层凝冰；雷：闪电链多跳 1 个）",
+    d: "印记触发时，周围的敌人按你持有的元素获得强化",
+    dyn: resonanceDesc,
     max: 1,
     pv: () => `共振半径 ${MB.resonanceRadius}px`,
     f: () => {},

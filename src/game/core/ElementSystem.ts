@@ -90,7 +90,8 @@ function applyElementStack(
       // 满层冻结：移除全部凝冰
       arr.length = 0;
       e.elemFrozenT = MB.frostFreezeDuration;
-      core.addText(e.x, e.y - e.r - 6, "冻结", "#9fe1ff");
+      // 不再刷「冻结」飘字：元素共振会一次冻住一片怪，满屏文字比伤害数字还乱。
+      // 状态改由敌人身上的冰壳表现（rendering/draw.ts 的 drawFrozenOverlay）。
       core.audio.beep(880, 0.1, "sine", 0.04, 300);
     }
     return;
