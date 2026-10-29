@@ -1,0 +1,88 @@
+{
+  "key": "taidao-slash",
+  "image": "taidao-slash-32x32-10f.png",
+  "stillImage": "taidao-slash-32.png",
+  "layout": "horizontal",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "frameCount": 10,
+  "frameRate": 60,
+  "repeat": 0,
+  "origin": {
+    "x": 0.5,
+    "y": 0.5
+  },
+  "playbackMs": 166.667,
+  "frames": [
+    {
+      "index": 0,
+      "revealRows": 11,
+      "opacity": 0.8
+    },
+    {
+      "index": 1,
+      "revealRows": 22,
+      "opacity": 0.9
+    },
+    {
+      "index": 2,
+      "revealRows": 32,
+      "opacity": 1
+    },
+    {
+      "index": 3,
+      "revealRows": 32,
+      "opacity": 1
+    },
+    {
+      "index": 4,
+      "revealRows": 32,
+      "opacity": 1
+    },
+    {
+      "index": 5,
+      "revealRows": 32,
+      "opacity": 0.8
+    },
+    {
+      "index": 6,
+      "revealRows": 32,
+      "opacity": 0.6
+    },
+    {
+      "index": 7,
+      "revealRows": 32,
+      "opacity": 0.4
+    },
+    {
+      "index": 8,
+      "revealRows": 32,
+      "opacity": 0.2
+    },
+    {
+      "index": 9,
+      "revealRows": 32,
+      "opacity": 0
+    }
+  ],
+  "source": {
+    "file": "assets/vfx/taidao-slash-source.png",
+    "sha256": "5650d808212459628010a3efb60df2d426b0bb56bbce7b2b6da6cc7238ea77ea",
+    "crop": [
+      114,
+      157,
+      1114,
+      1157
+    ],
+    "resample": "nearest",
+    "alphaThreshold": 128
+  },
+  "palette": [
+    "#1a9fd4",
+    "#57e6ff",
+    "#e8e8f0",
+    "#ffffff"
+  ],
+  "preview": "assets/vfx/taidao-slash-preview.gif",
+  "previewFrameMs": 50
+}
