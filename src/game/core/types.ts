@@ -390,10 +390,6 @@ export interface Bullet extends Point {
   critBonus?: number;
   /** 射手强化箭标记；普通弹不写该键，保持旧对象形状。 */
   special?: boolean;
-  /** 强化箭 Lv.3+：命中后不消耗穿透次数，直到寿命结束。 */
-  infinitePierce?: boolean;
-  /** 反弹升级：剩余反弹次数 */
-  bounces?: number;
   /**
    * 发射时攻击者快照（Combat Foundation S3-B 定稿接口）：
    * 与 EnemyBullet.stats 对称——增伤等攻击方属性按发射时固化，
@@ -455,6 +451,8 @@ export interface FloatingText extends Point {
   life: number;
   vy: number;
   big: boolean;
+  /** 真实伤害专属样式：银白字 + 冷蓝描边并放大，和普通白字区分 */
+  trueDmg?: boolean;
 }
 export interface Meteor extends Point {
   t: number;

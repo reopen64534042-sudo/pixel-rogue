@@ -2,9 +2,10 @@
  * 射手职业被动「强化箭」的等级与升级表。
  *
  * 设计口径（2026-10-29 用户确认，2026-10-30 扩展为 12 级）：
- * - 核心 3 级：L1 基础 → L2 强化 → L3 无限穿透；
+ * - L1-L6 穿透逐级累计 1→6，L7-L12 不再增加穿透；
+ * - L3 起强化箭无限飞行；穿透耗尽或飞出世界边界时消失；
  * - L4-L12 每级随机获得 1 条升级，最多 9 条，已获得的升级保留并共存；
- * - 升级形态是附加效果，无限穿透始终优先，不替换主弹道；
+ * - 升级形态是附加效果，不替换主弹道；
  * - 普通弹默认不继承升级，后续用「同化」升级单独开启。
  */
 
@@ -13,7 +14,7 @@ export type SpecialUpgradeId =
   | "trueDamage"
   | "currentHpDamage"
   | "homing"
-  | "bounce"
+  | "dashSpecial"
   | "missile"
   | "partialTrue"
   | "maxHpDamage"
@@ -24,26 +25,27 @@ export interface SpecialLevelStats {
   readonly xpToNext: number | null;
   /** 强化箭伤害倍率（相对普通魔弹） */
   readonly mul: number;
-  /** 额外穿透目标数；无限穿透时为 0 */
+  /** 当前等级的额外穿透目标数（累计值，L6 起为 6） */
   readonly pierceBonus: number;
-  readonly infinitePierce: boolean;
+  /** 本级起强化箭是否无限飞行（不因射程寿命消失） */
+  readonly infiniteFlight: boolean;
   /** 升到本级时是否随机获得一条升级 */
   readonly grantsUpgrade: boolean;
 }
 
 export const SPECIAL_LEVELS: readonly SpecialLevelStats[] = [
-  { xpToNext: 8, mul: 1.5, pierceBonus: 1, infinitePierce: false, grantsUpgrade: false },
-  { xpToNext: 20, mul: 1.7, pierceBonus: 2, infinitePierce: false, grantsUpgrade: false },
-  { xpToNext: 36, mul: 1.9, pierceBonus: 0, infinitePierce: true, grantsUpgrade: false },
-  { xpToNext: 56, mul: 2.0, pierceBonus: 0, infinitePierce: true, grantsUpgrade: true },
-  { xpToNext: 80, mul: 2.1, pierceBonus: 0, infinitePierce: true, grantsUpgrade: true },
-  { xpToNext: 100, mul: 2.25, pierceBonus: 0, infinitePierce: true, grantsUpgrade: true },
-  { xpToNext: 125, mul: 2.3, pierceBonus: 0, infinitePierce: true, grantsUpgrade: true },
-  { xpToNext: 155, mul: 2.35, pierceBonus: 0, infinitePierce: true, grantsUpgrade: true },
-  { xpToNext: 190, mul: 2.4, pierceBonus: 0, infinitePierce: true, grantsUpgrade: true },
-  { xpToNext: 230, mul: 2.45, pierceBonus: 0, infinitePierce: true, grantsUpgrade: true },
-  { xpToNext: 275, mul: 2.5, pierceBonus: 0, infinitePierce: true, grantsUpgrade: true },
-  { xpToNext: null, mul: 2.6, pierceBonus: 0, infinitePierce: true, grantsUpgrade: true },
+  { xpToNext: 8, mul: 1.5, pierceBonus: 1, infiniteFlight: false, grantsUpgrade: false },
+  { xpToNext: 20, mul: 1.7, pierceBonus: 2, infiniteFlight: false, grantsUpgrade: false },
+  { xpToNext: 36, mul: 1.9, pierceBonus: 3, infiniteFlight: true, grantsUpgrade: false },
+  { xpToNext: 56, mul: 2.0, pierceBonus: 4, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 80, mul: 2.1, pierceBonus: 5, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 100, mul: 2.25, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 125, mul: 2.3, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 155, mul: 2.35, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 190, mul: 2.4, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 230, mul: 2.45, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 275, mul: 2.5, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: null, mul: 2.6, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
 ];
 
 export function getSpecialLevelStats(level: number): SpecialLevelStats {
@@ -72,9 +74,8 @@ export const HP_DAMAGE_CAP_MUL = 2;
 /** 完全追踪：转向速率（弧度/秒）与索敌半径 */
 export const HOMING_TURN_RATE = 6;
 export const HOMING_RANGE = 280;
-/** 反弹升级：最大边界反弹次数与每次反弹后的伤害倍率 */
-export const BOUNCE_COUNT = 3;
-export const BOUNCE_DAMAGE_MUL = 0.9;
+/** 冲刺强射：冲刺结束后的强化箭窗口（秒） */
+export const DASH_SPECIAL_WINDOW = 0.8;
 /** 导弹升级：爆炸半径、伤害倍率、燃烧持续时间与 DPS 倍率 */
 export const MISSILE_RADIUS = 34;
 export const MISSILE_DAMAGE_MUL = 0.6;
@@ -112,9 +113,9 @@ export const SPECIAL_UPGRADES: readonly SpecialUpgrade[] = [
     desc: "强化箭会转向最近的敌人",
   },
   {
-    id: "bounce",
-    name: "反弹",
-    desc: "强化箭碰到世界边界反弹，最多 3 次，第 3 次后消失；可与追踪共存",
+    id: "dashSpecial",
+    name: "冲刺强射",
+    desc: "冲刺结束后 0.8 秒内，所有普通射击都变为强化箭",
   },
   {
     id: "missile",

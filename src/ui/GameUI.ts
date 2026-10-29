@@ -26,6 +26,11 @@ import {
 } from "../game/data/keybindings";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
 import { markTutorialSeen, tutorialSeen } from "../game/data/tutorialState";
+import {
+  SPECIAL_LEVELS,
+  SPECIAL_UPGRADES,
+  getSpecialLevelStats,
+} from "../game/data/specialShot";
 import { element } from "./dom";
 import { CodexUI } from "./CodexUI";
 const DMG_NAMES: Record<string, string> = {
@@ -525,6 +530,51 @@ export class GameUI {
     if (sustainEl) sustainEl.innerHTML = renderRows(sustainRows);
     if (utilityEl) utilityEl.innerHTML = renderRows(utilityRows);
     if (infoEl) infoEl.innerHTML = renderRows(infoRows);
+
+    // 强化箭：射手专属成长信息，法师隐藏整组。
+    const specialTitle = document.getElementById("stat-special-title");
+    const specialEl = document.getElementById("stat-special");
+    const isShooter = this.core.prof === "shooter";
+    if (specialTitle) specialTitle.style.display = isShooter ? "" : "none";
+    if (specialEl) {
+      specialEl.style.display = isShooter ? "" : "none";
+      if (isShooter) {
+        const level = this.core.specialLevel;
+        const specialStats = getSpecialLevelStats(level);
+        const maxed =
+          level >= SPECIAL_LEVELS.length || specialStats.xpToNext === null;
+        const upgradeNames = this.core.specialUpgrades.map(
+          (id) => SPECIAL_UPGRADES.find((item) => item.id === id)?.name ?? id,
+        );
+        const rows: [string, string, boolean][] = [
+          [
+            "🏹 等级",
+            `Lv.${level} / ${SPECIAL_LEVELS.length}${maxed ? " · MAX" : ""}`,
+            false,
+          ],
+          ["🔱 强化穿透", `+${specialStats.pierceBonus}`, false],
+          ["🕊️ 飞行", specialStats.infiniteFlight ? "无限" : "有限", false],
+          [
+            "📘 下一级经验",
+            maxed
+              ? "MAX"
+              : `${this.core.specialXp} / ${specialStats.xpToNext}`,
+            false,
+          ],
+          [
+            "🧩 当前升级",
+            upgradeNames.length ? upgradeNames.join(" · ") : "暂无",
+            true,
+          ],
+        ];
+        specialEl.innerHTML = rows
+          .map(([k, v, wide]) => {
+            const dim = v === "暂无";
+            return `<div class="row${wide ? " wide" : ""}${dim ? " dim" : ""}"><span class="k">${k}</span><span class="v${dim ? " dim" : ""}">${v}</span></div>`;
+          })
+          .join("");
+      }
+    }
 
     const tl = element("talent-list");
     const learned = Object.entries(p.upCounts).filter(([, lv]) => lv > 0);
