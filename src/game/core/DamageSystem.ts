@@ -58,7 +58,7 @@ function ownValueOrZero<K extends string>(
   return values && Object.hasOwn(values, key) ? values[key] ?? 0 : 0;
 }
 
-/** §3.2 属性减伤系数：armor=K/(K+max(0,DEF))；resistance=1-clamp(res,0,上限)；none=1 */
+/** §3.2 属性减伤系数：armor=K/(K+max(0,DEF))；resistance=1-clamp(res,floor,cap)；none=1 */
 export function typeMitigationFactor(
   registry: DamageTypeRegistry,
   type: string,
@@ -74,7 +74,8 @@ export function typeMitigationFactor(
     case "resistance": {
       const res = ownValueOrZero(defender.resistances, type);
       requireFinite(res, `defenderStats.resistances[${type}]`);
-      return 1 - clampMin0(res, balance.resistanceCap);
+      // 负抗性表示弱点：允许到 resistanceFloor，伤害按 1 - res 放大。
+      return 1 - Math.max(balance.resistanceFloor, Math.min(balance.resistanceCap, res));
     }
     case "none":
       return 1;

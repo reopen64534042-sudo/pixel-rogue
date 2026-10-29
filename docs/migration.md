@@ -2270,3 +2270,15 @@ ctx.stroke();      // → strokePath()
   - 超导（冻结/凝冰各测）：反应伤害 14、`elemSuperT=3`、`elemSuperCd=1`、冻结不被消耗。
   - 三修全触发：融化+超载+超导合计反应伤害 54，三个 CD 同时置位，26 粒子、无文字。
 - 基线：法师池 18→19 张（含秘传三修），codex/总数断言需更新；`dmgBy` 新增 `reaction`，parity 逐字段对照需摘除；反应行为测试需按新口径补（本批未跑，留待授权测试批次）。
+
+## D-74 怪物冰弱与负抗性（2026-10-30）
+
+- 用户反馈：熔岩巨兽/蛮牛应该是火抗 + 冰弱；火囊虫也应是冰弱，而不是冰霜抗性。
+- 根因：敌人抗性此前只允许非负，`DamageSystem.typeMitigationFactor` 把负值夹成 0，无法表达“弱点”。
+- 改动：
+  1. `combatBalance` 新增 `resistanceFloor = -0.5`；`typeMitigationFactor` 改为 `1 - clamp(res, floor, cap)`，负抗性按 1-res 放大伤害。
+  2. `EnemyStatSources` 把负抗性转成 `flat` 负修饰符（StatModel 的 base≥0 契约不变），移除 resistance 的非负校验。
+  3. `enemies.ts`：brute `{ fire: 0.3, frost: -0.2 }`；bomber `{ fire: 0.55, frost: -0.2 }`（不再有冰霜抗性）。
+  4. 图鉴抗性说明、`docs/monster-numerics.md`、`combat-numerics-agent-guide.md`、`combat-numerics-explained.md` 同步“正值减伤 / 负值弱点”。
+- 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`）：100 点冰伤对 brute/bomber 均结算 120（-20% 弱点），对 slime 结算 100；100 点火伤对 brute 70（30% 火抗）、bomber 45（55% 火抗）。
+- 基线：`tests/damage.test.ts` 的负抗性用例原期望夹成 1，现在应为 1.5（floor -0.5）；敌人固定抗性表/图鉴文本断言需在授权测试批次更新（本批未跑）。

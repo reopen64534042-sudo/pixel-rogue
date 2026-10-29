@@ -23,7 +23,7 @@ export const ETYPES: Record<string, EnemyConfig> = {
     w0: 5,
     wt: 12,
     defense: 60,
-    resistances: { frost: 0.2 },
+    resistances: { fire: 0.3, frost: -0.2 },
   },
   shooter: {
     hp: 22,
@@ -47,7 +47,7 @@ export const ETYPES: Record<string, EnemyConfig> = {
     w0: 8,
     wt: 14,
     defense: 18,
-    resistances: { fire: 0.55, frost: 0.25 },
+    resistances: { fire: 0.55, frost: -0.2 },
   }, // 特殊: 自爆
 };
 

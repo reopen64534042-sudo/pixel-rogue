@@ -28,7 +28,7 @@ flowchart TD
 | src/game/data/stats.ts | statBase() | 玩家初始数值：damage、maxhp、speed、fireRate、crit、critMul 等 |
 | src/game/data/enemies.ts | ETYPES: Record<string, EnemyConfig> | 怪物基本数值/解锁波次/生成权重/可选抗性增伤；不自动提供特殊 AI |
 | src/game/data/talents.ts | UPGRADES / RAMP | 天赋配置、描述、旧机制卡的 f；**已迁移 22 张属性卡不得在 f 再加一次** |
-| src/game/data/combatBalance.ts | COMBAT_BALANCE / CombatBalance | armorK=50、resistanceCap=0.75、toughCap=0.6、技能系数集中配置 |
+| src/game/data/combatBalance.ts | COMBAT_BALANCE / CombatBalance | armorK=50、resistanceCap=0.75、resistanceFloor=-0.5、toughCap=0.6、技能系数集中配置 |
 | src/game/data/damageTypes.ts | DAMAGE_TYPES / DamageTypeId | 伤害属性注册、mitigation（armor/resistance/none）和 label |
 | src/game/core/StatModel.ts | STAT_IDS、KEYED_STAT_FAMILIES、StatSheet、StatModifier、resolveStats、modifierSources | 通用 base/flat/percent/final 模型和白名单 |
 | src/game/core/StatKeyedMap.ts | resolveKeyedMap | 按键映射属性族；仅字符串 key；自有键优先，拒绝危险 __proto__ |
@@ -115,7 +115,9 @@ D = rawAmount
 | 策略 | 属性减伤 | 通用减伤 |
 |---|---|---|
 | armor | K / (K + max(0, defense)) | 1 − clamp(tough, 0, 0.6) |
-| resistance | 1 − clamp(resistances[type], 0, 0.75) | 同上 |
+| resistance | 1 − clamp(resistances[type], -0.5, 0.75) | 同上 |
+
+负抗性表示弱点：res = -0.2 时对应元素伤害 ×1.2；弱点下限 -50%。
 | none | 1 | 1 |
 
 当前 physical=armor、fire/lightning=resistance、true=none。K=50。
