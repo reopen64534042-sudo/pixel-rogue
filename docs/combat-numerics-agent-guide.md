@@ -194,7 +194,7 @@ frostling: {
 | 入口 | 实际职责 | 新怪物相关事项 |
 |---|---|---|
 | spawnEnemy | 类型选取、出生坐标、speedJitter、创建实体 | 调用三类 EnemyStatSources 解析，不随便新增 RNG |
-| resolveEnemySpawnStats | hp × 波次 × 等级 × 精英；dmg × 波次 × 精英；speed × 精英 × jitter | 不在 enemies.ts 预先重复乘这些倍率 |
+| resolveEnemySpawnStats | hp × 波次 × 精英；dmg × 波次 × 精英；speed × 精英 × jitter（v46 起 hp 不再乘等级） | 不在 enemies.ts 预先重复乘这些倍率 |
 | resolveEnemyDefense | 护甲、抗性、韧性；已配置护甲按生成波次叠加 flat 成长，上限 +24 | 可选字段缺省时不写入实体 |
 | resolveEnemyAttackBonuses | global/type/form/skill | 有限负值、±0、Symbol、自有原型键策略参见源码 |
 | updateEnemies | AI 移动、射击、引爆、接触 | shooter/bomber/bat 是硬编码特殊分支，其他默认追逐 |

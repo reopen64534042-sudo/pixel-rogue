@@ -45,9 +45,10 @@ describe("S4-D2-A enemy spawn", () => {
 
   it("preserves the floating point order and does not draw randomness in the resolver", () => {
     const random = vi.spyOn(Math, "random");
-    const result = resolveEnemySpawnStats(ETYPES.brute, { wave: 3, playerLevel: 10, elite: true, speedJitter: 0.95 });
-    expect(result.maxHp).toBe(656.4849199999999);
-    expect(result.maxHp).not.toBe(65 * ((1 + 2 * 0.18) * Math.pow(1.03, 2) * 7));
+    // v46：lvlPow 移除后，波 3 的两两乘法不再产生分组差异；改用波 5 保持「左结合、不预组合」的断言意图。
+    const result = resolveEnemySpawnStats(ETYPES.brute, { wave: 5, elite: true, speedJitter: 0.95 });
+    expect(result.maxHp).toBe(391.3);
+    expect(result.maxHp).not.toBe(65 * ((1 + 4 * 0.18) * 3.5));
     expect(result.moveSpeed).toBe(22 * 0.8 * 0.95);
     expect(30 * 0.8 * 0.95).not.toBe(30 * (0.8 * 0.95));
     expect(random).not.toHaveBeenCalled();
@@ -317,7 +318,7 @@ describe("S4-D2-A enemy spawn", () => {
 
   it("documents invalid spawn inputs against old arithmetic and StatModel exceptions", () => {
     const cfg = ETYPES.slime;
-    const ctx = { wave: 1, playerLevel: 1, elite: false, speedJitter: 1 };
+    const ctx = { wave: 1, elite: false, speedJitter: 1 };
     for (const field of ["hp", "dmg", "speed"] as const) {
       expect(-1 * 1).toBe(-1);
       expect(() => resolveEnemySpawnStats({ ...cfg, [field]: -1 }, ctx)).toThrow(RangeError);
@@ -331,11 +332,7 @@ describe("S4-D2-A enemy spawn", () => {
         expect(() => resolveEnemySpawnStats(cfg, { ...ctx, [field]: value })).toThrow(TypeError);
       }
     }
-    for (const value of [NaN, Infinity]) {
-      expect(() => resolveEnemySpawnStats(cfg, { ...ctx, playerLevel: value })).toThrow(TypeError);
-    }
-    expect(Math.pow(1.03, -Infinity)).toBe(0);
-    expect(() => resolveEnemySpawnStats(cfg, { ...ctx, playerLevel: -Infinity })).toThrow(RangeError);
+    // v46：playerLevel 输入已随 lvlPow 一起移除，相关校验断言不再适用。
     expect(Number.MAX_VALUE * (1 + 2 * 0.18)).toBe(Infinity);
     expect(() => resolveEnemySpawnStats({ ...cfg, hp: Number.MAX_VALUE }, { ...ctx, wave: 3 })).toThrow(RangeError);
   });
