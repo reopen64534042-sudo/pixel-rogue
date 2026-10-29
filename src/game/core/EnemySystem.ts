@@ -378,10 +378,14 @@ export function updateEnemies(this: GameCore, dt: number) {
       if (d2 > 0.01 && d2 < rr * rr) {
         const d = Math.sqrt(d2),
           push = ((rr - d) / d) * 0.3;
-        a.x -= dx * push;
-        a.y -= dy * push;
-        b.x += dx * push;
-        b.y += dy * push;
+        if (!a.noKnock) {
+          a.x -= dx * push;
+          a.y -= dy * push;
+        }
+        if (!b.noKnock) {
+          b.x += dx * push;
+          b.y += dy * push;
+        }
       }
     }
   }

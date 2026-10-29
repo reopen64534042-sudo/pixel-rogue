@@ -2573,3 +2573,13 @@ ctx.stroke();      // → strokePath()
 - 作弊服：`SpecialSystem.devSetSpecialLevel(level)` 设置 `specialLevel`（1–12）、`specialXp = 0`，并按等级重建升级（L4 起每级 1 条，确定性取 `SPECIAL_UPGRADES` 前 N 条）；DevPanel 新增「强化箭」下拉 + 应用按钮。
 - 保留：属性、等级、血包成长；强化箭升级按阶段重建（非随机）。
 - 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
+
+## D-99 教程木桩免击退补全（v95）
+
+- 用户反馈（2026-10-30，作弊服）：射手教程的防击退并没有解决，木桩仍会被推远。
+- 原因：`Enemy.noKnock` 只挡住了 `applyKnockback` 的持续击退速度；`CombatSystem.hurtEnemy` 命中瞬间还有 `e.x += kx / e.y += ky` 的直接位移，敌人分离也会推动木桩。
+- 改动：
+  1. `CombatSystem.hurtEnemy` 的直接位移增加 `!e.noKnock`。
+  2. `EnemySystem` 的敌人分离对 `noKnock` 敌人不产生位移。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
+- 说明：仅教程木桩设置 `noKnock`，普通敌人无该字段，行为逐位不变。

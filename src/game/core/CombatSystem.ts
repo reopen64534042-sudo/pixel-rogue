@@ -176,7 +176,7 @@ export function hurtEnemy(
     crit,
     hasTrueDamage,
   );
-  if (kx || ky) {
+  if ((kx || ky) && !e.noKnock) {
     e.x += kx;
     e.y += ky;
   }
