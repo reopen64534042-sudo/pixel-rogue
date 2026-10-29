@@ -1,10 +1,12 @@
 /**
- * 射手职业被动「强化箭」的等级与升级表。
+ * 射手职业被动「强化弹」的等级与升级表。
  *
  * 设计口径（2026-10-29 用户确认，2026-10-30 扩展为 12 级）：
  * - L1-L6 穿透逐级累计 1→6，L7-L12 不再增加穿透；
- * - L3 起强化箭无限飞行；穿透耗尽或飞出世界边界时消失；
+ * - L3 起强化弹无限飞行；穿透耗尽或飞出世界边界时消失；
  * - L4-L12 每级随机获得 1 条升级，最多 9 条，已获得的升级保留并共存；
+ * - 获取顺序为「固定档位 + 档内加权随机」：第 1 抽只出基础形态（连发/导弹/冲刺强射/附带真实伤害），
+ *   第 2 抽起解锁激光与两系生命伤害，第 3 抽起解锁完全追踪与完全真实伤害；
  * - 升级形态是附加效果，不替换主弹道；
  * - 普通弹默认不继承升级，后续用「同化」升级单独开启。
  */
@@ -23,11 +25,11 @@ export type SpecialUpgradeId =
 export interface SpecialLevelStats {
   /** 升到下一级所需经验；满级为 null */
   readonly xpToNext: number | null;
-  /** 强化箭伤害倍率（相对普通魔弹） */
+  /** 强化弹伤害倍率（相对普通魔弹） */
   readonly mul: number;
   /** 当前等级的额外穿透目标数（累计值，L6 起为 6） */
   readonly pierceBonus: number;
-  /** 本级起强化箭是否无限飞行（不因射程寿命消失） */
+  /** 本级起强化弹是否无限飞行（不因射程寿命消失） */
   readonly infiniteFlight: boolean;
   /** 升到本级时是否随机获得一条升级 */
   readonly grantsUpgrade: boolean;
@@ -57,24 +59,28 @@ export interface SpecialUpgrade {
   readonly id: SpecialUpgradeId;
   readonly name: string;
   readonly desc: string;
+  /** 档内抽取权重（同档内越大越容易抽到） */
+  readonly weight: number;
+  /** 从第几次强化弹升级开始可被抽到（1 = L4 首抽） */
+  readonly minPick: number;
 }
 
 /** 连发两颗升级：每颗弹丸的伤害倍率 */
 export const DOUBLE_SHOT_DAMAGE_MUL = 0.8;
-/** 强化箭直击与轨迹的吸血效率（普通弹为 100%） */
+/** 强化弹直击与轨迹的吸血效率（普通弹为 100%） */
 export const SPECIAL_LIFESTEAL_MUL = 0.3;
-/** 附带真实伤害：额外真实伤害占强化箭原始伤害的比例 */
+/** 附带真实伤害：额外真实伤害占强化弹原始伤害的比例 */
 export const PARTIAL_TRUE_FRACTION = 0.3;
 /** 当前生命伤害：目标当前生命的比例 */
 export const CURRENT_HP_DAMAGE_FRACTION = 0.05;
 /** 最大生命伤害：目标最大生命的比例 */
 export const MAX_HP_DAMAGE_FRACTION = 0.02;
-/** 当前/最大生命附加伤害的上限：强化箭当前伤害的倍数 */
+/** 当前/最大生命附加伤害的上限：强化弹当前伤害的倍数 */
 export const HP_DAMAGE_CAP_MUL = 2;
 /** 完全追踪：转向速率（弧度/秒）与索敌半径 */
 export const HOMING_TURN_RATE = 6;
 export const HOMING_RANGE = 280;
-/** 冲刺强射：冲刺结束后的强化箭窗口（秒） */
+/** 冲刺强射：冲刺结束后的强化弹窗口（秒） */
 export const DASH_SPECIAL_WINDOW = 0.8;
 /** 导弹升级：爆炸半径、伤害倍率、燃烧持续时间与 DPS 倍率 */
 export const MISSILE_RADIUS = 34;
@@ -92,49 +98,72 @@ export const LASER_RANGE_MUL = 1.4;
 export const LASER_WIDTH = 6;
 
 export const SPECIAL_UPGRADES: readonly SpecialUpgrade[] = [
+  // 第 1 抽（L4）：基础形态，改变手感但不直接决定整局强度
   {
     id: "doubleShot",
     name: "连发两颗",
-    desc: "强化箭每次发射两颗，每颗造成 80% 伤害",
-  },
-  {
-    id: "trueDamage",
-    name: "完全真实伤害",
-    desc: "强化箭无视护甲、抗性与韧性",
-  },
-  {
-    id: "currentHpDamage",
-    name: "当前生命伤害",
-    desc: "强化箭额外造成目标当前生命 5% 的物理伤害，最多不超过强化箭伤害的 2 倍",
-  },
-  {
-    id: "homing",
-    name: "完全追踪",
-    desc: "强化箭会转向最近的敌人",
-  },
-  {
-    id: "dashSpecial",
-    name: "冲刺强射",
-    desc: "冲刺结束后 0.8 秒内，所有普通射击都变为强化箭",
+    desc: "强化弹每次发射两颗，每颗造成 80% 伤害",
+    weight: 3,
+    minPick: 1,
   },
   {
     id: "missile",
     name: "导弹",
-    desc: "强化箭首次命中时爆炸，造成范围物理伤害并留下燃烧地带",
+    desc: "强化弹首次命中时爆炸，造成范围物理伤害并留下燃烧地带",
+    weight: 3,
+    minPick: 1,
+  },
+  {
+    id: "dashSpecial",
+    name: "冲刺强射",
+    desc: "冲刺结束后 0.8 秒内，所有普通射击都变为强化弹",
+    weight: 2,
+    minPick: 1,
   },
   {
     id: "partialTrue",
     name: "附带真实伤害",
-    desc: "强化箭额外造成 30% 真实伤害",
+    desc: "强化弹额外造成 30% 真实伤害",
+    weight: 2,
+    minPick: 1,
+  },
+
+  // 第 2 抽（L5）起：独立伤害来源与两系生命伤害
+  {
+    id: "laser",
+    name: "激光",
+    desc: "强化弹发射时额外发射一道激光，命中路径上的敌人",
+    weight: 2,
+    minPick: 2,
+  },
+  {
+    id: "currentHpDamage",
+    name: "当前生命伤害",
+    desc: "强化弹额外造成目标当前生命 5% 的物理伤害，最多不超过强化弹伤害的 2 倍",
+    weight: 2,
+    minPick: 2,
   },
   {
     id: "maxHpDamage",
     name: "最大生命伤害",
-    desc: "强化箭额外造成目标最大生命 2% 的物理伤害，最多不超过强化箭伤害的 2 倍",
+    desc: "强化弹额外造成目标最大生命 2% 的物理伤害，最多不超过强化弹伤害的 2 倍",
+    weight: 2,
+    minPick: 2,
+  },
+
+  // 第 3 抽（L6）起：质变件，权重压低，通常落在 L7-L9
+  {
+    id: "homing",
+    name: "完全追踪",
+    desc: "强化弹会转向最近的敌人",
+    weight: 1,
+    minPick: 3,
   },
   {
-    id: "laser",
-    name: "激光",
-    desc: "强化箭发射时额外发射一道激光，命中路径上的敌人",
+    id: "trueDamage",
+    name: "完全真实伤害",
+    desc: "强化弹无视护甲、抗性与韧性",
+    weight: 1,
+    minPick: 3,
   },
 ];

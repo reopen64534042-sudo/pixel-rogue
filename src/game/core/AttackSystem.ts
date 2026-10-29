@@ -52,9 +52,9 @@ export function updateAttacks(this: GameCore, dt: number) {
       }
       // S2「贯穿轨迹」：弹道留下 0.6 秒能量线（机制在 ProjectileSystem 结算）
       const hasTrail = (p.upCounts["贯穿轨迹"] || 0) > 0;
-      // 射手职业被动：每次开火事件计数一次；多弹道同属一次事件，强化箭覆盖整轮弹幕。
+      // 射手职业被动：每次开火事件计数一次；多弹道同属一次事件，强化弹覆盖整轮弹幕。
       this.shotCounter = (this.shotCounter + 1) % SPECIAL_SHOT_EVERY;
-      // 「冲刺强射」：冲刺结束后的短窗口内，每次射击都按强化箭处理。
+      // 「冲刺强射」：冲刺结束后的短窗口内，每次射击都按强化弹处理。
       const special = this.shotCounter === 0 || this.dashSpecialT > 0;
       const specialStats = getSpecialLevelStats(this.specialLevel);
       const baseDmg = boltDamage(p) * distMul;

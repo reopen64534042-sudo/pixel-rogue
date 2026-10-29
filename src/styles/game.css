@@ -397,15 +397,62 @@ p {
   padding: 0.45vmin 0;
   align-items: center;
 }
-/* 强化箭的「当前升级」可能列出多条，跨两列并允许换行 */
-.stat-group-grid .row.wide {
-  grid-column: 1 / -1;
-  align-items: flex-start;
+/* 强化弹当前升级：名称 + 完整说明，独立滚动，不挤压已学天赋 */
+.special-upgrades {
+  flex: 0 0 auto;
+  min-height: 0;
 }
-.stat-group-grid .row.wide .v {
-  text-align: right;
-  white-space: normal;
+.special-upgrades > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.special-upgrades > summary::-webkit-details-marker {
+  display: none;
+}
+.special-upgrades > summary::after {
+  content: "▾";
+  float: right;
+  color: #ffd24a;
+}
+.special-upgrades:not([open]) > summary::after {
+  content: "▸";
+}
+#stat-special-upgrades-title {
+  margin-top: 0;
+}
+.special-upgrade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55vmin;
+  max-height: 30vmin;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.8vmin;
+  margin-bottom: 1.2vmin;
+  flex: 0 1 auto;
+}
+.special-upgrade {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15vmin;
+  padding: 0.55vmin 0;
+  border-bottom: 0.15vmin solid #23283d;
+  align-items: flex-start;
+  font-size: 1.25vmin;
   line-height: 1.5;
+}
+.special-upgrade .su-name {
+  color: #ffd24a;
+  font-weight: bold;
+}
+.special-upgrade .su-desc {
+  color: #9aa3c7;
+  white-space: normal;
+}
+.special-upgrade-empty {
+  color: #4f587a;
+  font-size: 1.2vmin;
+  padding: 0.5vmin 0;
 }
 .stat-group-grid .k {
   color: #9aa3c7;

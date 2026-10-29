@@ -33,7 +33,7 @@ export function updatePlayer(this: GameCore, dt: number) {
   if (dashingBefore && p.dashT <= 0) {
     // S2「疾行」：冲刺刚结束的那一帧开一个 0.5 秒射速窗口
     if ((p.upCounts["疾行"] || 0) > 0) this.dashFireBoostT = 0.5;
-    // 「冲刺强射」：冲刺结束后 0.8 秒内的普通射击全部按强化箭处理
+    // 「冲刺强射」：冲刺结束后 0.8 秒内的普通射击全部按强化弹处理
     if (this.specialUpgrades.includes("dashSpecial"))
       this.dashSpecialT = DASH_SPECIAL_WINDOW;
   }

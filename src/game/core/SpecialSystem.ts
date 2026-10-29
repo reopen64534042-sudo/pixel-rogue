@@ -204,8 +204,10 @@ export function updateSpecialMissiles(this: GameCore, dt: number) {
 }
 
 /**
- * 强化箭命中积累经验；升级时按等级表提升伤害/穿透，
- * 并在 L4-L12 随机获得一条尚未拥有的升级。
+ * 强化弹命中积累经验；升级时按等级表提升伤害/穿透，
+ * 并在 L4-L12 按「档位 + 权重」随机获得一条尚未拥有的升级：
+ * 第 1 抽只出基础形态，第 2 抽解锁激光与两系生命伤害，
+ * 第 3 抽解锁完全追踪与完全真实伤害。
  * 升级结果统一在 C 属性面板查看，不再弹出世界飘字。
  */
 export function gainSpecialXp(this: GameCore, amount: number) {
@@ -221,11 +223,26 @@ export function gainSpecialXp(this: GameCore, amount: number) {
 
     const next = getSpecialLevelStats(this.specialLevel);
     if (next.grantsUpgrade) {
+      const pickNo = this.specialUpgrades.length + 1;
       const pool = SPECIAL_UPGRADES.filter(
-        (upgrade) => !this.specialUpgrades.includes(upgrade.id),
+        (upgrade) =>
+          !this.specialUpgrades.includes(upgrade.id) &&
+          upgrade.minPick <= pickNo,
       );
       if (pool.length) {
-        const pick = pool[Math.floor(Math.random() * pool.length)];
+        const totalWeight = pool.reduce(
+          (sum, upgrade) => sum + upgrade.weight,
+          0,
+        );
+        let roll = Math.random() * totalWeight;
+        let pick = pool[pool.length - 1];
+        for (const upgrade of pool) {
+          roll -= upgrade.weight;
+          if (roll < 0) {
+            pick = upgrade;
+            break;
+          }
+        }
         this.specialUpgrades.push(pick.id);
       }
     }

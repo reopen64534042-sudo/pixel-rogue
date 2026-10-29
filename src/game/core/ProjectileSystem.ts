@@ -85,7 +85,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
           special && this.specialUpgrades.includes("trueDamage");
         let hitDmg = b.dmg;
         if (special && this.specialUpgrades.includes("currentHpDamage")) {
-          // %生命部分与强化箭同一结算：默认吃护甲，完全真实伤害升级后一起转为真伤。
+          // %生命部分与强化弹同一结算：默认吃护甲，完全真实伤害升级后一起转为真伤。
           hitDmg += Math.min(
             e.hp * CURRENT_HP_DAMAGE_FRACTION,
             b.dmg * HP_DAMAGE_CAP_MUL,

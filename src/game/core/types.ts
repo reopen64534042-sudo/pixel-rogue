@@ -390,7 +390,7 @@ export interface Bullet extends Point {
   trailT?: number;
   /** 「距离即收益」满档的暴击加成，发射时固化到暴击判定上。 */
   critBonus?: number;
-  /** 射手强化箭标记；普通弹不写该键，保持旧对象形状。 */
+  /** 射手强化弹标记；普通弹不写该键，保持旧对象形状。 */
   special?: boolean;
   /**
    * 发射时攻击者快照（Combat Foundation S3-B 定稿接口）：
@@ -399,7 +399,7 @@ export interface Bullet extends Point {
    */
   stats?: Readonly<CombatStatsSnapshot>;
 }
-/** 导弹升级：独立于强化箭飞行的追踪弹，命中或寿命结束时爆炸 */
+/** 导弹升级：独立于强化弹飞行的追踪弹，命中或寿命结束时爆炸 */
 export interface Missile extends Point {
   vx: number;
   vy: number;
@@ -534,11 +534,11 @@ export interface HitOptions {
   noChain?: boolean;
   /** 导弹/激光/爆炸等附加效果不参与生命汲取 */
   noLifesteal?: boolean;
-  /** 吸血效率倍率；缺省 1，强化箭直击/轨迹为 0.3 */
+  /** 吸血效率倍率；缺省 1，强化弹直击/轨迹为 0.3 */
   lifestealMul?: number;
   /** 「附带真实伤害」：按原始伤害的该比例额外结算真实伤害 */
   trueFraction?: number;
-  /** 强化箭直击：伤害数字用金色，便于和导弹/爆炸区分 */
+  /** 强化弹直击：伤害数字用金色，便于和导弹/爆炸区分 */
   specialHit?: boolean;
   src?: DamageSource;
   fromExplode?: boolean;

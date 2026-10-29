@@ -206,7 +206,7 @@ export class GameScene extends Phaser.Scene {
         core.addText(
           core.player.x,
           core.player.y - 30,
-          `测试：满级强化箭 · ${this.swarmTarget} 只高血量沙包 · 伤害 0`,
+          `测试：满级强化弹 · ${this.swarmTarget} 只高血量沙包 · 伤害 0`,
           "#ffd24a",
           true,
         );
@@ -217,8 +217,8 @@ export class GameScene extends Phaser.Scene {
           core.player.x,
           core.player.y - 30,
           this.specialTest === "dash-special"
-            ? "测试：冲刺强射 · 冲刺后 0.8 秒全强化箭 · 10000 HP 精英"
-            : `测试：强化箭 Lv.${SPECIAL_LEVELS.length} · 全升级 · 10000 HP 精英`,
+            ? "测试：冲刺强射 · 冲刺后 0.8 秒全强化弹 · 10000 HP 精英"
+            : `测试：强化弹 Lv.${SPECIAL_LEVELS.length} · 全升级 · 10000 HP 精英`,
           "#ffd24a",
           true,
         );

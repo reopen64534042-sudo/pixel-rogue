@@ -18,7 +18,7 @@ export function boltDamage(p: Pick<Player, "damage" | "boltDmgMul">) {
   return p.damage * p.boltDmgMul;
 }
 
-/** 射手强化箭：基础魔弹伤害 × 当前等级倍率 */
+/** 射手强化弹：基础魔弹伤害 × 当前等级倍率 */
 export function chargedShotDamage(base: number, mul: number) {
   return base * mul;
 }
