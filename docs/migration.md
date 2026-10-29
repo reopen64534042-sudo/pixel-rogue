@@ -2674,3 +2674,14 @@ ctx.stroke();      // → strokePath()
 - 验证：`npm run typecheck`、`npm run build` 通过。
 - 测试基线：`tests/game.test.ts`、`tests/s2-shooter-pool.test.ts`、`tests/parity.test.ts` 与 `tests/fixtures/balance-baseline.json` 仍引用破甲箭/弹道贯穿/三重射击等旧卡；按 2026-10-29 标准未运行 Vitest、未改基线，留待授权测试批次统一处理。
 - 未验证/风险：L2 每 2 发 + 齐射 3 发 + 连发两颗 = 每 2 发 6 颗强化弹，XP 与伤害可能 double dip；裂变在 80 怪沙盒的长期压力未做帧采样；自然试玩手感待用户确认。数值（+15%/层、150% 逆矢、裂变 50%）均为首版占位。
+
+## D-106 战士疾冲路径表现（v102）
+
+- 用户反馈：战士「疾冲」的可造成伤害路径不明显，需要更帅一点。
+- 背景：战士原型来自 `upstream/feat/warrior-base`（13 张卡），本分支 `feat/warrior-tuning-v1` 已合并 `upstream/main`（v99–v101）为 `ae132c7`；本次只改疾冲路径表现，不动伤害数值与其他战士卡。
+- 改动：
+  1. `core/GameCore.ts`：`warriorQi` 增加 `kind: "dash" | "qi"`。
+  2. `core/WarriorSystem.ts`：疾冲表现寿命 0.12→0.42 秒；`kind:"dash"`；沿路径生成 12 颗确定性火花（无 Math.random）；剑气保持 `kind:"qi"` 的细线。
+  3. `rendering/draw.ts`：疾冲绘制 11px 外辉 + 5px 中层 + 白热芯线，末端 17/13/9px 三层前向斩击弧；剑气仍走原细线分支。
+- 验证：`npm run typecheck`、`npm run build` 通过。e2e 受控（太刀、9 只 5000 HP 沙包、冲刺穿过）：生成 1 条 dash 轨迹（t≈0.37）、25 个粒子，前 3 只敌人掉血，路径判定正常；用 Phaser canvas snapshot 保存到 `output/warrior-dash-preview.png`（gitignored），80/80 血量版本已在会话可视化中展示。
+- 说明：截图工具因 in-app browser 可见性限制失败两次，改用页面内 `canvas.toDataURL` + 本地接收器保存；视觉最终配色/宽度待用户试玩确认。按 2026-10-29 标准未运行 Vitest / Playwright，未改测试基线。

@@ -215,7 +215,7 @@ export class GameCore {
   warriorFlowBurstT = 0;
   /** 每 3 次挥砍中的第 3 次为重斩。 */
   warriorSwingCount = 0;
-  /** 剑气表现层（直线，寿命很短）。 */
+  /** 剑气 / 疾冲表现层（直线，寿命很短）。 */
   warriorQi: {
     x1: number;
     y1: number;
@@ -224,6 +224,7 @@ export class GameCore {
     t: number;
     max: number;
     c: string;
+    kind: "dash" | "qi";
   }[] = [];
   /** 疾冲的起跳点（冲刺结束时结算路径伤害）。 */
   warriorDashFromX: number | null = null;

@@ -145,10 +145,30 @@ export function warriorDashDamage(
     y1: fromY,
     x2: p.x,
     y2: p.y,
-    t: 0.12,
-    max: 0.12,
+    t: 0.42,
+    max: 0.42,
     c: style.trail,
+    kind: "dash",
   });
+  // 路径火花：沿冲刺方向两侧交替甩出，强化「这一刀划过去」的体感。
+  const dx = p.x - fromX;
+  const dy = p.y - fromY;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  for (let i = 0; i < 12; i++) {
+    const k = (i + 1) / 13;
+    const side = i % 2 === 0 ? 1 : -1;
+    const speed = 30 + (i % 3) * 18;
+    this.parts.push({
+      x: fromX + dx * k,
+      y: fromY + dy * k,
+      vx: nx * side * speed,
+      vy: ny * side * speed,
+      life: 0.22 + (i % 4) * 0.04,
+      c: i % 3 === 0 ? "#ffffff" : style.particle,
+    });
+  }
 }
 
 /**
@@ -274,6 +294,7 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
         t: 0.18,
         max: 0.18,
         c: "#ffd24a",
+        kind: "qi",
       });
     }
   }
