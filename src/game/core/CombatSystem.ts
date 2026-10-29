@@ -24,7 +24,7 @@ import {
   shieldShockDamage,
 } from "./DamageMath";
 
-/** 真实伤害飘字：银白填色 + 冷蓝描边/外发光，优先于强化箭/暴击的金色 */
+/** 真实伤害飘字：银白填色 + 冷蓝描边/外发光，优先于强化弹/暴击的金色 */
 const TRUE_DAMAGE_COLOR = "#eaf7ff";
 export const TRUE_DAMAGE_OUTLINE = "#38bdf8";
 
@@ -134,7 +134,7 @@ export function hurtEnemy(
   }
   dmg = settled;
   // 完全真实伤害（type=true）或附带真实伤害（trueFraction）都使用银白飘字，
-  // 避免被强化箭/暴击的金色淹没。
+  // 避免被强化弹/暴击的金色淹没。
   const hasTrueDamage = opts.type === "true" || trueDamage > 0;
   // v76 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多留
   // 1 HP，让随后结算的反应完成击杀。只压低实际应用值；反应基数由调用方

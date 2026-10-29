@@ -204,7 +204,7 @@ export function updateSpecialMissiles(this: GameCore, dt: number) {
 }
 
 /**
- * 强化箭命中积累经验；升级时按等级表提升伤害/穿透，
+ * 强化弹命中积累经验；升级时按等级表提升伤害/穿透，
  * 并在 L4-L12 随机获得一条尚未拥有的升级。
  * 升级结果统一在 C 属性面板查看，不再弹出世界飘字。
  */

@@ -2313,11 +2313,11 @@ ctx.stroke();      // → strokePath()
 - 结果：目标 6 个测试文件 **127/127** 通过；全量 `656/693`，剩余 37 项失败均集中在 `balance-baseline`、`parity`、`s1-attribute-dispatch`、`s4d-d2a-acceptance`、`s4d-d2a-enemy-spawn` 的更早历史快照，按「只清本轮」保留并留痕。
 - 验证：`typecheck` ✓、`build` ✓；未运行 Playwright。
 
-## D-78 上游同步与射手强化箭批次（2026-10-30）
+## D-78 上游同步与射手强化弹批次（2026-10-30）
 
 - 同步上游 `6d67cf3`（v73，含法师/元素/DevPanel/UI/测试基线清理）。本地 21 个文件改动用唯一 stash 暂存后快进分支，再 apply 回工作区；冲突集中在 `stats.ts`、`enemies.ts`、`draw.ts`、`monster-numerics.md` 四个文件。
-- 冲突处理：`statBase` 改为按职业分叉——射手 50 HP / 70 移速 / 13 攻击，法师沿用 100 HP / 62 移速 / 11 攻击与既有施法距离/射速；敌人保留 v71 冰弱与负抗性，同时保留射手敌人 10 攻击 / 15 护甲 / 8 前期权重；绘制层同时保留法师表现和强化箭 HUD/导弹/激光；怪物文档合并 v71 冰弱信息与本次 HP/护甲/精英 ×5 回调。
-- 本批内容：射手强化箭 12 级/9 条升级、独立导弹与激光、30% 吸血、燃烧地带每 0.5 秒聚合飘字；疾行改为冲刺后射速窗口；怪物 HP/护甲恢复完整值、精英生命倍率恢复 ×5；反弹改为撞世界边界、三次后消失，导弹始终追踪并在目标死亡后重新索敌。
+- 冲突处理：`statBase` 改为按职业分叉——射手 50 HP / 70 移速 / 13 攻击，法师沿用 100 HP / 62 移速 / 11 攻击与既有施法距离/射速；敌人保留 v71 冰弱与负抗性，同时保留射手敌人 10 攻击 / 15 护甲 / 8 前期权重；绘制层同时保留法师表现和强化弹 HUD/导弹/激光；怪物文档合并 v71 冰弱信息与本次 HP/护甲/精英 ×5 回调。
+- 本批内容：射手强化弹 12 级/9 条升级、独立导弹与激光、30% 吸血、燃烧地带每 0.5 秒聚合飘字；疾行改为冲刺后射速窗口；怪物 HP/护甲恢复完整值、精英生命倍率恢复 ×5；反弹改为撞世界边界、三次后消失，导弹始终追踪并在目标死亡后重新索敌。
 - 验证：`npm run typecheck`、`npm run build` 通过；按 2026-10-29 标准未运行 Vitest / Playwright。上游既有测试基线（base stats、balance/parity、精英 ×3.5 等）已过期，留待授权测试批次统一处理。
 - 当前唯一 stash `balance-wip-20261030-upstream-sync` 待提交确认并完成复核后删除。
 
@@ -2368,7 +2368,7 @@ ctx.stroke();      // → strokePath()
   2. `styles/game.css` 新增红色径向渐变 + `pointer-events:none` + `opacity` 0.2s 过渡；不循环闪烁。
   3. `GameUI.syncLowHp()`：仅在 `state === "play"` 且 `0 < hp/maxhp < 0.3` 时显示；阈值与 HUD 血条变红一致（`draw.ts` 的 `<0.3`）；强度 `min(0.9, 0.28 + (0.3-ratio)*2.8)`；缓存 DOM，仅变化时写 opacity。
   4. `GameScene.update()` 每帧调用 `this.ui.syncLowHp()`；非战斗/满血/死亡自动归零。
-  5. 修复 `draw.ts`：强化箭经验条只在 `prof === "shooter"` 绘制。此前法师也会画一条 18×2 的空暗条（`player.y+16`），正好压在充能点（`y+17`）上；用户截图里「三个点上面淡淡的一条」就是它。
+  5. 修复 `draw.ts`：强化弹经验条只在 `prof === "shooter"` 绘制。此前法师也会画一条 18×2 的空暗条（`player.y+16`），正好压在充能点（`y+17`）上；用户截图里「三个点上面淡淡的一条」就是它。
 - 验证：`typecheck` ✓、`build` ✓；e2e 5925：25% → 目标 opacity 0.42；100% → 0；start → 0；1 HP → 0.9；元素 z-index 4、pointer-events none、径向渐变。0.29 版本的 25% 截图已确认红边可见；0.42 因 in-app 浏览器隐藏未重截图。
 - 说明：DOM 覆盖层只覆盖游戏画面（`#stage`），不覆盖浏览器留黑边；不进入生产控制接口。
 - 未来设想：法师更多元素/反应已登记 **Issue #161**，本批未实现。
@@ -2430,36 +2430,36 @@ ctx.stroke();      // → strokePath()
 - 验证：`typecheck` ✓、`build` ✓；e2e 5930：法师局面板中射手 18 张全部「职业不符」，法师池正常；射手局面板中法师 19 张全部「职业不符」，射手池正常。法阵为绘制变化，受 in-app 浏览器隐藏视口限制未截图；代码路径已编译，冻结站实机可看展开过程。
 - 说明：作弊面板仍允许旧表卡与同职业卡；跨职业测试需回到主界面换职业。
 
-## D-85 强化箭穿透上限与属性面板（v81）
+## D-85 强化弹穿透上限与属性面板（v81）
 
 - 版本说明：本批原编号 v77–v79，与上游已合入的 v77–v80 冲突，合并后顺延为 v81–v83。
-- 用户反馈：强化箭的追踪升级配合无限穿透会导致弹体不消失、可持续造成伤害；要求取消无限穿透、保留无限飞行，穿透最高 6，并保持 12 级结构（L1-L6 累计到 6，L7-L12 不再增加）。同时把强化箭信息移入 C 属性面板，并移除升级飘字。
+- 用户反馈：强化弹的追踪升级配合无限穿透会导致弹体不消失、可持续造成伤害；要求取消无限穿透、保留无限飞行，穿透最高 6，并保持 12 级结构（L1-L6 累计到 6，L7-L12 不再增加）。同时把强化弹信息移入 C 属性面板，并移除升级飘字。
 - 改动：
   1. `data/specialShot.ts`：删除 `infinitePierce` 字段，新增独立的 `infiniteFlight` 字段（L3-L12 为 true）；`pierceBonus` 改为当前等级的累计额外穿透数：L1-L6 = 1/2/3/4/5/6，L7-L12 = 6。12 级 / 9 条升级规则不变。
-  2. `core/AttackSystem.ts`：强化箭 `life` 在 `infiniteFlight` 时仍为 `Number.POSITIVE_INFINITY`，其余等级为 `attackRange / projSpeed`；不再向 Bullet 写 `infinitePierce`。
-  3. `core/ProjectileSystem.ts`：删除 `b.infinitePierce` 不消耗穿透的分支；强化箭与其他弹丸一样按穿透次数递减，耗尽后消失。
+  2. `core/AttackSystem.ts`：强化弹 `life` 在 `infiniteFlight` 时仍为 `Number.POSITIVE_INFINITY`，其余等级为 `attackRange / projSpeed`；不再向 Bullet 写 `infinitePierce`。
+  3. `core/ProjectileSystem.ts`：删除 `b.infinitePierce` 不消耗穿透的分支；强化弹与其他弹丸一样按穿透次数递减，耗尽后消失。
   4. `core/types.ts`：删除 `Bullet.infinitePierce` 可选字段。
   5. `core/SpecialSystem.ts`：删除升级/升级获得的世界飘字，保留升级音效与震屏；升级结果改由属性面板显示。
-  6. `index.html` + `ui/GameUI.ts` + `styles/game.css`：C 属性面板右栏「已学天赋」上方新增「强化箭」组（仅射手显示），展示等级 `Lv.x / 12`、强化穿透 `+n`、飞行状态（有限/无限）、下一级经验 `current / required`、当前升级列表；上游 v78 的左栏输出/生存/续航/功能/局内信息分组保持不变。
+  6. `index.html` + `ui/GameUI.ts` + `styles/game.css`：C 属性面板右栏「已学天赋」上方新增「强化弹」组（仅射手显示），展示等级 `Lv.x / 12`、强化穿透 `+n`、飞行状态（有限/无限）、下一级经验 `current / required`、当前升级列表；上游 v78 的左栏输出/生存/续航/功能/局内信息分组保持不变。
 - 验证：`npm run typecheck`、`npm run build` 通过；按 2026-10-29 标准未运行 Vitest / Playwright。现有测试无 `infinitePierce` 直接断言，历史 balance/parity 基线仍按更早数值保留。受控运行（普通 dev + e2e `?test=special-max`）：射手 C 面板显示 Lv.1/12、强化穿透 +1、飞行有限、经验 0/8、当前升级「暂无」；法师面板整组隐藏；满级显示 Lv.12/12 · MAX、+6、飞行无限、MAX 与 9 条升级；调用 `gainSpecialXp` 升级前后 `core.texts.length` 均为 8，确认升级不再产生飘字。
 
 ## D-86 真实伤害飘字颜色（v82）
 
 - 用户需求：真实伤害的数字需要与其他伤害区分，使用银亮的白色；首版颜色差异不明显，后续加强为银白字 + 冷蓝实心外圈，真实伤害暴击再叠金色外圈。
-- 改动：`core/CombatSystem.ts` 新增 `TRUE_DAMAGE_COLOR = "#eaf7ff"` 与 `TRUE_DAMAGE_OUTLINE = "#38bdf8"`；`hurtEnemy` 在 `opts.type === "true"` 或 `trueFraction` 结算出额外真实伤害时给 `FloatingText.trueDmg` 打标，优先级高于「强化箭/暴击」的金色。`rendering/draw.ts` 对真实伤害飘字使用 12px 冷蓝字号铺底形成实心外圈，再叠 10px 银白主体；真实伤害暴击（`trueDmg && big`）改用 16px 金色外圈 + 14px 冷蓝内圈 + 12px 纯白主体；普通飘字仍为 8px。因 `PixelPainter` 不暴露 canvas 阴影 API，采用大字号铺底而不是 shadowBlur。
+- 改动：`core/CombatSystem.ts` 新增 `TRUE_DAMAGE_COLOR = "#eaf7ff"` 与 `TRUE_DAMAGE_OUTLINE = "#38bdf8"`；`hurtEnemy` 在 `opts.type === "true"` 或 `trueFraction` 结算出额外真实伤害时给 `FloatingText.trueDmg` 打标，优先级高于「强化弹/暴击」的金色。`rendering/draw.ts` 对真实伤害飘字使用 12px 冷蓝字号铺底形成实心外圈，再叠 10px 银白主体；真实伤害暴击（`trueDmg && big`）改用 16px 金色外圈 + 14px 冷蓝内圈 + 12px 纯白主体；普通飘字仍为 8px。因 `PixelPainter` 不暴露 canvas 阴影 API，采用大字号铺底而不是 shadowBlur。
 - 验证：`npm run typecheck`、`npm run build` 通过；受控调用 `hurtEnemy` 对比 true / physical+specialHit / physical+trueFraction 三种飘字的颜色与 `trueDmg` 标记。按 2026-10-29 标准未运行 Vitest / Playwright。
 
 ## D-87 冲刺强射替换反弹（v83）
 
-- 用户裁定：反弹原本是为了打更多目标，但强化箭已有追踪，覆盖足够；把「反弹」升级重做为「冲刺强射」——冲刺结束后 0.8 秒内发射的都是强化箭（初版 0.5 秒偏短，试玩后上调）。
+- 用户裁定：反弹原本是为了打更多目标，但强化弹已有追踪，覆盖足够；把「反弹」升级重做为「冲刺强射」——冲刺结束后 0.8 秒内发射的都是强化弹（初版 0.5 秒偏短，试玩后上调）。
 - 改动：
   1. `data/specialShot.ts`：`bounce` 升级替换为 `dashSpecial`（名称「冲刺强射」）；删除 `BOUNCE_COUNT` / `BOUNCE_DAMAGE_MUL`，新增 `DASH_SPECIAL_WINDOW = 0.8`。
   2. `core/GameCore.ts`：新增 `dashSpecialT` 计时并在 `resetGame` 清零。
   3. `core/PlayerSystem.ts`：冲刺结束帧若已获得 `dashSpecial`，将 `dashSpecialT` 置为 0.8，并在每帧递减；与「疾行」的射速窗口共用同一冲刺结束时机。
-  4. `core/AttackSystem.ts`：`special = shotCounter === 0 || dashSpecialT > 0`，窗口内每次射击都走强化箭流程（含连发/激光/导弹等升级）。
+  4. `core/AttackSystem.ts`：`special = shotCounter === 0 || dashSpecialT > 0`，窗口内每次射击都走强化弹流程（含连发/激光/导弹等升级）。
   5. `core/ProjectileSystem.ts` / `core/types.ts`：删除世界边界反弹分支与 `Bullet.bounces` 字段。
 - 验证：`npm run typecheck`、`npm run build` 通过；受控运行确认冲刺结束开启 0.8 秒窗口、窗口内射击均为特殊弹，且无 `bounce`/`bounces` 残留引用。按 2026-10-29 标准未运行 Vitest / Playwright。
-- E2E 沙盒：新增仅 DEV/E2E 生效的 `?test=dash-special`（只带「冲刺强射」，满级强化箭 + 10000 HP 精英），避免 `special-max` 的全升级干扰窗口手感测试。
+- E2E 沙盒：新增仅 DEV/E2E 生效的 `?test=dash-special`（只带「冲刺强射」，满级强化弹 + 10000 HP 精英），避免 `special-max` 的全升级干扰窗口手感测试。
 
 ## D-88 设置菜单与键位子窗口（v84）
 
@@ -2505,7 +2505,7 @@ ctx.stroke();      // → strokePath()
   2. `rendering/draw.ts`：用按 GameCore 隔离的 `WeakMap` 维护每条 `FloatingText` 的固定槽位组（普通 2 层、真实 3 层、真实暴击 4 层）；文字过期时回收槽位，新文字只在首次绘制时建纹理，之后只更新坐标/透明度/深度。
   3. HUD 文字保持原顺序池与缓存逻辑，不受影响。
 - 验证：`npm run typecheck`、`npm run build` 通过；同一高压沙盒（80 怪、136 条飘字、497 label、34 弹，已恢复真实伤害分层样式）帧间隔约 **150ms → 5.4ms**（p95 8.5ms、max 16.7ms）；截图确认数字逐条显示、颜色/字号不变。按 2026-10-29 标准未运行 Vitest / Playwright。
-- 沙盒：新增 `?test=special-swarm`（满级强化箭 + 全部升级 + 80 只 5000 HP、0 伤害、0 经验的沙包，死亡自动补充），用于复现后期多目标真实伤害飘字压力；与 `?test=special-max`、`?test=dash-special` 一样仅在 DEV/E2E 生效。
+- 沙盒：新增 `?test=special-swarm`（满级强化弹 + 全部升级 + 80 只 5000 HP、0 伤害、0 经验的沙包，死亡自动补充），用于复现后期多目标真实伤害飘字压力；与 `?test=special-max`、`?test=dash-special` 一样仅在 DEV/E2E 生效。
 
 ## D-92 法师构筑与星陨路线（v88）
 
@@ -2611,3 +2611,14 @@ ctx.stroke();      // → strokePath()
 - 改动：`AttributeSystem.chooseAttr` 在应用属性前记录 `hp / maxhp`；`recompute` 后若选择的是 `maxHp` 且上限确实提高，则按 `round(newMax × ratio)` 回填当前血量（夹在 1..newMax）。满血选择后仍为满血。
 - 范围：只影响属性面板的「生命」选择；天赋、血包与其它回血逻辑不变。
 - 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
+
+## D-103 属性面板整理与强化弹说明（v99）
+
+- 背景：本批原在 `feat/special-text-perf-v87` 上编号 v88 / D-92；PR #166 只合并了 v87，随后上游进入 v88–v98 / D-92–D-102。本批从最新 `upstream/main` 新建 `feat/special-panel-pacing`，顺延为 v99 / D-103。
+- 用户反馈：C 面板「当前升级」把所有名称挤在一行，长列表换行后很难读，也看不到具体效果；射手面板还有火焰/雷电/冰霜增伤这类无用行，旧「魔弹伤害」「全局伤害」需要调整，暴伤应显示百分比；术语统一为「强化弹」；当前没有来源的「减伤」行可以移除。
+- 改动：
+  1. `index.html`：强化弹组在摘要 `#stat-special` 下方新增默认折叠的 `<details>`「当前升级」，内部为 `#stat-special-upgrades-list` 列表容器。
+  2. `ui/GameUI.ts`：摘要只保留等级、强化穿透、飞行、下一级经验；满级时等级行直接显示 `MAX`，不再显示 `Lv.12 / 12 · MAX`；当前升级按获取顺序逐条渲染名称与 `SPECIAL_UPGRADES.desc`，标题显示 `当前升级 (n/9)`；法师隐藏摘要/标题/列表。射手输出行移除火焰/雷电/冰霜增伤，原「魔弹伤害」拆为「普通魔弹」与「强化弹伤害」，全局增伤仅在非零时显示；暴击伤害由 `×2.0` 改为百分比 `200%`；生存面板移除「减伤」行，射手隐藏当前无来源的三系抗性（法师保留）。
+  3. `styles/game.css`：升级列表独立纵向滚动，最大高度 30vmin；每项名称独占一行、说明在其下方，避免右栏窄宽度下说明被挤压；`<summary>` 增加展开/收起箭头并隐藏浏览器默认 marker。
+  4. 术语：全项目玩家可见文本与相关注释将「强化箭」统一为「强化弹」；内部标识（specialShot/SpecialSystem）不变。
+- 验证：`npm run typecheck`、`npm run build` 通过；受控 C 面板（满级 9 条升级）标题为「当前升级 (9/9)」，列表 9 项、含完整说明且可滚动，默认折叠、点击标题可展开/收起；射手输出不再出现三系增伤行与减伤行，生存不再出现三系抗性，暴伤显示 `200%`；法师整组隐藏。按 2026-10-29 标准未运行 Vitest / Playwright。

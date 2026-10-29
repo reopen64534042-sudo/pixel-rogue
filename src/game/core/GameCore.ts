@@ -128,7 +128,7 @@ export class GameCore {
   }[] = [];
   /** S2「疾行」：冲刺结束后的射速加成剩余时间（秒）。 */
   dashFireBoostT = 0;
-  /** 「冲刺强射」：冲刺结束后所有射击变为强化箭的剩余时间（秒）。 */
+  /** 「冲刺强射」：冲刺结束后所有射击变为强化弹的剩余时间（秒）。 */
   dashSpecialT = 0;
   /**
    * S2 射手「生存」槽的闪避窗口状态。
@@ -308,9 +308,9 @@ export class GameCore {
   /** 本「次选择」的刷新额度是否已用掉（每次选择各有一次，选完重置） */
   attrRefreshUsed = false;
   chainCd = 0;
-  /** 射手职业被动：普通射击计数，每第 3 次触发强化箭 */
+  /** 射手职业被动：普通射击计数，每第 3 次触发强化弹 */
   shotCounter = 0;
-  /** 强化箭等级/经验/已获得升级（一局内成长，resetGame 重置） */
+  /** 强化弹等级/经验/已获得升级（一局内成长，resetGame 重置） */
   specialLevel = 1;
   specialXp = 0;
   specialUpgrades: SpecialUpgradeId[] = [];

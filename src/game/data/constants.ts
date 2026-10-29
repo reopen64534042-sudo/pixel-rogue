@@ -27,7 +27,7 @@ export const ELITE_BOX_GAIN = 1;
 export const ELITE_BOX_POINT_CAP = 2;
 /** 精英经验 = 25 + (波次-1) × 该系数，随难度同步成长 */
 export const ELITE_XP_STEP = 4;
-/** 射手职业被动：每第 N 次普通射击发射一枚强化箭 */
+/** 射手职业被动：每第 N 次普通射击发射一枚强化弹 */
 export const SPECIAL_SHOT_EVERY = 3;
 /**
  * 确定性伪随机（0~1）。
