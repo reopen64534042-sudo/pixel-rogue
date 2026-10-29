@@ -18,6 +18,13 @@ import type {
 } from "./types";
 import { hasteCap } from "../data/talents";
 import {
+  FISSION_DAMAGE_MUL,
+  FISSION_FRAGMENTS,
+  FISSION_LIFE,
+  FISSION_RANGE,
+  FISSION_SPEED,
+} from "../data/specialShot";
+import {
   burnStackDps,
   scorchVulnMultiplier,
   frostFreezeDuration,
@@ -65,7 +72,10 @@ export function hurtEnemy(
   // 因此不改变随机序列（parity 的种子 LCG 依赖调用次数恒定）。
   const forcedByDodge = this.dodgeNextCrit || this.dodgeProcT > 0;
   const executing =
-    (p.upCounts["处决"] || 0) > 0 && e.markStacks > 0 && e.hp <= e.maxhp * 0.2;
+    opts.specialHit === true &&
+    (p.upCounts["处决"] || 0) > 0 &&
+    e.markStacks > 0 &&
+    e.hp <= e.maxhp * 0.2;
   const critChance =
     !opts.noCrit && (forcedByDodge || executing)
       ? 1
@@ -81,15 +91,15 @@ export function hurtEnemy(
   // 乘法顺序变化不影响 parity
   if (e.burnStacks > 0 && p.scorchVuln)
     dmg *= scorchVulnMultiplier(p);
-  // S2「猎杀标记」/「深痕」：标记层数按受击方结算，每层 +15%
-  if (e.markStacks > 0) dmg *= 1 + 0.15 * e.markStacks;
+  // 「贯穿标记」/「深痕」：标记只放大强化弹直接命中，每层 +15%。
+  if (opts.specialHit && e.markStacks > 0) dmg *= 1 + 0.15 * e.markStacks;
   // S3 法师元素：受击方身上的元素状态带来的受击加成
   // （冻结 +10% 任意伤害 / 带凝冰 +8% 元素伤害 / 超导 +15% 雷电伤害）。
   // 射手路径上敌人永远没有元素状态 → 倍率为 1 → 不参与运算，逐位不变。
   const elemMul = elementDamageMultiplier(e, opts.type ?? "physical");
   if (elemMul !== 1) dmg *= elemMul;
-  // S2「余韵」：闪避后的一次性伤害加成，用掉即清
-  if (this.dodgeNextDmg > 1) {
+  // 「余韵」：闪避后的一次性强化弹伤害加成，命中强化弹时消费
+  if (opts.specialHit && this.dodgeNextDmg > 1) {
     dmg *= this.dodgeNextDmg;
     this.dodgeNextDmg = 1;
   }
@@ -142,18 +152,12 @@ export function hurtEnemy(
   if (opts.lethalCap && e.hp > 1 && dmg >= e.hp) {
     dmg = e.hp - 1;
   }
-  // S2「猎杀标记」累计：同一目标命中 3 次转为一层标记（上限由深痕决定）。
-  // 放在伤害结算之后——本次命中吃的是「已有」层数，不自我加成。
-  if ((p.upCounts["猎杀标记"] || 0) > 0) {
+  // 「贯穿标记」：只有强化弹直接命中才叠层，普通命中不叠。
+  // 上限由「深痕」决定；标记常驻，不因换目标清空。
+  if (opts.specialHit && (p.upCounts["贯穿标记"] || 0) > 0) {
     const cap = (p.upCounts["深痕"] || 0) > 0 ? 2 : 1;
-    e.markT = 5;
-    if (e.markStacks < cap) {
-      e.markHits++;
-      if (e.markHits >= 3) {
-        e.markHits = 0;
-        e.markStacks++;
-      }
-    }
+    e.markStacks = Math.min(cap, e.markStacks + 1);
+    e.markHits = 0;
   }
   const hpBefore = e.hp;
   e.hp -= dmg;
@@ -225,7 +229,50 @@ export function hurtEnemy(
     if (near.length) this.audio.beep(1200, 0.08, "sawtooth", 0.04, -600);
   }
   this.audio.beep(200 + Math.random() * 80, 0.04, "square", 0.025, -80);
-  if (e.hp <= 0) this.killEnemy(e, opts.fromExplode);
+  if (e.hp <= 0) {
+    // 「裂变」：强化弹击杀时向附近敌人发射碎片；碎片是普通弹，不再触发裂变。
+    if (opts.specialHit && this.specialUpgrades.includes("fission")) {
+      const targets = this.enemies
+        .filter(
+          (o) =>
+            o !== e &&
+            !o.dead &&
+            Math.hypot(o.x - e.x, o.y - e.y) <= FISSION_RANGE,
+        )
+        .slice(0, FISSION_FRAGMENTS);
+      for (const target of targets) {
+        const a = Math.atan2(target.y - e.y, target.x - e.x);
+        this.bullets.push({
+          x: e.x,
+          y: e.y,
+          vx: Math.cos(a) * FISSION_SPEED,
+          vy: Math.sin(a) * FISSION_SPEED,
+          dmg: dmg * FISSION_DAMAGE_MUL,
+          pierce: 0,
+          falloff: 1,
+          life: FISSION_LIFE,
+          size: 2,
+          jumps: 0,
+          hitList: [],
+          stats: getPlayerCombatStats(p),
+        });
+      }
+      if (targets.length) {
+        for (let j = 0; j < 6; j++) {
+          const a = (j / 6) * Math.PI * 2;
+          this.parts.push({
+            x: e.x,
+            y: e.y,
+            vx: Math.cos(a) * 90,
+            vy: Math.sin(a) * 90,
+            life: 0.25,
+            c: "#ffd24a",
+          });
+        }
+      }
+    }
+    this.killEnemy(e, opts.fromExplode);
+  }
   // §3.5：结算伤害与实际生命损失分开，溢出部分不计入 effectiveHpLoss；
   // 击杀爆炸/掉落等副作用已在上方按原顺序执行，killed 与 lethal 同真
   return {
@@ -425,6 +472,9 @@ export function damagePlayer(
       p.hurtCd = Math.max(p.hurtCd, 0.5);
       this.dodgeBoostT = 0.5;
     }
+    // 冷读/滞空都装填下一发强化弹；余韵只是放大这一发。
+    if ((p.upCounts["冷读"] || 0) > 0 || (p.upCounts["滞空"] || 0) > 0)
+      this.specialLoaded = true;
     if ((p.upCounts["余韵"] || 0) > 0) this.dodgeNextDmg = 1.3;
     if ((p.upCounts["赌命"] || 0) > 0)
       this.dodgeProcT = p.hp <= p.maxhp * 0.3 ? 4 : 2;

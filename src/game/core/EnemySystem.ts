@@ -3,7 +3,8 @@ import { enemyWeight, ETYPES } from "../data/enemies";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { professionPierce } from "./AttributeSources";
-import { boltDamage } from "./DamageMath";
+import { boltDamage, chargedShotDamage } from "./DamageMath";
+import { getSpecialLevelStats } from "../data/specialShot";
 import { frostSlowFactor, isFrozen, isParalyzed } from "./ElementMath";
 import { resolveEnemyAttackBonuses, resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
@@ -70,7 +71,7 @@ export function spawnEnemy(
     burnT: 0,
     burnDps: 0,
     burnStacks: 0,
-    // S2「猎杀标记」：标记是敌人的属性，不是玩家的——同一目标才累计
+    // 「贯穿标记」：标记是敌人的属性，不是玩家的——同一目标才累计
     markHits: 0,
     markStacks: 0,
     markT: 0,
@@ -167,16 +168,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         c: "#ff8a2b",
       });
     }
-    // S2「猎杀标记」维持：换目标 5 秒内未再命中则清空累计与层数。
-    // 递减放在这里（敌人自己的状态），不引入新的随机调用。
-    if (e.markT > 0) {
-      e.markT -= dt;
-      if (e.markT <= 0) {
-        e.markHits = 0;
-        e.markStacks = 0;
-      }
-    }
-    // 灼烧：数值经 applyBurnDot（fire/dot/preserve-float）结算，表现与死亡判定留在本处
+    // 「贯穿标记」为常驻标记；markT/markHits 仅保留给旧存档与实体形状。
     if (e.burnT > 0) {
       e.burnT -= dt;
       this.applyBurnDot(e, dt);
@@ -332,23 +324,33 @@ export function updateEnemies(this: GameCore, dt: number) {
         p.x = clamp(p.x + (dx / dist) * 40, 24, WORLD.w - 24);
         p.y = clamp(p.y + (dy / dist) * 40, 24, WORLD.h - 24);
         this.contactKnockCd = 3;
+        // 惊弓的弹开同时装填下一发强化弹，形成「被贴身反而更强」的节奏。
+        this.specialLoaded = true;
         this.addText(p.x, p.y - 12, "惊弓", "#57e6ff");
         this.audio.beep(520, 0.08, "square", 0.04, 260);
       }
       if ((p.upCounts["逆矢"] || 0) > 0 && this.counterCd <= 0) {
         const a = Math.atan2(e.y - p.y, e.x - p.x);
+        const specialStats = getSpecialLevelStats(this.specialLevel);
         this.bullets.push({
           x: p.x,
           y: p.y - 3,
           vx: Math.cos(a) * p.projSpeed,
           vy: Math.sin(a) * p.projSpeed,
-          dmg: boltDamage(p) * 2,
-          pierce: p.pierce + professionPierce(this.prof),
+          dmg: chargedShotDamage(boltDamage(p) * 1.5, specialStats.mul),
+          pierce:
+            p.pierce +
+            professionPierce(this.prof) +
+            specialStats.pierceBonus,
           falloff: p.pierceFalloff,
-          life: p.attackRange / p.projSpeed,
+          life: specialStats.infiniteFlight
+            ? Number.POSITIVE_INFINITY
+            : p.attackRange / p.projSpeed,
           size: 2 * p.area,
           jumps: 0,
           hitList: [],
+          trail: (p.upCounts["贯穿轨迹"] || 0) > 0 ? 0.6 : 0,
+          special: true,
           stats: getPlayerCombatStats(p),
         });
         this.counterCd = 3;

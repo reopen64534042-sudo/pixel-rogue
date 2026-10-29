@@ -2637,3 +2637,40 @@ ctx.stroke();      // → strokePath()
   - 平均抽次：连发两颗与导弹 3.41、冲刺强射与附带真实伤害 4.36、激光 5.20、当前/最大生命伤害 5.21/5.23、完全追踪与完全真实伤害 6.92；后两者 7.8% 在第 3 抽提前出现，62.9% 落在第 7 抽及以后。
 - 验证：`npm run typecheck`、`npm run build` 通过；按 2026-10-29 标准未运行 Vitest / Playwright。
 - 说明：升级内容、数值、L4-L12 发放次数与 C 面板展示均不变；现有测试未断言随机升级顺序，若后续补测需固定 `Math.random`。
+
+## D-105 射手天赋围绕强化弹重构（v101）
+
+- 背景（2026-10-30）：强化弹加入后，射手原有 6 条天赋轴仍围绕普通弹穿透/单体标记，玩家感知不到与强化弹的联动；用户要求以强化弹为核心重做「完全没有联系」的路线。
+- 用户裁定：
+  1. 改造范围：核心 4 + 标记 3 + 生存/脱离/机动 8（共 15/18 张），距离 3 张保留为门控身份。
+  2. 成长预算：强化弹基础触发 3→4 发；核心 L1 回到 3 发、L2 到 2 发，避免与现有 12 级/9 升级成长 double dip。
+  3. 结构：单核心链 + L3 分叉（贯穿轨迹/齐射），标记为副路线。
+  4. 四个待定项按建议定稿：冲刺强射移出升级池→机动线，新增第 9 升级「裂变」；核心 L1 首抽保底；标记只服务强化弹；先实现后按模型/试玩配平。
+- 实现：
+  1. `data/constants.ts`：`SPECIAL_SHOT_EVERY` 3→4。
+  2. `core/AttackSystem.ts`：按 `快速装填`/`超载装填` 计算触发间隔（4/3/2）；`齐射` 只给强化弹 3 发×50%，普通射击保持原弹道数；`贯穿轨迹` 只给强化弹留轨迹；满距离档给强化弹 +1 穿透。
+  3. `core/TalentSystem.ts`：射手首抽保底「快速装填」（替换最后一个槽位，不额外消耗随机数）。
+  4. `data/talents/shooter.ts`：核心链改为快速装填/超载装填/贯穿轨迹/齐射；标记链改为贯穿标记/深痕/处决；生存/脱离/机动文案与触发改为强化弹装填；距离即收益补满档强化弹穿透。
+  5. `core/TalentStatSources.ts`：核心链穿透/衰减来源随卡名迁移；移除三重射击的 `boltDmgMul` 投影。
+  6. `core/CombatSystem.ts`：标记只由 `specialHit` 叠层、只放大强化弹伤害；处决只作用于强化弹；新增「裂变」击杀碎片。
+  7. `core/EnemySystem.ts`：惊弓装填下一发；逆矢改发 150% 强化弹；旧标记 5 秒维持逻辑移除（标记常驻）。
+  8. `core/PlayerSystem.ts` / `core/GameCore.ts`：新增 `specialLoaded` 装填标记；疾行冲刺后装填，双段疾冲推进计数；移除 `dashSpecialT`。
+  9. `data/specialShot.ts`：移除 `dashSpecial` 与 0.8 秒窗口，新增 `fission`（击杀最多 2 枚 50% 碎片，碎片为普通弹，不再触发裂变）。
+  10. `src/game/scenes/GameScene.ts`：`?test=dash-special` 改为授予 L12 + 疾行，用于验证「冲刺→下一发强化弹」。
+- 受控验证（Vite SSR 驱动真实 GameCore）：
+  - 触发节奏：无核心链 `nnnS`、仅 L1 `nnS`、L1+L2 `nS`。
+  - 齐射：普通 1 发；强化弹 3 发，单发 50%，`multishot` 保持 1；贯穿轨迹普通弹 `trail=0`、强化弹 `trail=0.6`。
+  - 首抽保底：射手 500/500 次三选一含快速装填；法师 0/200。
+  - 标记：普通命中不叠层也不吃增伤；强化弹第 1 发落标记、第 2 发 +15%；深痕后第 3 发 +30%；处决强化弹 276 vs 普通 100（暴伤 2.0+0.4）。
+  - 支线：疾行冲刺后 `specialLoaded=true`、射速窗口 0.48s；双段疾冲 2→3 后下一发强化；冷读/滞空/赌命闪避后均装填/全强化，滞空 `hurtCd=0.5`；逆矢 1 发强化弹 dmg 29.25 / pierce 2（L1）；惊弓装填；裂变强化弹击杀生成 2 碎片，普通击杀 0；升级池 9 条、无 dashSpecial、有 fission。
+  - 距离：95% 射程下普通弹 pierce 1、强化弹 pierce 3（职业 1 + 等级 1 + 满档 1）。
+  - 升级池：9 条、无 dashSpecial、含 fission；20000 局真实 `gainSpecialXp` 加权抽取 0 违例 / 0 缺件，首抽导弹 37.2% / 连发两颗 37.4% / 附带真实伤害 25.4%，裂变 min 2 / avg 5.19，完全追踪与完全真实伤害 min 3 / avg 6.90。
+- E2E（5186，MODE=e2e）：
+  - `?test=dash-special`：L12、仅疾行、无升级；冲刺结束 `specialLoaded=true`，下一发 special、pierce 7、dmg 33.8。
+  - `?test=special-max`：9 条升级、fission 存在、dashSpecial 不存在；强化弹 2 发（连发两颗）+ 1 激光 + 1 导弹，pierce 7。
+  - `?test=special-swarm`：80 只沙包、9 升级、fission 存在，无崩溃；counts 约 text 15 / images 81。
+  - 天赋联动：学快速装填+超载装填+齐射后，普通 1 发 pierce 3，强化弹 3 发 pierce 9、单发 16.9；齐射后贯穿轨迹不再可抽。
+  - 备注：浏览器失焦会自动暂停（state=pause）；受控检查前先恢复 state=play，不是本次改动引入的问题。e2e 服务已停止，5186 无 LISTENING。
+- 验证：`npm run typecheck`、`npm run build` 通过。
+- 测试基线：`tests/game.test.ts`、`tests/s2-shooter-pool.test.ts`、`tests/parity.test.ts` 与 `tests/fixtures/balance-baseline.json` 仍引用破甲箭/弹道贯穿/三重射击等旧卡；按 2026-10-29 标准未运行 Vitest、未改基线，留待授权测试批次统一处理。
+- 未验证/风险：L2 每 2 发 + 齐射 3 发 + 连发两颗 = 每 2 发 6 颗强化弹，XP 与伤害可能 double dip；裂变在 80 怪沙盒的长期压力未做帧采样；自然试玩手感待用户确认。数值（+15%/层、150% 逆矢、裂变 50%）均为首版占位。
