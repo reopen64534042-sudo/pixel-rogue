@@ -2095,3 +2095,86 @@ ctx.stroke();      // → strokePath()
 - 改动：施法读条与星陨冷却条的外框 5px → 3px、内槽/填充 3px → 1px；急停线从内槽高度改为画满整条 3px 高（否则 1px 内槽里的竖线几乎看不见）。长度仍是 22px，位置不变（y+6）。
 - 验证：`typecheck` ✓、`build` ✓；10 倍放大截图确认细条与急停线可见。
 - 未动：充能点（3×3）与冲刺格（5×3）尺寸不变。
+
+## D-59 关闭置换（熔炉）入口（2026-10-30）
+
+- 背景：法师池 18 张全部为 `t: 0` / `max: 1`，新职业池没有稀有度分层；而 `melt()` 的产出池仍是 `legacyAvailTalents`，它只排除 `hidden`，放行 37 张退役旧卡。法师局凑够 2 张 t0 卡后，休整面板会显示「打开置换」，投入 2 张**法师卡**熔出的却是随机**旧表 t1 卡**（烈焰印记 / 冰霜之力 / 狂怒等）——等于把已退役机制塞回新池。
+- 决策：用户 2026-10-30 选择「关闭入口」；沿用 2026-10-28「熔炉暂时删除、先关入口、保留实现」的裁定。
+- 改动：`GameUI` 新增模块级开关 `SWAP_ENTRY_ENABLED: boolean = false`，`showRestBar()` 的显示条件前置该开关；按钮隐藏。`core/SwapSystem`、`melt`、`legacyAvailTalents`、面板 DOM 与全部单元测试原样保留；重新开放时只改开关并同步池规则。
+- 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`，未跑 Playwright）：`core.showRestBar()` 后 `#bp-swapbtn` 的 `style.display` 与 computed 均为 `none`，`#bp-rest` 正常显示，`bp-swap` 保持隐藏。
+- 基线影响（按 2026-10-29 裁定不跑测试，留痕待授权批次）：
+  1. `tests/browser/game.spec.ts:158` 断言 `#bp-swapbtn` 隐藏——当前仍通过；将来重新开放入口时需恢复可见性断言。
+  2. `tests/game.test.ts`、`tests/panel-commands.test.ts`、`tests/s4c-c3-baseline.test.ts` 直接调 `core.openSwap()/melt()`，core 未动，保持通过。
+  3. AGENTS.md 的熔炉验收口径同步为「入口关闭、实现保留」，不再作为可玩验收项。
+
+## D-60 敌人冰霜抗性（2026-10-30）
+
+- 背景：`DAMAGE_TYPES.frost` 已注册且走 resistance 减伤，但 5 种敌人均无 `frost` 抗性（火 4 种、雷 2 种）。冰霜对全部敌人全额伤害，还自带减速/冻结，成为无条件最优元素。用户 2026-10-30 选择「部分敌人」：只补蛮牛/射手/自爆虫，史莱姆/蝙蝠保持无冰抗。
+- 改动（`data/enemies.ts`）：
+  - `brute`：`resistances: { frost: 0.2 }`
+  - `shooter`：`{ fire: 0.1, frost: 0.15, lightning: 0.45 }`
+  - `bomber`：`{ fire: 0.55, frost: 0.25 }`
+- 效果：冰霜从「全敌人无抗」变为 3/5 敌人有 15–25% 抗性；史莱姆/蝙蝠仍是冰霜优势场景。火仍被 4/5 敌人抗（自爆 55%），雷仍被史莱姆/射手抗（射手 45%），三元素各有劣场。
+- 文档：`docs/monster-numerics.md` 基础配置表新增「冰霜抗性」列；「未列出的属性即无抗性」规则不变。
+- 基线影响（不跑，留待授权批次）：`tests/monster-defense-v1.test.ts` 用固定 resistance 表逐项断言，需给三种敌人补 frost；`tests/balance-baseline.test.ts` 若快照含敌人抗性需重建。
+
+## D-61 法师配平 v2：多重陨星与元素残域（2026-10-30）
+
+- 背景：D-48 起多重陨星始终落 2 颗，对单目标双份命中 44 DPS（L1 22）。D-48 记录「若过强可下调 `meteorDamageMul` 至 ~3.2」，但该系数同时作用于 L1——直接下调会把 L1 压到 17.6 DPS（低于基础法阵 24），故不改共享系数，改为只给多重陨星加独立倍率。
+- 改动：
+  1. `mageBalance` 新增 `meteorMultiDamageMul = 0.8`，仅多重陨星路径乘；L1 保持 `meteorDamageMul = 4.0`。L2 单体 = 2 × 22 × 0.8 ≈ 35 DPS（L1 的 1.6 倍）；群怪时每个敌群只吃 0.8 倍，但覆盖两个敌群，总收益仍高于 L1。`MageSystem.updateMeteorRoute` 增加 `multi` 判定并乘该系数。
+  2. `domainDpsMul 0.4 → 0.5`：单领域 4.4 → 5.5 DPS。多重陨星每 2 秒落 2 颗、领域持续 4 秒，单体木桩下最多 4 个领域重叠（约 22 DPS），这是 L3 的主要收益，仍建议实机确认是否过强/过弱。
+- 未动：满充能爆发（元素蓄能 1.4 × 三连聚爆 1.15 = 1.61、半径 1.5）、灼烧、充能频率、护盾与脱离数值——缺少实机反馈，留待下一轮。
+- 回退：`meteorMultiDamageMul` 改回 1、`domainDpsMul` 改回 0.4 即恢复原行为。
+- 基线影响（不跑，留待授权批次）：`tests/balance-baseline.test.ts` 快照系数变化需重建；卡面文字未变（多重陨星只承诺落 2 颗，未承诺每颗倍率）。
+
+## D-62 法师索敌按实际半径统计 + 距离平手（2026-10-30）
+
+- 用户反馈：法师经常不打离自己最近的目标。
+- 根因：`findDensest` 用固定 90px 统计「邻居数」，但基础法阵半径只有 34px（广域符印 40.8）——两个相距 80px 的敌人会被当成密集，法阵却覆盖不到第二个；同等密度时又只保留先遍历到的敌人（数组顺序），不比较距离。陨星版 `findDensestPoints` 同样用 90px，而陨星半径 42（三连聚爆 63）。
+- 改动：
+  1. `findDensest(core, range, radius)`：密度按本次法阵实际半径统计（`mageCircleRadius`，满充能发已含三连聚爆 ×1.5），同等密度取离玩家更近的目标。
+  2. `findDensestPoints(core, range, count, radius)`：密度按本波陨星实际半径统计（提前计算 `R`，含满充能三连聚爆半径）；排序仍为密度降序、距离升序。
+- 效果：孤立敌人按距离取最近；只有真正能被同一次法阵/陨星覆盖的敌群才会压过更近的单敌；不再因远处「假集群」忽略近处目标。
+- 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`，未跑 Playwright）：玩家 (400,300)、射程 260、法阵 R=34。
+  - 孤立双敌（远敌先入数组）：旧逻辑按数组顺序会选 600，现选 480（近敌）。
+  - 远处双敌相距 80px（>R）冒充集群：现选 480（近敌），不再被假集群带偏。
+  - 远处双敌相距 20px（真集群）：仍选 600，密度优先保留。
+  - 星陨路线同三组场景：落点分别为 480 / 480 / 600，与法阵一致。
+- 基线：仅法师路径；射手 `nearestEnemy` 与近战目标选择不受影响。现有测试未直接断言 `findDensest`；如授权测试批次有法师索敌用例，需按新口径更新。
+
+## D-63 双修补选第二个元素（2026-10-30）
+
+- 用户反馈：选到「双修」后直接结束，玩家根本没有第二个元素，「同时施加两种元素」的新反应无法触发。
+- 根因：`双修` 只提供 `variantBypass`（元素组不再 N 选 1 排他），第二个元素仍要等后续升级随机抽到；而选卡流程在学完卡后立刻关面板/重抽，玩家看不到也无法立即补第二个。
+- 改动：
+  1. `GameCore` 新增 `mageSecondElementPending`（`resetGame` 清零）。
+  2. `TalentSystem.openMageSecondElement`：当学到的卡是「双修」且当前恰好持有 1 个元素时进入补选期；`slots` 只放两个未持有元素，`used: true` 隐藏刷新。
+  3. `chooseSlot` 新增补选分支：补选不消耗 `pendingLevels`；学完第二个元素后，若仍有升级次数则继续抽 3 张，否则关闭面板按原顺序进入宝箱/休整。
+  4. `GameUI.openLevelPanel` 在补选期把标题改为「☯️ 双修 · 选择第二个元素」，提示「只显示尚未持有的元素 · 键盘 1 / 2 快捷选取」。
+- 边界：当前持有 0 个或 ≥2 个元素时不触发补选（0 只能靠作弊面板出现；≥2 已满足双修条件）。作弊面板直接 `learnTalent` 不经过 `chooseSlot`，不触发补选。
+- 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`）：
+  - 持有火、`pendingLevels=1`，选双修 → 面板标题/提示正确，只列霜寒之力/闪电连锁，刷新按钮 0，`pendingLevels=0`；选冰后双修+火+冰，面板关闭。
+  - `pendingLevels=2` → 选双修先补元素，补完 `pendingLevels=1`，恢复普通三选一面板。
+  - 已持有火+冰再选双修 → 不弹补选，正常结束。
+- 基线：新增一个共用 level 面板的补选期；UI 文本/流程断言可能受影响（本批未跑，留待授权测试批次）。
+
+## D-64 精英特殊宝箱改为 50% 概率（2026-10-30）
+
+- 用户反馈：不要每个精英都掉特殊宝箱，早前已要求改概率，后来变回必掉；本轮调成 50%（或更低）。
+- 根因：`CombatSystem.killEnemy` 的精英分支硬编码 `this.boxes.push({ special: true })`，没有概率判定；注释仍写着「#17 精英必掉」。
+- 改动：
+  1. `data/constants.ts` 新增 `ELITE_BOX_DROP_RATE = 0.5`。
+  2. 精英（含 BOSS）掉落改为 `hash01(e.seed, waveN + 0.5) < ELITE_BOX_DROP_RATE`；用确定性伪随机，避免 `Math.random` 推进 parity 随机序列。
+  3. `docs/monster-numerics.md` 同步「必掉血包、50% 特殊宝箱」。
+- 效果：单只精英期望特殊宝箱 0.5 个；多精英波次的期望点数同步减半，单人精英波仍可能空手（血包/经验不变）。
+- 验证：`typecheck` ✓、`build` ✓。受控运行：100 只精英（seed 1000–1099）掉落 48 个特殊宝箱（48%）；同 seed 连测两次结果一致（false/false）。
+- 基线：`tests/parity.test.ts` 的「D-04 BOSS 掉落特殊宝箱」目前无条件断言 `box.special === true`，需在授权测试批次改为按确定性 seed 取值或注入必掉；`tests/chest.test.ts` 手动 push 宝箱，不受影响。
+
+## D-65 双修元素上限收紧到 2（2026-10-30）
+
+- 用户裁定：双修就是只能两种元素；三元素混合形态还没设计，现在放开以后会乱。
+- 根因：`双修.variantBypass` 让元素组完全跳过 N 选 1 排他，持有双修+两种元素后仍可能抽到第三张元素卡；`applyMageHit` 会遍历 `mageElements` 施加全部印记/反应。
+- 改动：`TalentSystem.canOffer` 在变体组判定前增加元素组上限——`u.variant === MAGE_VARIANT_ELEMENT && mageElements(player).length >= 2` 直接不进池。双修+1 元素仍可拿第二张（补选/正常抽取），双修+2 元素后第三张不再出现。
+- 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`）：双修+火+冰时 `canOffer(闪电连锁)` 为 false；双修+火时 `canOffer(霜寒之力/闪电连锁)` 均为 true；无火+冰（未学双修）时第二张元素仍为 false（原有 N 选 1 不变）。
+- 基线：卡池投放规则变化；如授权测试批次有元素组枚举/候选数量断言，需按新口径更新（本批未跑）。

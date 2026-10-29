@@ -137,6 +137,15 @@ export interface MageBalance {
    *（旧值 2.5 / 3.0s = 9.2 DPS，选到星陨反而变弱）。
    */
   meteorDamageMul: number;
+  /**
+   * 多重陨星每颗的伤害倍率（0.8 = 每颗 −20%）。
+   *
+   * 多重陨星始终落 2 颗，对单目标会双份命中：若每颗全额，L2 单体 = 44 DPS
+   *（L1 的 2 倍）。这里只降低多重陨星的每颗伤害，L1 仍为 4.0——
+   * 目标 L1 22 DPS、L2 单体 2 × 22 × 0.8 ≈ 35 DPS；群怪时每个敌群
+   * 只吃 0.8 倍，但覆盖两个敌群，总收益仍高于 L1。
+   */
+  meteorMultiDamageMul: number;
   /** 多重陨星同时落下的颗数。 */
   meteorCount: number;
   /** 多颗陨星之间的最小间距（px）：优先砸向不同敌群，避免同一目标双份伤害。 */
@@ -239,12 +248,13 @@ export const MAGE_BALANCE: MageBalance = {
   meteorFall: 0.8,
   meteorRadius: 42,
   meteorDamageMul: 4,
+  meteorMultiDamageMul: 0.8,
   meteorCount: 2,
   meteorMinSep: 70,
   meteorSpread: 26,
   domainDuration: 4,
   domainRadius: 46,
-  domainDpsMul: 0.4,
+  domainDpsMul: 0.5,
   domainTick: 0.25,
 
   quickCastWindupMul: 0.7,

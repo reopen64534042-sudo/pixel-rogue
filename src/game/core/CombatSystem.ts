@@ -2,6 +2,7 @@ import type { GameCore } from "./GameCore";
 import {
   BOX_DROP_CAP,
   BOX_DROP_RATE,
+  ELITE_BOX_DROP_RATE,
   ELITE_XP_STEP,
   hash01,
 } from "../data/constants";
@@ -237,9 +238,10 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
       this.gems.push({ x: e.x, y: e.y, vx: 0, vy: 0, v: eliteXp, e: true });
       this.potions.push({ x: e.x + 8, y: e.y });
       this.shake = Math.min(this.shake + 5, 8);
-      // #17：精英必掉宝箱，且不占用普通怪名额
-      // Issue #48：BOSS 掉落特殊宝箱（不计入普通怪 BOX_DROP_CAP）
-      this.boxes.push({ x: e.x - 8, y: e.y, special: true });
+      // 精英宝箱：2026-10-30 用户裁定改回概率掉落（50%），不再必掉。
+      // 用确定性 pseudo-random，避免像 Math.random 那样推进 parity 随机序列。
+      if (hash01(e.seed, this.waveN + 0.5) < ELITE_BOX_DROP_RATE)
+        this.boxes.push({ x: e.x - 8, y: e.y, special: true });
     } else {
       const v = e.xp * (Math.random() < p.luck * 0.07 ? 2 : 1);
       this.gems.push({

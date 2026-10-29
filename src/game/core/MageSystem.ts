@@ -10,7 +10,7 @@ import type { Enemy, MageCastPhase } from "./types";
  * 法师的门控是**时间**：必须熬过前摇与施法间隔，被打断则这一发完全作废。
  * 因此本模块提供：
  * - 施法状态机（抬手 → 收束 → 爆裂 → 间隔）；
- * - 落点选取（射程内最密集处 + 按前摇时长做速度提前量）；
+ * - 落点选取（射程内、按法阵实际半径统计的最密集处 + 按前摇时长做速度提前量）；
  * - 充能条（每 3 次成功施法满一次，满时按已学顺序结算循环轴）；
  * - 值型限时护盾（与既有「层数制 + 10s 恢复」的护盾是两套模型）；
  * - 脱离槽（相位传送 / 镜像残影）；
@@ -93,21 +93,35 @@ export function mageCircleDamage(
   return dmg;
 }
 
-/** 射程内「最密集处」：统计每个敌人周围 90px 内的敌人数，取最多者。 */
-function findDensest(core: GameCore, range: number): Enemy | null {
+/**
+ * 射程内「最密集处」：按本次法阵实际半径统计覆盖人数，取最多者；
+ * 人数相同取离玩家更近的那个。
+ *
+ * 旧实现用固定 90px 统计邻居——法阵基础半径只有 34px，两个相距 80px 的
+ * 敌人会被当成「密集」，但法阵根本覆盖不到第二个，于是远处假集群压过
+ * 近处单敌。改用实际半径后，密度与真实命中一致；孤立敌人按距离取近。
+ */
+function findDensest(
+  core: GameCore,
+  range: number,
+  radius: number,
+): Enemy | null {
   const p = core.player;
   let best: Enemy | null = null;
   let bestN = -1;
+  let bestD = Infinity;
   for (const c of core.enemies) {
     if (c.dead) continue;
-    if (Math.hypot(c.x - p.x, c.y - p.y) > range) continue;
+    const d = Math.hypot(c.x - p.x, c.y - p.y);
+    if (d > range) continue;
     let n = 0;
     for (const o of core.enemies) {
       if (o.dead) continue;
-      if (Math.hypot(o.x - c.x, o.y - c.y) < 90) n++;
+      if (Math.hypot(o.x - c.x, o.y - c.y) <= radius) n++;
     }
-    if (n > bestN) {
+    if (n > bestN || (n === bestN && d < bestD)) {
       bestN = n;
+      bestD = d;
       best = c;
     }
   }
@@ -316,13 +330,14 @@ export function triggerMirrorDecoy(this: GameCore): boolean {
  *
  * 多重陨星如果都砸在同一个点上，单目标会被双倍伤害——等于把路线B的
  * 单体伤害偷偷翻倍。这里按「局部密度降序 + 与已选点保持 meteorMinSep」
- * 挑选；颗数不足时只落实际存在的敌群，不为了凑数重复砸同一处。
- * 排序以敌人顺序为稳定次级键，不引入随机数。
+ * 挑选；密度按本波陨星的实际半径统计，同等密度取更近的点。
+ * 数量不足时由调用方围绕已有落点铺开（保证始终落 count 颗）。
  */
 function findDensestPoints(
   core: GameCore,
   range: number,
   count: number,
+  radius: number,
 ): { x: number; y: number; e: Enemy }[] {
   const p = core.player;
   const cands: { e: Enemy; n: number; d: number }[] = [];
@@ -333,7 +348,7 @@ function findDensestPoints(
     let n = 0;
     for (const o of core.enemies) {
       if (o.dead) continue;
-      if (Math.hypot(o.x - c.x, o.y - c.y) < 90) n++;
+      if (Math.hypot(o.x - c.x, o.y - c.y) <= radius) n++;
     }
     cands.push({ e: c, n, d });
   }
@@ -354,21 +369,25 @@ function updateMeteorRoute(core: GameCore, dt: number) {
   core.mageMeteorT -= dt;
   if (core.mageMeteorT <= 0) {
     core.mageMeteorT = MB.meteorInterval;
-    const count = (p.upCounts["多重陨星"] || 0) > 0 ? MB.meteorCount : 1;
-    const points = findDensestPoints(core, p.attackRange, count);
+    const multi = (p.upCounts["多重陨星"] || 0) > 0;
+    const count = multi ? MB.meteorCount : 1;
+    // 密度按本波陨星的实际半径统计；满充能的三连聚爆半径也要提前算入，
+    // 否则统计用的是基础半径、实际落点却更大，密集处会选偏。
+    const isCharge = core.mageCharge + 1 >= MB.chargeFull;
+    let R = MB.meteorRadius;
+    if (isCharge && (p.upCounts["三连聚爆"] || 0) > 0)
+      R *= MB.burstRadiusMul;
+    const points = findDensestPoints(core, p.attackRange, count, R);
     if (points.length) {
       const type = mageDamageType(p);
       // S5：陨星也吃充能条——每 3 波陨星触发一次满充能，循环轴 5 张卡
       // 在星陨路线下不再失效（此前 mageCharge 只在基础施法的 detonate 里推进）。
-      const isCharge = core.mageCharge + 1 >= MB.chargeFull;
       let dmg = p.damage * MB.meteorDamageMul;
-      let R = MB.meteorRadius;
+      // 多重陨星对单目标会双份命中：每颗降为 0.8 倍，避免 L2 单体直接翻倍。
+      if (multi) dmg *= MB.meteorMultiDamageMul;
       if (isCharge) {
         if ((p.upCounts["元素蓄能"] || 0) > 0) dmg *= MB.chargeDamageMul;
-        if ((p.upCounts["三连聚爆"] || 0) > 0) {
-          dmg *= MB.burstDamageMul;
-          R *= MB.burstRadiusMul;
-        }
+        if ((p.upCounts["三连聚爆"] || 0) > 0) dmg *= MB.burstDamageMul;
         // 咏唱护壁：满充能波次给盾（不可叠层 → 覆盖）
         if ((p.upCounts["咏唱护壁"] || 0) > 0)
           grantMageShield(
@@ -538,7 +557,11 @@ export function updateMageCasting(this: GameCore, dt: number) {
     case "idle": {
       this.castCd -= dt;
       if (this.castCd > 0) break;
-      const target = findDensest(this, p.attackRange);
+      const target = findDensest(
+        this,
+        p.attackRange,
+        mageCircleRadius(this, this.mageCharge + 1 >= MB.chargeFull),
+      );
       if (!target) {
         this.castCd = MB.castIdleRetry;
         break;

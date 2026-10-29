@@ -237,6 +237,11 @@ export class GameCore {
   /** 路线B「星陨」的下一次落下倒计时（秒）。 */
   mageMeteorT = 0;
   /**
+   * 双修：选到「双修」且当前只有 1 个元素时，进入补选期——
+   * 强制弹出另外两个元素供选择，选完才继续剩余的升级/宝箱链。
+   */
+  mageSecondElementPending = false;
+  /**
    * S1：本波剩余的可选次数（波次发放，波末消费）。为 0 时属性面板不出现。
    * 不进 parity 快照白名单：它只驱动面板流程，不参与任何数值计算。
    */
@@ -462,6 +467,7 @@ export class GameCore {
     this.mageMeteors = [];
     this.mageDomains = [];
     this.mageMeteorT = 0;
+    this.mageSecondElementPending = false;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
     // #134：走统一入口，让「第 1 波基础额度」也受单波上限约束
