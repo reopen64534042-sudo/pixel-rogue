@@ -45,7 +45,6 @@ export function spawnEnemy(
   const speedJitter = 0.9 + Math.random() * 0.2;
   const spawnStats = resolveEnemySpawnStats(T, {
     wave: this.waveN,
-    playerLevel: this.player.lvl,
     elite,
     speedJitter,
   });

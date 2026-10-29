@@ -1886,3 +1886,12 @@ ctx.stroke();      // → strokePath()
     tooltip 用例的 `#stat-combat` 点击改 force（模拟运行中数值刷新导致 stable 检查不满足）。
 - 验证：tsc ✓；vitest **674/674（35 文件）**；build ✓；core-ui Playwright **16/16**。
 - 遗留：真机体感待确认（开局冲刺冷却 2.4s 是否合适；疾影步在 #137 后定位为纯降冷却档）。
+
+## D-40 平衡止血 1/2：移除 lvlPow（2026-10-29）
+
+- 依据：`docs/damage-rework-coordination-v1.md` §4-A 第 1 条「`lvlPow` 移除（已定）」；用户 2026-10-29 批准「先删 `lvlPow` + 精英 HP ×3.5」两批止血方案。分支 `feat/balance-ttk-v1`。
+- 改动：`EnemySpawnContext` 删除 `playerLevel`；`resolveEnemySpawnStats` 删除 `lvlPow` 与 `level` final 修饰符，怪物生命成长由 `hpScale` 独占；`spawnEnemy` 不再传 `player.lvl`；`ProgressionSystem` 注释同步（等级只剩属性稀有度档位与 HUD）。
+- 影响：采样等级 8/16/32/39 下，第 5/10/20/30 波怪物生命分别下降约 3%/7%/15%/19%；攻击、速度、精英倍率与随机调用次数不变。等级不再通过「拾取效率 → 等级 → 怪物血量」反向提高难度。
+- 测试适配（非新增）：`tests/s4d-d2a-enemy-spawn.test.ts` 的浮点顺序用例因 `lvlPow` 移除后波 3 不再产生分组差异，改用波 5 并更新期望 `656.4849199999999` → `782.6`；`playerLevel` 非法输入断言随输入一并移除；`tests/balance-baseline.test.ts` 删除仅供 `lvlPow` 使用的 `SAMPLE_LEVELS`。
+- **未重算** `tests/fixtures/balance-baseline.json`：其 `enemyPressure` 数值已过期；按 2026-10-29 验证标准留待授权测试批次统一更新。
+- 验证：`npm run typecheck`、`npm run build` 通过（Vite 主 chunk >500 kB 为既有提示）。按同日验证标准**未运行 Vitest / Playwright**；parity 的 v8 对照含 `lvlPow`，预期失效。

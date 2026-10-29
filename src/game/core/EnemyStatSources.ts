@@ -78,7 +78,6 @@ export function resolveEnemyAttackBonuses(cfg: EnemyConfig): EnemyAttackBonusSta
 
 export interface EnemySpawnContext {
   readonly wave: number;
-  readonly playerLevel: number;
   readonly elite: boolean;
   readonly speedJitter: number;
 }
@@ -89,7 +88,13 @@ export interface EnemySpawnStats {
   readonly moveSpeed: number;
 }
 
-/** 生成时解析一次；倍率顺序与旧表达式的左结合顺序一致。 */
+/**
+ * 生成时解析一次；倍率顺序与旧表达式的左结合顺序一致。
+ *
+ * v46：移除 `lvlPow`（`docs/damage-rework-coordination-v1.md` §4-A 已定）。
+ * 等级不再参与怪物生命成长，避免「拾取效率反向决定难度」；怪物成长由 `hpScale` 独占。
+ * 等级仍影响属性稀有度（`AttributeSystem.rarityChances`）与 HUD。
+ */
 export function resolveEnemySpawnStats(
   cfg: EnemyConfig,
   ctx: EnemySpawnContext,
@@ -97,12 +102,10 @@ export function resolveEnemySpawnStats(
   const over = Math.max(0, ctx.wave - 15);
   const hpScale = 1 + (ctx.wave - 1) * 0.18 + over * over * 0.06;
   const dmgScale = 1 + (ctx.wave - 1) * 0.055 + over * over * 0.012;
-  const lvlPow = Math.pow(1.03, Math.floor(ctx.playerLevel / 5));
   const result = resolveStats({
     base: { maxHp: cfg.hp, attack: cfg.dmg, moveSpeed: cfg.speed },
     modifiers: [
       { sourceId: "wave", stat: "maxHp", stage: "final", value: hpScale },
-      { sourceId: "level", stat: "maxHp", stage: "final", value: lvlPow },
       { sourceId: "elite", stat: "maxHp", stage: "final", value: ctx.elite ? 7 : 1 },
       { sourceId: "wave", stat: "attack", stage: "final", value: dmgScale },
       { sourceId: "elite", stat: "attack", stage: "final", value: ctx.elite ? 1.6 : 1 },

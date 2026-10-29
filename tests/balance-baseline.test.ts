@@ -85,17 +85,6 @@ const MAP_FIELDS = new Set([
 
 const WAVES = [1, 5, 10, 15, 20, 25, 30];
 
-/** 采样波次的玩家等级（用于 lvlPow；按现有经验曲线估，仅供怪物侧对照）。 */
-const SAMPLE_LEVELS: Record<number, number> = {
-  1: 1,
-  5: 8,
-  10: 16,
-  15: 25,
-  20: 32,
-  25: 36,
-  30: 39,
-};
-
 const INDICES_NOTES = {
   coverage: "(1 + pierce) × multishot —— 单发平均能覆盖几个目标（无视 area/弹射，粗口径）",
   critExp: "1 + min(1, critChance) × (critMultiplier - 1) —— 暴击期望倍率",
@@ -258,7 +247,6 @@ function buildSnapshot(): Snapshot {
   function pressureRow(w: number) {
     const st = resolveEnemySpawnStats(cfg, {
       wave: w,
-      playerLevel: SAMPLE_LEVELS[w],
       elite: false,
       speedJitter: 1,
     });
