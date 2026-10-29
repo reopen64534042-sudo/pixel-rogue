@@ -231,21 +231,19 @@ describe("34 talents, card pools and combat", () => {
     g.damagePlayer(1000);
     expect(g.phase).toBe("over");
   });
-  it("dash requires unlock, then consumes charges and recharges", () => {
+  // 基线更新依据：Issue #137——开局自带基础冲刺，「需解锁」前提随疾影步退役失效；
+  // 充能/冷却机制本身由本用例继续咬住（dashMax 2.4s → 充能需 144 帧）
+  it("dash: base unlocked from start, consumes charges and recharges", () => {
     const g = fresh();
     g.keys[" "] = true;
-    ticks(g, 1);
-    expect(g.player.dashT).toBeLessThan(0);
-    expect(g.player.dashCharges).toBe(1);
-    learn(g, "疾影步");
     ticks(g, 1);
     expect(g.player.dashT).toBeGreaterThan(0);
     expect(g.player.dashCharges).toBe(0);
     g.keys = {};
-    ticks(g, 121);
+    ticks(g, 150);
     expect(g.player.dashCharges).toBe(1);
     learn(g, "双段疾冲");
-    ticks(g, 121);
+    ticks(g, 150);
     expect(g.player.dashCharges).toBe(2);
   });
   it.each(["pierce", "jumps"] as const)(

@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 
+import { dismissStartTalent } from "./e2e-helpers";
 /**
  * Issue #95：触控层端到端。
  *
@@ -71,6 +72,7 @@ test("PC stays keyboard-only: no touch layer, joystick vector untouched", async 
   await expect(entry).toBeDisabled();
   await expect(entry).toHaveText(/敬请期待/);
   await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await dismissStartTalent(page);
   const start = await page.evaluate(() => {
     const core = window.__PIXEL_ROGUE__!.core;
     return { x: core.player.x, mx: core.moveX, my: core.moveY };
@@ -93,6 +95,7 @@ test("touch joystick drives eight directions and releases cleanly", async ({
   // 触屏档把开始界面的键位提示换成触控操作说明
   await expect(page.locator("#ov-start .keys")).toContainText("左半屏拖拽");
   await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await dismissStartTalent(page);
   await page.waitForFunction(
     () => window.__PIXEL_ROGUE__!.core.state === "play",
   );
@@ -161,24 +164,17 @@ test("touch joystick drives eight directions and releases cleanly", async ({
   ).toBe(stillY);
 });
 
-test("dash button appears only after the dash talent and fires on hold", async ({
+test("dash button appears from the start (base dash) and fires on hold", async ({
   page,
 }) => {
   await page.goto("/?touch=1");
   await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
   await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await dismissStartTalent(page);
   await page.waitForFunction(
     () => window.__PIXEL_ROGUE__!.core.state === "play",
   );
-  // D4：未解锁冲刺天赋时按钮不出现
-  await expect(page.locator("#btn-dash")).toBeHidden();
-
-  await page.evaluate(() => {
-    const bridge = window.__PIXEL_ROGUE__!;
-    const talent = bridge.talents.find((t) => t.n === "疾影步");
-    if (!talent) throw new Error("缺少天赋：疾影步");
-    bridge.core.learnTalent(talent);
-  });
+  // 基线更新依据：Issue #137——开局自带基础冲刺，触屏冲刺键无需解锁即出现
   await expect(page.locator("#btn-dash")).toBeVisible();
 
   await page.evaluate(() => {
@@ -221,6 +217,7 @@ test("joystick mode is switchable in settings and persists", async ({
   await page.goto("/?touch=1");
   await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
   await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await dismissStartTalent(page);
   await page.waitForFunction(
     () => window.__PIXEL_ROGUE__!.core.state === "play",
   );
@@ -251,6 +248,7 @@ test("pause panel exposes the stats entry and returns to pause", async ({
   await page.goto("/");
   await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
   await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await dismissStartTalent(page);
   await page.waitForFunction(
     () => window.__PIXEL_ROGUE__!.core.state === "play",
   );
@@ -288,6 +286,7 @@ test("portrait is gated by a rotate prompt, pauses the run, and does not auto-re
   await page.goto("/?touch=1");
   await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
   await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await dismissStartTalent(page);
   await page.waitForFunction(
     () => window.__PIXEL_ROGUE__!.core.state === "play",
   );
@@ -366,6 +365,7 @@ test("talent tooltip opens, toggles closed on re-tap, and closes on outside tap"
   await page.goto("/?touch=1");
   await page.waitForFunction(() => Boolean(window.__PIXEL_ROGUE__?.scene));
   await page.getByRole("button", { name: "开 始 冒 险" }).click();
+  await dismissStartTalent(page);
   await page.waitForFunction(
     () => window.__PIXEL_ROGUE__!.core.state === "play",
   );
@@ -391,8 +391,11 @@ test("talent tooltip opens, toggles closed on re-tap, and closes on outside tap"
 
   await tapByTouch(page, tag);
   await expect(tip).toBeVisible();
-  // 点面板空白处也收起（不依赖浏览器补发的 mouseover）
-  await page.locator("#stat-combat").click();
+  // 点面板空白处也收起（不依赖浏览器补发的 mouseover）。
+  // #136 后模拟在此处仍在跑（本用例不暂停），面板数值持续刷新导致
+  // Playwright 的 actionability「stable」检查永远不满足——这里只关心
+  // 「点它能收起 tooltip」，用 force 跳过稳定性等待
+  await page.locator("#stat-combat").click({ force: true });
   await expect(tip).toBeHidden();
 });
 

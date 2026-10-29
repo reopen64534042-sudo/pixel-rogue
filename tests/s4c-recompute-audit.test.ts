@@ -106,7 +106,8 @@ describe("C3 差异审计与分阶段修复验证", () => {
     expect(g.player.tempShield).toBe(1);
     expect(g.player.ndUsed).toBe(true);
     // 天赋数值本身重建正确（对照项）：dashMax 首级 2.0
-    expect(g.player.dashLv).toBe(1);
+    // 基线更新依据：Issue #137——dashLv = 开局基础 1 + 疾影步 1 级
+    expect(g.player.dashLv).toBe(2);
     expect(g.player.dashMax).toBe(2);
   });
 

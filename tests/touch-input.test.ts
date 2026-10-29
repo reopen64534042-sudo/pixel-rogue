@@ -260,14 +260,15 @@ describe("core touch input seam", () => {
     expect(p.dashCharges).toBe(0);
   });
 
-  it("ignores the dash button before the talent unlocks it", () => {
+  // 基线更新依据：Issue #137——开局自带基础冲刺，触屏冲刺键无需解锁即可用
+  it("triggers the base dash from the touch button without any talent", () => {
     const g = fresh();
     const p = g.player;
-    expect(p.dashLv).toBe(0);
+    expect(p.dashLv).toBe(1);
     g.setDashHeld(true);
     ticks(g, 1);
-    expect(p.dashT).toBeLessThanOrEqual(0);
-    expect(p.dashCharges).toBe(1);
+    expect(p.dashT).toBeGreaterThan(0);
+    expect(p.dashCharges).toBe(0);
   });
 
   it("clears touch input on reset and on demand", () => {

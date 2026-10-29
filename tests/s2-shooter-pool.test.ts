@@ -276,3 +276,33 @@ describe("S2 机制：距离即收益 / 标记 / 宝箱折算", () => {
     expect(g.attrPicks).toBeGreaterThan(before);
   });
 });
+
+/**
+ * #136/#137 回归：开局冻结与基础冲刺。
+ * 基线更新依据：Issue #136、Issue #137（2026-10-29 用户实测反馈）。
+ */
+describe("#136/#137：开局冻结与基础冲刺", () => {
+  it("#137 开局自带基础冲刺：dashLv=1，recompute 后保留（来源重放不抹基础值）", () => {
+    const g = fresh();
+    expect(g.player.dashLv).toBe(1);
+    expect(g.player.dashMax).toBeCloseTo(2.4, 10);
+    g.recompute();
+    expect(g.player.dashLv).toBe(1);
+    expect(g.player.dashMax).toBeCloseTo(2.4, 10);
+  });
+
+  it("#136 开局天赋未选定时模拟冻结，选完才开始跑", () => {
+    const g = fresh({ keepStartTalent: true });
+    expect(g.startTalentPending).toBe(true);
+    g.openLevelPanel(); // 真实流程中由 UI 的 started 回调打开
+    expect(g.bpMode).toBe("level");
+    const t0 = g.time;
+    ticks(g, 30); // 半秒：整个模拟应完全冻结
+    expect(g.time).toBe(t0);
+    expect(g.enemies).toHaveLength(0);
+    expect(g.chooseSlot(0)).toBe(true);
+    expect(g.startTalentPending).toBe(false);
+    ticks(g, 6);
+    expect(g.time).toBeGreaterThan(t0); // 解冻
+  });
+});

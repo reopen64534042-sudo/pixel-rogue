@@ -1,10 +1,12 @@
 import { expect, test } from "@playwright/test";
 
+import { dismissStartTalent } from "./e2e-helpers";
 test("enemy attack snapshots through real browser simulation", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await page.locator("#btn-start").click();
+  await dismissStartTalent(page);
   await page.waitForFunction(() => window.__PIXEL_ROGUE__?.core.enemies.length);
   await page.waitForTimeout(8000);
   await page.screenshot({ path: "output/playwright/d2b-battle-8s.png" });

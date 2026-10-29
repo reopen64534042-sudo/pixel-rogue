@@ -32,7 +32,7 @@
       "lifesteal": 0,
       "explode": 0,
       "shieldMax": 0,
-      "dashLv": 0,
+      "dashLv": 1,
       "dashMax": 2.4,
       "dashChargeLv": 0,
       "hasteLv": 0,

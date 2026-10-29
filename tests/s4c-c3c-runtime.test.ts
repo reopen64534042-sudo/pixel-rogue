@@ -38,7 +38,9 @@ function growByConversions(g: ReturnType<typeof fresh>, n: number) {
 /** 迁移前旧 f 语义的独立重述（不引用 talent.f / 来源表）：等级属性与首级 Buff 按旧规则推导 */
 function legacyLevels(picks: string[]) {
   let hasteLv = 0,
-    dashLv = 0,
+    // 基线更新依据：Issue #137——开局自带 dashLv=1（共享基础动作），疾影步
+    // 每级 +1 dashLv / −0.4 dashMax（首级 2.0 与旧「解锁」序列逐位一致）
+    dashLv = 1,
     dashMax = 2.4,
     dashChargeLv = 0,
     barrierLv = 0,
@@ -54,13 +56,8 @@ function legacyLevels(picks: string[]) {
         hasteT = 3;
       }
     } else if (n === "疾影步") {
-      if (dashLv === 0) {
-        dashLv = 1;
-        dashMax = 2.0;
-      } else {
-        dashLv++;
-        dashMax -= 0.4;
-      }
+      dashLv++;
+      dashMax -= 0.4;
     } else if (n === "双段疾冲") dashChargeLv++;
     else if (n === "壁垒") barrierLv++;
     else if (n === "不屈") nd = 1;
@@ -179,7 +176,7 @@ describe("S4-C C3-C · 契约 §7.2 验收：冲刺（G-15～G-19）", () => {
     expect(g.player.dashCharges).toBe(0);
     expect(g.player.dashRe).toBe(0.8);
     expect(g.player.dashT).toBe(-0.3);
-    expect(g.player.dashLv).toBe(1);
+    expect(g.player.dashLv).toBe(2); // #137：基础 1 + 疾影步 1 级
     expect(g.player.dashMax).toBe(2);
     g.recompute();
     g.recompute();
@@ -195,7 +192,7 @@ describe("S4-C C3-C · 契约 §7.2 验收：冲刺（G-15～G-19）", () => {
     expect(g.player.dashMax).toBe(1.6);
     g.player.dashRe = 1.2; // 升级时恢复倒计时进行中
     learn(g, "疾影步");
-    expect(g.player.dashLv).toBe(3);
+    expect(g.player.dashLv).toBe(4); // #137：基础 1 + 3 级
     // 1.6 − 0.4 的 IEEE-754 结果 ≠ 1.2（折叠式 2.4−1.2 会得 1.2，B10/B16 逐位钉子）
     expect(g.player.dashMax).toBe(1.2000000000000002);
     expect(g.player.dashRe).toBe(1.2); // 不按新 dashMax 缩放
@@ -206,7 +203,7 @@ describe("S4-C C3-C · 契约 §7.2 验收：冲刺（G-15～G-19）", () => {
 
   it("G-17 熔掉充能卡：充能上限 2→1 夹紧 charges、dashRe 保留（真实置换）", () => {
     const g = fresh();
-    learn(g, "疾影步"); // 冲刺解锁（dashLv>0 是充能逻辑的前提）
+    learn(g, "疾影步"); // #137 前用于解锁冲刺，现仅提供 dashMax −0.4 档
     // S2：旧卡「双段疾冲」已删除，用射手机动槽「双段疾冲」（同为 t0、同为 +1 充能）
     learn(g, "双段疾冲");
     learn(g, "疾风之靴"); // 第二份同档 t0 材料（melt 须两份同档）
@@ -224,7 +221,7 @@ describe("S4-C C3-C · 契约 §7.2 验收：冲刺（G-15～G-19）", () => {
     expect(g.player.upCounts["双段疾冲"]).toBeUndefined();
     expect(g.player.upCounts["疾风之靴"]).toBeUndefined();
     expect(g.player.dashChargeLv).toBe(0); // 来源随材料移除
-    expect(g.player.dashLv).toBe(1); // 疾影步保留（材料仅移除双段疾冲/疾风之靴）
+    expect(g.player.dashLv).toBe(2); // #137：基础 1 + 疾影步 1 级（材料仅移除双段疾冲/疾风之靴）
     expect(g.player.dashCharges).toBe(1); // min(2, dchMax=1)——不补回、只夹紧
     expect(g.player.dashRe).toBe(0.4); // 剩余时间原样（不缩放、不清零）
     expect(rand).toHaveBeenCalledTimes(1);
@@ -273,7 +270,7 @@ describe("S4-C C3-C · 契约 §7.2 验收：冲刺（G-15～G-19）", () => {
     expect(g.player.hp).toBeLessThan(hpDuringDash); // 门控关闭后同一接触路径生效
   });
 
-  it("G-19 失去疾影步保留双段疾冲：充能不清零、无法触发；重学后沿用（真实置换）", () => {
+  it("G-19 失去疾影步保留双段疾冲：基础冲刺仍在（#137）、充能不清零；重学后 dashMax 降档（真实置换）", () => {
     const g = fresh();
     g.quota = 0;
     g.spawnCd = 1e9;
@@ -290,26 +287,28 @@ describe("S4-C C3-C · 契约 §7.2 验收：冲刺（G-15～G-19）", () => {
     const output = g.melt();
     expect(output?.n).toBe("会心深渊");
     expect(rand).toHaveBeenCalledTimes(1); // 池抽取恰好 1 次
-    expect(g.player.dashLv).toBe(0); // 解锁等级随材料移除
-    expect(g.player.dashMax).toBe(2.4); // 回落 base（未解锁占位，消费点不读取）
+    // 基线更新依据：Issue #137——dashLv 基础值 1 不随疾影步移除而消失
+    expect(g.player.dashLv).toBe(1);
+    expect(g.player.dashMax).toBe(2.4); // 回落 base（疾影步的 −0.4/级 随材料移除）
     expect(g.player.dashChargeLv).toBe(1); // 双段疾冲保留
     expect(g.player.dashCharges).toBe(2); // dchMax 仍=2：不夹紧、不清零
-    // 无法触发冲刺（dashLv=0 门控）：dashT 只自然衰减、不被置 0.16
+    // 基础冲刺仍可触发（#137 前此场景 dashLv=0 门死；现在开局自带）
     g.player.dashT = -0.2;
     g.keys[" "] = true;
-    ticks(g, 3);
-    expect(g.player.dashT).toBeCloseTo(-0.25, 8);
+    ticks(g, 1);
+    expect(g.player.dashT).toBe(0.16);
+    expect(g.player.dashCharges).toBe(1); // 消耗一段
     g.keys[" "] = false;
-    // 同波重学疾影步：dashLv=1、dashMax=2.0（首级解析）、充能沿用不补满
+    // 同波重学疾影步：dashLv=2、dashMax=2.0（−0.4/级）、充能沿用不补满
     learn(g, "疾影步");
-    expect(g.player.dashLv).toBe(1);
+    expect(g.player.dashLv).toBe(2);
     expect(g.player.dashMax).toBe(2);
-    expect(g.player.dashCharges).toBe(2);
+    expect(g.player.dashCharges).toBe(1);
     g.player.dashT = -0.2;
     g.keys[" "] = true;
     ticks(g, 1);
     expect(g.player.dashT).toBe(0.16); // 重新可触发
-    expect(g.player.dashCharges).toBe(1); // 消耗一段
+    expect(g.player.dashCharges).toBe(0); // 消耗一段
     g.keys[" "] = false;
   });
 });
@@ -399,7 +398,7 @@ describe("S4-C C3-C · 契约 §7.2 验收：换波与全局（G-20～G-22）", 
     expect(g.player.maxhp).toBe(120);
     expect(g.player.shieldMax).toBe(2);
     expect(g.player.hasteLv).toBe(1);
-    expect(g.player.dashLv).toBe(2);
+    expect(g.player.dashLv).toBe(3); // #137：基础 1 + 疾影步 2 级
     expect(g.player.dashMax).toBe(1.6);
     expect(g.player.dashChargeLv).toBe(1);
     expect(g.player.barrierLv).toBe(1);
@@ -546,7 +545,7 @@ describe("S4-C C3-C · 额外重点（任务书 §七）", () => {
     g.boxPicks = 1;
     g.slots = [{ u: talent("疾影步"), used: false }];
     expect(g.chooseSlot(0)).toBe(true);
-    expect(g.player.dashLv).toBe(2);
+    expect(g.player.dashLv).toBe(3); // #137：基础 1 + 疾影步 2 级
     expect(g.player.dashMax).toBe(1.6); // 有序 flat 逐位
     g.wavePhase = "rest";
     expect(g.startNextWave()).toBe(true);

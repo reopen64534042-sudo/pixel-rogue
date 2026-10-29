@@ -39,7 +39,9 @@ export function statBase() {
     shieldMax: 0,
     shield: 0,
     shieldCd: 0,
-    dashLv: 0,
+    // #137：开局自带基础冲刺（docs/talent-pool-design-rules.md 前提共识：
+    // 三职业共享基础动作 冲刺/受伤/拾取）。机动轴卡（充能/距离）在其上增强
+    dashLv: 1,
     dashT: -1,
     dashMax: 2.4,
     dashCharges: 1,

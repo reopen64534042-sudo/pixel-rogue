@@ -179,29 +179,29 @@ describe("S4-C C3-0 · 击杀狂热/战意沸腾消费点（旧行为基线）",
 });
 
 describe("S4-C C3-0 · 冲刺解锁/充能（旧行为基线）", () => {
-  it("B10 疾影步首级 dashLv=1/dashMax=2.0，后续每级 dashMax −0.4（逐位：2.0/1.6/1.2000000000000002）", () => {
+  it("B10 疾影步 dashLv 在基础 1 上 +1/级（#137 后首级=2），dashMax 每级 −0.4（逐位：2.0/1.6/1.2000000000000002）", () => {
     const g = fresh();
-    learn(g, "疾影步");
-    expect(g.player.dashLv).toBe(1);
-    expect(g.player.dashMax).toBe(2.0);
+    // 基线更新依据：Issue #137——开局自带 dashLv=1（共享基础动作），
+    // 疾影步在其上 +1/级；dashMax base 2.4 与 −0.4/级 未变，逐位序列保持
     learn(g, "疾影步");
     expect(g.player.dashLv).toBe(2);
-    expect(g.player.dashMax).toBe(1.6);
+    expect(g.player.dashMax).toBe(2.0);
     learn(g, "疾影步");
     expect(g.player.dashLv).toBe(3);
+    expect(g.player.dashMax).toBe(1.6);
+    learn(g, "疾影步");
+    expect(g.player.dashLv).toBe(4);
     // 1.6 − 0.4 的 IEEE-754 结果 ≠ 1.2（契约 §8.3 预警的 ulp 级风险实测坐实：
     // C3-C 解析式/查表必须钉住旧 f 重放的逐位值，不得写 1.2）
     expect(g.player.dashMax).toBe(1.2000000000000002);
   });
 
-  it("B11 二段冲刺前置（req 只约束卡池 canOffer）与充能上限 dchMax = 1 + dashChargeLv", () => {
+  it("B11 充能上限 dchMax = 1 + dashChargeLv（#137 后冲刺开局自带，无需先解锁）", () => {
     const g = fresh();
     // S2：旧卡「二段冲刺」已删除，改学射手机动槽「双段疾冲」（同样 +1 充能）。
     // 「req 只约束 canOffer」的验证由射手链式依赖覆盖（见 game.test 的
     // 「chain prerequisites」用例），这里保留充能上限公式的验证。
-    // 冲刺必须先解锁（dashLv>0 是充能逻辑的前提）
-    learn(g, "疾影步");
-    expect(g.player.dashLv).toBe(1);
+    // 基线更新依据：Issue #137——开局 dashLv=1，「先学疾影步解锁」前提移除
     learn(g, "双段疾冲");
     expect(g.player.dashChargeLv).toBe(1);
     // 充能行为：0 → 1 → 2 充满后停（隔离刷怪）
@@ -212,7 +212,7 @@ describe("S4-C C3-0 · 冲刺解锁/充能（旧行为基线）", () => {
     ticks(g, 2);
     expect(g.player.dashCharges).toBe(1);
     expect(g.player.dashRe).toBe(g.player.dashMax); // 继续按 dashMax 倒计时
-    ticks(g, 60 * 2.2);
+    ticks(g, 60 * 2.5); // dashMax 2.4（未学疾影步，2.2s 不够）
     expect(g.player.dashCharges).toBe(2); // dchMax=2
     ticks(g, 60);
     expect(g.player.dashCharges).toBe(2); // 达到上限不再充能
