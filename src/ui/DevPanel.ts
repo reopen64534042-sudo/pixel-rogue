@@ -275,11 +275,13 @@ export class DevPanel {
   }
 
   /**
-   * 正常游玩的前置判定：`requires`（链前置）、`req`（自定义条件）、
+   * 正常游玩的前置判定：职业归属、`requires`（链前置）、`req`（自定义条件）、
    * 互斥（双向）与变体组 N 选 1（含 `variantBypass` 豁免）。
-   * 职业不在此列——作弊面板仍允许跨职业测试。
+   * 职业也必须匹配：法师局不再能点射手卡（v80 用户要求）。
    */
   private prereq(u: Talent): { ok: boolean; hint: string } {
+    if (u.prof && u.prof !== "common" && u.prof !== this.core.prof)
+      return { ok: false, hint: "职业不符" };
     const picks = this.core.player.picks;
     if (u.requires && !picks.includes(u.requires))
       return { ok: false, hint: `需 ${u.requires}` };

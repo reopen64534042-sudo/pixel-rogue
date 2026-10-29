@@ -9,13 +9,14 @@ export function updatePlayer(this: GameCore, dt: number) {
   // 摇杆已把方向吸附成 -1/0/1，因此下面的对角归一与移动规则保持不变。
   let mx = this.moveX;
   let my = this.moveY;
+  const kb = this.keybinds;
   if (!mx && !my) {
     mx =
-      (this.keys["d"] || this.keys["arrowright"] ? 1 : 0) -
-      (this.keys["a"] || this.keys["arrowleft"] ? 1 : 0);
+      (this.keys[kb.right] || this.keys["arrowright"] ? 1 : 0) -
+      (this.keys[kb.left] || this.keys["arrowleft"] ? 1 : 0);
     my =
-      (this.keys["s"] || this.keys["arrowdown"] ? 1 : 0) -
-      (this.keys["w"] || this.keys["arrowup"] ? 1 : 0);
+      (this.keys[kb.down] || this.keys["arrowdown"] ? 1 : 0) -
+      (this.keys[kb.up] || this.keys["arrowup"] ? 1 : 0);
   }
   if (mx && my) {
     mx *= 0.7071;
@@ -42,7 +43,7 @@ export function updatePlayer(this: GameCore, dt: number) {
   }
   if (
     p.dashLv &&
-    (this.keys[" "] || this.dashHeld) &&
+    (this.keys[kb.dash] || this.dashHeld) &&
     p.dashCharges > 0 &&
     p.dashT <= -0.1
   ) {

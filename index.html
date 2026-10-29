@@ -40,7 +40,7 @@
     <div class="level-header">
       <div class="bp-title" id="attr-title">◆ 属性强化 · 选择一项</div>
       <div class="level-subhint" id="attr-hint">
-        模拟不暂停 · 键盘 1 / 2 / 3 / 4 快捷选取
+        模拟不暂停 · 四格顺序随机 · 键盘 1 / 2 / 3 / 4 快捷选取
       </div>
     </div>
     <div id="attr-cards"></div>
@@ -125,10 +125,16 @@
     <h2>角色属性与天赋</h2>
     <div class="stats-container">
       <div id="stat-grid" class="stats-col stats-col-left">
-        <div class="stats-group-title">核心战斗</div>
+        <div class="stats-group-title">输出</div>
         <div id="stat-combat" class="stat-group-grid"></div>
-        <div class="stats-group-title">生存防御</div>
+        <div class="stats-group-title">生存</div>
         <div id="stat-defense" class="stat-group-grid"></div>
+        <div class="stats-group-title">续航</div>
+        <div id="stat-sustain" class="stat-group-grid"></div>
+        <div class="stats-group-title">功能</div>
+        <div id="stat-utility" class="stat-group-grid"></div>
+        <div class="stats-group-title">局内信息</div>
+        <div id="stat-info" class="stat-group-grid"></div>
       </div>
       <div class="stats-col stats-col-right">
         <div class="stats-group-title">已学天赋</div>
@@ -150,10 +156,21 @@
       <button class="btn" id="btn-resume">继 续 战 斗</button>
       <button class="btn" id="btn-pause-stats">角 色 属 性</button>
       <button class="btn" id="btn-pause-codex">图 鉴</button>
-      <button class="btn" id="btn-pause-settings" disabled>设 置 · 敬请期待</button>
+      <button class="btn" id="btn-pause-settings">设 置</button>
       <button class="btn" id="btn-restart">重 新 开 始</button>
     </div>
     <p id="pause-version" class="pause-version"></p>
+  </div>
+
+  <!-- 设置（v79：键位） -->
+  <div id="ov-settings" class="overlay hidden">
+    <h2>设 置</h2>
+    <p class="settings-hint" id="keybind-hint"></p>
+    <div id="keybind-list" class="keybind-list"></div>
+    <div class="settings-actions">
+      <button class="btn" id="btn-keyreset">恢 复 默 认</button>
+      <button class="btn" id="btn-settings-close">返 回</button>
+    </div>
   </div>
 
   <!-- Issue #96：竖屏引导（仅触屏设备启用，D2 定为强制横屏） -->

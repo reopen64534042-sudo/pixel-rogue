@@ -13,6 +13,17 @@ import { fmtTime } from "../game/data/constants";
 import { boltDamage, critMultiplier } from "../game/core/DamageMath";
 import { professionPierce } from "../game/core/AttributeSources";
 import { COMBAT_BALANCE } from "../game/data/combatBalance";
+import {
+  DEFAULT_KEYBINDS,
+  KEY_ACTIONS,
+  findKeyConflict,
+  isBindableKey,
+  keyLabel,
+  loadKeyBindings,
+  normalizeKey,
+  saveKeyBindings,
+  type KeyAction,
+} from "../game/data/keybindings";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
 import { element } from "./dom";
 import { CodexUI } from "./CodexUI";
@@ -56,12 +67,25 @@ export class GameUI {
   private restartTimer: number | undefined;
   /** 低血量屏幕边缘提示层（index.html 的静态节点） */
   private lowHpEl: HTMLElement | null = null;
+  /** 设置面板与改键捕获态（v79） */
+  private settingsOpen = false;
+  private captureAction: KeyAction | null = null;
+  private settingsHint = "";
   constructor(public core: GameCore) {
     this.codex = new CodexUI(core);
+    core.keybinds = loadKeyBindings();
     core.view = {
       reset: () => this.reset(),
       started: () => {
-        ["ov-start", "ov-over", "ov-pause", "ov-stats"].forEach(hide);
+        [
+          "ov-start",
+          "ov-over",
+          "ov-pause",
+          "ov-stats",
+          "ov-settings",
+        ].forEach(hide);
+        this.settingsOpen = false;
+        this.captureAction = null;
         // S2 修订（用户反馈）：开局送 1 次天赋 → 选完再进入战斗。
         // 面板由**UI 层**弹出而不是 GameCore.startGame：core 里开面板会走
         // rollPicks，消耗 Math.random 打乱确定性序列，所有基于种子随机的
@@ -77,8 +101,9 @@ export class GameUI {
           this.renderPause();
           show("ov-pause");
         } else {
-          // 防御：恢复游戏时若图鉴仍开着，一并收起，避免盖住战斗画面
+          // 防御：恢复游戏时若图鉴/设置仍开着，一并收起，避免盖住战斗画面
           this.codex.close();
+          if (this.settingsOpen) this.closeSettings();
           hide("ov-pause");
         }
       },
@@ -133,7 +158,15 @@ export class GameUI {
     element("btn-pause-codex").onclick = () => this.codex.open();
     // Issue #100：触屏没有 C 键，属性面板从暂停界面进入
     element("btn-pause-stats").onclick = () => this.core.openStatsFromPause();
-    // 设置入口本期只占位：保持 disabled，不绑空的 onclick（避免出现死按钮）
+    element("btn-pause-settings").onclick = () => this.openSettings();
+    element("btn-keyreset").onclick = () => {
+      this.core.keybinds = { ...DEFAULT_KEYBINDS };
+      saveKeyBindings(this.core.keybinds);
+      this.captureAction = null;
+      this.settingsHint = "已恢复默认键位";
+      this.renderKeybindings();
+    };
+    element("btn-settings-close").onclick = () => this.closeSettings();
     element("btn-restart").onclick = () => {
       if (!this.restartArmed) {
         this.armRestart();
@@ -204,7 +237,9 @@ export class GameUI {
     element("btn-prof-mage").removeAttribute("aria-busy");
   }
   reset() {
-    ["bottom-bar", "bp-level", "bp-attr", "bp-rest", "bp-swap"].forEach(hide);
+    ["bottom-bar", "bp-level", "bp-attr", "bp-rest", "bp-swap", "ov-settings"].forEach(hide);
+    this.settingsOpen = false;
+    this.captureAction = null;
     if (this.lowHpEl) this.lowHpEl.style.opacity = "0";
   }
   /**
@@ -333,10 +368,7 @@ export class GameUI {
       lightning: "雷",
     };
     const elems = isMage ? mageElements(p) : [];
-    const combatRows: [string, string | number][] = [
-      ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
-      ["📘 下级所需经验", p.xpNext],
-      ["🌊 当前波次", this.core.waveN + "（配额 " + this.core.quota + "）"],
+    const outputRows: [string, string | number][] = [
       // 文案更名（S3-C）：p.damage 是攻击基线（技能系数/raw），非 globalDamageBonus
       isMage
         ? ["🔮 元素伤害", p.damage.toFixed(1)]
@@ -359,32 +391,19 @@ export class GameUI {
               " /秒" +
               (p.haste ? ` (狂热 +${p.haste * 10}%)` : ""),
           ],
-      [
-        "💥 暴击/暴伤",
-        (p.crit * 100).toFixed(0) + "% / ×" + critMultiplier(p).toFixed(1),
-      ],
-      // v74：闪避与吸血归入核心战斗（用户裁定），不再放在生存防御。
-      ["🌀 闪避", p.dodge ? (p.dodge * 100).toFixed(0) + "%" : "—"],
-      [
-        "🦷 吸血",
-        p.lifesteal ? (p.lifesteal * 100).toFixed(1) + "%" : "—",
-      ],
-      // S3：法师显示施法距离/当前元素/法阵范围；射手只显示穿透
-      //（弹道数量对玩家没有决策价值，已移除）。
+      ["💥 暴击", (p.crit * 100).toFixed(0) + "%"],
+      ["💥 暴击伤害", "×" + critMultiplier(p).toFixed(1)],
+      // 职业专属输出行：法师当前元素，射手穿透。
       ...(isMage
         ? ([
-            ["🎯 施法距离", Math.round(p.attackRange)],
             [
               "🔮 当前元素",
               elems.length ? elems.map((e) => ELEM_LABEL[e]).join(" · ") : "无",
             ],
-            ["🌐 施法范围", "×" + p.area.toFixed(2)],
           ] as [string, string | number][])
         : ([
             ["🔱 穿透", p.pierce + professionPierce(this.core.prof)],
           ] as [string, string | number][])),
-      ["👟 移动速度", Math.round(p.speed)],
-      ["🧲 拾取范围", Math.round(p.magnet)],
       // S3-C：独立增伤乘区展示（与 p.damage 基线区分；0 值按既有惯例显示 —）
       [
         "✴️ 全局增伤",
@@ -397,7 +416,8 @@ export class GameUI {
       ],
       ["❄️ 冰霜增伤", typeBonus.frost ? "+" + pct(typeBonus.frost) : "—"],
     ];
-    const defenseRows: [string, string | number][] = [
+    const survivalRows: [string, string | number][] = [
+      ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
       [
         "🥋 减伤",
         p.tough ? (Math.min(0.6, p.tough) * 100).toFixed(0) + "%" : "—",
@@ -426,7 +446,32 @@ export class GameUI {
           ? pct(Math.min(resist.frost, COMBAT_BALANCE.resistanceCap))
           : "—",
       ],
+      ["🌀 闪避", p.dodge ? (p.dodge * 100).toFixed(0) + "%" : "—"],
+    ];
+    const sustainRows: [string, string | number][] = [
+      [
+        "🦷 吸血",
+        p.lifesteal ? (p.lifesteal * 100).toFixed(1) + "%" : "—",
+      ],
       ["✨ 生命回复", p.regen ? p.regen.toFixed(1) + " /秒" : "—"],
+    ];
+    const utilityRows: [string, string | number][] = [
+      ["👟 移动速度", Math.round(p.speed)],
+      ["🧲 拾取范围", Math.round(p.magnet)],
+      [
+        isMage ? "🎯 施法距离" : "🎯 射程",
+        Math.round(p.attackRange),
+      ],
+      ...(isMage
+        ? ([
+            ["🌐 法阵范围", "×" + p.area.toFixed(2)],
+          ] as [string, string | number][])
+        : []),
+    ];
+    const infoRows: [string, string | number][] = [
+      ["📈 等级", p.lvl],
+      ["📘 下级所需经验", p.xpNext],
+      ["🌊 当前波次", this.core.waveN + "（配额 " + this.core.quota + "）"],
     ];
 
     const renderRows = (items: [string, string | number][]) =>
@@ -437,10 +482,16 @@ export class GameUI {
         })
         .join("");
 
-    const combatEl = document.getElementById("stat-combat");
-    const defenseEl = document.getElementById("stat-defense");
-    if (combatEl) combatEl.innerHTML = renderRows(combatRows);
-    if (defenseEl) defenseEl.innerHTML = renderRows(defenseRows);
+    const outputEl = document.getElementById("stat-combat");
+    const survivalEl = document.getElementById("stat-defense");
+    const sustainEl = document.getElementById("stat-sustain");
+    const utilityEl = document.getElementById("stat-utility");
+    const infoEl = document.getElementById("stat-info");
+    if (outputEl) outputEl.innerHTML = renderRows(outputRows);
+    if (survivalEl) survivalEl.innerHTML = renderRows(survivalRows);
+    if (sustainEl) sustainEl.innerHTML = renderRows(sustainRows);
+    if (utilityEl) utilityEl.innerHTML = renderRows(utilityRows);
+    if (infoEl) infoEl.innerHTML = renderRows(infoRows);
 
     const tl = element("talent-list");
     const learned = Object.entries(p.upCounts).filter(([, lv]) => lv > 0);
@@ -551,7 +602,7 @@ export class GameUI {
                  <div class="tt-label">下级提升预览</div>
                  <div class="tt-next-val">${u.pv(p)}</div>
                </div>`
-            : `<div class="tt-maxed">★ 已达最高等级 ★</div>`
+            : ""
         }
       `;
       tooltip.classList.remove("hidden");
@@ -734,7 +785,8 @@ export class GameUI {
           : "◆ 属性强化 · 选择一项";
     const hint = document.querySelector<HTMLElement>("#attr-hint");
     if (hint)
-      hint.textContent = "模拟不暂停 · 键盘 1 / 2 / 3 / 4 快捷选取 · 刷新会连稀有度一起重掷";
+      hint.textContent =
+        "模拟不暂停 · 四格顺序随机 · 键盘 1 / 2 / 3 / 4 快捷选取 · 刷新会连稀有度一起重掷";
     const btn = element("attr-refresh") as HTMLButtonElement;
     btn.disabled = g.attrRefreshUsed;
     btn.textContent = g.attrRefreshUsed ? "已刷新" : "刷新（每次一次）";
@@ -889,8 +941,109 @@ export class GameUI {
     mb.style.opacity = mb.disabled ? "0.4" : "1";
   }
 
+  /** 打开键位设置（从暂停界面进入）。 */
+  private openSettings(): void {
+    if (this.core.state !== "pause") return;
+    this.settingsOpen = true;
+    this.captureAction = null;
+    this.settingsHint = "点击按键后按下新键 · Esc 取消 · 方向键与 Esc 始终可用";
+    this.renderKeybindings();
+    show("ov-settings");
+  }
+
+  private closeSettings(): void {
+    this.settingsOpen = false;
+    this.captureAction = null;
+    hide("ov-settings");
+  }
+
+  /** 重建设置列表；捕获中的动作显示「按下新键...」。 */
+  private renderKeybindings(): void {
+    const box = element("keybind-list");
+    box.innerHTML = "";
+    for (const { action, label } of KEY_ACTIONS) {
+      const row = document.createElement("div");
+      row.className = "keybind-row";
+      const name = document.createElement("span");
+      name.className = "keybind-name";
+      name.textContent = label;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className =
+        "keybind-btn" + (this.captureAction === action ? " capturing" : "");
+      btn.textContent =
+        this.captureAction === action
+          ? "按下新键..."
+          : keyLabel(this.core.keybinds[action]);
+      btn.onclick = () => {
+        this.captureAction = action;
+        this.settingsHint = "按下新键 · Esc 取消";
+        this.renderKeybindings();
+      };
+      row.appendChild(name);
+      row.appendChild(btn);
+      box.appendChild(row);
+    }
+    element("keybind-hint").textContent = this.settingsHint;
+  }
+
+  /**
+   * 设置面板/改键捕获的按键入口（GameScene 在游戏按键处理前调用）。
+   * 返回 true 表示本事件已被设置面板消费，游戏不再处理。
+   */
+  handleSettingsKey(event: KeyboardEvent): boolean {
+    if (!this.settingsOpen && !this.captureAction) return false;
+    if (this.captureAction) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.repeat) return true;
+      if (event.key === "Escape") {
+        this.captureAction = null;
+        this.settingsHint = "已取消";
+        this.renderKeybindings();
+        return true;
+      }
+      const key = normalizeKey(event.key);
+      if (!isBindableKey(key)) {
+        this.settingsHint = "这个键被保留，请换一个";
+        this.renderKeybindings();
+        return true;
+      }
+      const conflict = findKeyConflict(
+        this.core.keybinds,
+        key,
+        this.captureAction,
+      );
+      if (conflict) {
+        const name =
+          KEY_ACTIONS.find((item) => item.action === conflict)?.label ??
+          conflict;
+        this.settingsHint = `已被「${name}」使用`;
+        this.renderKeybindings();
+        return true;
+      }
+      this.core.keybinds = {
+        ...this.core.keybinds,
+        [this.captureAction]: key,
+      };
+      saveKeyBindings(this.core.keybinds);
+      this.captureAction = null;
+      this.settingsHint = "已保存 · 方向键与 Esc 始终可用";
+      this.renderKeybindings();
+      return true;
+    }
+    // 设置面板打开但未捕获：吞掉所有游戏键，只允许 Esc 返回暂停。
+    event.preventDefault();
+    if (event.key === "Escape") this.closeSettings();
+    return true;
+  }
+
   /** 关闭最上层覆盖面板；返回是否关闭了某层（键位路由据此决定是否继续处理）。 */
   dismissOverlay(): boolean {
+    if (this.settingsOpen) {
+      this.closeSettings();
+      return true;
+    }
     if (this.codex.isOpen) {
       this.codex.close();
       return true;
@@ -900,7 +1053,7 @@ export class GameUI {
 
   /** 是否有覆盖面板打开：用于屏蔽 C 键等战斗内快捷键。 */
   hasOverlay(): boolean {
-    return this.codex.isOpen;
+    return this.codex.isOpen || this.settingsOpen;
   }
 
   private renderPause(): void {
@@ -924,7 +1077,10 @@ export class GameUI {
     this.core.clearTouchInput();
     this.core.state = "start";
     this.core.view.reset();
-    ["ov-pause", "ov-over", "ov-stats", "ov-changelog"].forEach(hide);
+    if (this.settingsOpen) this.closeSettings();
+    ["ov-pause", "ov-over", "ov-stats", "ov-changelog", "ov-settings"].forEach(
+      hide,
+    );
     show("ov-start");
     for (const id of ["btn-start", "btn-prof-mage"]) {
       const button = element(id) as HTMLButtonElement;
