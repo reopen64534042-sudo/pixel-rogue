@@ -453,6 +453,8 @@ export interface FloatingText extends Point {
   life: number;
   vy: number;
   big: boolean;
+  /** 真实伤害专属样式：银白字 + 冷蓝描边并放大，和普通白字区分 */
+  trueDmg?: boolean;
 }
 export interface Meteor extends Point {
   t: number;

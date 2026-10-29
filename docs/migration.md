@@ -2371,3 +2371,9 @@ ctx.stroke();      // → strokePath()
   5. `core/SpecialSystem.ts`：删除升级/升级获得的世界飘字，保留升级音效与震屏；升级结果改由属性面板显示。
   6. `index.html` + `ui/GameUI.ts` + `styles/game.css`：C 属性面板新增「强化箭」组（仅射手显示），展示等级 `Lv.x / 12`、强化穿透 `+n`、飞行状态（有限/无限）、下一级经验 `current / required`、当前升级列表；长列表跨两列换行。
 - 验证：`npm run typecheck`、`npm run build` 通过；按 2026-10-29 标准未运行 Vitest / Playwright。现有测试无 `infinitePierce` 直接断言，历史 balance/parity 基线仍按更早数值保留。受控运行（普通 dev + e2e `?test=special-max`）：射手 C 面板显示 Lv.1/12、强化穿透 +1、飞行有限、经验 0/8、当前升级「暂无」；法师面板整组隐藏；满级显示 Lv.12/12 · MAX、+6、飞行无限、MAX 与 9 条升级；调用 `gainSpecialXp` 升级前后 `core.texts.length` 均为 8，确认升级不再产生飘字。
+
+## D-82 真实伤害飘字颜色（v78）
+
+- 用户需求：真实伤害的数字需要与其他伤害区分，使用银亮的白色。
+- 改动：`core/CombatSystem.ts` 新增 `TRUE_DAMAGE_COLOR = "#eaf7ff"` 与 `TRUE_DAMAGE_OUTLINE = "#38bdf8"`；`hurtEnemy` 在 `opts.type === "true"` 或 `trueFraction` 结算出额外真实伤害时给 `FloatingText.trueDmg` 打标，优先级高于「强化箭/暴击」的金色。`rendering/draw.ts` 对真实伤害飘字使用 12px 冷蓝字号铺底形成实心外圈，再叠 10px 银白主体；真实伤害暴击（`trueDmg && big`）改用 16px 金色外圈 + 14px 冷蓝内圈 + 12px 纯白主体；普通飘字仍为 8px。因 `PixelPainter` 不暴露 canvas 阴影 API，采用大字号铺底而不是 shadowBlur。
+- 验证：`npm run typecheck`、`npm run build` 通过；受控调用 `hurtEnemy` 对比 true / physical+specialHit / physical+trueFraction 三种飘字的颜色与 `trueDmg` 标记。按 2026-10-29 标准未运行 Vitest / Playwright。

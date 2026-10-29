@@ -5,6 +5,7 @@ import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { getSpecialLevelStats } from "../data/specialShot";
+import { TRUE_DAMAGE_OUTLINE } from "../core/CombatSystem";
 import { spriteEntry } from "./assetRegistry";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
@@ -680,11 +681,41 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   ctx.textAlign = "center";
   for (const t of this.texts) {
     ctx.globalAlpha = Math.min(1, t.life * 3);
+    const x = Math.round(t.x);
+    const y = Math.round(t.y);
     ctx.fillStyle = "#10131f";
-    ctx.font = '8px "Press Start 2P", monospace';
-    ctx.fillText(t.s, Math.round(t.x) + 1, Math.round(t.y) + 1);
-    ctx.fillStyle = t.c;
-    ctx.fillText(t.s, Math.round(t.x), Math.round(t.y));
+    if (t.trueDmg) {
+      // 真实伤害：用更大的冷蓝字号铺底形成实心外圈，再叠银白主体；
+      // 比 1px 描边更醒目，且不需要 PixelPainter 暴露 canvas 阴影 API。
+      // 暴击再叠一层金色外圈并整体放大，和普通真实伤害区分。
+      if (t.big) {
+        ctx.font = '16px "Press Start 2P", monospace';
+        ctx.fillStyle = "#ffd24a";
+        ctx.fillText(t.s, x, y);
+        ctx.font = '14px "Press Start 2P", monospace';
+        ctx.fillStyle = TRUE_DAMAGE_OUTLINE;
+        ctx.fillText(t.s, x, y);
+        ctx.font = '12px "Press Start 2P", monospace';
+        ctx.fillStyle = "#10131f";
+        ctx.fillText(t.s, x + 1, y + 1);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(t.s, x, y);
+      } else {
+        ctx.font = '12px "Press Start 2P", monospace';
+        ctx.fillStyle = TRUE_DAMAGE_OUTLINE;
+        ctx.fillText(t.s, x, y);
+        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.fillStyle = "#10131f";
+        ctx.fillText(t.s, x + 1, y + 1);
+        ctx.fillStyle = t.c;
+        ctx.fillText(t.s, x, y);
+      }
+    } else {
+      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.fillText(t.s, x + 1, y + 1);
+      ctx.fillStyle = t.c;
+      ctx.fillText(t.s, x, y);
+    }
   }
   ctx.globalAlpha = 1;
 

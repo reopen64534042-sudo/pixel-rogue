@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v78",
+    date: "2026-10-30",
+    title: "真实伤害飘字颜色",
+    items: [
+      "完全真实伤害与附带真实伤害的飘字改为银白填色 + 冷蓝实心外圈并放大字号，优先于强化箭/暴击的金色；真实伤害暴击再叠金色外圈并进一步放大。",
+    ],
+  },
+  {
     version: "v77",
     date: "2026-10-30",
     title: "强化箭穿透上限与属性面板",
