@@ -18,6 +18,11 @@ export function boltDamage(p: Pick<Player, "damage" | "boltDmgMul">) {
   return p.damage * p.boltDmgMul;
 }
 
+/** 射手强化箭：基础魔弹伤害 × 当前等级倍率 */
+export function chargedShotDamage(base: number, mul: number) {
+  return base * mul;
+}
+
 /** 暴击倍率：含致命一击满层觉醒（Issue #41） */
 export function critMultiplier(p: Pick<Player, "critMul" | "upCounts">) {
   return (

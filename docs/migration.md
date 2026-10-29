@@ -2312,3 +2312,11 @@ ctx.stroke();      // → strokePath()
   5. `parity`：`dmgBy` 对照前统一摘除 `melee/cast/element/reaction` 新分项，其余分项仍严格对照。
 - 结果：目标 6 个测试文件 **127/127** 通过；全量 `656/693`，剩余 37 项失败均集中在 `balance-baseline`、`parity`、`s1-attribute-dispatch`、`s4d-d2a-acceptance`、`s4d-d2a-enemy-spawn` 的更早历史快照，按「只清本轮」保留并留痕。
 - 验证：`typecheck` ✓、`build` ✓；未运行 Playwright。
+
+## D-78 上游同步与射手强化箭批次（2026-10-30）
+
+- 同步上游 `6d67cf3`（v73，含法师/元素/DevPanel/UI/测试基线清理）。本地 21 个文件改动用唯一 stash 暂存后快进分支，再 apply 回工作区；冲突集中在 `stats.ts`、`enemies.ts`、`draw.ts`、`monster-numerics.md` 四个文件。
+- 冲突处理：`statBase` 改为按职业分叉——射手 50 HP / 70 移速 / 13 攻击，法师沿用 100 HP / 62 移速 / 11 攻击与既有施法距离/射速；敌人保留 v71 冰弱与负抗性，同时保留射手敌人 10 攻击 / 8 前期权重；绘制层同时保留法师表现和强化箭 HUD/导弹/激光；怪物文档合并 v71 冰弱信息与本次 HP/护甲/精英 ×7 回调。
+- 本批内容：射手强化箭 12 级/9 条升级、独立导弹与激光、30% 吸血、燃烧地带每 0.5 秒聚合飘字；疾行改为冲刺后射速窗口；怪物 HP/护甲恢复完整值、精英生命倍率恢复 ×7。
+- 验证：`npm run typecheck`、`npm run build` 通过；按 2026-10-29 标准未运行 Vitest / Playwright。上游既有测试基线（base stats、balance/parity、精英 ×3.5 等）已过期，留待授权测试批次统一处理。
+- 当前唯一 stash `balance-wip-20261030-upstream-sync` 待提交确认并完成复核后删除。

@@ -109,7 +109,23 @@ export function hurtEnemy(
     attackerStats,
     defenderStats: getEnemyCombatStats(e),
   });
-  dmg = calc.settledDamage;
+  let settled = calc.settledDamage;
+  if (opts.trueFraction && opts.trueFraction > 0) {
+    // 附带真实伤害是额外一层，不替换主伤害；同样吃暴击与增伤，但绕过减伤。
+    const trueCalc = calculateDamage(DAMAGE_TYPES, {
+      rawAmount: dmg * opts.trueFraction,
+      type: "true",
+      form: opts.form ?? "other",
+      origin: opts.src ?? "hit",
+      kind: "hit",
+      precision: "round-min-one",
+      isCritical: crit,
+      attackerStats,
+      defenderStats: getEnemyCombatStats(e),
+    });
+    settled += trueCalc.settledDamage;
+  }
+  dmg = settled;
   // S2「猎杀标记」累计：同一目标命中 3 次转为一层标记（上限由深痕决定）。
   // 放在伤害结算之后——本次命中吃的是「已有」层数，不自我加成。
   if ((p.upCounts["猎杀标记"] || 0) > 0) {
@@ -127,12 +143,18 @@ export function hurtEnemy(
   e.hp -= dmg;
   e.flash = 0.08;
   if (opts.src) this.dmgBy[opts.src] = (this.dmgBy[opts.src] || 0) + dmg;
-  if (this.player.lifesteal)
+  if (this.player.lifesteal && !opts.noLifesteal)
     this.player.hp = Math.min(
       this.player.maxhp,
-      this.player.hp + dmg * this.player.lifesteal,
+      this.player.hp + dmg * this.player.lifesteal * (opts.lifestealMul ?? 1),
     );
-  this.addText(e.x, e.y - e.r - 2, dmg, crit ? "#ffd24a" : "#ffffff", crit);
+  this.addText(
+    e.x,
+    e.y - e.r - 2,
+    dmg,
+    opts.specialHit || crit ? "#ffd24a" : "#ffffff",
+    crit,
+  );
   if (kx || ky) {
     e.x += kx;
     e.y += ky;
@@ -187,6 +209,7 @@ export function hurtEnemy(
   // 击杀爆炸/掉落等副作用已在上方按原顺序执行，killed 与 lethal 同真
   return {
     ...calc,
+    settledDamage: dmg,
     effectiveHpLoss: Math.min(hpBefore, dmg),
     dodged: false,
     shieldUsed: "none",

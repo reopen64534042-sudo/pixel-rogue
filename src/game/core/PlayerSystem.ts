@@ -27,10 +27,10 @@ export function updatePlayer(this: GameCore, dt: number) {
   }
   const dashingBefore = p.dashT > 0;
   p.dashT -= dt;
-  // S2「疾行」：冲刺刚结束的那一帧开一个 0.5 秒移速窗口
+  // S2「疾行」：冲刺刚结束的那一帧开一个 0.5 秒射速窗口
   if (dashingBefore && p.dashT <= 0 && (p.upCounts["疾行"] || 0) > 0)
-    this.dashBoostT = 0.5;
-  if (this.dashBoostT > 0) this.dashBoostT -= dt;
+    this.dashFireBoostT = 0.5;
+  if (this.dashFireBoostT > 0) this.dashFireBoostT -= dt;
   // 冲刺充能制（「双段疾冲」增加上限）
   const dchMax = 1 + p.dashChargeLv;
   if (p.dashLv && p.dashCharges < dchMax) {
@@ -68,10 +68,8 @@ export function updatePlayer(this: GameCore, dt: number) {
       c: "#57e6ff",
     });
   } else {
-    // S2「疾行」：冲刺结束 0.5 秒内的移速加成
-    // S2「滞空」：闪避成功后 0.5 秒的移速加成（两者可叠乘，来源不同）
-    const boost =
-      (this.dashBoostT > 0 ? 1.15 : 1) * (this.dodgeBoostT > 0 ? 1.2 : 1);
+    // S2「滞空」：闪避成功后 0.5 秒的移速加成
+    const boost = this.dodgeBoostT > 0 ? 1.2 : 1;
     p.x += mx * p.speed * boost * dt;
     p.y += my * p.speed * boost * dt;
   }

@@ -28,15 +28,15 @@ export const ETYPES: Record<string, EnemyConfig> = {
   shooter: {
     hp: 22,
     speed: 40,
-    dmg: 12,
+    dmg: 10,
     r: 4,
     xp: 2,
     spr: "shooter",
     w0: 4,
-    wt: 16,
+    wt: 8,
     defense: 30,
     resistances: { fire: 0.1, frost: 0.15, lightning: 0.45 },
-  }, // 远程: 保持距离射击
+  }, // 远程: 保持距离射击；前期权重减半，伤害下调
   bomber: {
     hp: 16,
     speed: 72,

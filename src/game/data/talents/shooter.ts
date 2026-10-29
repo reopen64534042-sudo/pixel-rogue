@@ -302,10 +302,10 @@ export const SHOOTER_TALENTS: Talent[] = [
     layer: 1,
     prof: "shooter",
     variant: "shooter-dash",
-    d: "冲刺距离 +25%，冲刺结束 0.5 秒内移速 +15%",
+    d: "冲刺距离 +25%，冲刺结束 0.5 秒内射速 +20%",
     max: 1,
-    pv: () => "冲刺距离 +25% · 结束后 0.5 秒 +15% 移速",
+    pv: () => "冲刺距离 +25% · 结束后 0.5 秒 +20% 射速",
     f: () => {},
-    cur: (p) => `冲刺距离 ×${p.dashDistMul.toFixed(2)}`,
+    cur: (p) => `冲刺距离 ×${p.dashDistMul.toFixed(2)} · 射速窗口 +20%`,
   },
 ];

@@ -4,6 +4,7 @@ import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
+import { getSpecialLevelStats } from "../data/specialShot";
 import { spriteEntry } from "./assetRegistry";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
@@ -534,6 +535,21 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
+  // 强化箭经验条（角色脚下；满级或满经验时整条金色）
+  {
+    const stats = getSpecialLevelStats(this.specialLevel);
+    const ratio = stats.xpToNext
+      ? Math.min(1, this.specialXp / stats.xpToNext)
+      : 1;
+    const sw = 18;
+    const sx = Math.round(this.player.x - sw / 2);
+    const sy = Math.round(this.player.y + 16);
+    ctx.fillStyle = "#1d2440";
+    ctx.fillRect(sx, sy, sw, 2);
+    ctx.fillStyle = "#ffd24a";
+    ctx.fillRect(sx, sy, Math.round(sw * ratio), 2);
+  }
+
   // 近战刀光（三层同心弧：外缘最亮，向内渐淡）
   for (const s of this.slashes) {
     const k = Math.max(0, s.life / s.max);
@@ -586,16 +602,52 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.polyline3(pts, "#aef1ff", 0.9);
   }
 
+  // 强化箭激光（短寿命表现层；与电弧同为一次折线批量绘制）
+  if (this.lasers.length) {
+    for (const l of this.lasers) {
+      const alpha = Math.max(0, Math.min(1, l.t / 0.12));
+      ctx.polyline3(
+        [
+          l.x1,
+          l.y1,
+          (l.x1 + l.x2) / 2,
+          (l.y1 + l.y2) / 2,
+          l.x2,
+          l.y2,
+        ],
+        "#9fe1ff",
+        alpha * 0.9,
+      );
+    }
+  }
+
+  // 导弹（独立追踪弹；弹体与尾迹和强化箭分开绘制）
+  for (const m of this.missiles) {
+    const x = Math.round(m.x);
+    const y = Math.round(m.y);
+    const tx = Math.round(m.x - m.vx * 0.04);
+    const ty = Math.round(m.y - m.vy * 0.04);
+    ctx.polyline3(
+      [tx, ty, (tx + x) / 2, (ty + y) / 2, x, y],
+      "#ff9a3d",
+      0.65,
+    );
+    ctx.fillStyle = "#ffd24a";
+    ctx.fillRect(x - 2, y - 2, 4, 4);
+    ctx.fillStyle = "#fff4c2";
+    ctx.fillRect(x - 1, y - 1, 2, 2);
+  }
+
   // 子弹
   for (const b of this.bullets) {
     const x = Math.round(b.x),
       y = Math.round(b.y),
       s = b.size;
     ctx.globalAlpha = 0.35;
-    ctx.fillStyle = "#57e6ff";
+    ctx.fillStyle = b.special ? "#ffd24a" : "#57e6ff";
     ctx.fillRect(x - s, y - s, s * 2, s * 2);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = "#e8fbff";
+    ctx.fillStyle = b.special ? "#fff4c2" : "#e8fbff";
     ctx.fillRect(
       x - s + 1,
       y - s + 1,

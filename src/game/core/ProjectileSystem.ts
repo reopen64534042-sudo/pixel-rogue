@@ -1,3 +1,16 @@
+import { WORLD } from "../data/constants";
+import {
+  BOUNCE_DAMAGE_MUL,
+  BOUNCE_FINAL_LIFE,
+  BOUNCE_RANGE,
+  CURRENT_HP_DAMAGE_FRACTION,
+  HOMING_RANGE,
+  HOMING_TURN_RATE,
+  HP_DAMAGE_CAP_MUL,
+  MAX_HP_DAMAGE_FRACTION,
+  PARTIAL_TRUE_FRACTION,
+  SPECIAL_LIFESTEAL_MUL,
+} from "../data/specialShot";
 import type { GameCore } from "./GameCore";
 
 export function updateProjectiles(this: GameCore, dt: number) {
@@ -10,6 +23,30 @@ export function updateProjectiles(this: GameCore, dt: number) {
     if (travelTime <= 0) {
       this.bullets.splice(i, 1);
       continue;
+    }
+    if (b.special && this.specialUpgrades.includes("homing")) {
+      let target = null;
+      let best = HOMING_RANGE * HOMING_RANGE;
+      for (const e of this.enemies) {
+        if (e.dead || b.hitList.includes(e)) continue;
+        const d = (e.x - b.x) ** 2 + (e.y - b.y) ** 2;
+        if (d < best) {
+          best = d;
+          target = e;
+        }
+      }
+      if (target) {
+        const speed = Math.hypot(b.vx, b.vy) || p.projSpeed;
+        const desired = Math.atan2(target.y - b.y, target.x - b.x);
+        const current = Math.atan2(b.vy, b.vx);
+        let diff = desired - current;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        const turn = HOMING_TURN_RATE * travelTime;
+        const next = current + Math.max(-turn, Math.min(turn, diff));
+        b.vx = Math.cos(next) * speed;
+        b.vy = Math.sin(next) * speed;
+      }
     }
     b.x += b.vx * travelTime;
     b.y += b.vy * travelTime;
@@ -27,6 +64,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
           t: 0.6,
           dmg: b.dmg * 0.15,
           hit: [],
+          ...(b.special ? { lifestealMul: SPECIAL_LIFESTEAL_MUL } : {}),
         });
       }
     }
@@ -45,14 +83,65 @@ export function updateProjectiles(this: GameCore, dt: number) {
           b.critBonus && b.stats
             ? { ...b.stats, critChance: b.stats.critChance + b.critBonus }
             : b.stats;
-        this.hurtEnemy(e, b.dmg, kx, ky, {
+        const special = b.special === true;
+        const specialTrue =
+          special && this.specialUpgrades.includes("trueDamage");
+        let hitDmg = b.dmg;
+        if (special && this.specialUpgrades.includes("currentHpDamage")) {
+          // %生命部分与强化箭同一结算：默认吃护甲，完全真实伤害升级后一起转为真伤。
+          hitDmg += Math.min(
+            e.hp * CURRENT_HP_DAMAGE_FRACTION,
+            b.dmg * HP_DAMAGE_CAP_MUL,
+          );
+        }
+        if (special && this.specialUpgrades.includes("maxHpDamage")) {
+          hitDmg += Math.min(
+            e.maxhp * MAX_HP_DAMAGE_FRACTION,
+            b.dmg * HP_DAMAGE_CAP_MUL,
+          );
+        }
+        const partialTrue =
+          special && this.specialUpgrades.includes("partialTrue");
+        this.hurtEnemy(e, hitDmg, kx, ky, {
           src: "bullet",
-          type: "physical",
+          type: specialTrue ? "true" : "physical",
           form: "ranged",
           attackerStats: stats,
+          specialHit: special,
+          ...(special
+            ? { lifestealMul: SPECIAL_LIFESTEAL_MUL }
+            : {}),
+          ...(partialTrue ? { trueFraction: PARTIAL_TRUE_FRACTION } : {}),
         });
+        if (special) this.gainSpecialXp(1);
         b.hitList.push(e);
-        if (b.pierce > 0) {
+        if (special && (b.bounces ?? 0) > 0) {
+          let target = null;
+          let best = BOUNCE_RANGE * BOUNCE_RANGE;
+          for (const o of this.enemies) {
+            if (o.dead || b.hitList.includes(o)) continue;
+            const d = (o.x - b.x) ** 2 + (o.y - b.y) ** 2;
+            if (d < best) {
+              best = d;
+              target = o;
+            }
+          }
+          if (target) {
+            const speed = Math.hypot(b.vx, b.vy) || p.projSpeed;
+            const a = Math.atan2(target.y - b.y, target.x - b.x);
+            b.vx = Math.cos(a) * speed;
+            b.vy = Math.sin(a) * speed;
+            b.dmg *= BOUNCE_DAMAGE_MUL;
+            b.bounces = (b.bounces ?? 0) - 1;
+            // 第三次反弹后只剩短暂收尾飞行，随后消失。
+            if (b.bounces === 0) b.life = BOUNCE_FINAL_LIFE;
+            this.audio.beep(900, 0.05, "square", 0.03, 300);
+          }
+        }
+        if (b.infinitePierce) {
+          // Lv.3+：不消耗穿透次数，但仍按 falloff 衰减；hitList 防止重复命中。
+          b.dmg *= b.falloff;
+        } else if (b.pierce > 0) {
           b.pierce--;
           // S2：衰减系数从硬编码 0.85 改为发射时固化的属性值
           //（射手职业 0.5、破甲箭 0.8、弹道贯穿 1.0）
@@ -76,6 +165,13 @@ export function updateProjectiles(this: GameCore, dt: number) {
         if (remove) break;
       }
     }
+    if (
+      b.x < -20 ||
+      b.x > WORLD.w + 20 ||
+      b.y < -20 ||
+      b.y > WORLD.h + 20
+    )
+      remove = true;
     if (remove || b.life <= 0) this.bullets.splice(i, 1);
   }
 
@@ -100,6 +196,9 @@ export function updateProjectiles(this: GameCore, dt: number) {
           src: "bullet",
           type: "physical",
           form: "ranged",
+          ...(z.lifestealMul !== undefined
+            ? { lifestealMul: z.lifestealMul }
+            : {}),
         });
       }
     }
