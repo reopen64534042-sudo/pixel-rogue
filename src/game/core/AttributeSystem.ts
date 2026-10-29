@@ -66,7 +66,10 @@ export interface AttrDef {
  * 每格至少 2 个候选：只有一个时「这一格」就不是选择而是发放。
  */
 export const ATTR_DEFS: readonly AttrDef[] = [
-  { group: "offense", label: "攻击", stat: "attack", stage: "flat", base: 5, kind: "int" },
+  // #134 方案 B：攻击 +5 → +2。
+  // 原值对基础攻击 11 是 **+45%/次**，配上每波 5-7 次，30 波能把攻击堆到数百，
+  // 天赋的机制收益完全被淹没。+2 约等于 +18%/次，与「一次选择 = 一个小台阶」相称。
+  { group: "offense", label: "攻击", stat: "attack", stage: "flat", base: 2, kind: "int" },
   { group: "offense", label: "攻速", stat: "fireRate", stage: "percent", base: 0.04, kind: "pct" },
   {
     group: "offense",
@@ -89,7 +92,8 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     kind: "pct",
   },
 
-  { group: "defense", label: "生命", stat: "maxHp", stage: "flat", base: 15, kind: "int" },
+  // #134 方案 B：生命 +15 → +10（对基础 100 是 +10%/次，原先 15% 偏猛）
+  { group: "defense", label: "生命", stat: "maxHp", stage: "flat", base: 10, kind: "int" },
   { group: "defense", label: "护甲", stat: "defense", stage: "flat", base: 6, kind: "int" },
   // 续航之二（#135）：每秒固定回复。放在守势组——它是「站着就回」的稳定续航。
   // 0.6/秒 取自旧卡「修复微光」，避免出现第二套量级。
@@ -154,8 +158,23 @@ export function rarityChances(lvl: number): readonly number[] {
 }
 
 /** 每波给几次属性选择：1-10 波各 1 次，11-20 波 2 次，21 波起 3 次（一局 60 次） */
+/**
+ * 每波**新增**属性选择次数的硬上限（#134 方案 B）。
+ *
+ * 注意这是「新增额度」不是「存量上限」：`attrPicks` 仍是累加的（保留「这波没选完
+ * 可以留到下次」的既有行为），但一波之内无论多少来源（基础额度 / 普通宝箱 /
+ * 精英宝箱）合计不会超过这个数。
+ *
+ * 改之前：基础最多 3 + 宝箱最多 4 = 单波最多 7 次；一局约 120 次属性对上 8 次天赋，
+ * 权重 15:1，天赋的机制完全被数值淹没。
+ */
+export const ATTR_WAVE_GRANT_CAP = 3;
+
 export function attrPicksPerWave(wave: number): number {
-  return 1 + Math.floor((wave - 1) / 10);
+  // 原实现 `1 + floor((wave-1)/10)` 会在 21 波后给到 3，把额度占满、宝箱补不进来。
+  // 现在基础只给 1（前期）/ 2（11 波起），留出 1~2 的余量给宝箱，
+  // 让「打精英拿宝箱 → 多一次属性」这条因果仍然成立。
+  return wave >= 11 ? 2 : 1;
 }
 
 export interface AttrChoice {
@@ -240,6 +259,27 @@ export function groupLabel(group: AttrGroup): string {
 // 与天赋的关键差异：这里**可能连续选多次**（attrPicks 由波次给），所以 choose 后
 // 若仍有剩余次数，就地重掷下一组，不关闭面板。
 
+/**
+ * 发放属性选择次数（#134 方案 B 的统一入口）。
+ *
+ * 所有来源（每波基础额度 / 普通宝箱 / 精英宝箱）都必须走这里：
+ * - 单波新增合计不超过 `ATTR_WAVE_GRANT_CAP`；
+ * - `attrPicks` 仍是累加的，未用完的次数照旧留到下次（既有语义不变）。
+ *
+ * 之前两处直接 `attrPicks +=`：`startNextWave`（基础）与 `enterRest`（宝箱），
+ * 互相不设限，所以单波最多能到 7 次。
+ *
+ * @returns 实际发放的次数（可能小于请求值，被单波额度截断）
+ */
+export function grantAttrPicks(this: GameCore, n: number): number {
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  const room = Math.max(0, ATTR_WAVE_GRANT_CAP - this.attrGrantedThisWave);
+  const granted = Math.min(n, room);
+  if (granted <= 0) return 0;
+  this.attrPicks += granted;
+  this.attrGrantedThisWave += granted;
+  return granted;
+}
 export function openAttrPanel(this: GameCore) {
   if (this.bpMode) return;
   this.bpMode = "attr";

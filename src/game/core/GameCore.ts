@@ -15,6 +15,7 @@ import {
 import type { AttributePoint } from "./AttributeSources";
 import {
   attrPicksPerWave,
+  grantAttrPicks,
   chooseAttr,
   openAttrPanel,
   refreshAttr,
@@ -167,6 +168,14 @@ export class GameCore {
    * 不进 parity 快照白名单：它只驱动面板流程，不参与任何数值计算。
    */
   attrPicks = 0;
+  /**
+   * 本波已经**发放**的属性选择次数（#134 方案 B）。
+   *
+   * 用来把单波新增额度压在 `ATTR_WAVE_GRANT_CAP` 以内——基础额度与宝箱折算
+   * 两个来源共享同一个额度池。换波时清零（`startNextWave`）。
+   * `attrPicks` 本身仍是累加的，未用完的次数照旧可以留到下次。
+   */
+  attrGrantedThisWave = 0;
   /** 当前展示的四格候选（offense/defense/utility/special 各一个） */
   attrChoices: AttrChoice[] = [];
   /** 本「次选择」的刷新额度是否已用掉（每次选择各有一次，选完重置） */
@@ -275,6 +284,7 @@ export class GameCore {
   openLevelPanel = openLevelPanel.bind(this);
   openBoxPanel = openBoxPanel.bind(this);
   openAttrPanel = openAttrPanel.bind(this);
+  grantAttrPicks = grantAttrPicks.bind(this);
   refreshAttr = refreshAttr.bind(this);
   chooseAttr = chooseAttr.bind(this);
   refreshSlot = refreshSlot.bind(this);
@@ -347,7 +357,10 @@ export class GameCore {
     this.prof = "shooter";
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
-    this.attrPicks = attrPicksPerWave(1);
+    // #134：走统一入口，让「第 1 波基础额度」也受单波上限约束
+    this.attrPicks = 0;
+    this.attrGrantedThisWave = 0;
+    this.grantAttrPicks(attrPicksPerWave(1));
     this.attrChoices = [];
     this.attrRefreshUsed = false;
     this.chainCd = 0;

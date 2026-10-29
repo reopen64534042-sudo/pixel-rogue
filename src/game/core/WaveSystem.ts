@@ -21,7 +21,9 @@ export function startNextWave(this: GameCore) {
   // S2：每波重置节点天赋开关（同一波多只精英只发一次）
   this.waveTalentGiven = false;
   // S1：属性次数按波发放，波末消费
-  this.attrPicks += attrPicksPerWave(this.waveN);
+  // #134：换波清零单波额度，再走统一入口（基础额度与宝箱共享同一个 3 次上限）
+  this.attrGrantedThisWave = 0;
+  this.grantAttrPicks(attrPicksPerWave(this.waveN));
   this.beginWaveReport();
   this.quota = this.waveQuota(this.waveN);
   this.spawnedThisWave = 0;
@@ -79,11 +81,13 @@ export function enterRest(this: GameCore) {
   // 「转经验 + 血包」（Issue #71 兜底）。在属性阶段之前折算，属性面板一次拿到
   // 全部次数，休整链保持「属性 → 天赋 → 报告」三步。
   if (this.boxPicks > 0) {
-    this.attrPicks += this.boxPicks;
+    // #134：宝箱也走统一入口，受单波额度约束（基础 + 宝箱合计 ≤ 3）
+    const granted = this.grantAttrPicks(this.boxPicks);
+    const lost = this.boxPicks - granted;
     this.addText(
       this.player.x,
       this.player.y - 20,
-      `宝箱 +${this.boxPicks} 次属性`,
+      lost > 0 ? `宝箱 +${granted} 次属性（本波已满）` : `宝箱 +${granted} 次属性`,
       "#ffd24a",
     );
     this.boxPicks = 0;
