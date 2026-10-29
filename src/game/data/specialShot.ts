@@ -14,7 +14,7 @@ export type SpecialUpgradeId =
   | "trueDamage"
   | "currentHpDamage"
   | "homing"
-  | "bounce"
+  | "dashSpecial"
   | "missile"
   | "partialTrue"
   | "maxHpDamage"
@@ -74,9 +74,8 @@ export const HP_DAMAGE_CAP_MUL = 2;
 /** 完全追踪：转向速率（弧度/秒）与索敌半径 */
 export const HOMING_TURN_RATE = 6;
 export const HOMING_RANGE = 280;
-/** 反弹升级：最大边界反弹次数与每次反弹后的伤害倍率 */
-export const BOUNCE_COUNT = 3;
-export const BOUNCE_DAMAGE_MUL = 0.9;
+/** 冲刺强射：冲刺结束后的强化箭窗口（秒） */
+export const DASH_SPECIAL_WINDOW = 0.8;
 /** 导弹升级：爆炸半径、伤害倍率、燃烧持续时间与 DPS 倍率 */
 export const MISSILE_RADIUS = 34;
 export const MISSILE_DAMAGE_MUL = 0.6;
@@ -114,9 +113,9 @@ export const SPECIAL_UPGRADES: readonly SpecialUpgrade[] = [
     desc: "强化箭会转向最近的敌人",
   },
   {
-    id: "bounce",
-    name: "反弹",
-    desc: "强化箭碰到世界边界反弹，最多 3 次，第 3 次后消失；可与追踪共存",
+    id: "dashSpecial",
+    name: "冲刺强射",
+    desc: "冲刺结束后 0.8 秒内，所有普通射击都变为强化箭",
   },
   {
     id: "missile",

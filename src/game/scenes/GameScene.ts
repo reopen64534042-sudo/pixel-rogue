@@ -48,7 +48,7 @@ export class GameScene extends Phaser.Scene {
   /** 开发者作弊面板：仅 DEV 构建存在（生产包无入口、无控制桥） */
   private dev?: DevPanel;
   private clock = new FixedClock();
-  private specialTest = false;
+  private specialTest: "special-max" | "dash-special" | null = null;
   private testReady = false;
   private testAnchors: { x: number; y: number }[] = [];
   private stars = Array.from({ length: 60 }, () => ({
@@ -148,11 +148,15 @@ export class GameScene extends Phaser.Scene {
         counts: () => this.painter.counts,
       };
     void this.loadSpriteOverrides();
+    const testName = new URLSearchParams(window.location.search).get("test");
     this.specialTest =
-      import.meta.env.DEV &&
-      import.meta.env.MODE === "e2e" &&
-      new URLSearchParams(window.location.search).get("test") ===
-        "special-max";
+      import.meta.env.DEV && import.meta.env.MODE === "e2e"
+        ? testName === "dash-special"
+          ? "dash-special"
+          : testName === "special-max"
+            ? "special-max"
+            : null
+        : null;
     if (this.specialTest) this.core.startGame();
   }
 
@@ -162,7 +166,12 @@ export class GameScene extends Phaser.Scene {
       if (core.state !== "play" || core.phase !== "play") return;
       core.specialLevel = SPECIAL_LEVELS.length;
       core.specialXp = 0;
-      core.specialUpgrades = SPECIAL_UPGRADES.map((upgrade) => upgrade.id);
+      core.specialUpgrades =
+        this.specialTest === "dash-special"
+          ? SPECIAL_UPGRADES.filter(
+              (upgrade) => upgrade.id === "dashSpecial",
+            ).map((upgrade) => upgrade.id)
+          : SPECIAL_UPGRADES.map((upgrade) => upgrade.id);
       core.quota = 0;
       core.spawnedThisWave = 0;
       core.wavePhase = "fight";
@@ -180,7 +189,9 @@ export class GameScene extends Phaser.Scene {
       core.addText(
         core.player.x,
         core.player.y - 30,
-        `测试：强化箭 Lv.${SPECIAL_LEVELS.length} · 全升级 · 10000 HP 精英`,
+        this.specialTest === "dash-special"
+          ? "测试：冲刺强射 · 冲刺后 0.8 秒全强化箭 · 10000 HP 精英"
+          : `测试：强化箭 Lv.${SPECIAL_LEVELS.length} · 全升级 · 10000 HP 精英`,
         "#ffd24a",
         true,
       );

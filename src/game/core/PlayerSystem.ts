@@ -1,4 +1,5 @@
 import { WORLD, clamp } from "../data/constants";
+import { DASH_SPECIAL_WINDOW } from "../data/specialShot";
 import type { GameCore } from "./GameCore";
 
 export function updatePlayer(this: GameCore, dt: number) {
@@ -27,10 +28,15 @@ export function updatePlayer(this: GameCore, dt: number) {
   }
   const dashingBefore = p.dashT > 0;
   p.dashT -= dt;
-  // S2「疾行」：冲刺刚结束的那一帧开一个 0.5 秒射速窗口
-  if (dashingBefore && p.dashT <= 0 && (p.upCounts["疾行"] || 0) > 0)
-    this.dashFireBoostT = 0.5;
+  if (dashingBefore && p.dashT <= 0) {
+    // S2「疾行」：冲刺刚结束的那一帧开一个 0.5 秒射速窗口
+    if ((p.upCounts["疾行"] || 0) > 0) this.dashFireBoostT = 0.5;
+    // 「冲刺强射」：冲刺结束后 0.8 秒内的普通射击全部按强化箭处理
+    if (this.specialUpgrades.includes("dashSpecial"))
+      this.dashSpecialT = DASH_SPECIAL_WINDOW;
+  }
   if (this.dashFireBoostT > 0) this.dashFireBoostT -= dt;
+  if (this.dashSpecialT > 0) this.dashSpecialT -= dt;
   // 冲刺充能制（「双段疾冲」增加上限）
   const dchMax = 1 + p.dashChargeLv;
   if (p.dashLv && p.dashCharges < dchMax) {

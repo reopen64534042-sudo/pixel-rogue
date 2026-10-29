@@ -1,7 +1,6 @@
 import type { GameCore } from "./GameCore";
 import { SPECIAL_SHOT_EVERY } from "../data/constants";
 import {
-  BOUNCE_COUNT,
   DOUBLE_SHOT_DAMAGE_MUL,
   getSpecialLevelStats,
 } from "../data/specialShot";
@@ -55,7 +54,8 @@ export function updateAttacks(this: GameCore, dt: number) {
       const hasTrail = (p.upCounts["贯穿轨迹"] || 0) > 0;
       // 射手职业被动：每次开火事件计数一次；多弹道同属一次事件，强化箭覆盖整轮弹幕。
       this.shotCounter = (this.shotCounter + 1) % SPECIAL_SHOT_EVERY;
-      const special = this.shotCounter === 0;
+      // 「冲刺强射」：冲刺结束后的短窗口内，每次射击都按强化箭处理。
+      const special = this.shotCounter === 0 || this.dashSpecialT > 0;
       const specialStats = getSpecialLevelStats(this.specialLevel);
       const baseDmg = boltDamage(p) * distMul;
       const shotDmg = special
@@ -104,9 +104,6 @@ export function updateAttacks(this: GameCore, dt: number) {
             trail: hasTrail ? 0.6 : 0,
             critBonus,
             ...(special ? { special: true } : {}),
-            ...(special && this.specialUpgrades.includes("bounce")
-              ? { bounces: BOUNCE_COUNT }
-              : {}),
             // S3-B 定稿接口：攻击方属性发射时固化，与敌方弹丸快照对称
             stats: getPlayerCombatStats(p),
           });

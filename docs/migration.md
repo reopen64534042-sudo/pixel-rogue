@@ -2377,3 +2377,15 @@ ctx.stroke();      // → strokePath()
 - 用户需求：真实伤害的数字需要与其他伤害区分，使用银亮的白色。
 - 改动：`core/CombatSystem.ts` 新增 `TRUE_DAMAGE_COLOR = "#eaf7ff"` 与 `TRUE_DAMAGE_OUTLINE = "#38bdf8"`；`hurtEnemy` 在 `opts.type === "true"` 或 `trueFraction` 结算出额外真实伤害时给 `FloatingText.trueDmg` 打标，优先级高于「强化箭/暴击」的金色。`rendering/draw.ts` 对真实伤害飘字使用 12px 冷蓝字号铺底形成实心外圈，再叠 10px 银白主体；真实伤害暴击（`trueDmg && big`）改用 16px 金色外圈 + 14px 冷蓝内圈 + 12px 纯白主体；普通飘字仍为 8px。因 `PixelPainter` 不暴露 canvas 阴影 API，采用大字号铺底而不是 shadowBlur。
 - 验证：`npm run typecheck`、`npm run build` 通过；受控调用 `hurtEnemy` 对比 true / physical+specialHit / physical+trueFraction 三种飘字的颜色与 `trueDmg` 标记。按 2026-10-29 标准未运行 Vitest / Playwright。
+
+## D-83 冲刺强射替换反弹（v79）
+
+- 用户裁定：反弹原本是为了打更多目标，但强化箭已有追踪，覆盖足够；把「反弹」升级重做为「冲刺强射」——冲刺结束后 0.8 秒内发射的都是强化箭（初版 0.5 秒偏短，试玩后上调）。
+- 改动：
+  1. `data/specialShot.ts`：`bounce` 升级替换为 `dashSpecial`（名称「冲刺强射」）；删除 `BOUNCE_COUNT` / `BOUNCE_DAMAGE_MUL`，新增 `DASH_SPECIAL_WINDOW = 0.8`。
+  2. `core/GameCore.ts`：新增 `dashSpecialT` 计时并在 `resetGame` 清零。
+  3. `core/PlayerSystem.ts`：冲刺结束帧若已获得 `dashSpecial`，将 `dashSpecialT` 置为 0.5，并在每帧递减；与「疾行」的射速窗口共用同一冲刺结束时机。
+  4. `core/AttackSystem.ts`：`special = shotCounter === 0 || dashSpecialT > 0`，窗口内每次射击都走强化箭流程（含连发/激光/导弹等升级）。
+  5. `core/ProjectileSystem.ts` / `core/types.ts`：删除世界边界反弹分支与 `Bullet.bounces` 字段。
+- 验证：`npm run typecheck`、`npm run build` 通过；受控运行确认冲刺结束开启 0.8 秒窗口、窗口内射击均为特殊弹，且无 `bounce`/`bounces` 残留引用。按 2026-10-29 标准未运行 Vitest / Playwright。
+- E2E 沙盒：新增仅 DEV/E2E 生效的 `?test=dash-special`（只带「冲刺强射」，满级强化箭 + 10000 HP 精英），避免 `special-max` 的全升级干扰窗口手感测试。

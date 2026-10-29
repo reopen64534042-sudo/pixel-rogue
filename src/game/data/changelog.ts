@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v79",
+    date: "2026-10-30",
+    title: "冲刺强射替换反弹",
+    items: [
+      "强化箭升级「反弹」重做为「冲刺强射」：冲刺结束后 0.8 秒内，所有普通射击都变为强化箭。",
+      "移除强化箭碰到世界边界反弹、三次后消失的机制与相关常量。",
+    ],
+  },
+  {
     version: "v78",
     date: "2026-10-30",
     title: "真实伤害飘字颜色",
