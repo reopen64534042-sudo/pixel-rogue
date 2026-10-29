@@ -355,6 +355,10 @@ export function damagePlayer(
 ): DamageResult {
   const p = this.player;
   const rawDmg = dmg;
+  // 开发者无敌（仅 DEV）：作弊面板的开关，生产构建下 `import.meta.env.DEV`
+  // 恒为 false，整段被 tree-shake，玩家侧没有任何影响。
+  if (import.meta.env.DEV && this.devInvincible)
+    return blockedHit(dmg, { dodged: true, shieldUsed: "none" });
   // S3 法师「镜像」虚影：虚影期间不可受击。
   // 放在最前面——虚影是「完全躲开」而不是「减伤」。
   if (this.magePhaseT > 0) {
