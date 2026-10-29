@@ -34,7 +34,7 @@ export const ETYPES: Record<string, EnemyConfig> = {
     spr: "shooter",
     w0: 4,
     wt: 8,
-    defense: 30,
+    defense: 15,
     resistances: { fire: 0.1, frost: 0.15, lightning: 0.45 },
   }, // 远程: 保持距离射击；前期权重减半，伤害下调
   bomber: {

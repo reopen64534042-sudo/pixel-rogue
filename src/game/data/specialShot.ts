@@ -72,11 +72,8 @@ export const HP_DAMAGE_CAP_MUL = 2;
 /** 完全追踪：转向速率（弧度/秒）与索敌半径 */
 export const HOMING_TURN_RATE = 6;
 export const HOMING_RANGE = 280;
-/** 反弹升级：最大反弹次数、索敌半径、反弹后寿命与伤害倍率 */
+/** 反弹升级：最大边界反弹次数与每次反弹后的伤害倍率 */
 export const BOUNCE_COUNT = 3;
-export const BOUNCE_RANGE = 200;
-/** 第三次反弹后的短暂收尾飞行；强化箭随后消失 */
-export const BOUNCE_FINAL_LIFE = 0.4;
 export const BOUNCE_DAMAGE_MUL = 0.9;
 /** 导弹升级：爆炸半径、伤害倍率、燃烧持续时间与 DPS 倍率 */
 export const MISSILE_RADIUS = 34;
@@ -84,7 +81,7 @@ export const MISSILE_DAMAGE_MUL = 0.6;
 export const MISSILE_BURN_DURATION = 3;
 export const MISSILE_BURN_DPS_MUL = 0.15;
 /** 导弹弹道：转向速率与出膛侧向初速，形成可见弧线 */
-export const MISSILE_TURN_RATE = 4.5;
+export const MISSILE_TURN_RATE = 6;
 export const MISSILE_LATERAL_KICK = 70;
 /** 导弹/激光从玩家另一侧肩位出射的横向偏移 */
 export const OFFHAND_OFFSET = 10;
@@ -117,7 +114,7 @@ export const SPECIAL_UPGRADES: readonly SpecialUpgrade[] = [
   {
     id: "bounce",
     name: "反弹",
-    desc: "强化箭命中后最多反弹 3 次，第三次反弹后短暂飞行并消失",
+    desc: "强化箭碰到世界边界反弹，最多 3 次，第 3 次后消失；可与追踪共存",
   },
   {
     id: "missile",

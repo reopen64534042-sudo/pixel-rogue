@@ -130,6 +130,20 @@ export function updateSpecialMissiles(this: GameCore, dt: number) {
   for (let i = this.missiles.length - 1; i >= 0; i--) {
     const m = this.missiles[i];
     m.t -= dt;
+    // 追踪：目标死亡/丢失时重新索敌最近的敌人，始终保持飞行方向修正。
+    if (!m.target || m.target.dead) {
+      let best = null;
+      let bestD = Infinity;
+      for (const e of this.enemies) {
+        if (e.dead) continue;
+        const d = (e.x - m.x) ** 2 + (e.y - m.y) ** 2;
+        if (d < bestD) {
+          bestD = d;
+          best = e;
+        }
+      }
+      m.target = best;
+    }
     if (m.target && !m.target.dead) {
       const speed = Math.hypot(m.vx, m.vy) || 220;
       const desired = Math.atan2(m.target.y - m.y, m.target.x - m.x);
