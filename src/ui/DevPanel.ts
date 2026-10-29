@@ -233,6 +233,12 @@ export class DevPanel {
     c.mageMeteors = [];
     c.mageDomains = [];
     c.mageDecoys = [];
+    // 上游 v74 新增：导弹/激光是瞬态对象，跳波时必须清掉，
+    // 否则旧目标/旧弹道会带进新波；specialLevel/Upgrades 属于构筑，保留。
+    c.missiles = [];
+    c.lasers = [];
+    c.shotCounter = 0;
+    c.dashFireBoostT = 0;
     c.parts = [];
     c.texts = [];
     c.slashes = [];
