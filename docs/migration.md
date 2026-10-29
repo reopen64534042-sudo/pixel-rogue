@@ -2282,3 +2282,12 @@ ctx.stroke();      // → strokePath()
   4. 图鉴抗性说明、`docs/monster-numerics.md`、`combat-numerics-agent-guide.md`、`combat-numerics-explained.md` 同步“正值减伤 / 负值弱点”。
 - 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`）：100 点冰伤对 brute/bomber 均结算 120（-20% 弱点），对 slime 结算 100；100 点火伤对 brute 70（30% 火抗）、bomber 45（55% 火抗）。
 - 基线：`tests/damage.test.ts` 的负抗性用例原期望夹成 1，现在应为 1.5（floor -0.5）；敌人固定抗性表/图鉴文本断言需在授权测试批次更新（本批未跑）。
+
+## D-75 暂停重新开始回到主界面（2026-10-30）
+
+- 用户反馈：暂停界面的「重新开始」直接用本局职业重开；现在有两个职业，想换职业却回不到主界面。
+- 改动（`GameUI`）：
+  1. 新增 `returnToStart()`：`core.state = "start"` 冻结模拟、`core.view.reset()` 收底部面板、关闭图鉴、隐藏暂停/死亡/属性/日志层、显示 `ov-start`，并重新启用射手/法师按钮。
+  2. 暂停的「重新开始」二次确认后调用 `returnToStart()`，不再 `startGame(this.prof)`；职业按钮仍走正常 `startGame` 重建新局。
+- 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`）：暂停后连点两次「重新开始」→ `state="start"`、`ov-start` 可见、`ov-pause` 隐藏、射手/法师按钮可用；点击法师进入新法师局。
+- 基线：浏览器测试若断言「重新开始直接开同职业新局」，需按新流程更新（本批未跑，留待授权测试批次）。

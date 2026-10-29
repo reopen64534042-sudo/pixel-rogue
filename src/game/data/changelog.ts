@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v72",
+    date: "2026-10-30",
+    title: "暂停重新开始回到主界面",
+    items: [
+      "暂停界面的「重新开始」不再直接用本局职业重开，改为返回主界面，重新选择射手或法师；二次确认保留。",
+    ],
+  },
+  {
     version: "v71",
     date: "2026-10-30",
     title: "怪物冰弱与负抗性",
