@@ -536,7 +536,8 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   }
 
   // 强化箭经验条（角色脚下；满级或满经验时整条金色）
-  {
+  // 强化箭是射手专属系统；法师不显示，否则空条会压在充能点（y+17）上。
+  if (this.prof === "shooter") {
     const stats = getSpecialLevelStats(this.specialLevel);
     const ratio = stats.xpToNext
       ? Math.min(1, this.specialXp / stats.xpToNext)

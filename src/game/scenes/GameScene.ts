@@ -285,5 +285,7 @@ export class GameScene extends Phaser.Scene {
       );
       draw.call(this.core, this.painter);
     }
+    // v77：低血量屏幕边缘提示（DOM 覆盖层；只改 opacity，不碰画布）
+    this.ui.syncLowHp();
   }
 }

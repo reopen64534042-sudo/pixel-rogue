@@ -44,12 +44,18 @@ const hide = (id: string) => element(id).classList.add("hidden");
  * 重新开放时改这里并同步池规则。
  */
 const SWAP_ENTRY_ENABLED: boolean = false;
+
+/** 低血量红边阈值：与 HUD 血条变红阈值一致（draw.ts 的 <0.3）。 */
+const LOW_HP_RATIO = 0.3;
+
 export class GameUI {
   /** 图鉴面板：开始界面与暂停界面共用同一实例（Issue #78） */
   readonly codex: CodexUI;
   /** 重新开始的二次确认态（Issue #81） */
   private restartArmed = false;
   private restartTimer: number | undefined;
+  /** 低血量屏幕边缘提示层（index.html 的静态节点） */
+  private lowHpEl: HTMLElement | null = null;
   constructor(public core: GameCore) {
     this.codex = new CodexUI(core);
     core.view = {
@@ -199,6 +205,28 @@ export class GameUI {
   }
   reset() {
     ["bottom-bar", "bp-level", "bp-attr", "bp-rest", "bp-swap"].forEach(hide);
+    if (this.lowHpEl) this.lowHpEl.style.opacity = "0";
+  }
+  /**
+   * 低血量屏幕边缘提示（v77）。
+   *
+   * 仅战斗中显示；与 HUD 血条同阈值（<30%），越低越明显；不做循环闪烁
+   * （表现层铁律：状态优先用颜色，不用动画抢注意力）。
+   */
+  syncLowHp() {
+    const overlay =
+      this.lowHpEl ??
+      (this.lowHpEl = document.getElementById("low-hp-vignette"));
+    if (!overlay) return;
+    const p = this.core.player;
+    const ratio = p.maxhp > 0 ? p.hp / p.maxhp : 0;
+    const active =
+      this.core.state === "play" && ratio > 0 && ratio < LOW_HP_RATIO;
+    const opacity = active
+      ? Math.min(0.9, 0.28 + (LOW_HP_RATIO - ratio) * 2.8)
+      : 0;
+    const next = opacity.toFixed(3);
+    if (overlay.style.opacity !== next) overlay.style.opacity = next;
   }
   choose(index: number) {
     this.core.chooseSlot(index);
