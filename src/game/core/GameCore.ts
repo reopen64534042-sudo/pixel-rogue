@@ -246,7 +246,7 @@ export class GameCore {
   tutorialDashed = false;
   tutorialHit = false;
   tutorialProfDone = false;
-  /** 射手教程第 3 步：已命中的强化箭次数 */
+  /** 射手教程第 3 步：已命中的强化弹次数 */
   tutorialSpecialHits = 0;
   /** 教程第 1 步：按过任意移动键（不再等走满距离） */
   tutorialMoved = false;

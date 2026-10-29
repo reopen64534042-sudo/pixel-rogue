@@ -2685,3 +2685,18 @@ ctx.stroke();      // → strokePath()
   3. `rendering/draw.ts`：疾冲绘制 11px 外辉 + 5px 中层 + 白热芯线，末端 17/13/9px 三层前向斩击弧；剑气仍走原细线分支。
 - 验证：`npm run typecheck`、`npm run build` 通过。e2e 受控（太刀、9 只 5000 HP 沙包、冲刺穿过）：生成 1 条 dash 轨迹（t≈0.37）、25 个粒子，前 3 只敌人掉血，路径判定正常；用 Phaser canvas snapshot 保存到 `output/warrior-dash-preview.png`（gitignored），80/80 血量版本已在会话可视化中展示。
 - 说明：截图工具因 in-app browser 可见性限制失败两次，改用页面内 `canvas.toDataURL` + 本地接收器保存；视觉最终配色/宽度待用户试玩确认。按 2026-10-29 标准未运行 Vitest / Playwright，未改测试基线。
+
+## D-107 教程文案与开始战斗快捷键（v103）
+
+- 用户需求（2026-10-30）：教学关卡最后的「开始正式战斗」也配 F 快捷键，并顺便更新射手教程文案——强化弹现在不是每 3 发。
+- 背景：PR #173 已合并，上游 main 为 `5ffb68f`（v102）；本批从最新 main 新建 `feat/tutorial-start-hotkey`。
+- 改动：
+  1. `ui/GameUI.ts`：`handleTutorialKey` 在 `tutorialStep >= tutorialTotalSteps(prof)` 时，F 直接调用 `finishTutorialRun()`；动作键冲突检查仍在最前（F 被改绑为动作键时动作键优先）。「下一步」仍需 `tutorialStepReady`，X 跳过不变。
+  2. `index.html`：最终按钮文字改为「开始正式战斗（F）」。
+  3. `ui/GameUI.ts` 完成页文案：「准备好了，按 F 或点击按钮开始正式战斗。」
+  4. `ui/GameUI.ts` 射手教程第 3 步：标题改为「强化弹」，正文改为「默认每 4 发自动变成强化弹；拿到快速装填后回到 3 发」，经验条不再写「黄条」。
+  5. `data/tutorialState.ts` / `scenes/GameScene.ts` / `core/TutorialSystem.ts` / `core/GameCore.ts`：快捷键与强化弹注释同步。
+- 验证：`npm run typecheck`、`npm run build` 通过。e2e 受控（5186，已停止）：
+  - 教程最终步：`btn-tutorial-start` 可见且文字为「开始正式战斗（F）」；调用 `handleTutorialKey("f")` 返回 true，`tutorialMode=false`、`state=play`、`prof=shooter`、`pendingLevels=1`（正式开局）。
+  - 回归：步骤未就绪时 F 返回 false；就绪后 F 推进到下一步；X 跳过仍生效。
+- 说明：未运行 Vitest / Playwright，未改测试基线；F 被玩家改绑为动作键时仍按既有规则让动作键优先，按钮点击始终可用。

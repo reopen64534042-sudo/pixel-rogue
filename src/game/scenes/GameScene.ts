@@ -85,7 +85,7 @@ export class GameScene extends Phaser.Scene {
         event.preventDefault();
       this.core.keys[key] = true;
       if (event.repeat) return;
-      // 教程快捷键优先于普通输入；F 下一步 / X 跳过。
+      // 教程快捷键优先于普通输入；F 下一步 / 开始正式战斗，X 跳过。
       if (this.ui.handleTutorialKey(key)) {
         event.preventDefault();
         return;

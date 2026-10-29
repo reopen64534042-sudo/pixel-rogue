@@ -1169,11 +1169,11 @@ export class GameUI {
     this.completeTutorial();
   }
 
-  /** 教程快捷键：F 下一步 / X 跳过；返回 true 表示已消费该按键。 */
+  /** 教程快捷键：F 下一步 / 完成后开始正式战斗，X 跳过；返回 true 表示已消费该按键。 */
   handleTutorialKey(key: string): boolean {
     if (!this.core.tutorialMode || this.core.state !== "play") return false;
     const prof = this.core.tutorialProf ?? this.core.prof;
-    if (this.core.tutorialStep >= tutorialTotalSteps(prof)) return false;
+    const total = tutorialTotalSteps(prof);
     const kb = this.core.keybinds;
     if (
       [kb.up, kb.down, kb.left, kb.right, kb.dash, kb.pause, kb.stats].includes(
@@ -1181,6 +1181,14 @@ export class GameUI {
       )
     )
       return false;
+    // 教程已完成、等待「开始正式战斗」：F 直接正式开局。
+    if (this.core.tutorialStep >= total) {
+      if (key === TUTORIAL_NEXT_KEY) {
+        this.finishTutorialRun();
+        return true;
+      }
+      return false;
+    }
     if (key === TUTORIAL_NEXT_KEY) {
       if (!this.core.tutorialStepReady) return false;
       return this.core.advanceTutorial();
@@ -1264,8 +1272,8 @@ export class GameUI {
           body: "贴近敌人自动挥砍，扇形内所有敌人一起受伤；离得越近越容易打满。试着一次命中至少 2 个木桩。",
         };
       return {
-        title: "强化箭",
-        body: "保持距离输出。每 3 发自动变成强化箭；命中会填充角色下方的黄条，升级解锁导弹 / 激光 / 追踪等新形态。试着打出 3 发强化箭。",
+        title: "强化弹",
+        body: "保持距离输出。默认每 4 发自动变成强化弹；命中会填充角色下方的强化弹经验条，升级解锁导弹 / 激光 / 追踪等新形态。正式战斗中拿到「快速装填」可回到 3 发。试着打出 3 发强化弹。",
       };
     }
     if (prof === "warrior" && step === 4) {
@@ -1286,7 +1294,7 @@ export class GameUI {
       };
     return {
       title: "教程完成",
-      body: "准备好了，开始正式战斗。",
+      body: "准备好了，按 F 或点击按钮开始正式战斗。",
     };
   }
 
