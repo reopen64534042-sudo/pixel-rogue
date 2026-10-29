@@ -59,3 +59,25 @@ export function seeded(seed = 12345) {
     return seed / 4294967296;
   };
 }
+
+/**
+ * 让熔炉产出指定的卡（S2）。
+ *
+ * 熔炉按 `pool[floor(rand * pool.length)]` 取卡，所以「抽到第几张」依赖池的
+ * 长度与顺序。S2 删除了 3 张旧卡、又加入 18 张射手卡，任何写死的
+ * `mockReturnValue(0.4)` 都会落到别的卡上——测试会以「属性对不上」的形式失败，
+ * 很难看出根因。
+ *
+ * 用池内位置反算随机值，测试就与池的构成解耦。
+ * `tier` 是**产出档**（= 材料档 + 1，即 `swTarget`）。
+ */
+export function meltRollFor(
+  core: GameCore,
+  tier: number,
+  name: string,
+): number {
+  const pool = core.legacyAvailTalents(tier);
+  const idx = pool.findIndex((u) => u.n === name);
+  if (idx < 0) throw new Error(`熔炉 ${tier} 档池里没有「${name}」`);
+  return (idx + 0.5) / pool.length;
+}

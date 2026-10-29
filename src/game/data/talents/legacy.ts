@@ -79,30 +79,6 @@ export const LEGACY_UPGRADES: Talent[] = [
   },
   {
     retired: 1,
-    n: "分裂射击",
-    ico: "🔱",
-    t: 1,
-    cat: "技能",
-    d: "+1 条弹道",
-    max: 4,
-    pv: (p) => `弹道 ${p.multishot} → ${p.multishot + 1}`,
-    f: (p) => p.multishot++,
-    cur: (p) => `当前弹道数 ${p.multishot}`,
-  },
-  {
-    retired: 1,
-    n: "穿透之矢",
-    ico: "🏹",
-    t: 1,
-    cat: "技能",
-    d: "子弹穿透 +1 个敌人",
-    max: 4,
-    pv: (p) => `穿透 ${p.pierce} → ${p.pierce + 1}`,
-    f: (p) => p.pierce++,
-    cur: (p) => `当前穿透次数 ${p.pierce}`,
-  },
-  {
-    retired: 1,
     n: "磁力护符",
     ico: "🧲",
     t: 0,
@@ -501,23 +477,6 @@ export const LEGACY_UPGRADES: Talent[] = [
     // 快照保留现值。
     f: () => {},
     cur: (p) => `每波临时护盾 ${p.barrierLv} 层`,
-  },
-  {
-    retired: 1,
-    n: "二段冲刺",
-    ico: "🚀",
-    t: 2,
-    cat: "防御",
-    d: "冲刺充能 +1 段（需先学疾影步）",
-    max: 1,
-    mech: 1,
-    req: (p) => p.dashLv > 0,
-    pv: (p) => `充能 ${1 + p.dashChargeLv} → ${2 + p.dashChargeLv} 段`,
-    // S4-C C3-C：dashChargeLv +1/级 由权威来源表声明（core/TalentStatSources.ts，
-    // dashChargeLv flat）；dashCharges/dashRe 属运行状态（消耗/充能/倒计时），
-    // recompute 由 RuntimeStateProtection 快照保留、上限降低时夹紧（D-C3-06）。
-    f: () => {},
-    cur: (p) => `冲刺充能上限 ${1 + p.dashChargeLv} 段`,
   },
   {
     hidden: 1,

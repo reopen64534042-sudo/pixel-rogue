@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { enemy, fresh, learn, talent, ticks } from "./helpers";
+import { enemy, fresh, learn, meltRollFor, talent, ticks } from "./helpers";
 import { statBase } from "../src/game/data/stats";
 import { boltDamage } from "../src/game/core/DamageMath";
 import type { GameCore } from "../src/game/core/GameCore";
@@ -337,10 +337,11 @@ describe("S4-C C2-B · 获取路径：升级面板、宝箱强化、置换全链
     g.setSwapTarget(1);
     g.selectMaterial("磁力护符");
     g.selectMaterial("磁力护符");
-    vi.spyOn(Math, "random").mockReturnValue(0); // t1 池首 = 分裂射击
+    // S2：旧卡「分裂射击」已删除，改用同为 t1 且不影响 magnet 的「致命一击」
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "致命一击"));
     const output = g.melt();
-    expect(output?.n).toBe("分裂射击");
-    expect(g.player.picks).toEqual(["分裂射击"]);
+    expect(output?.n).toBe("致命一击");
+    expect(g.player.picks).toEqual(["致命一击"]);
     expect(g.player.magnet).toBe(36);
     expect(g.player.magnet).toBe(legacyMultiplicative(g.player.picks).magnet);
     g.recompute();
@@ -356,10 +357,11 @@ describe("S4-C C2-B · 获取路径：升级面板、宝箱强化、置换全链
     g.setSwapTarget(1);
     g.selectMaterial("磁力护符");
     g.selectMaterial("磁力护符");
-    vi.spyOn(Math, "random").mockReturnValue(0);
+    // S2：旧卡「分裂射击」已删除，改用同为 t1 且不影响 magnet 的「致命一击」
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "致命一击"));
     g.melt();
-    // 剩余 1 级磁力护符保留 + 输出卡分裂射击
-    expect(g.player.picks).toEqual(["磁力护符", "分裂射击"]);
+    // 剩余 1 级磁力护符保留 + 输出卡致命一击
+    expect(g.player.picks).toEqual(["磁力护符", "致命一击"]);
     expect(g.player.magnet).toBe(50.4);
     expect(g.player.magnet).toBe(legacyMultiplicative(g.player.picks).magnet);
   });
@@ -374,7 +376,7 @@ describe("S4-C C2-B · 获取路径：升级面板、宝箱强化、置换全链
     g.selectMaterial("疾风之靴");
     g.selectMaterial("疾风之靴");
     // t1 池 12 项（含穿透之矢）：广域法印 idx 4 → random 0.35（floor(4.2)=4）
-    vi.spyOn(Math, "random").mockReturnValue(0.35);
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "广域法印"));
     const output = g.melt();
     expect(output?.n).toBe("广域法印");
     expect(g.player.picks).toEqual(["广域法印"]);
@@ -392,10 +394,10 @@ describe("S4-C C2-B · 获取路径：升级面板、宝箱强化、置换全链
     g.wavePhase = "rest";
     g.openSwap();
     g.setSwapTarget(1);
-    // t1 材料：广域法印×2 → 目标档 2；输出 t2 池首 = 会心深渊
+    // t1 材料：广域法印×2 → 目标档 2；产出按 t2 池位置反算（S2 删卡后顺序已变）
     g.selectMaterial("广域法印");
     g.selectMaterial("广域法印");
-    vi.spyOn(Math, "random").mockReturnValue(0);
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 2, "会心深渊"));
     const output = g.melt();
     expect(output?.n).toBe("会心深渊");
     // 剩余 picks：磨刃（保留）+ 会心深渊（输出）

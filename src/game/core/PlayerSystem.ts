@@ -31,7 +31,7 @@ export function updatePlayer(this: GameCore, dt: number) {
   if (dashingBefore && p.dashT <= 0 && (p.upCounts["疾行"] || 0) > 0)
     this.dashBoostT = 0.5;
   if (this.dashBoostT > 0) this.dashBoostT -= dt;
-  // 冲刺充能制 (二段冲刺增加上限)
+  // 冲刺充能制（「双段疾冲」增加上限）
   const dchMax = 1 + p.dashChargeLv;
   if (p.dashLv && p.dashCharges < dchMax) {
     p.dashRe -= dt;

@@ -139,7 +139,7 @@ describe("S2 检查点②：一局 8 次天赋、单局可见 14 张", () => {
 });
 
 describe("S2 检查点③：旧表退役", () => {
-  it("40 张退役卡在 200 次抽取中 0 次出现", () => {
+  it("37 张退役卡在 200 次抽取中 0 次出现", () => {
     const g = fresh();
     vi.spyOn(Math, "random").mockImplementation(seeded(7));
     const seen = new Set<string>();
@@ -149,7 +149,7 @@ describe("S2 检查点③：旧表退役", () => {
     const retired = new Set(
       LEGACY_UPGRADES.filter((u) => u.retired).map((u) => u.n),
     );
-    expect(retired.size).toBe(40);
+    expect(retired.size).toBe(37); // 38 张旧表里「不屈」是原版 hidden，不带 retired
     expect([...seen].filter((n) => retired.has(n))).toEqual([]);
   });
 

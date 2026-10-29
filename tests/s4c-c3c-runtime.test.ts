@@ -61,7 +61,7 @@ function legacyLevels(picks: string[]) {
         dashLv++;
         dashMax -= 0.4;
       }
-    } else if (n === "二段冲刺") dashChargeLv++;
+    } else if (n === "双段疾冲") dashChargeLv++;
     else if (n === "壁垒") barrierLv++;
     else if (n === "不屈") nd = 1;
     else if (n === "战意沸腾") rageLv++;
@@ -204,26 +204,27 @@ describe("S4-C C3-C · 契约 §7.2 验收：冲刺（G-15～G-19）", () => {
     expect(g.player.dashRe).toBe(1.2);
   });
 
-  it("G-17 熔掉二段冲刺：充能上限 2→1 夹紧 charges、dashRe 保留（真实置换）", () => {
+  it("G-17 熔掉充能卡：充能上限 2→1 夹紧 charges、dashRe 保留（真实置换）", () => {
     const g = fresh();
-    learn(g, "疾影步"); // 二段冲刺 req：dashLv > 0（正常解锁前置，learnTalent 直接学习也应保持合法状态）
-    learn(g, "二段冲刺");
-    learn(g, "壁垒"); // 第二份同档 t2 材料（melt 须两份同档）
+    learn(g, "疾影步"); // 冲刺解锁（dashLv>0 是充能逻辑的前提）
+    // S2：旧卡「双段疾冲」已删除，用射手机动槽「双段疾冲」（同为 t0、同为 +1 充能）
+    learn(g, "双段疾冲");
+    learn(g, "疾风之靴"); // 第二份同档 t0 材料（melt 须两份同档）
     expect(g.player.dashChargeLv).toBe(1);
     g.player.dashCharges = 2; // 已充满
     g.player.dashRe = 0.4;
     g.wavePhase = "rest";
     g.openSwap();
-    g.setSwapTarget(3);
-    g.selectMaterial("二段冲刺");
-    g.selectMaterial("壁垒");
-    const rand = vi.spyOn(Math, "random").mockReturnValue(0.4); // t3 池 [星辰坠落, 击杀狂热] idx 0
+    g.setSwapTarget(1);
+    g.selectMaterial("双段疾冲");
+    g.selectMaterial("疾风之靴");
+    const rand = vi.spyOn(Math, "random").mockReturnValue(0.4); // t1 池内固定输出
     const output = g.melt();
-    expect(output?.n).toBe("星辰坠落");
-    expect(g.player.upCounts["二段冲刺"]).toBeUndefined();
-    expect(g.player.upCounts["壁垒"]).toBeUndefined();
+    expect(output).toBeTruthy(); // 产出具体是哪张由 t1 池决定，本用例只验证夹紧语义
+    expect(g.player.upCounts["双段疾冲"]).toBeUndefined();
+    expect(g.player.upCounts["疾风之靴"]).toBeUndefined();
     expect(g.player.dashChargeLv).toBe(0); // 来源随材料移除
-    expect(g.player.dashLv).toBe(1); // 疾影步保留（材料仅移除二段冲刺/壁垒）
+    expect(g.player.dashLv).toBe(1); // 疾影步保留（材料仅移除双段疾冲/疾风之靴）
     expect(g.player.dashCharges).toBe(1); // min(2, dchMax=1)——不补回、只夹紧
     expect(g.player.dashRe).toBe(0.4); // 剩余时间原样（不缩放、不清零）
     expect(rand).toHaveBeenCalledTimes(1);
@@ -272,12 +273,12 @@ describe("S4-C C3-C · 契约 §7.2 验收：冲刺（G-15～G-19）", () => {
     expect(g.player.hp).toBeLessThan(hpDuringDash); // 门控关闭后同一接触路径生效
   });
 
-  it("G-19 失去疾影步保留二段冲刺：充能不清零、无法触发；重学后沿用（真实置换）", () => {
+  it("G-19 失去疾影步保留双段疾冲：充能不清零、无法触发；重学后沿用（真实置换）", () => {
     const g = fresh();
     g.quota = 0;
     g.spawnCd = 1e9;
     learn(g, "疾影步");
-    learn(g, "二段冲刺");
+    learn(g, "双段疾冲");
     learn(g, "战意沸腾"); // 第二份同档 t1 材料
     g.player.dashCharges = 2;
     g.wavePhase = "rest";
@@ -291,7 +292,7 @@ describe("S4-C C3-C · 契约 §7.2 验收：冲刺（G-15～G-19）", () => {
     expect(rand).toHaveBeenCalledTimes(1); // 池抽取恰好 1 次
     expect(g.player.dashLv).toBe(0); // 解锁等级随材料移除
     expect(g.player.dashMax).toBe(2.4); // 回落 base（未解锁占位，消费点不读取）
-    expect(g.player.dashChargeLv).toBe(1); // 二段冲刺保留
+    expect(g.player.dashChargeLv).toBe(1); // 双段疾冲保留
     expect(g.player.dashCharges).toBe(2); // dchMax 仍=2：不夹紧、不清零
     // 无法触发冲刺（dashLv=0 门控）：dashT 只自然衰减、不被置 0.16
     g.player.dashT = -0.2;
@@ -369,7 +370,7 @@ describe("S4-C C3-C · 契约 §7.2 验收：换波与全局（G-20～G-22）", 
     learn(g, "能量护盾", 2); // C3-B
     learn(g, "击杀狂热"); // C3-C
     learn(g, "疾影步", 2);
-    learn(g, "二段冲刺");
+    learn(g, "双段疾冲");
     learn(g, "壁垒");
     learn(g, "不屈");
     learn(g, "战意沸腾");
@@ -433,7 +434,7 @@ describe("S4-C C3-C · 契约 §7.2 验收：换波与全局（G-20～G-22）", 
     for (const n of [
       "击杀狂热",
       "疾影步",
-      "二段冲刺",
+      "双段疾冲",
       "壁垒",
       "不屈",
       "战意沸腾",
@@ -517,7 +518,7 @@ describe("S4-C C3-C · 额外重点（任务书 §七）", () => {
     learn(g, "战意沸腾", 2);
     learn(g, "不屈");
     learn(g, "击杀狂热", 3);
-    learn(g, "二段冲刺");
+    learn(g, "双段疾冲");
     const before = JSON.stringify(g.player);
     for (const n of [
       "疾影步",
@@ -525,7 +526,7 @@ describe("S4-C C3-C · 额外重点（任务书 §七）", () => {
       "战意沸腾",
       "不屈",
       "击杀狂热",
-      "二段冲刺",
+      "双段疾冲",
     ])
       expect(g.learnTalent(talent(n))).toBe(false); // 满级路径早退
     expect(JSON.stringify(g.player)).toBe(before); // 失败路径零写入
@@ -552,14 +553,16 @@ describe("S4-C C3-C · 额外重点（任务书 §七）", () => {
     expect(g.player.tempShield).toBe(2); // 下一波按 barrierLv=2 重建
   });
 
-  it("未迁移天赋 f 重放语义不变：穿透之矢/分裂射击经重算仍正确", () => {
+  it("S2 射手卡经 recompute 重建后属性不丢（投影幂等）", () => {
     const g = fresh();
-    learn(g, "穿透之矢");
-    learn(g, "分裂射击", 2);
-    const { pierce, multishot } = g.player;
+    learn(g, "破甲箭");
+    learn(g, "三重射击");
+    const { pierce, multishot, pierceFalloff, boltDmgMul } = g.player;
     g.recompute();
-    expect(g.player.pierce).toBe(pierce); // f 重放重建（C3-C 不迁移）
+    expect(g.player.pierce).toBe(pierce);
     expect(g.player.multishot).toBe(multishot);
+    expect(g.player.pierceFalloff).toBe(pierceFalloff);
+    expect(g.player.boltDmgMul).toBe(boltDmgMul);
   });
 });
 
@@ -567,7 +570,7 @@ describe("S4-C C3-C · 旧行为对照与结构契约", () => {
   it("旧版学习路径独立对照：六张卡 learnTalent 与旧 f 语义逐位一致（含 dashMax 浮点序列）", () => {
     const orders = [
       ["击杀狂热", "疾影步", "战意沸腾"],
-      ["疾影步", "疾影步", "击杀狂热", "壁垒", "不屈", "二段冲刺"],
+      ["疾影步", "疾影步", "击杀狂热", "壁垒", "不屈", "双段疾冲"],
       ["战意沸腾", "战意沸腾", "疾影步", "疾影步", "疾影步"],
     ];
     for (const order of orders) {
@@ -597,7 +600,7 @@ describe("S4-C C3-C · 旧行为对照与结构契约", () => {
     for (const n of [
       "击杀狂热",
       "疾影步",
-      "二段冲刺",
+      "双段疾冲",
       "壁垒",
       "不屈",
       "战意沸腾",

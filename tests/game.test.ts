@@ -146,18 +146,18 @@ describe("game flow and state", () => {
 });
 
 describe("34 talents, card pools and combat", () => {
-  it("retains 59 unique names, wave-based tier ramp and chain prerequisites", () => {
+  it("retains 56 unique names, wave-based tier ramp and chain prerequisites", () => {
     // S2：41 张旧表（retired）+ 18 张射手池
-    expect(UPGRADES).toHaveLength(59);
-    expect(new Set(UPGRADES.map((u) => u.n)).size).toBe(59);
+    expect(UPGRADES).toHaveLength(56);
+    expect(new Set(UPGRADES.map((u) => u.n)).size).toBe(56);
     const g = fresh();
     // S2：稀有度按**波次**分档（v40 按 player.lvl）
     for (const r of RAMP) {
       g.waveN = r.min;
       expect(g.tierWeights()).toEqual(r.w);
     }
-    // 旧卡「二段冲刺」已退役，不再进池
-    expect(g.canOffer(talent("二段冲刺"))).toBe(false);
+    // 旧卡「双段疾冲」已随 S2 删除；射手机动槽的「双段疾冲」接管该卡位
+    expect(g.canOffer(talent("双段疾冲"))).toBe(true);
     // 新卡链式依赖：未持有 L1 时 L2 不进池
     expect(g.canOffer(talent("弹道贯穿"))).toBe(false);
     learn(g, "破甲箭");
@@ -244,7 +244,7 @@ describe("34 talents, card pools and combat", () => {
     g.keys = {};
     ticks(g, 121);
     expect(g.player.dashCharges).toBe(1);
-    learn(g, "二段冲刺");
+    learn(g, "双段疾冲");
     ticks(g, 121);
     expect(g.player.dashCharges).toBe(2);
   });
@@ -413,10 +413,10 @@ describe("furnace economics and regressions", () => {
     expect(g.player.damage).toBe(11);
     expect(g.player.hp).toBe(40);
   });
-  it("all 34 talents provide cur(p) returning current effective value descriptions", () => {
+  it("all 56 talents provide cur(p) returning current effective value descriptions", () => {
     const g = fresh();
     const talents = UPGRADES;
-    expect(talents).toHaveLength(59);
+    expect(talents).toHaveLength(56);
     for (const t of talents) {
       expect(typeof t.cur).toBe("function");
       const desc = t.cur!(g.player);

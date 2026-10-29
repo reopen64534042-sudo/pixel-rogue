@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { enemy, fresh, learn, talent, ticks } from "./helpers";
+import { enemy, fresh, learn, meltRollFor, talent, ticks } from "./helpers";
 import { statBase } from "../src/game/data/stats";
 import {
   boltDamage,
@@ -200,10 +200,11 @@ describe("S4-C C2-A · 置换链路：移除/获得伤害天赋后正确重算",
     g.setSwapTarget(1);
     g.selectMaterial("磨刃");
     g.selectMaterial("磨刃");
-    vi.spyOn(Math, "random").mockReturnValue(0); // t1 池首 = 分裂射击
+    // S2：旧卡「分裂射击」已删除，改用同为 t1 且不影响 damage 的「致命一击」
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "致命一击"));
     const output = g.melt();
-    expect(output?.n).toBe("分裂射击");
-    expect(g.player.picks).toEqual(["分裂射击"]);
+    expect(output?.n).toBe("致命一击");
+    expect(g.player.picks).toEqual(["致命一击"]);
     expect(g.player.damage).toBe(11);
     expect(g.player.damage).toBe(legacyDamage(g.player.picks));
     g.recompute();
@@ -219,10 +220,11 @@ describe("S4-C C2-A · 置换链路：移除/获得伤害天赋后正确重算",
     g.setSwapTarget(1);
     g.selectMaterial("磨刃");
     g.selectMaterial("磨刃");
-    vi.spyOn(Math, "random").mockReturnValue(0);
+    // S2：旧卡「分裂射击」已删除，改用同为 t1 且不影响 damage 的「致命一击」
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "致命一击"));
     g.melt();
-    // 剩余 1 级磨刃保留 + 输出卡分裂射击
-    expect(g.player.picks).toEqual(["磨刃", "分裂射击"]);
+    // 剩余 1 级磨刃保留 + 输出卡致命一击（只影响暴击率，不动 damage）
+    expect(g.player.picks).toEqual(["磨刃", "致命一击"]);
     expect(g.player.damage).toBe(12.100000000000001);
     expect(g.player.damage).toBe(legacyDamage(g.player.picks));
   });
@@ -235,7 +237,7 @@ describe("S4-C C2-A · 置换链路：移除/获得伤害天赋后正确重算",
     g.setSwapTarget(1);
     g.selectMaterial("磨刃");
     g.selectMaterial("磨刃");
-    vi.spyOn(Math, "random").mockReturnValue(0.8); // t1 池（12 项）idx 9 = 狂怒
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "狂怒")); // 按池位置反算，不写死索引
     const output = g.melt();
     expect(output?.n).toBe("狂怒");
     expect(g.player.picks).toEqual(["狂怒"]);
@@ -253,7 +255,7 @@ describe("S4-C C2-A · 置换链路：移除/获得伤害天赋后正确重算",
     g.setSwapTarget(2);
     g.selectMaterial("狂怒");
     g.selectMaterial("狂怒");
-    vi.spyOn(Math, "random").mockReturnValue(0.7); // t2 池（8 项）idx 5 = 毁灭本能
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 2, "毁灭本能")); // 按池位置反算，不写死索引
     const output = g.melt();
     expect(output?.n).toBe("毁灭本能");
     expect(g.player.damage).toBe(14.3);
@@ -269,17 +271,17 @@ describe("S4-C C2-A · 置换链路：移除/获得伤害天赋后正确重算",
     // t0 材料：磨刃×2 + 闪避本能×1 → 首选磨刃推导目标档 1
     g.selectMaterial("磨刃");
     g.selectMaterial("磨刃");
-    vi.spyOn(Math, "random").mockReturnValue(0);
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "致命一击"));
     g.melt();
-    // 剩余 picks：狂怒 → 毁灭本能 → 闪避本能（顺序保留）+ 输出卡分裂射击
+    // 剩余 picks：狂怒 → 毁灭本能 → 闪避本能（顺序保留）+ 输出卡致命一击
     expect(g.player.picks).toEqual([
       "狂怒",
       "毁灭本能",
       "闪避本能",
-      "分裂射击",
+      "致命一击",
     ]);
     expect(g.player.damage).toBe(legacyDamage(g.player.picks));
-    expect(g.player.damage).toBe(17.16); // (11×1.2)×1.3，分裂射击无贡献
+    expect(g.player.damage).toBe(17.16); // (11×1.2)×1.3，致命一击不影响 damage
   });
 });
 

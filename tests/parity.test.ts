@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { createContext, runInContext } from "node:vm";
 import { it, expect, vi, afterEach } from "vitest";
 import { fresh, seeded, learn, enemy } from "./helpers";
-import { LEGACY_UPGRADES } from "../src/game/data/talents";
+import { LEGACY_UPGRADES, SHOOTER_TALENTS } from "../src/game/data/talents";
 import { ETYPES } from "../src/game/data/enemies";
 import type { EnemyConfig } from "../src/game/core/types";
 import {
@@ -29,7 +29,7 @@ afterEach(() => vi.restoreAllMocks());
  *
  * 基线更新依据：Issue #36（用户已批准的手感变更）。
  * 多弹道散布改为动态（孤立目标收拢 0.04 / 密集目标 0.16），
- * 分裂射击不参与 v8 对照，由 D-05 显式断言保护。
+ * 多弹道卡不参与 v8 对照，由 D-05 显式断言保护（S2 起改用射手「三重射击」，旧卡已删除）。
  * 任何其他天赋出现与 v8 的差异都按 bug 处理。
  */
 const BASELINE_EXCLUDED = [
@@ -955,9 +955,10 @@ it("D-05 动态散布：孤立目标收拢 0.04，密集目标展开 0.16", () =
   const angle = (b: { vx: number; vy: number }) => Math.atan2(b.vy, b.vx);
   // 孤立目标 → 收拢
   const g = fresh();
-  const split = LEGACY_UPGRADES.find((u) => u.n === "分裂射击");
-  g.learnTalent(split!);
-  g.learnTalent(split!); // multishot 3
+  // S2：旧卡「分裂射击」已删除，改用射手核心 L3「三重射击」（同样 3 发）。
+  // 新卡 max=1，一次学习即生效——不再靠叠级涨弹道。
+  const split = SHOOTER_TALENTS.find((u) => u.n === "三重射击")!;
+  g.learnTalent(split);
   enemy(g);
   g.player.fireCd = 0;
   g.update(1 / 60);
@@ -968,8 +969,7 @@ it("D-05 动态散布：孤立目标收拢 0.04，密集目标展开 0.16", () =
   for (const d of tight) expect(d).toBeCloseTo(0.04, 1);
   // 密集目标 → 展开
   const g2 = fresh();
-  g2.learnTalent(split!);
-  g2.learnTalent(split!);
+  g2.learnTalent(split);
   enemy(g2);
   for (let i = 0; i < 5; i++)
     enemy(g2, g2.player.x + 60 + i * 8, g2.player.y + (i % 2) * 10);

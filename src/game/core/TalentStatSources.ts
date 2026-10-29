@@ -17,7 +17,7 @@
  *   C3-C 六张等级型机制卡：「击杀狂热」hasteLv flat +1/级、「疾影步」dashLv
  *   flat +1/级 且 dashMax 有序 flat −0.4/级（每级一条独立修饰符，base 2.4
  *   逐次累加逐位复现旧 f 序列 2.0/1.6/1.2000000000000002，B16 验证；**禁止**
- *   折叠式 2.4−0.4×lv）、「二段冲刺」dashChargeLv flat +1/级、「壁垒」
+ *   折叠式 2.4−0.4×lv）、「双段疾冲」dashChargeLv flat +1/级、「壁垒」
  *   barrierLv flat +1/级、「不屈」nd flat +1（max=1，保持数字 0/1 与旧 f
  *   `p.nd = 1` 一致）、「战意沸腾」rageLv flat +1/级。对应运行状态
  *   （haste/hasteT、rageT、dashT/dashCharges/dashRe、tempShield、ndUsed）
@@ -212,7 +212,7 @@ export function talentStatModifiers(
         break;
       case "三重射击": // 同时射出 3 发，每发 50% 伤害。
         // 弹道数（multishot）由卡的 f 直接置 3——它是离散数量，且旧卡
-        // 「分裂射击」也用 f 写同一字段；投影若声明 multishot 会覆盖它。
+        // 旧表同名卡也用 f 写同一字段；投影若声明 multishot 会覆盖它。
         scalars.push({
           sourceId: "天赋:三重射击",
           stat: "boltDmgMul",
@@ -252,7 +252,7 @@ export function talentStatModifiers(
           value: 1,
         });
         break;
-      // 「双段疾冲」（射手机动槽）与旧卡「二段冲刺」共用声明，见下方 C3-C 段
+      // 「双段疾冲」（射手机动槽）的声明在下方 C3-C 段
       case "疾行": // 冲刺距离 +25%
         scalars.push({
           sourceId: "天赋:疾行",
@@ -401,11 +401,9 @@ export function talentStatModifiers(
           value: -0.4,
         });
         break;
-      // 旧卡「二段冲刺」（v40，前提是疾影步）与新卡「双段疾冲」（射手机动 L1）
-      // 效果相同，共用一条声明；名字不同是因为同名会让 upCounts 以名字为键
-      // 的机制串味（见 data/talents/shooter.ts 头注）。
-      case "二段冲刺": // data/talents.ts：dashChargeLv++（max 1）
-      case "双段疾冲": // S2 射手机动槽
+      // 机动槽「双段疾冲」：冲刺充能 +1 段。
+      // 旧表的同名卡「二段冲刺」已随 S2 退役删除（名字与卡位都被本卡接管）。
+      case "双段疾冲":
         scalars.push({
           sourceId: "天赋:冲刺充能+1",
           stat: "dashChargeLv",
@@ -579,7 +577,7 @@ export function applyTalentStatProjection(
   // S1：射程写回（base 130；属性/天赋都未改动时写回 130，与旧硬编码等价）
   p.attackRange = resolved.attackRange ?? base.attackRange;
   // S2 射手池：核心/距离/机动三个槽位的标量。
-  // **只在有来源时才写**：旧表的穿透之矢/分裂射击仍靠 `f` 直接写
+  // **只在有来源时才写**：旧表仍有卡靠 `f` 直接写
   // `p.pierce` / `p.multishot`，无条件写回会把它们的值覆盖成 base
   //（表现为「旧卡学了没用」，parity 的全天赋场景会立刻对不上）。
   // 这五个键不在上方 base 里，因此无来源时 resolved 中不存在 → 保留 f 的值。

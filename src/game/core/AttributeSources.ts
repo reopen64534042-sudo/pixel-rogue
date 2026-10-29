@@ -50,7 +50,7 @@ export function attributeModifiers(
  *
  * 为什么是派生函数而不是写进 Player 或属性投影：
  * - 写进 Player 会被 `recompute` 的 `Object.assign(player, statBase())` 抹掉；
- * - 写进属性投影会覆盖旧卡 `f` 对同一字段的写入（旧表的穿透之矢仍是
+ * - 写进属性投影会覆盖旧卡 `f` 对同一字段的写入（旧表的同名卡曾是
  *   `p.pierce++`），导致 parity 的全天赋场景对不上。
  *
  * 所以职业基础只在**消费点**叠加：`pierce` 在发射时加 1，`pierceFalloff`

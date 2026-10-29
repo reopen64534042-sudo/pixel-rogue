@@ -51,7 +51,7 @@ export function updateAttacks(this: GameCore, dt: number) {
           vy: Math.sin(a) * p.projSpeed,
           dmg: boltDamage(p) * distMul,
           // S2：穿透次数 = 天赋写入值 + 职业基础（射手 +1）。
-          // 职业基础不进 Player 字段：旧表穿透之矢靠 f 写同一字段，
+          // 职业基础不进 Player 字段：旧表同名卡靠 f 写同一字段，
           // 写进去会互相覆盖（见 core/AttributeSources.ts 的说明）。
           pierce: p.pierce + professionPierce(this.prof),
           falloff: p.pierceFalloff,

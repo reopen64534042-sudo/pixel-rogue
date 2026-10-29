@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyOnAcquireEffect } from "../src/game/core/OnAcquireEffects";
-import { fresh, learn, talent } from "./helpers";
+import { fresh, learn, meltRollFor, talent } from "./helpers";
 
 /**
  * S4-C C3-A：生命上限权威迁移 + 获得时治疗分离 + 血包永久成长修复。
@@ -88,7 +88,7 @@ describe("S4-C C3-A · 契约 §7.2 验收（G-1～G-5 / G-23）", () => {
     g.setSwapTarget(1);
     g.selectMaterial("生命之泉");
     g.selectMaterial("巨人血脉");
-    vi.spyOn(Math, "random").mockReturnValue(0.8); // t1 池 12 项 idx 9 = 狂怒
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "狂怒")); // 按池位置反算，不写死索引
     const output = g.melt();
     expect(output?.n).toBe("狂怒");
     expect(g.player.picks).toEqual(["狂怒"]);
@@ -229,7 +229,7 @@ describe("S4-C C3-A · 旧行为对照与边界（任务书 §六.B）", () => {
     g.setSwapTarget(1);
     g.selectMaterial("生命之泉");
     g.selectMaterial("磨刃");
-    vi.spyOn(Math, "random").mockReturnValue(0.8); // t1 池 idx 9 = 狂怒
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "狂怒")); // 按池位置反算，不写死索引
     const output = g.melt();
     expect(output?.n).toBe("狂怒");
     expect(g.player.picks).toEqual(["狂怒"]);
@@ -256,7 +256,7 @@ describe("S4-C C3-A · 旧行为对照与边界（任务书 §六.B）", () => {
     g.setSwapTarget(1);
     g.selectMaterial("生命之泉");
     g.selectMaterial("巨人血脉");
-    vi.spyOn(Math, "random").mockReturnValue(0.8); // t1 池 idx 9 = 狂怒
+    vi.spyOn(Math, "random").mockReturnValue(meltRollFor(g, 1, "狂怒")); // 按池位置反算，不写死索引
     const hpBeforeMelt = g.player.hp; // 153：recompute 的 hpBefore
     const output = g.melt();
 

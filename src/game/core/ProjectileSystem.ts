@@ -55,7 +55,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
         if (b.pierce > 0) {
           b.pierce--;
           // S2：衰减系数从硬编码 0.85 改为发射时固化的属性值
-          //（射手职业 0.5、穿透之矢 0.8、弹道贯穿 1.0）
+          //（射手职业 0.5、破甲箭 0.8、弹道贯穿 1.0）
           b.dmg *= b.falloff;
         } else if (b.jumps > 0) {
           // 弹射: 转向最近的未命中敌人
