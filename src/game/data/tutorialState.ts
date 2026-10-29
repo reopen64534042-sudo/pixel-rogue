@@ -9,6 +9,10 @@
  */
 const KEY = "pixelrogue_tutorial_v1";
 
+/** 教程按钮的默认快捷键；与自定义动作键冲突时，动作键优先。 */
+export const TUTORIAL_NEXT_KEY = "f";
+export const TUTORIAL_SKIP_KEY = "x";
+
 function readSeen(): Record<string, boolean> {
   try {
     if (typeof localStorage === "undefined") return {};

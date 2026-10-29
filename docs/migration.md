@@ -2583,3 +2583,31 @@ ctx.stroke();      // → strokePath()
   2. `EnemySystem` 的敌人分离对 `noKnock` 敌人不产生位移。
 - 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
 - 说明：仅教程木桩设置 `noKnock`，普通敌人无该字段，行为逐位不变。
+
+## D-100 教程按钮快捷键（v96）
+
+- 用户需求（2026-10-30）：给新手教程的「下一步」和「跳过教程」加默认快捷键，并用括号字母形式附在中文后面。
+- 实现：
+  1. `data/tutorialState.ts` 新增 `TUTORIAL_NEXT_KEY = "f"`、`TUTORIAL_SKIP_KEY = "x"`。
+  2. `GameUI.handleTutorialKey`：仅在 `state === "play"`、`tutorialStep < 5` 时生效；F 需要当前步骤已就绪，X 直接跳过；与自定义动作键（移动/冲刺/暂停/属性）冲突时返回 false，让动作键优先。
+  3. `GameScene` 的 keydown 在 `event.repeat` 之后、其它游戏输入之前调用；消费后 `preventDefault`。
+  4. `index.html`：按钮文字改为「下一步（F）」「跳过教程（X）」。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
+- 说明：F/X 不进入可改键列表；若玩家把 F/X 改成动作键，动作键优先，教程按钮仍可点击。
+
+## D-101 天赋卡固定高度（v97）
+
+- 用户反馈（2026-10-30）：天赋选择刷新后，如果新卡文本量少于旧卡，卡片框高度会变化，整排跳动。
+- 原因：`#bp-cards .card` 只有 `min-height: 22vmin`，长描述会把卡片撑高；刷新成短描述卡后缩回。
+- 改动：
+  1. `#bp-cards .card` 改为固定 `height: 26vmin`（保留原宽度与内边距）。
+  2. `.ds` 说明区改为可内部滚动（`overflow-y: auto` + `min-height: 0`），新增 `.ds-inner` 保持短文本垂直居中；`drawCards` 包一层 `.ds-inner`。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。
+- 说明：只改天赋三选一卡片；属性四选一卡片未动。
+
+## D-102 属性生命保持血量百分比（v98）
+
+- 用户反馈（2026-10-30）：属性选择「生命」时，如果当前不是满血，只加最大生命、当前生命不变，血量百分比反而下降。
+- 改动：`AttributeSystem.chooseAttr` 在应用属性前记录 `hp / maxhp`；`recompute` 后若选择的是 `maxHp` 且上限确实提高，则按 `round(newMax × ratio)` 回填当前血量（夹在 1..newMax）。满血选择后仍为满血。
+- 范围：只影响属性面板的「生命」选择；天赋、血包与其它回血逻辑不变。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。按 2026-10-29 标准未运行 Vitest / Playwright。

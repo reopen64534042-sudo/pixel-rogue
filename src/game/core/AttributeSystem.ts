@@ -357,9 +357,22 @@ export function chooseAttr(this: GameCore, index: number) {
   if (this.state !== "play" || this.bpMode !== "attr") return false;
   const choice = this.attrChoices[index];
   if (!choice) return false;
+  // 选「生命」时保持选择前的血量百分比：只加上限会让非满血玩家越选越虚。
+  const hpBefore = this.player.hp;
+  const maxBefore = this.player.maxhp;
+  const hpRatio = maxBefore > 0 ? hpBefore / maxBefore : 1;
   this.attributePicks.push(toAttributePoint(choice));
   if (this.attrPicks > 0) this.attrPicks--;
   this.recompute();
+  if (choice.def.stat === "maxHp" && this.player.maxhp > maxBefore) {
+    this.player.hp = Math.max(
+      1,
+      Math.min(
+        this.player.maxhp,
+        Math.round(this.player.maxhp * hpRatio),
+      ),
+    );
+  }
   if (this.attrPicks > 0) {
     // 还有次数：就地换一组新的，刷新额度重置（每「次选择」各有一次刷新）
     this.attrChoices = rollAttrChoices(this.player, this.prof);

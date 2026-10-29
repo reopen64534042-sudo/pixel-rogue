@@ -85,6 +85,11 @@ export class GameScene extends Phaser.Scene {
         event.preventDefault();
       this.core.keys[key] = true;
       if (event.repeat) return;
+      // 教程快捷键优先于普通输入；F 下一步 / X 跳过。
+      if (this.ui.handleTutorialKey(key)) {
+        event.preventDefault();
+        return;
+      }
       // 覆盖层优先：图鉴打开时暂停键 / Esc 只关闭图鉴，不恢复游戏（Issue #78 / #81）
       if (key === this.core.keybinds.pause || key === "escape") {
         if (this.ui.dismissOverlay()) return;
