@@ -1,6 +1,11 @@
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { WORLD, clamp } from "../data/constants";
-import { applyDotDamage, applyMageHit, mageDamageType } from "./ElementSystem";
+import {
+  applyDotDamage,
+  applyMageHit,
+  mageDamageType,
+  mageReactionAvailable,
+} from "./ElementSystem";
 import type { GameCore } from "./GameCore";
 import type { Enemy, MageCastPhase } from "./types";
 
@@ -94,6 +99,28 @@ export function mageCircleDamage(
 }
 
 /**
+ * 反应伤害基数（v74）：与直伤解耦。
+ *
+ * v74 把法阵直伤 1.2 → 0.9，但融化 / 超导 / 闪电链仍按 v73 的 1.2 基数
+ * 折算——玩家感知是「本体变轻、反应不变」。站定 / 充能 / 三连对反应基数
+ * 的加成与直伤完全一致，避免两套节奏。
+ */
+export function mageReactionBase(
+  core: GameCore,
+  isCharge: boolean,
+  steady = false,
+): number {
+  const p = core.player;
+  let base = p.damage * MB.reactionBaseMul;
+  if (steady) base *= MB.steadyDamageMul;
+  if (isCharge) {
+    if ((p.upCounts["元素蓄能"] || 0) > 0) base *= MB.chargeDamageMul;
+    if ((p.upCounts["三连聚爆"] || 0) > 0) base *= MB.burstDamageMul;
+  }
+  return base;
+}
+
+/**
  * 射程内「最密集处」：按本次法阵实际半径统计覆盖人数，取最多者；
  * 人数相同取离玩家更近的那个。
  *
@@ -153,6 +180,7 @@ function explodeCircle(
   y: number,
   R: number,
   dmg: number,
+  reactionBase: number,
 ): number {
   const p = core.player;
   const type = mageDamageType(p);
@@ -163,13 +191,16 @@ function explodeCircle(
     const dy = e.y - y;
     if (dx * dx + dy * dy > R * R) continue;
     hits++;
+    // v74：满足反应条件时，直伤为反应让出最后一击；反应基数另行传入，
+    // 所以改这一行不会改变融化/超导/闪电链的数字。
     core.hurtEnemy(e, dmg, 0, 0, {
       noChain: true,
       src: "cast",
       type,
       form: "other",
+      lethalCap: mageReactionAvailable(core, e),
     });
-    applyMageHit(core, e, dmg);
+    applyMageHit(core, e, reactionBase);
   }
   if (hits) {
     // 不再刷「法阵」飘字：它每 0.55 秒在落点出现一次，正好压住伤害数字
@@ -194,8 +225,16 @@ function detonate(core: GameCore, steady: boolean) {
   // 满充能触发：三格全亮 0.35 秒（1→2→3 的计数反馈），随后清零
   if (isCharge) core.mageChargeFlashT = MB.chargeFlash;
   const dmg = mageCircleDamage(core, isCharge, steady);
+  const reactionBase = mageReactionBase(core, isCharge, steady);
   const R = mageCircleRadius(core, isCharge);
-  const hits = explodeCircle(core, core.castX, core.castY, R, dmg);
+  const hits = explodeCircle(
+    core,
+    core.castX,
+    core.castY,
+    R,
+    dmg,
+    reactionBase,
+  );
   // 回响：施法命中后获得少量护盾（可叠加，总量有上限）
   if (hits > 0 && (p.upCounts["回响"] || 0) > 0) {
     grantMageShield(
@@ -223,6 +262,7 @@ function detonate(core: GameCore, steady: boolean) {
         core.castY,
         R,
         mageCircleDamage(core, false, steady),
+        mageReactionBase(core, false, steady),
       );
   }
   core.mageCharge = (core.mageCharge + 1) % MB.chargeFull;
@@ -456,6 +496,9 @@ function updateMeteorRoute(core: GameCore, dt: number) {
         src: "meteor",
         type: m.element,
         form: "other",
+        // 陨星直伤同样为反应让出最后一击；陨星的反应基数就是它自己的
+        // 直伤（本路线没有 castDamageMul 的下调）。
+        lethalCap: mageReactionAvailable(core, e),
       });
       applyMageHit(core, e, dmg);
     }

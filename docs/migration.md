@@ -2320,3 +2320,42 @@ ctx.stroke();      // → strokePath()
 - 本批内容：射手强化箭 12 级/9 条升级、独立导弹与激光、30% 吸血、燃烧地带每 0.5 秒聚合飘字；疾行改为冲刺后射速窗口；怪物 HP/护甲恢复完整值、精英生命倍率恢复 ×5；反弹改为撞世界边界、三次后消失，导弹始终追踪并在目标死亡后重新索敌。
 - 验证：`npm run typecheck`、`npm run build` 通过；按 2026-10-29 标准未运行 Vitest / Playwright。上游既有测试基线（base stats、balance/parity、精英 ×3.5 等）已过期，留待授权测试批次统一处理。
 - 当前唯一 stash `balance-wip-20261030-upstream-sync` 待提交确认并完成复核后删除。
+
+## D-79 法师基础生命、卡面与 C 面板修正（v76）
+
+- 用户需求：
+  1. C 属性面板的「吸血 / 闪避」归入「核心战斗」，不再放在「生存防御」。
+  2. 双修选中两个元素后，机制说明只显示已持有元素的反应（与元素共振同口径）。
+  3. 法师开局生命值设为 40。
+- 改动：
+  1. `GameUI.buildStats`：`🌀 闪避`、`🦷 吸血` 两行从 `defenseRows` 移到 `combatRows`（暴击行之后）；其余守势行不变。
+  2. `data/talents/mage.ts`：新增 `ELEMENT_NAME` / `REACTIONS` / `ownedReactions` / `ownedElementNames` / `ownedReactionNames` / `ownedReactionLines`；双修、三修增加 `dyn`，并把 `pv`/`cur` 改为按持有元素动态生成；静态 `d` 改为不列具体反应的通用文案（图鉴仍可读）。说明文本直接读 `MAGE_BALANCE`（融化 2.5、超载 ≥2 层/15%×3s、超导 ×1/+2 跳/15%），避免与结算漂移。
+  3. `data/stats.ts`：在上游 v74 的射手 50 HP / 70 移速 / 13 攻击基础上，把法师 `maxhp` 设为 40（法师其余保持 62 移速 / 11 攻击 / 150 施法距离）；文件头同步两个职业的基础值。
+  4. `core/GameCore.resetGame`：上游 v74 已在重建 Player 后执行 `this.player.hp = this.player.maxhp;`，本批不再重复改；法师 40 血新局即 40/40。
+- 验证：`typecheck` ✓、`build` ✓。受控运行（`--mode e2e`，端口 5920）：
+  - 法师 `startGame("mage")` → `maxhp=40, hp=40, prof=mage`。
+  - C 面板 `#stat-combat` 含「🌀 闪避 / 🦷 吸血」；`#stat-defense` 不再含这两行。
+  - 双修：火+冰 → 只显示「融化」；火+雷 → 只显示「超载」；火+冰+雷 → 三种全列；三修三元素 → 三种全列。
+- 影响/待试玩：
+  - 法师最大生命 40 会让护盾/回复的百分比数值同步变小（咏唱护壁 12% = 4.8、回响 4% = 1.6、上限 25% = 10）；这是用户裁定的直接结果，需实机确认法师前期容错。
+  - C 面板行集合变化会让 browser 测试对 `#stat-combat` / `#stat-defense` 的文本断言过期；法师 maxhp=100 的旧断言也可能过期。按 2026-10-29 验证标准，本批不跑/不改测试，留待授权测试批次。
+
+## D-80 法师法阵直伤下调与反应保护（v76）
+
+- 用户反馈：15 波后法师基础元素伤害起来，小怪在元素反应前就被法阵直伤打死，违背法师玩法；希望在不影响反应伤害爽感的前提下降低法阵本体伤害。用户选择 B（平削 + 反应优先）。
+- 根因（代码层）：`explodeCircle` 先 `hurtEnemy` 再 `applyMageHit`；`applyMageHit` 开头 `if (e.dead) return`，所以击杀那一下永远不会结算反应。只降直伤只能延后，不能消除。
+- 改动：
+  1. `mageBalance.castDamageMul` 1.2 → 0.9（-25%）；新增 `reactionBaseMul = 1.2`，作为融化/超导/闪电链的反应基数；灼烧/超载/残域继续用 `p.damage`。
+  2. `MageSystem.mageReactionBase()`：按与直伤相同的站定/充能/三连倍率生成反应基数，保证反应数字与 v73 一致。
+  3. `MageSystem.explodeCircle` 增加 `reactionBase` 参数；法阵与过载额外爆裂均分别传入直伤与反应基数；`applyMageHit` 改用反应基数。陨星直接命中同样传 `lethalCap`，反应基数仍为陨星自身直伤（陨星未下调）。
+  4. `ElementSystem.reactionState()` 抽出纯查询，`mageReactionAvailable()` 供击杀保护使用；`resolveMageReactions` 按同一快照结算。
+  5. `HitOptions.lethalCap` + `hurtEnemy`：目标满足反应条件且直伤会击杀时，直伤最多留 1 HP（`e.hp - 1`），随后反应完成击杀；只应用于法阵/陨星直伤，反应/连锁不传。上游 v74 的 `trueFraction` 先结算，lethalCap 只压低最终应用值。
+- 验证：`typecheck` ✓、`build` ✓；合并上游 v74/v75 后复验（`--mode e2e`）：
+  - 火焰+雷电、2 层灼烧、100 HP：直伤 15、超载反应 10、灼烧清空、CD 0.8；反应数字与 v73 相同。
+  - 火焰+冰霜、冻结、10 HP：直伤被压到 9（留 1 HP），融化反应 49 完成击杀；100 HP 时直伤 16（冻结 +10%）、融化 49，反应数字不变。
+  - C 面板「法阵伤害」9.9（11 × 0.9）；生命 40/40。
+- 影响/待试玩：
+  - 精英/单体直伤下降 25%，TTK 变长；反应数字不变，反应占比提高。
+  - 陨星路线未下调（4.0× ≈22 DPS），相对法阵（≈18 DPS）变强；是否下调到 ~3.0 待试玩。
+  - 第一下仍可能秒杀没有状态的小怪（B 方案是平削，不是起手减伤）；若高攻击下仍看不到反应，下一步可加起手 ×0.7 或继续下调到 0.85/0.8。
+  - 基线：反应伤害口径未变；但直伤系数变化会让 mage/parity/browser 的旧数值断言过期；按 2026-10-29 验证标准未跑/未改测试，留待授权批次。

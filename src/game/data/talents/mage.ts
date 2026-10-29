@@ -1,5 +1,5 @@
 import type { Player, Talent } from "../../core/types";
-import { MAGE_BALANCE as MB } from "../mageBalance";
+import { MAGE_BALANCE as MB, type MageElement } from "../mageBalance";
 
 /**
  * 法师池（S3）。
@@ -98,6 +98,60 @@ function resonanceDesc(p: Player): string {
   return `印记触发时，${MB.resonanceRadius}px 内的敌人按你持有的元素获得强化（${owned.join("；")}）`;
 }
 
+/**
+ * 双修/三修卡面用的反应说明。
+ *
+ * 与「元素共振」同一口径：只列玩家**当前持有**的元素组合，未选的元素
+ * 不出现在卡面上（用户反馈：选完两种元素后仍显示另外两种反应，误导）。
+ * 说明文本直接读 mageBalance，避免卡面与结算漂移。
+ */
+const ELEMENT_NAME: Record<MageElement, string> = {
+  fire: "火",
+  frost: "冰",
+  lightning: "雷",
+};
+
+const REACTIONS: readonly {
+  name: string;
+  pair: readonly [MageElement, MageElement];
+  desc: string;
+}[] = [
+  {
+    name: "融化",
+    pair: ["fire", "frost"],
+    desc: `火命中冻结目标：本次伤害 ×${MB.meltDamageMul}`,
+  },
+  {
+    name: "超载",
+    pair: ["fire", "lightning"],
+    desc: `雷命中 ≥${MB.overloadMinStacks} 层灼烧：消耗灼烧，造成层数 × ${Math.round(MB.burnDpsPerStack * 100)}%/秒 × ${MB.overloadSeconds} 秒火伤`,
+  },
+  {
+    name: "超导",
+    pair: ["frost", "lightning"],
+    desc: `雷命中冻结/凝冰：雷伤 ×${MB.superDamageMul}，必定链 +${MB.superChainBonusJumps} 跳，雷易伤 +${Math.round(MB.superChainVuln * 100)}%`,
+  },
+];
+
+function ownedReactions(p: Player) {
+  const owned = mageElements(p);
+  return REACTIONS.filter((r) => r.pair.every((el) => owned.includes(el)));
+}
+
+function ownedElementNames(p: Player): string {
+  return mageElements(p).map((el) => ELEMENT_NAME[el]).join("、");
+}
+
+function ownedReactionNames(p: Player): string {
+  return ownedReactions(p).map((r) => r.name).join(" / ");
+}
+
+function ownedReactionLines(p: Player): string {
+  return ownedReactions(p)
+    .map((r) => `${r.name}（${r.desc}）`)
+    .join("；");
+}
+
 export const MAGE_TALENTS: Talent[] = [
   // ================= 元素槽：印记与反应 =================
   {
@@ -184,11 +238,27 @@ export const MAGE_TALENTS: Talent[] = [
     // 双修的机制就是「同时挂两种元素」，必须能同时持有两个元素 L1，
     // 因此持有本卡时豁免元素变体组的 N 选 1 排他。
     variantBypass: MAGE_VARIANT_ELEMENT,
-    d: "每次命中同时施加你持有的两种元素状态，两者相遇触发反应（火+雷 超载 / 火+冰 融化 / 冰+雷 超导）",
+    d: "每次命中同时施加你持有的两种元素状态，两者相遇触发元素反应",
     max: 1,
-    pv: () => "同时施加两种元素 · 触发三种反应之一",
+    dyn: (p) => {
+      const owned = mageElements(p);
+      if (owned.length < 2)
+        return "每次命中同时施加你持有的元素状态；再持有第二种元素后，两者相遇触发元素反应";
+      const lines = ownedReactionLines(p);
+      return `每次命中同时施加${ownedElementNames(p)}；${owned.length >= 3 ? "元素相遇" : "两者相遇"}触发${lines ? `：${lines}` : "元素反应"}`;
+    },
+    pv: (p) => {
+      const owned = mageElements(p);
+      if (owned.length < 2) return "同时施加两种元素 · 触发元素反应";
+      return `同时施加${owned.length >= 3 ? "三" : "两"}种元素 · ${ownedReactionNames(p)}`;
+    },
     f: () => {},
-    cur: () => "双元素同时生效",
+    cur: (p) => {
+      const owned = mageElements(p);
+      if (owned.length < 2)
+        return `已持有${ownedElementNames(p) || "元素"}；补选第二种元素后触发反应`;
+      return `同时施加${ownedElementNames(p)} · ${ownedReactionNames(p)}`;
+    },
   },
   {
     n: "三修",
@@ -201,9 +271,23 @@ export const MAGE_TALENTS: Talent[] = [
     requires: "双修",
     d: "同时施加你持有的三种元素状态；三种法印反应可以在同一次命中全部触发",
     max: 1,
-    pv: () => "三元素同时生效 · 三种反应各自独立冷却",
+    dyn: (p) => {
+      const owned = mageElements(p);
+      if (owned.length < 3)
+        return `同时施加你持有的${owned.length === 2 ? "两种" : ""}元素状态；补齐三种元素后，三种法印反应可在同一次命中全部触发`;
+      return `同时施加${ownedElementNames(p)}；三种法印反应可在同一次命中全部触发：${ownedReactionLines(p)}`;
+    },
+    pv: (p) =>
+      mageElements(p).length >= 3
+        ? "三元素同时生效 · 三种反应各自独立冷却"
+        : "补齐第三种元素后，三种反应可在同一次命中全触发",
     f: () => {},
-    cur: () => "三元素同时生效",
+    cur: (p) => {
+      const owned = mageElements(p);
+      if (owned.length < 3)
+        return `当前${ownedElementNames(p) || "元素"}；补齐第三种元素后三种反应全触发`;
+      return `同时施加${ownedElementNames(p)} · ${ownedReactionNames(p)}`;
+    },
   },
 
   // ================= 路线B：陨星路线 =================
