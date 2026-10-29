@@ -128,8 +128,8 @@ export class GameCore {
   }[] = [];
   /** S2「疾行」：冲刺结束后的射速加成剩余时间（秒）。 */
   dashFireBoostT = 0;
-  /** 「冲刺强射」：冲刺结束后所有射击变为强化弹的剩余时间（秒）。 */
-  dashSpecialT = 0;
+  /** 「装填」：下一发必为强化弹（闪避/冲刺/接触装填）。 */
+  specialLoaded = false;
   /**
    * S2 射手「生存」槽的闪避窗口状态。
    *
@@ -503,7 +503,7 @@ export class GameCore {
     this.burnZones = [];
     this.trailZones = [];
     this.dashFireBoostT = 0;
-    this.dashSpecialT = 0;
+    this.specialLoaded = false;
     this.dodgeNextCrit = false;
     this.dodgeNextDmg = 1;
     this.dodgeProcT = 0;
@@ -769,7 +769,7 @@ export class GameCore {
     p.rageT = 0;
     p.hasteT = 0;
     this.dashFireBoostT = 0;
-    this.dashSpecialT = 0;
+    this.specialLoaded = false;
     this.castPhase = "idle";
     this.castT = 0;
     this.castCd = 0;

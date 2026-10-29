@@ -42,42 +42,62 @@ export function updateAttacks(this: GameCore, dt: number) {
       const dist = Math.hypot(tgt.x - p.x, tgt.y - p.y);
       let distMul = 1;
       let critBonus = 0;
+      let specialRangePierce = 0;
       if (p.distanceDmg > 0) {
         const ratio = dist / p.attackRange;
         if (ratio >= 0.92) {
           distMul = 1.25;
           critBonus = 0.1;
+          // 满档的额外收益只给强化弹，让「距离即收益」与核心循环直接挂钩。
+          specialRangePierce = 1;
         } else if (ratio >= 0.75) distMul = 1.15;
         else if (ratio >= 0.5) distMul = 1.05;
       }
       // S2「贯穿轨迹」：弹道留下 0.6 秒能量线（机制在 ProjectileSystem 结算）
-      const hasTrail = (p.upCounts["贯穿轨迹"] || 0) > 0;
-      // 射手职业被动：每次开火事件计数一次；多弹道同属一次事件，强化弹覆盖整轮弹幕。
-      this.shotCounter = (this.shotCounter + 1) % SPECIAL_SHOT_EVERY;
-      // 「冲刺强射」：冲刺结束后的短窗口内，每次射击都按强化弹处理。
-      const special = this.shotCounter === 0 || this.dashSpecialT > 0;
+      // 强化弹专属触发，普通弹不再留轨迹。
+      const hasTrail =
+        (p.upCounts["贯穿轨迹"] || 0) > 0;
+      // 核心链：基础每 4 发，L1/L2 各 −1；最低 1（当前卡面不会到 1）。
+      const specialEvery = Math.max(
+        1,
+        SPECIAL_SHOT_EVERY -
+          ((p.upCounts["快速装填"] || 0) > 0 ? 1 : 0) -
+          ((p.upCounts["超载装填"] || 0) > 0 ? 1 : 0),
+      );
+      this.shotCounter++;
+      const naturalSpecial = this.shotCounter >= specialEvery;
+      if (naturalSpecial) this.shotCounter = 0;
+      // 「装填」/「赌命」：闪避、冲刺或接触装填的下一发，以及赌命窗口内全部按强化弹处理。
+      const special =
+        naturalSpecial || this.specialLoaded || this.dodgeProcT > 0;
+      if (this.specialLoaded) this.specialLoaded = false;
       const specialStats = getSpecialLevelStats(this.specialLevel);
       const baseDmg = boltDamage(p) * distMul;
+      // 「齐射」：只让强化弹一次 3 发，普通射击仍按原弹道数。
+      const volley =
+        special && (p.upCounts["齐射"] || 0) > 0 ? 3 : 1;
+      const volleyMul = volley > 1 ? 0.5 : 1;
       const shotDmg = special
         ? chargedShotDamage(baseDmg, specialStats.mul)
         : baseDmg;
       const copies =
         special && this.specialUpgrades.includes("doubleShot") ? 2 : 1;
       const copyDamageMul = copies > 1 ? DOUBLE_SHOT_DAMAGE_MUL : 1;
-      for (let i = 0; i < p.multishot; i++) {
+      const shots = special ? volley : p.multishot;
+      for (let i = 0; i < shots; i++) {
         // Issue #36 动态散布：目标附近敌人越少，弹道越收拢（孤立目标近平行）
         const near = this.enemies.reduce(
           (n, e) =>
             (e.x - tgt.x) ** 2 + (e.y - tgt.y) ** 2 < 110 * 110 ? n + 1 : n,
           0,
         );
-        const center = base + (i - (p.multishot - 1) / 2) * multishotSpread(near);
+        const center = base + (i - (shots - 1) / 2) * multishotSpread(near);
         for (let copy = 0; copy < copies; copy++) {
           const a = center + (copy - (copies - 1) / 2) * 0.05;
           // 出膛横向错开：多弹道/连发从枪口就看得见，避免贴在一起像命中后才分裂。
           const lateral =
             (copy - (copies - 1) / 2) * 5 +
-            (i - (p.multishot - 1) / 2) * 3;
+            (i - (shots - 1) / 2) * 3;
           const sx = p.x + Math.cos(a + Math.PI / 2) * lateral;
           const sy = p.y - 3 + Math.sin(a + Math.PI / 2) * lateral;
           this.bullets.push({
@@ -85,14 +105,16 @@ export function updateAttacks(this: GameCore, dt: number) {
             y: sy,
             vx: Math.cos(a) * p.projSpeed,
             vy: Math.sin(a) * p.projSpeed,
-            dmg: shotDmg * copyDamageMul,
+            dmg: shotDmg * copyDamageMul * volleyMul,
             // S2：穿透次数 = 天赋写入值 + 职业基础（射手 +1）。
             // 职业基础不进 Player 字段：旧表同名卡靠 f 写同一字段，
             // 写进去会互相覆盖（见 core/AttributeSources.ts 的说明）。
             pierce:
               p.pierce +
               professionPierce(this.prof) +
-              (special ? specialStats.pierceBonus : 0),
+              (special
+                ? specialStats.pierceBonus + specialRangePierce
+                : 0),
             falloff: p.pierceFalloff,
             life:
               special && specialStats.infiniteFlight
@@ -101,7 +123,7 @@ export function updateAttacks(this: GameCore, dt: number) {
             size: 2 * p.area,
             jumps: p.ricochet,
             hitList: [],
-            trail: hasTrail ? 0.6 : 0,
+            trail: hasTrail && special ? 0.6 : 0,
             critBonus,
             ...(special ? { special: true } : {}),
             // S3-B 定稿接口：攻击方属性发射时固化，与敌方弹丸快照对称

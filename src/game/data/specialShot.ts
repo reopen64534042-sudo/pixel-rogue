@@ -5,8 +5,8 @@
  * - L1-L6 穿透逐级累计 1→6，L7-L12 不再增加穿透；
  * - L3 起强化弹无限飞行；穿透耗尽或飞出世界边界时消失；
  * - L4-L12 每级随机获得 1 条升级，最多 9 条，已获得的升级保留并共存；
- * - 获取顺序为「固定档位 + 档内加权随机」：第 1 抽只出基础形态（连发/导弹/冲刺强射/附带真实伤害），
- *   第 2 抽起解锁激光与两系生命伤害，第 3 抽起解锁完全追踪与完全真实伤害；
+ * - 获取顺序为「固定档位 + 档内加权随机」：第 1 抽只出基础形态（连发/导弹/附带真实伤害），
+ *   第 2 抽起解锁激光、两系生命伤害与裂变，第 3 抽起解锁完全追踪与完全真实伤害；
  * - 升级形态是附加效果，不替换主弹道；
  * - 普通弹默认不继承升级，后续用「同化」升级单独开启。
  */
@@ -16,7 +16,7 @@ export type SpecialUpgradeId =
   | "trueDamage"
   | "currentHpDamage"
   | "homing"
-  | "dashSpecial"
+  | "fission"
   | "missile"
   | "partialTrue"
   | "maxHpDamage"
@@ -80,8 +80,12 @@ export const HP_DAMAGE_CAP_MUL = 2;
 /** 完全追踪：转向速率（弧度/秒）与索敌半径 */
 export const HOMING_TURN_RATE = 6;
 export const HOMING_RANGE = 280;
-/** 冲刺强射：冲刺结束后的强化弹窗口（秒） */
-export const DASH_SPECIAL_WINDOW = 0.8;
+/** 裂变：强化弹击杀时碎片数量、伤害倍率、索敌半径、速度与寿命 */
+export const FISSION_FRAGMENTS = 2;
+export const FISSION_DAMAGE_MUL = 0.5;
+export const FISSION_RANGE = 160;
+export const FISSION_SPEED = 260;
+export const FISSION_LIFE = 0.6;
 /** 导弹升级：爆炸半径、伤害倍率、燃烧持续时间与 DPS 倍率 */
 export const MISSILE_RADIUS = 34;
 export const MISSILE_DAMAGE_MUL = 0.6;
@@ -114,13 +118,6 @@ export const SPECIAL_UPGRADES: readonly SpecialUpgrade[] = [
     minPick: 1,
   },
   {
-    id: "dashSpecial",
-    name: "冲刺强射",
-    desc: "冲刺结束后 0.8 秒内，所有普通射击都变为强化弹",
-    weight: 2,
-    minPick: 1,
-  },
-  {
     id: "partialTrue",
     name: "附带真实伤害",
     desc: "强化弹额外造成 30% 真实伤害",
@@ -147,6 +144,13 @@ export const SPECIAL_UPGRADES: readonly SpecialUpgrade[] = [
     id: "maxHpDamage",
     name: "最大生命伤害",
     desc: "强化弹额外造成目标最大生命 2% 的物理伤害，最多不超过强化弹伤害的 2 倍",
+    weight: 2,
+    minPick: 2,
+  },
+  {
+    id: "fission",
+    name: "裂变",
+    desc: "强化弹击杀敌人时，向附近最多 2 个敌人发射 50% 伤害的碎片",
     weight: 2,
     minPick: 2,
   },

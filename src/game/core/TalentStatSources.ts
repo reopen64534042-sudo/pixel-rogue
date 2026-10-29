@@ -185,50 +185,40 @@ export function talentStatModifiers(
           value: 0.08,
         });
         break;
-      // ---- S2 射手池：核心链（穿透）/ 距离链 / 机动链 ----
+      // ---- S2 射手池：核心链（强化弹）/ 距离链 / 机动链 ----
       // 基础链：全局 pierceFalloff 0.85，射手职业被动 −0.35 → 0.5（第二目标 50%）。
       // 下面两张卡按有序 flat 继续改这个值，语义是「设为」，不是「乘以」。
-      case "破甲箭": // 穿透 +1（共 2 个），穿透伤害 50% → 80%
+      case "快速装填": // 强化弹每 4→3 发；穿透 +1，穿透伤害 50% → 80%
         scalars.push(
           {
-            sourceId: "天赋:破甲箭",
+            sourceId: "天赋:快速装填",
             stat: "pierce",
             stage: "flat",
             value: 1,
           },
           {
-            sourceId: "天赋:破甲箭",
+            sourceId: "天赋:快速装填",
             stat: "pierceFalloff",
             stage: "flat",
             value: 0.3,
           },
         );
         break;
-      case "弹道贯穿": // 穿透 +1（共 3 个），穿透后不再衰减（100%）
+      case "超载装填": // 强化弹每 3→2 发；穿透 +1，穿透后不再衰减（100%）
         scalars.push(
           {
-            sourceId: "天赋:弹道贯穿",
+            sourceId: "天赋:超载装填",
             stat: "pierce",
             stage: "flat",
             value: 1,
           },
           {
-            sourceId: "天赋:弹道贯穿",
+            sourceId: "天赋:超载装填",
             stat: "pierceFalloff",
             stage: "flat",
             value: 0.2,
           },
         );
-        break;
-      case "三重射击": // 同时射出 3 发，每发 50% 伤害。
-        // 弹道数（multishot）由卡的 f 直接置 3——它是离散数量，且旧卡
-        // 旧表同名卡也用 f 写同一字段；投影若声明 multishot 会覆盖它。
-        scalars.push({
-          sourceId: "天赋:三重射击",
-          stat: "boltDmgMul",
-          stage: "final",
-          value: 0.5,
-        });
         break;
       case "长弓": // 射程 +15%
         scalars.push({
