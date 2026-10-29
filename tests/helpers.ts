@@ -2,7 +2,14 @@ import { GameCore } from "../src/game/core/GameCore";
 import { AudioService } from "../src/services/AudioService";
 import { StorageService } from "../src/services/StorageService";
 import { UPGRADES } from "../src/game/data/talents";
-export function fresh() {
+export function fresh(
+  /**
+   * S2 修订：`startGame()` 现在会送 1 次**开局天赋**并弹出选择面板。
+   * 绝大多数用例关心的是「一张白纸的对局」，所以夹具默认把它清掉；
+   * 需要验证开局发放本身的用例传 `{ keepStartTalent: true }`。
+   */
+  opts: { keepStartTalent?: boolean } = {},
+) {
   let raw: string | null = null;
   const audio = new AudioService();
   audio.muted = true;
@@ -16,6 +23,11 @@ export function fresh() {
     }),
   );
   core.startGame();
+  if (!opts.keepStartTalent) {
+    core.pendingLevels = 0;
+    core.bpMode = null;
+    core.slots = [];
+  }
   return core;
 }
 export function talent(name: string) {

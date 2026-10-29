@@ -407,6 +407,14 @@ export class GameCore {
   startGame() {
     this.resetGame();
     this.state = "play";
+    // S2 修订（用户反馈）：开局送 1 次天赋，让第 1 波起就有一次成长。
+    // **必须在 view.started() 之前记账**：面板是 UI 在 started 回调里按
+    // pendingLevels 打开的，写在后面会让回调读到 0、面板根本不弹
+    //（已验证踩坑：测试全绿但功能未生效，靠截图才发现）。
+    // 也不在这里直接调 openLevelPanel：那会走 rollPicks 消耗 Math.random，
+    // 把基于种子的确定性测试与 parity 全部打乱。
+    // 其余 7 次在 3/7/11/15/19/23/27 波末发放（见 WaveSystem.enterRest）。
+    this.pendingLevels = 1;
     this.view.started();
     this.audio.startCue();
   }

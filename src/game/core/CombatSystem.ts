@@ -221,17 +221,11 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   // 掉落 (自爆虫自毁不掉落)
   if (!e.noDrop) {
     if (e.elite) {
-      // S2：节点精英发天赋。
-      // 发放点是「每 4 波 + 终局」，一局 8 次（4/8/12/16/20/24/28/30 波）。
-      // 用每波开关保证同一波多只精英里只有第一只算节点；其余精英仍走宝箱。
-      // 这样天赋次数与 eliteQuota 解耦——怪物侧想怎么调精英数量都不会改次数。
-      const isNodeWave = this.waveN % 4 === 0 || this.waveN === 30;
-      if (isNodeWave && !this.waveTalentGiven) {
-        this.waveTalentGiven = true;
-        this.pendingLevels++;
-        this.addText(e.x, e.y - 20, "天赋 +1", "#ffd24a");
-        this.audio.beep(1180, 0.16, "triangle", 0.07, 120);
-      }
+      // S2 修订（用户反馈）：天赋**不再由精英死亡触发**。
+      // 原实现是「打死节点精英才给」，等于把奖励放在苦战之后——玩家打精英时
+      // 没有任何新能力，观感就是「刮痧」。现在改到 WaveSystem.enterRest：
+      // 精英波的前一波结束时就发，让玩家带着新天赋去打精英。
+      // 精英本身仍照常掉宝箱（下面的经验/掉落逻辑不变）。
       // #17：精英经验随波次成长，避免后期相对升级阈值贬值
       const eliteXp = 25 + (this.waveN - 1) * ELITE_XP_STEP;
       this.gems.push({ x: e.x, y: e.y, vx: 0, vy: 0, v: eliteXp, e: true });

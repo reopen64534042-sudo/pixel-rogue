@@ -45,10 +45,24 @@ export const CAT_COLOR: Record<string, string> = {
   增幅: "#4dff88",
   技能: "#57e6ff",
   防御: "#ffd24a",
+  // S2 射手六个槽位轴。写死映射是必要的：UI 直接读 CAT_COLOR[cat] /
+  // CAT_ICO[cat]，缺键会让卡面显示 "undefined"（已踩过）。
+  核心: "#ff6b9d",
+  标记: "#c07bff",
+  距离: "#57e6ff",
+  生存: "#4dff88",
+  脱离: "#ff9a3d",
+  机动: "#ffd24a",
 };
 export const CAT_ICO: Record<string, string> = {
   攻击: "⚔",
   增幅: "📈",
   技能: "✨",
   防御: "🛡",
+  核心: "◎",
+  标记: "◈",
+  距离: "⟷",
+  生存: "◇",
+  脱离: "⇄",
+  机动: "➤",
 };

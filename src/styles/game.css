@@ -680,6 +680,31 @@ p {
   gap: 2.2vmin;
   width: 100%;
 }
+/* S2 修复：属性面板四张卡横排。
+   此前 #attr-cards 在样式表里**没有任何布局规则**，退化成块级竖排；
+   天赋的 #bp-cards 有 flex 所以一直是横的，两者本应一致。 */
+#attr-cards {
+  display: flex;
+  justify-content: center;
+  gap: 2.2vmin;
+  width: 100%;
+}
+#attr-cards .card {
+  /* 属性卡是 4 张（天赋 3 张），用弹性宽度避免固定 19.5vmin 时偏挤 */
+  flex: 1 1 0;
+  max-width: 19.5vmin;
+  min-width: 0;
+}
+/* 窄屏（移动端 M2 在推进）四列会挤压，回退 2×2 */
+@media (max-width: 720px) {
+  #attr-cards {
+    flex-wrap: wrap;
+  }
+  #attr-cards .card {
+    flex: 1 1 40%;
+    max-width: 40%;
+  }
+}
 #bp-cards .card {
   width: 19.5vmin;
   min-height: 22vmin;
@@ -702,40 +727,16 @@ p {
     box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.2vmin rgba(87, 230, 255, 0.3);
   }
 }
-#bp-cards .card.r0 {
-  border-color: #8b9bb4;
+/* S2：天赋卡不再按稀有度区分外观。
+   射手池的稀有度尚未讨论（暂定全部普通），四档统一白色描边；
+   hover 只做轻微提亮、不再变色。属性面板的稀有度配色在 `.card.rN .tier`（另一段）。 */
+#bp-cards .card {
+  border-color: #e8f0ff;
 }
 @media (hover: hover) {
-  #bp-cards .card.r0:hover {
-    border-color: #c7cff2;
-    box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1vmin rgba(232, 232, 240, 0.25);
-  }
-}
-#bp-cards .card.r1 {
-  border-color: #2f9e5f;
-}
-@media (hover: hover) {
-  #bp-cards .card.r1:hover {
-    border-color: #4dff88;
-    box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.2vmin rgba(77, 255, 136, 0.3);
-  }
-}
-#bp-cards .card.r2 {
-  border-color: #8a4fd4;
-}
-@media (hover: hover) {
-  #bp-cards .card.r2:hover {
-    border-color: #c07bff;
-    box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.4vmin rgba(192, 123, 255, 0.35);
-  }
-}
-#bp-cards .card.r3 {
-  border-color: #c9a227;
-}
-@media (hover: hover) {
-  #bp-cards .card.r3:hover {
-    border-color: #ffd24a;
-    box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.6vmin rgba(255, 210, 74, 0.4);
+  #bp-cards .card:hover {
+    border-color: #ffffff;
+    box-shadow: 0 0.8vmin 2.5vmin rgba(0, 0, 0, 0.7), 0 0 1.2vmin rgba(232, 240, 255, 0.3);
   }
 }
 #bp-cards .card .tier {

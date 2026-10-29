@@ -69,31 +69,34 @@ describe("S2 检查点①：链的前置", () => {
 });
 
 describe("S2 检查点②：一局 8 次天赋、单局可见 14 张", () => {
-  it("节点波（每 4 波 + 终局）首只精英发 1 次天赋，同波第二只不发", () => {
+  it("一局 8 次：开局 1 次 + 精英波前一波结束各 1 次（3/7/11/15/19/23/27）", () => {
+    // 开局那次由 startGame 记账（面板由 UI 层弹出）
+    const start = fresh({ keepStartTalent: true });
+    expect(start.pendingLevels).toBe(1);
+
+    // 其余 7 次在「精英波（4/8/…/28）的前一波」结束时发放，
+    // 让玩家带着新天赋去打精英，而不是打完才给。
     const g = fresh();
-    let total = 0;
+    let granted = 0;
     for (let w = 1; w <= 30; w++) {
       g.waveN = w;
       g.waveTalentGiven = false;
-      const before = g.pendingLevels;
-      g.spawnEnemy("brute", true);
-      g.killEnemy(g.enemies.at(-1)!);
-      const gained = g.pendingLevels - before;
-      const isNode = w % 4 === 0 || w === 30;
-      expect(gained, `wave ${w}`).toBe(isNode ? 1 : 0);
-      // 同波再杀一只精英：不再发放
-      if (isNode) {
-        const mid = g.pendingLevels;
-        g.spawnEnemy("brute", true);
-        g.killEnemy(g.enemies.at(-1)!);
-        expect(g.pendingLevels).toBe(mid);
+      g.pendingLevels = 0;
+      g.attrPicks = 0;
+      g.boxPicks = 0;
+      g.enterRest();
+      const isPreElite = w % 4 === 3;
+      expect(g.pendingLevels, `wave ${w}`).toBe(isPreElite ? 1 : 0);
+      // 同一波重复进入休整不得重复发放（面板链会多次调用 enterRest）
+      if (isPreElite) {
+        g.attrPicks = 0;
+        g.enterRest();
+        expect(g.pendingLevels, `wave ${w} repeat`).toBe(1);
       }
-      total += gained;
-      g.boxes = []; // 清掉落，避免跨波累积干扰
-      g.gems = [];
-      g.potions = [];
+      granted += g.pendingLevels;
     }
-    expect(total).toBe(8);
+    expect(granted).toBe(7);
+    expect(granted + 1).toBe(8); // 开局 1 + 波末 7
   });
 
   it("4 组变体各损失 1 张 → 单局可见 18 − 4 = 14", () => {

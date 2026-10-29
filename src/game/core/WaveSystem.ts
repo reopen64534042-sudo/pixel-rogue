@@ -62,6 +62,17 @@ export function enterRest(this: GameCore) {
   this.wavePhase = "rest";
   this.bpMode = "rest";
   this.swapUsedThisRest = false;
+  // S2 修订（用户反馈）：天赋改在**精英波的前一波结束**时发放。
+  // 精英波是 4/8/12/16/20/24/28，所以在 3/7/11/15/19/23/27 波末给，
+  // 让玩家**带着新天赋去打精英**（原实现是打死精英才给，奖励落在苦战之后）。
+  // 开局另送 1 次（GameCore.startGame），一局仍是 8 次。
+  // waveTalentGiven 防止 enterRest 因面板链早退后再次进入时重复发放
+  //（waveN 在波末期间不变，没有这个开关会无限发）。
+  if (this.waveN % 4 === 3 && !this.waveTalentGiven) {
+    this.waveTalentGiven = true;
+    this.pendingLevels++;
+    this.addText(this.player.x, this.player.y - 26, "天赋 +1", "#ffd24a");
+  }
   // S2：宝箱改为「属性选择次数」。
   // 天赋已是一次性获得（max=1），原来的「宝箱强化已学天赋」没有对象可强化，
   // 且 rollBoxPicks 的 `lv > 0 && lv < max` 会恒假——不报错，只会静默退化成

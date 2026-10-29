@@ -73,7 +73,9 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   { group: "defense", label: "护甲", stat: "defense", stage: "flat", base: 6, kind: "int" },
 
   { group: "utility", label: "移速", stat: "moveSpeed", stage: "percent", base: 0.04, kind: "pct" },
-  { group: "utility", label: "拾取", stat: "magnet", stage: "flat", base: 8, kind: "int" },
+  // 「拾取范围」：magnet 决定经验球与血瓶的自动吸附半径（ProgressionSystem）。
+  // 旧名「拾取」含义模糊（是范围？速度？自动？），直接写清范围，不加额外提示。
+  { group: "utility", label: "拾取范围", stat: "magnet", stage: "flat", base: 8, kind: "int" },
   { group: "utility", label: "射程", stat: "attackRange", stage: "percent", base: 0.05, kind: "pct" },
 
   {
