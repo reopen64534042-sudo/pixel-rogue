@@ -139,18 +139,17 @@ const S4C_AUTHORITY_MIGRATED = [
   "战意沸腾",
 ] as const;
 /**
- * 基线更新依据：Issue #13（用户已批准的近战基础设施建设）。
- * DamageSource 新增 "melee" 分项，而 v8 快照没有该键。对照时把它从两侧摘出单独断言，
- * 其余分项与其余字段仍逐字段严格相等 —— 保留回归能力：
- * 任何原有分项出现偏差，或近战伤害意外渗入，本对照都会失败。
+ * 基线更新依据：Issue #13（近战）+ S3 法师（cast/element）+ S5 反应（reaction）。
+ * 这些是 v8 不存在的新增伤害分项；对照时从两侧摘出单独断言，其余分项与其余
+ * 字段仍逐字段严格相等——保留回归能力：原有分项出现偏差仍会失败。
  */
 function takeMelee(snapshot: unknown) {
   const snap = snapshot as { dmgBy: Record<string, number> } & Record<
     string,
     unknown
   >;
-  const { melee, ...rest } = snap.dmgBy;
-  return { rest: { ...snap, dmgBy: rest }, melee };
+  const { melee, cast, element, reaction, ...rest } = snap.dmgBy;
+  return { rest: { ...snap, dmgBy: rest }, melee, cast, element, reaction };
 }
 /**
  * 基线更新依据：Issue #12（用户已批准的血包转化机制）。

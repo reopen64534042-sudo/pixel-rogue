@@ -42,11 +42,12 @@ describe("图鉴条目", () => {
   it("隐藏天赋不生成条目，且不计入分母", () => {
     const hidden = hiddenTalent();
     expect(TALENT_ENTRIES.some((e) => e.name === hidden.n)).toBe(false);
-    // S2 基线：56 条天赋表 —— 1 条原版隐藏（不屈）→ 可见 55 条。
+    // S2 基线：56 条 → S3 法师 18 张 → S5 秘传三修 1 张 = 75 条。
+    // 1 条原版隐藏（不屈）→ 可见 74 条。
     // 38 条旧表标记 retired：仍进图鉴（旧存档记录要有落点），但不再进入抽取池。
     // 新增天赋时本断言会失败，这是有意的提醒：确认新卡已正确进入图鉴后更新数字。
-    expect(TALENT_TOTAL).toBe(55);
-    expect(UPGRADES.length).toBe(56);
+    expect(TALENT_TOTAL).toBe(74);
+    expect(UPGRADES.length).toBe(75);
   });
 
   it("每个可见天赋都有条目，且 id 与名字一一对应", () => {
@@ -198,7 +199,7 @@ describe("图鉴进度", () => {
     const codex = new CodexSystem(new CodexStore(memStore()));
     codex.syncTalents({ 强化弹丸: 1, 疾速扳机: 1 }, 1000);
     const progress = codex.progress();
-    expect(progress.total).toBe(55);
+    expect(progress.total).toBe(74);
     expect(progress.unlocked).toBe(2);
 
     const sum = Object.values(progress.byGroup).reduce(
@@ -313,7 +314,7 @@ describe("敌人击杀累计", () => {
     codex.syncEnemies({ slime: 1 }, 1000);
     const progress = codex.progress();
     expect(progress.unlocked).toBe(1);
-    expect(progress.total).toBe(55);
+    expect(progress.total).toBe(74);
     expect(progress.enemies.unlocked).toBe(1);
     expect(progress.enemies.total).toBe(ENEMY_TOTAL);
   });
