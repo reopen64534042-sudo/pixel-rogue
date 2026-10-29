@@ -205,7 +205,10 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     // 星陨路线整体替换主施法：没有前摇，所以没有施法读条。
     // 但玩家的节奏感知不能丢——同一条位置改为显示「下一次陨星」的冷却，
     // 填满即落星（落点有独立的预警圈），紫色与施法读条区分。
+    // 只在战斗阶段显示：休整/收球/暂停/结算时隐藏（休整里一直充能是噪音）。
     this.prof === "mage" &&
+    this.state === "play" &&
+    this.wavePhase === "fight" &&
     (this.player.upCounts["星陨"] || 0) > 0
   ) {
     const prog = Math.max(
