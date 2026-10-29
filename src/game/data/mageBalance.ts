@@ -107,6 +107,8 @@ export interface MageBalance {
   // —— 充能条（循环轴共用）——
   /** 满充能所需的成功施法次数。 */
   chargeFull: number;
+  /** 满充能触发后三格全亮的持续时间（秒），随后清零——用来做 1→2→3 的计数反馈。 */
+  chargeFlash: number;
 
   // —— 护盾（值型 + 限时，与既有层数制护盾是两套模型）——
   /** 咏唱护壁：最大生命百分比。 */
@@ -225,6 +227,7 @@ export const MAGE_BALANCE: MageBalance = {
   superChainVuln: 0.15,
 
   chargeFull: 3,
+  chargeFlash: 0.35,
 
   wardShieldPct: 0.12,
   wardShieldDuration: 1.2,

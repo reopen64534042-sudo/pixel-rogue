@@ -460,8 +460,8 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
   // 法师充能点（P0-2）：仅当持有任一充能相关卡时显示，避免给不走循环轴的
-  // 玩家增加噪音。三点 = 每 3 次施法满充能；下一发就是满充能时，空位画成
-  // 空心高亮（与读条/法阵圈的满充能预览同源）。
+  // 玩家增加噪音。计数是 1→2→3 的实心点：第 3 发落地/爆裂时三格全亮
+  // 0.35 秒，然后清零——不再用「空心提示下一发」，那种画法看起来像 3 个点。
   if (
     this.prof === "mage" &&
     this.state === "play" &&
@@ -478,21 +478,10 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     const pw = total * cw + (total - 1) * gap;
     const px = Math.round(this.player.x) - Math.floor(pw / 2);
     const py = Math.round(this.player.y) + 17;
+    const shown = this.mageChargeFlashT > 0 ? total : this.mageCharge;
     for (let i = 0; i < total; i++) {
-      const x = px + i * (cw + gap);
-      if (i < this.mageCharge) {
-        ctx.fillStyle = "#57e6ff";
-        ctx.fillRect(x, py, cw, cw);
-      } else if (i === this.mageCharge && this.mageCharge + 1 >= total) {
-        // 下一发即满充能：空心高亮
-        ctx.fillStyle = "#9fe1ff";
-        ctx.fillRect(x, py, cw, cw);
-        ctx.fillStyle = "#0e1430";
-        ctx.fillRect(x + 1, py + 1, cw - 2, cw - 2);
-      } else {
-        ctx.fillStyle = "#1d2440";
-        ctx.fillRect(x, py, cw, cw);
-      }
+      ctx.fillStyle = i < shown ? "#57e6ff" : "#1d2440";
+      ctx.fillRect(px + i * (cw + gap), py, cw, cw);
     }
   }
 
