@@ -1,5 +1,5 @@
 {
-  "key": "taidao-slash",
+  "key": "taidao-slash-cw",
   "image": "taidao-slash-32x32-10f.png",
   "stillImage": "taidao-slash-32.png",
   "layout": "horizontal",
@@ -84,5 +84,15 @@
     "#ffffff"
   ],
   "preview": "assets/vfx/taidao-slash-preview.gif",
-  "previewFrameMs": 50
+  "previewFrameMs": 50,
+  "direction": {
+    "swingSense": "clockwise",
+    "coverage": "right half-plane: [-pi/2, pi/2)",
+    "topBoundaryIncluded": true,
+    "bottomBoundaryIncluded": false,
+    "baseAngleRad": 0,
+    "offsetFromPlayerPx": 22,
+    "rotationOffsetRad": 0,
+    "rotationMatchesAttackAngle": true
+  }
 }
