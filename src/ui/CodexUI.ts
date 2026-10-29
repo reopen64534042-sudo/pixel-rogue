@@ -13,7 +13,7 @@ import { element } from "./dom";
 
 const ALL = "全部" as const;
 const ENEMY = "敌人" as const;
-// S3：旧表按旧四类分，职业池按职业分（射手 / 法师）。
+// S3：旧表按旧四类分，职业池按职业分（射手 / 法师 / 战士）。
 // 槽位轴不进分区——16 个 tab 会让图鉴变成噪音；槽位在条目详情里显示。
 const GROUPS = [
   "攻击",
@@ -22,6 +22,7 @@ const GROUPS = [
   "防御",
   "射手",
   "法师",
+  "战士",
 ] as const;
 type Filter = typeof ALL | typeof ENEMY | (typeof GROUPS)[number];
 const FILTERS: readonly Filter[] = [ALL, ...GROUPS, ENEMY];

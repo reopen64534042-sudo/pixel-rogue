@@ -1,4 +1,6 @@
 import type { GameCore } from "../game/core/GameCore";
+import { tutorialGemStep, tutorialTotalSteps } from "../game/core/TutorialSystem";
+import type { WarriorStyle } from "../game/core/types";
 import { groupLabel, rarityLabel } from "../game/core/AttributeSystem";
 import { CHANGELOG, CURRENT_VERSION } from "../game/data/changelog";
 import {
@@ -25,6 +27,7 @@ import {
   type KeyAction,
 } from "../game/data/keybindings";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
+import { WARRIOR_BALANCE } from "../game/data/warriorBalance";
 import {
   markTutorialSeen,
   tutorialSeen,
@@ -84,6 +87,7 @@ export class GameUI {
   private captureAction: KeyAction | null = null;
   private settingsHint = "";
   private tutorialPickOpen = false;
+  private warriorPickMode: "start" | "tutorial" = "start";
   private tutorialHudEl: HTMLElement | null = null;
   private tutorialSig = "";
   constructor(public core: GameCore) {
@@ -100,6 +104,7 @@ export class GameUI {
           "ov-settings",
           "ov-keybinds",
           "ov-tutorial-pick",
+          "ov-warrior-style",
         ].forEach(hide);
         this.settingsOpen = false;
         this.keybindsOpen = false;
@@ -160,6 +165,13 @@ export class GameUI {
     // 否则 openLevelPanel 会按上一个职业抽第一批卡。
     element("btn-start").onclick = () => this.startProfession("shooter");
     element("btn-prof-mage").onclick = () => this.startProfession("mage");
+    element("btn-prof-warrior").onclick = () =>
+      this.openWarriorStyle("start");
+    element("btn-warrior-katana").onclick = () =>
+      this.chooseWarriorStyle("katana");
+    element("btn-warrior-greatsword").onclick = () =>
+      this.chooseWarriorStyle("greatsword");
+    element("btn-warrior-style-back").onclick = () => this.closeWarriorStyle();
     // Issue #55：开始界面版本号 + 更新日志面板
     element("start-version").textContent =
       `Pixel Rogue · ${CURRENT_VERSION} · 试玩版`;
@@ -167,6 +179,8 @@ export class GameUI {
     element("btn-tutorial-shooter").onclick = () =>
       this.startTutorialFor("shooter");
     element("btn-tutorial-mage").onclick = () => this.startTutorialFor("mage");
+    element("btn-tutorial-warrior").onclick = () =>
+      this.openWarriorStyle("tutorial");
     element("btn-tutorial-pick-back").onclick = () => this.closeTutorialPick();
     element("btn-tutorial-skip").onclick = () => this.skipTutorial();
     element("btn-tutorial-next").onclick = () => this.core.advanceTutorial();
@@ -182,7 +196,8 @@ export class GameUI {
     };
     element("btn-changelog-close").onclick = () => hide("ov-changelog");
     // 重开保留当前职业（S3：玩家不该被强制退回射手）
-    element("btn-retry").onclick = () => this.core.startGame(this.core.prof);
+    element("btn-retry").onclick = () =>
+      this.core.startGame(this.core.prof, this.core.warriorStyle);
     element("btn-resume").onclick = () => this.core.togglePause();
     element("btn-pause-codex").onclick = () => this.codex.open();
     // Issue #100：触屏没有 C 键，属性面板从暂停界面进入
@@ -266,6 +281,8 @@ export class GameUI {
     element("btn-start").removeAttribute("aria-busy");
     (element("btn-prof-mage") as HTMLButtonElement).disabled = false;
     element("btn-prof-mage").removeAttribute("aria-busy");
+    (element("btn-prof-warrior") as HTMLButtonElement).disabled = false;
+    element("btn-prof-warrior").removeAttribute("aria-busy");
   }
   reset() {
     [
@@ -277,6 +294,7 @@ export class GameUI {
       "ov-settings",
       "ov-keybinds",
       "ov-tutorial-pick",
+      "ov-warrior-style",
     ].forEach(hide);
     this.settingsOpen = false;
     this.keybindsOpen = false;
@@ -405,6 +423,16 @@ export class GameUI {
     // S3：法师的伤害基线与攻速是元素/施法口径——沿用射手的「基础攻击/魔弹/攻速」
     // 会让玩家以为自己在加物理攻击（属性面板已同步改口径）。
     const isMage = this.core.prof === "mage";
+    const isWarrior = this.core.prof === "warrior";
+    const flowCap = isWarrior
+      ? (p.upCounts["流·极"] || 0) > 0
+        ? WARRIOR_BALANCE.flow.cap3
+        : (p.upCounts["流·续"] || 0) > 0
+          ? WARRIOR_BALANCE.flow.cap2
+          : (p.upCounts["流·初"] || 0) > 0
+            ? WARRIOR_BALANCE.flow.cap1
+            : 0
+      : 0;
     // 元素名（法师「当前元素」行）
     const ELEM_LABEL: Record<string, string> = {
       fire: "火",
@@ -422,12 +450,14 @@ export class GameUI {
             "☄️ 法阵伤害",
             (p.damage * MAGE_BALANCE.castDamageMul).toFixed(1),
           ]
-        : [
-            "🏹 普通魔弹",
-            boltDamage(p).toFixed(1) +
-              (p.boltDmgMul > 1 ? ` ×${p.boltDmgMul.toFixed(2)}` : ""),
-          ],
-      ...(isMage
+        : isWarrior
+          ? ["🪓 重斩", "每 3 下 · 250%"]
+          : [
+              "🏹 普通魔弹",
+              boltDamage(p).toFixed(1) +
+                (p.boltDmgMul > 1 ? ` ×${p.boltDmgMul.toFixed(2)}` : ""),
+            ],
+      ...(isMage || isWarrior
         ? []
         : ([
             [
@@ -448,7 +478,7 @@ export class GameUI {
           ],
       ["💥 暴击", (p.crit * 100).toFixed(0) + "%"],
       ["💥 暴击伤害", (critMultiplier(p) * 100).toFixed(0) + "%"],
-      // 职业专属输出行：法师当前元素，射手穿透。
+      // 职业专属输出行：法师当前元素，射手穿透，战士流层数。
       ...(isMage
         ? ([
             [
@@ -456,12 +486,21 @@ export class GameUI {
               elems.length ? elems.map((e) => ELEM_LABEL[e]).join(" · ") : "无",
             ],
           ] as [string, string | number][])
-        : ([
-            ["🔱 穿透", p.pierce + professionPierce(this.core.prof)],
-          ] as [string, string | number][])),
-      // S3-C：独立增伤乘区展示（与 p.damage 基线区分）。
-      // 射手没有三系元素增伤来源，只在全局增伤确实存在时显示该行；
-      // 法师保留完整增伤行，便于查看元素构筑。
+        : isWarrior
+          ? flowCap > 0
+            ? ([
+                [
+                  "🌊 流层数",
+                  `${this.core.warriorFlowStacks} / ${flowCap}${
+                    this.core.warriorFlowBurstT > 0 ? " · 爆发" : ""
+                  }`,
+                ],
+              ] as [string, string | number][])
+            : []
+          : ([
+              ["🔱 穿透", p.pierce + professionPierce(this.core.prof)],
+            ] as [string, string | number][])),
+      // 全局增伤：法师保留完整行；射手/战士只在非零时显示。
       ...(isMage || p.globalDamageBonus
         ? ([
             [
@@ -524,7 +563,7 @@ export class GameUI {
       ["👟 移动速度", Math.round(p.speed)],
       ["🧲 拾取范围", Math.round(p.magnet)],
       [
-        isMage ? "🎯 施法距离" : "🎯 射程",
+        isMage ? "🎯 施法距离" : isWarrior ? "🎯 近战范围" : "🎯 射程",
         Math.round(p.attackRange),
       ],
       ...(isMage
@@ -1071,9 +1110,34 @@ export class GameUI {
   }
 
   /** 首次选职业自动进入教程；已看过的职业直接正式开局。 */
-  private startProfession(prof: "shooter" | "mage"): void {
-    if (tutorialSeen(prof)) this.core.startGame(prof);
-    else this.core.startTutorial(prof);
+  private startProfession(
+    prof: "shooter" | "mage" | "warrior",
+    warriorStyle?: WarriorStyle,
+  ): void {
+    if (prof === "warrior" && !warriorStyle) {
+      this.openWarriorStyle("start");
+      return;
+    }
+    if (tutorialSeen(prof)) this.core.startGame(prof, warriorStyle);
+    else this.core.startTutorial(prof, warriorStyle);
+  }
+
+  private openWarriorStyle(mode: "start" | "tutorial"): void {
+    this.warriorPickMode = mode;
+    show("ov-warrior-style");
+  }
+
+  private closeWarriorStyle(): void {
+    hide("ov-warrior-style");
+  }
+
+  private chooseWarriorStyle(style: WarriorStyle): void {
+    this.closeWarriorStyle();
+    hide("ov-tutorial-pick");
+    this.tutorialPickOpen = false;
+    if (this.warriorPickMode === "tutorial")
+      this.startTutorialFor("warrior", style);
+    else this.startProfession("warrior", style);
   }
 
   /** 开始界面的教程入口：选择要练习的职业，可重看。 */
@@ -1088,9 +1152,12 @@ export class GameUI {
     hide("ov-tutorial-pick");
   }
 
-  private startTutorialFor(prof: "shooter" | "mage"): void {
+  private startTutorialFor(
+    prof: "shooter" | "mage" | "warrior",
+    warriorStyle?: WarriorStyle,
+  ): void {
     this.closeTutorialPick();
-    this.core.startTutorial(prof);
+    this.core.startTutorial(prof, warriorStyle);
   }
 
   /** 教程内跳过 / 完成后开始正式战斗；两者都记该职业已看。 */
@@ -1105,7 +1172,8 @@ export class GameUI {
   /** 教程快捷键：F 下一步 / X 跳过；返回 true 表示已消费该按键。 */
   handleTutorialKey(key: string): boolean {
     if (!this.core.tutorialMode || this.core.state !== "play") return false;
-    if (this.core.tutorialStep >= 5) return false;
+    const prof = this.core.tutorialProf ?? this.core.prof;
+    if (this.core.tutorialStep >= tutorialTotalSteps(prof)) return false;
     const kb = this.core.keybinds;
     if (
       [kb.up, kb.down, kb.left, kb.right, kb.dash, kb.pause, kb.stats].includes(
@@ -1145,6 +1213,7 @@ export class GameUI {
     }
     const prof = this.core.tutorialProf ?? this.core.prof;
     const step = this.core.tutorialStep;
+    const total = tutorialTotalSteps(prof);
     const kb = this.core.keybinds;
     const sig = `${prof}:${step}:${this.core.tutorialStepReady ? 1 : 0}:${kb.up}:${kb.down}:${kb.left}:${kb.right}:${kb.dash}`;
     if (sig === this.tutorialSig) return;
@@ -1152,15 +1221,15 @@ export class GameUI {
     hud.classList.remove("hidden");
     const content = this.tutorialContent(prof, step);
     element("tutorial-step").textContent =
-      step >= 5 ? "新手教程" : `新手教程 · ${step + 1} / 5`;
+      step >= total ? "新手教程" : `新手教程 · ${step + 1} / ${total}`;
     element("tutorial-title").textContent = content.title;
     element("tutorial-body").textContent = content.body;
     element("btn-tutorial-next").classList.toggle(
       "hidden",
-      !(this.core.tutorialStepReady && step < 5),
+      !(this.core.tutorialStepReady && step < total),
     );
-    element("btn-tutorial-skip").classList.toggle("hidden", step >= 5);
-    element("btn-tutorial-start").classList.toggle("hidden", step < 5);
+    element("btn-tutorial-skip").classList.toggle("hidden", step >= total);
+    element("btn-tutorial-start").classList.toggle("hidden", step < total);
   }
 
   private tutorialContent(
@@ -1168,43 +1237,57 @@ export class GameUI {
     step: number,
   ): { title: string; body: string } {
     const kb = this.core.keybinds;
-    switch (step) {
-      case 0:
+    if (step === 0)
+      return {
+        title: "移动",
+        body: `用 ${keyLabel(kb.up)} / ${keyLabel(kb.left)} / ${keyLabel(kb.down)} / ${keyLabel(kb.right)} 移动（方向键始终可用）。`,
+      };
+    if (step === 1)
+      return {
+        title: "冲刺",
+        body: `按 ${keyLabel(kb.dash)} 冲刺。冲刺期间短暂无敌，被围住时用来脱身。`,
+      };
+    if (step === 2)
+      return {
+        title: "自动攻击",
+        body: "靠近敌人就会自动出手，不需要按键。",
+      };
+    if (step === 3) {
+      if (prof === "mage")
         return {
-          title: "移动",
-          body: `用 ${keyLabel(kb.up)} / ${keyLabel(kb.left)} / ${keyLabel(kb.down)} / ${keyLabel(kb.right)} 移动（方向键始终可用）。`,
+          title: "站定施法",
+          body: "法阵会自动落在怪最密集处；读条最后 40% 停下，伤害 ×1.5。试着站定命中至少 2 个目标。",
         };
-      case 1:
+      if (prof === "warrior")
         return {
-          title: "冲刺",
-          body: `按 ${keyLabel(kb.dash)} 冲刺。冲刺期间短暂无敌，被围住时用来脱身。`,
+          title: "贴身挥砍",
+          body: "贴近敌人自动挥砍，扇形内所有敌人一起受伤；离得越近越容易打满。试着一次命中至少 2 个木桩。",
         };
-      case 2:
-        return {
-          title: "自动攻击",
-          body: "靠近敌人就会自动出手，不需要按键。",
-        };
-      case 3:
-        return prof === "mage"
-          ? {
-              title: "站定施法",
-              body: "法阵会自动落在怪最密集处；读条最后 40% 停下，伤害 ×1.5。试着站定命中至少 2 个目标。",
-            }
-          : {
-              title: "强化箭",
-              body: "保持距离输出。每 3 发自动变成强化箭；命中会填充角色下方的黄条，升级解锁导弹 / 激光 / 追踪等新形态。试着打出 3 发强化箭。",
-            };
-      case 4:
-        return {
-          title: "经验球",
-          body: "地上有一颗经验球，走过去即可拾取。正式战斗中清完怪也会掉落，升级和波末会给你属性 / 天赋选择。",
-        };
-      default:
-        return {
-          title: "教程完成",
-          body: "准备好了，开始正式战斗。",
-        };
+      return {
+        title: "强化箭",
+        body: "保持距离输出。每 3 发自动变成强化箭；命中会填充角色下方的黄条，升级解锁导弹 / 激光 / 追踪等新形态。试着打出 3 发强化箭。",
+      };
     }
+    if (prof === "warrior" && step === 4) {
+      return this.core.warriorStyle === "katana"
+        ? {
+            title: "流",
+            body: "你的核心是「流」：连续命中叠层，满 15 层后爆发；练习场先给 L1，试着叠满 5 层。",
+          }
+        : {
+            title: "重斩",
+            body: "你的核心是「重斩」：每第 3 次挥砍重击，破甲并放出剑气；试着打出一次重斩。",
+          };
+    }
+    if (step === tutorialGemStep(prof))
+      return {
+        title: "经验球",
+        body: "地上有一颗经验球，走过去即可拾取。正式战斗中清完怪也会掉落，升级和波末会给你属性 / 天赋选择。",
+      };
+    return {
+      title: "教程完成",
+      body: "准备好了，开始正式战斗。",
+    };
   }
 
   /** 打开设置菜单（从暂停界面进入）；具体设置项走子窗口。 */
@@ -1387,6 +1470,7 @@ export class GameUI {
       "ov-settings",
       "ov-keybinds",
       "ov-tutorial-pick",
+      "ov-warrior-style",
     ].forEach(hide);
     this.tutorialPickOpen = false;
     this.tutorialHudEl?.classList.add("hidden");

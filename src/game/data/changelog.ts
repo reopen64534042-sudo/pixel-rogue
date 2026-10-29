@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v102",
+    date: "2026-10-30",
+    title: "战士疾冲路径表现",
+    items: [
+      "战士「疾冲」的伤害路径改为 11px 青色/金色外辉 + 5px 中层 + 白热芯线，末端增加前向斩击弧，持续 0.42 秒。",
+      "路径两侧新增 12 颗火花；太刀青绿、大剑金色；路径伤害判定不变（每个敌人 80% 挥砍伤害）。",
+    ],
+  },
+  {
     version: "v101",
     date: "2026-10-30",
     title: "射手天赋围绕强化弹重构",

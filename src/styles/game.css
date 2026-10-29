@@ -1535,3 +1535,19 @@ p {
   font-size: 1.2vmin;
   margin: 0;
 }
+
+/* 战士流派按钮：太刀碧水青 / 大剑金黄，与战斗表现同色。 */
+#btn-warrior-katana {
+  border-color: #5ef2c8;
+}
+#btn-warrior-katana small {
+  color: #8ff5e0;
+  opacity: 0.9;
+}
+#btn-warrior-greatsword {
+  border-color: #ffd24a;
+}
+#btn-warrior-greatsword small {
+  color: #ffe8a3;
+  opacity: 0.9;
+}

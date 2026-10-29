@@ -5,6 +5,7 @@ import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
+import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import { getSpecialLevelStats } from "../data/specialShot";
 import { TRUE_DAMAGE_OUTLINE } from "../core/CombatSystem";
 import { spriteEntry } from "./assetRegistry";
@@ -564,6 +565,29 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
+  // 战士「流」层数（角色脚下）：仅持有流·初时显示；爆发期变红。
+  if (this.prof === "warrior" && this.player.upCounts["流·初"]) {
+    const cap = this.player.upCounts["流·极"]
+      ? WB.flow.cap3
+      : this.player.upCounts["流·续"]
+        ? WB.flow.cap2
+        : WB.flow.cap1;
+    const cw = 2;
+    const chh = 2;
+    const gap = 1;
+    const pw = cap * cw + (cap - 1) * gap;
+    const px = Math.round(this.player.x) - Math.floor(pw / 2);
+    const py = Math.round(this.player.y) + 16;
+    const burst = this.warriorFlowBurstT > 0;
+    for (let i = 0; i < cap; i++) {
+      ctx.fillStyle = "#1d2440";
+      ctx.fillRect(px + i * (cw + gap), py, cw, chh);
+      if (i < this.warriorFlowStacks) {
+        ctx.fillStyle = burst ? "#d8fff4" : "#36e0c0";
+        ctx.fillRect(px + i * (cw + gap), py, cw, chh);
+      }
+    }
+  }
   // 强化弹经验条（角色脚下；满级或满经验时整条金色）
   // 强化弹是射手专属系统；法师不显示，否则空条会压在充能点（y+17）上。
   if (this.prof === "shooter") {
@@ -606,6 +630,89 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       const bx = this.player.x + Math.cos(a) * 26;
       const by = this.player.y + Math.sin(a) * 26;
       ctx.spriteRot("blade", bx, by, a + Math.PI / 2);
+    }
+  }
+
+  // 战士剑气 / 疾冲路径（短寿命表现层）
+  if (this.warriorQi.length) {
+    for (const q of this.warriorQi) {
+      const alpha = Math.max(0, Math.min(1, q.t / q.max));
+      const x1 = Math.round(q.x1);
+      const y1 = Math.round(q.y1);
+      const x2 = Math.round(q.x2);
+      const y2 = Math.round(q.y2);
+      if (q.kind === "dash") {
+        const dx = q.x2 - q.x1;
+        const dy = q.y2 - q.y1;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len;
+        const ny = dx / len;
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        // 11px 外辉 + 5px 中层 + 白热芯，一次折线批量画完。
+        const glow: number[] = [];
+        const mid: number[] = [];
+        for (let off = -5; off <= 5; off++) {
+          glow.push(
+            Math.round(x1 + nx * off),
+            Math.round(y1 + ny * off),
+            Math.round(mx + nx * off),
+            Math.round(my + ny * off),
+            Math.round(x2 + nx * off),
+            Math.round(y2 + ny * off),
+          );
+        }
+        for (let off = -2; off <= 2; off++) {
+          mid.push(
+            Math.round(x1 + nx * off),
+            Math.round(y1 + ny * off),
+            Math.round(mx + nx * off),
+            Math.round(my + ny * off),
+            Math.round(x2 + nx * off),
+            Math.round(y2 + ny * off),
+          );
+        }
+        ctx.polyline3(glow, q.c, alpha * 0.18);
+        ctx.polyline3(mid, q.c, alpha * 0.45);
+        ctx.polyline3(
+          [x1, y1, Math.round(mx), Math.round(my), x2, y2],
+          "#ffffff",
+          alpha * 0.85,
+        );
+        // 末端斩击弧：前移到角色前方，收窄张角，读作一道向前劈出的刀光。
+        const tipX = Math.round(x2 + (dx / len) * 10);
+        const tipY = Math.round(y2 + (dy / len) * 10);
+        const angle = Math.atan2(dy, dx);
+        const span = 1.0;
+        ctx.globalAlpha = alpha * 0.35;
+        ctx.strokeStyle = q.c;
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 17, angle - span, angle + span);
+        ctx.stroke();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = q.c;
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 13, angle - span, angle + span);
+        ctx.stroke();
+        ctx.strokeStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 9, angle - span * 0.9, angle + span * 0.9);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.polyline3(
+          [
+            x1,
+            y1,
+            Math.round((x1 + x2) / 2),
+            Math.round((y1 + y2) / 2),
+            x2,
+            y2,
+          ],
+          q.c,
+          alpha,
+        );
+      }
     }
   }
 

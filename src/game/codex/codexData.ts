@@ -77,6 +77,7 @@ function aliasesOf(name: string): string[] | undefined {
 const PROF_GROUP: Record<string, string> = {
   shooter: "射手",
   mage: "法师",
+  warrior: "战士",
 };
 
 export const TALENT_ENTRIES: readonly CodexEntry[] = UPGRADES.filter(

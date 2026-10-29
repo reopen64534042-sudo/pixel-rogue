@@ -123,7 +123,8 @@ export class GameScene extends Phaser.Scene {
         ["1", "2", "3", "4"].includes(key)
       )
         this.core.chooseAttr(Number(key) - 1);
-      if (this.core.state === "over" && key === "r") this.core.startGame();
+      if (this.core.state === "over" && key === "r")
+        this.core.startGame(this.core.prof, this.core.warriorStyle);
     };
     const up = (event: KeyboardEvent) => {
       this.core.keys[event.key.toLowerCase()] = false;

@@ -146,6 +146,10 @@ export function hurtEnemy(
   // 完全真实伤害（type=true）或附带真实伤害（trueFraction）都使用银白飘字，
   // 避免被强化弹/暴击的金色淹没。
   const hasTrueDamage = opts.type === "true" || trueDamage > 0;
+  // 战士「裂甲」：本次命中吃**已有**层数；新层在伤害结算后添加。
+  if (opts.form === "melee" && (e.meleeVulnStacks ?? 0) > 0) {
+    dmg *= 1 + 0.02 * (e.meleeVulnStacks ?? 0);
+  }
   // v76 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多留
   // 1 HP，让随后结算的反应完成击杀。只压低实际应用值；反应基数由调用方
   // 另行传入，不受本处影响（反应/连锁不得使用 lethalCap）。
@@ -162,6 +166,10 @@ export function hurtEnemy(
   const hpBefore = e.hp;
   e.hp -= dmg;
   e.flash = 0.08;
+  // 战士「裂甲」：每次近战命中叠 1 层，最多 10 层，无衰退计时。
+  if (opts.form === "melee" && (p.upCounts["裂甲"] || 0) > 0) {
+    e.meleeVulnStacks = Math.min(10, (e.meleeVulnStacks ?? 0) + 1);
+  }
   if (opts.src) this.dmgBy[opts.src] = (this.dmgBy[opts.src] || 0) + dmg;
   if (this.player.lifesteal && !opts.noLifesteal)
     this.player.hp = Math.min(

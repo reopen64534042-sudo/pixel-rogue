@@ -96,7 +96,7 @@
 import { statBase } from "../data/stats";
 import { resolveStats, type StatModifier } from "./StatModel";
 import { resolveKeyedMap, type TypeDamageBonusModifier } from "./StatSheets";
-import type { Player, Profession } from "./types";
+import type { Player, Profession, WarriorStyle } from "./types";
 
 /** 十三张已迁移卡（C1/C2）+ 两张生命卡（C3-A）的来源贡献：标量区（含 attack 与五字段 final）+ 类型化火雷增伤区 */
 export interface TalentStatContribution {
@@ -503,8 +503,9 @@ export function applyTalentStatProjection(
    * 省略时按射手，保持既有调用与测试的默认行为。
    */
   prof: Profession = "shooter",
+  warriorStyle: WarriorStyle = "katana",
 ): void {
-  const base = statBase(prof);
+  const base = statBase(prof, warriorStyle);
   const { scalars, typeDamageBonus } = talentStatModifiers(p.picks, persistent);
   const resolved = resolveStats({
     base: {
@@ -517,6 +518,11 @@ export function applyTalentStatProjection(
       // S1：射程 base = 数据层 130（此前是 AttackSystem 硬编码；无来源时
       // 写回 130，与硬编码行为等价）
       attackRange: base.attackRange,
+      // 战士：基础护甲/吸血进 base；其它职业不加键，保持旧实体形状与
+      // 「有来源才写」的 lifesteal 语义（旧表吸血獠牙仍靠 f 直写）。
+      ...(prof === "warrior"
+        ? { defense: base.defense ?? 0, lifesteal: base.lifesteal }
+        : {}),
       // C3-A：maxHp base = 数据层初始值 + 实例级血包永久成长（持久来源仅在此
       // 计入一次；生命卡贡献为 flat 修饰符，非 base）
       maxHp: base.maxhp + persistent.potionMaxHpGrow,

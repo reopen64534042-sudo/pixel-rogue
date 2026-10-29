@@ -27,6 +27,10 @@ export interface MeleeSwingOptions {
   shake?: number;
   /** 刀光寿命（秒），默认 0.16 */
   life?: number;
+  /** 吸血倍率（战士「流·极」爆发期 ×2） */
+  lifestealMul?: number;
+  /** 命中粒子色（默认白色） */
+  particleColor?: string;
 }
 
 function angleDiff(target: number, center: number) {
@@ -77,6 +81,9 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
       src: "melee",
       type: "physical",
       form: "melee",
+      ...(opts.lifestealMul !== undefined
+        ? { lifestealMul: opts.lifestealMul }
+        : {}),
     });
   }
 
@@ -101,7 +108,7 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
           vx: Math.cos(a) * 60,
           vy: Math.sin(a) * 60,
           life: 0.22,
-          c: "#ffffff",
+          c: opts.particleColor ?? "#ffffff",
         });
       }
     }

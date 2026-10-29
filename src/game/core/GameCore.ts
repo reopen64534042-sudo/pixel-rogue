@@ -33,6 +33,7 @@ import {
 } from "./MageSystem";
 import { meleeSwing } from "./MeleeSystem";
 import { devSetSpecialLevel, gainSpecialXp } from "./SpecialSystem";
+import { warriorDashDamage, warriorLeap } from "./WarriorSystem";
 import {
   advanceTutorial,
   finishTutorial,
@@ -89,6 +90,7 @@ import type {
   Slash,
   Slot,
   WavePhase,
+  WarriorStyle,
 } from "./types";
 import { silentView } from "./types";
 import { cardsOfTier, enterRest, startNextWave, waveQuota } from "./WaveSystem";
@@ -202,10 +204,37 @@ export class GameCore {
    * S2 只有射手，职业被硬编码；S3 起开局可选「射手 / 法师」，
    * 由 `startGame(prof)` 写入。`canOffer` 用它过滤职业卡。
    *
-   * 战士（`"warrior"`）尚未实现，**没有对应的卡池**——开放选择前必须先有池子，
-   * 否则玩家会选到一个空池职业。
+   * 战士（`"warrior"`）自 v99 起接入基础可玩池（核心/入场/共享 13 张）。
    */
   prof: Profession = "shooter";
+  /** 战士开局流派；非战士恒为 katana。 */
+  warriorStyle: WarriorStyle = "katana";
+  /** 流层数与计时（战士核心链；放 GameCore，避免 recompute 抹掉）。 */
+  warriorFlowStacks = 0;
+  warriorFlowT = 0;
+  warriorFlowBurstT = 0;
+  /** 每 3 次挥砍中的第 3 次为重斩。 */
+  warriorSwingCount = 0;
+  /** 剑气 / 疾冲表现层（直线，寿命很短）。 */
+  warriorQi: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    t: number;
+    max: number;
+    c: string;
+    kind: "dash" | "qi";
+  }[] = [];
+  /** 疾冲的起跳点（冲刺结束时结算路径伤害）。 */
+  warriorDashFromX: number | null = null;
+  warriorDashFromY: number | null = null;
+  /** 残心：冲刺后的下一刀增伤窗口。 */
+  warriorResolveT = 0;
+  /** 强袭：跃击落地后的攻速窗口。 */
+  warriorLeapHasteT = 0;
+  /** 教程核心步骤：是否已经打出过重斩。 */
+  tutorialHeavyDone = false;
   /** 新手教程（v83）：练习场标记与分步状态 */
   tutorialMode = false;
   tutorialStep = 0;
@@ -444,6 +473,8 @@ export class GameCore {
   applyBurnDot = applyBurnDot.bind(this);
   applyBurnGroundDot = applyBurnGroundDot.bind(this);
   meleeSwing = meleeSwing.bind(this);
+  warriorLeap = warriorLeap.bind(this);
+  warriorDashDamage = warriorDashDamage.bind(this);
   // S3 法师池：施法状态机、元素状态、以及「脱离」槽的两个触发器。
   // 后两者由 CombatSystem.damagePlayer 调用——CombatSystem 不 import
   // MageSystem（避免运行时循环），统一走 GameCore 上的方法引用。
@@ -465,10 +496,15 @@ export class GameCore {
   startNextWave = startNextWave.bind(this);
   cardsOfTier = cardsOfTier.bind(this);
   enterRest = enterRest.bind(this);
-  resetGame(prof: Profession = "shooter") {
+  resetGame(
+    prof: Profession = "shooter",
+    warriorStyle: WarriorStyle = "katana",
+  ) {
     // S3：职业必须在重建 Player 之前确定——属性投影以 statBase(prof) 重建，
-    // 法师的施法速度/施法距离来自职业 base。
+    // 法师的施法速度/施法距离与战士的武器形态来自职业 base。
     this.prof = prof;
+    this.warriorStyle =
+      prof === "warrior" ? warriorStyle : "katana";
     this.audio.cancelCues();
     this.tutorialMode = false;
     this.tutorialStep = 0;
@@ -479,6 +515,7 @@ export class GameCore {
     this.tutorialProfDone = false;
     this.tutorialSpecialHits = 0;
     this.tutorialMoved = false;
+    this.tutorialHeavyDone = false;
     this.tutorialGemPicked = false;
     this.tutorialGemSpawned = false;
     this.player = {
@@ -492,7 +529,7 @@ export class GameCore {
       fireCd: 0,
       upCounts: {},
       picks: [],
-      ...statBase(prof),
+      ...statBase(prof, this.warriorStyle),
     };
     this.player.hp = this.player.maxhp;
     this.enemies = [];
@@ -550,6 +587,16 @@ export class GameCore {
     this.mageDomains = [];
     this.mageMeteorT = 0;
     this.mageElementPickPending = null;
+    this.warriorFlowStacks = 0;
+    this.warriorFlowT = 0;
+    this.warriorFlowBurstT = 0;
+    this.warriorSwingCount = 0;
+    this.warriorQi = [];
+    this.warriorDashFromX = null;
+    this.warriorDashFromY = null;
+    this.warriorResolveT = 0;
+    this.warriorLeapHasteT = 0;
+    this.tutorialHeavyDone = false;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
     // #134：走统一入口，让「第 1 波基础额度」也受单波上限约束
@@ -628,8 +675,8 @@ export class GameCore {
    * 卡池，职业必须先定，否则第一批卡是按上一个职业抽的；Player 的
    * 施法速度/施法距离 base 也随职业重建。
    */
-  startGame(prof?: Profession) {
-    this.resetGame(prof ?? "shooter");
+  startGame(prof?: Profession, warriorStyle?: WarriorStyle) {
+    this.resetGame(prof ?? "shooter", warriorStyle);
     this.state = "play";
     // S2 修订（用户反馈）：开局送 1 次天赋，让第 1 波起就有一次成长。
     // **必须在 view.started() 之前记账**：面板是 UI 在 started 回调里按
@@ -783,6 +830,15 @@ export class GameCore {
     this.mageDecoys = [];
     this.magePhaseT = 0;
     this.mageElementPickPending = null;
+    this.warriorFlowStacks = 0;
+    this.warriorFlowT = 0;
+    this.warriorFlowBurstT = 0;
+    this.warriorSwingCount = 0;
+    this.warriorQi = [];
+    this.warriorDashFromX = null;
+    this.warriorDashFromY = null;
+    this.warriorResolveT = 0;
+    this.warriorLeapHasteT = 0;
     this.recompute();
     this.addText(p.x, p.y - 26, "已清空天赋", "#ffd24a", true);
   }

@@ -1,12 +1,14 @@
 import { MAGE_BALANCE } from "./mageBalance";
-import type { Profession } from "../core/types";
+import { WARRIOR_BALANCE } from "./warriorBalance";
+import type { Profession, WarriorStyle } from "../core/types";
 
 /**
  * 职业基础形态（S3）。
  *
  * 以下字段按职业分叉，其余字段三职业共用：
  * - 射手：50 HP / 70 移速 / 13 攻击 / 130 索敌 / 2.2 发每秒；
- * - 法师：40 HP（v76 用户裁定） / 62 移速 / 11 攻击 / 150px 施法距离 / 1 / castCycle。
+ * - 法师：40 HP（v76 用户裁定） / 62 移速 / 11 攻击 / 150px 施法距离 / 1 / castCycle；
+ * - 战士：80 HP / 60 移速 / 10 护甲 / 5% 吸血；太刀 9×2.0/s、大剑 17×1.2/s。
  *   法师的施法前摇与间隔都按「当前施法速度 ÷ 基础施法速度」同比缩放，
  *   因此属性「施法速度」对法师是从施法周期生效的。
  *
@@ -14,17 +16,26 @@ import type { Profession } from "../core/types";
  * 以本函数重建 Player，写在消费点会在每次 recompute 后失真；而职业在
  * `resetGame(prof)` 时就已确定，base 可以安全地按职业给出。
  */
-export function statBase(prof: Profession = "shooter") {
+export function statBase(
+  prof: Profession = "shooter",
+  warriorStyle: WarriorStyle = "katana",
+) {
   const mage = prof === "mage";
+  const warrior = prof === "warrior";
+  const wstyle = WARRIOR_BALANCE.styles[warriorStyle];
   return {
     // v76：法师基础生命 40（用户裁定）；护盾/回复按最大生命百分比结算，
-    // 会随之下调。射手保持 50。
-    maxhp: mage ? 40 : 50,
-    speed: mage ? 62 : 70,
+    // 会随之下调。射手保持 50。战士 80（2026-10-30 提案）。
+    maxhp: warrior ? WARRIOR_BALANCE.maxhp : mage ? 40 : 50,
+    speed: warrior ? WARRIOR_BALANCE.speed : mage ? 62 : 70,
     projSpeed: 260,
     // S1：攻击射程从 AttackSystem 的硬编码 130 提为属性（base 130，数值不变）
-    attackRange: mage ? MAGE_BALANCE.castRange : 130,
-    damage: mage ? 11 : 13,
+    attackRange: warrior
+      ? wstyle.range
+      : mage
+        ? MAGE_BALANCE.castRange
+        : 130,
+    damage: warrior ? wstyle.damage : mage ? 11 : 13,
     boltDmgMul: 1,
     frostLv: 0,
     scorchVuln: 0,
@@ -33,7 +44,11 @@ export function statBase(prof: Profession = "shooter") {
     burnGround: 0,
     bladeReflect: 0,
     // 法师：1 / 0.55s 施法周期 ≈ 1.82 次/秒（MageSystem 按此值缩放前摇与间隔）
-    fireRate: mage ? 1 / MAGE_BALANCE.castCycle : 2.2,
+    fireRate: warrior
+      ? wstyle.fireRate
+      : mage
+        ? 1 / MAGE_BALANCE.castCycle
+        : 2.2,
     multishot: 1,
     pierce: 0,
     // S2：穿透衰减系数从 ProjectileSystem 的硬编码 0.85 提为属性。
@@ -54,7 +69,7 @@ export function statBase(prof: Profession = "shooter") {
     meteor: 0,
     meteorT: 4,
     thorns: 0,
-    lifesteal: 0,
+    lifesteal: warrior ? WARRIOR_BALANCE.lifesteal : 0,
     explode: 0,
     shieldMax: 0,
     shield: 0,
@@ -89,5 +104,7 @@ export function statBase(prof: Profession = "shooter") {
     ndUsed: false,
     explodeDmg: 0,
     chainDmg: 0,
+    // 战士基础护甲（可选键：只在本职业出现，保持其它职业实体形状不变）
+    ...(warrior ? { defense: WARRIOR_BALANCE.defense } : {}),
   };
 }
