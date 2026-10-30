@@ -26,6 +26,19 @@ export function playerMoveSpeed(core: GameCore): number {
   return p.speed * boost * webSlow;
 }
 
+/** 走路与冲刺共用的「势」积累；满层后清空余量，避免触发后立刻又攒一层。 */
+function addIaiDistance(core: GameCore, moved: number) {
+  const cap = warriorIaiCap(core);
+  if (cap <= 0 || core.warriorIaiStacks >= cap) return;
+  const step = warriorIaiStep(core);
+  core.warriorIaiDist += moved;
+  while (core.warriorIaiDist >= step && core.warriorIaiStacks < cap) {
+    core.warriorIaiDist -= step;
+    core.warriorIaiStacks++;
+  }
+  if (core.warriorIaiStacks >= cap) core.warriorIaiDist = 0;
+}
+
 export function updatePlayer(this: GameCore, dt: number) {
   const p = this.player;
   // ---- 玩家移动 ----
@@ -130,8 +143,12 @@ export function updatePlayer(this: GameCore, dt: number) {
       (this.prof === "warrior" && (p.upCounts["疾冲"] || 0) > 0
         ? WB.dashDistMul
         : 1);
+    const dashFromX = p.x;
+    const dashFromY = p.y;
     p.x += p.dx * dashSpeed * dt;
     p.y += p.dy * dashSpeed * dt;
+    // 冲刺位移也计入「势」：原来只算走路，冲刺经过的距离被漏掉。
+    addIaiDistance(this, Math.hypot(p.x - dashFromX, p.y - dashFromY));
     this.parts.push({
       x: p.x,
       y: p.y + 2,
@@ -152,18 +169,7 @@ export function updatePlayer(this: GameCore, dt: number) {
 
     // 「居合」积势：走路攒层，满层后停攒等下一刀（见 warriorBalance.iai）。
     // 势只增不减——挥砍不清空，只有满层触发的居合斩才会归零。
-    const iaiCap = warriorIaiCap(this);
-    if (iaiCap > 0 && this.warriorIaiStacks < iaiCap) {
-      const moved = Math.hypot(mx, my) * moveSpeed * dt;
-      const step = warriorIaiStep(this);
-      this.warriorIaiDist += moved;
-      while (this.warriorIaiDist >= step && this.warriorIaiStacks < iaiCap) {
-        this.warriorIaiDist -= step;
-        this.warriorIaiStacks++;
-      }
-      // 满层后余量归零，避免触发后立刻又攒出一层
-      if (this.warriorIaiStacks >= iaiCap) this.warriorIaiDist = 0;
-    }
+    addIaiDistance(this, Math.hypot(mx, my) * moveSpeed * dt);
   }
   // 世界边界
   p.x = clamp(p.x, 24, WORLD.w - 24);

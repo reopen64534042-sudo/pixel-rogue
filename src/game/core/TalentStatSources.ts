@@ -412,6 +412,15 @@ export function talentStatModifiers(
           value: 1,
         });
         break;
+      // 战士「连闪」（共享 t1）：冲刺充能 +1 次（上限 2 次）。
+      case "连闪":
+        scalars.push({
+          sourceId: "天赋:连闪",
+          stat: "dashChargeLv",
+          stage: "flat",
+          value: 1,
+        });
+        break;
       case "壁垒": // data/talents.ts：barrierLv++（max 2）；tempShield
         // 每波重建属换波语义（WaveSystem），不在本表
         scalars.push({
