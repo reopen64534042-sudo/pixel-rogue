@@ -48,9 +48,16 @@ export function updatePlayer(this: GameCore, dt: number) {
         );
       this.warriorDashFromX = null;
       this.warriorDashFromY = null;
-      if ((p.upCounts["残心"] || 0) > 0) this.warriorResolveT = 1;
+      // 残心窗口改为读配置（原来写死 1 秒，warriorBalance.resolveWindow 是死字段）
+      if ((p.upCounts["残心"] || 0) > 0)
+        this.warriorResolveT = WB.resolveWindow;
+      // 冲刺后移速爆发：每次冲刺结束都给，不占卡位（机动链的基础层）
+      this.warriorDashBoostT = WB.dashBoostWindow;
     }
   }
+  // 冲刺后移速爆发的倒计时
+  if (this.warriorDashBoostT > 0)
+    this.warriorDashBoostT = Math.max(0, this.warriorDashBoostT - dt);
   if (this.dashFireBoostT > 0) this.dashFireBoostT -= dt;
   // 冲刺充能制（「双段疾冲」增加上限）
   const dchMax = 1 + p.dashChargeLv;
@@ -92,9 +99,11 @@ export function updatePlayer(this: GameCore, dt: number) {
   }
   if (p.dashT > 0) {
     // S2：冲刺位移按 dashDistMul 缩放（疾行 +25%；疾冲再 +30%）
+    // #180：战士额外吃职业基础倍率（baseDashMul 1.5），与「疾冲」卡的 1.3 独立相乘。
     const dashSpeed =
       280 *
       p.dashDistMul *
+      (this.prof === "warrior" ? WB.baseDashMul : 1) *
       (this.prof === "warrior" && (p.upCounts["疾冲"] || 0) > 0
         ? WB.dashDistMul
         : 1);
@@ -113,7 +122,12 @@ export function updatePlayer(this: GameCore, dt: number) {
     });
   } else {
     // S2「滞空」：闪避成功后 0.5 秒的移速加成
-    const boost = this.dodgeBoostT > 0 ? 1.2 : 1;
+    // 机动链基础层：冲刺后 dashBoostWindow 秒内线性衰减的移速爆发
+    const dashBoost =
+      this.warriorDashBoostT > 0
+        ? 1 + WB.dashBoostMul * (this.warriorDashBoostT / WB.dashBoostWindow)
+        : 1;
+    const boost = (this.dodgeBoostT > 0 ? 1.2 : 1) * dashBoost;
     const webSlow = this.webZones.some((z) => {
       if (z.arm > 0) return false;
       const dx = p.x - z.x;

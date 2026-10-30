@@ -30,6 +30,7 @@ import {
 import { MAGE_BALANCE } from "../game/data/mageBalance";
 import { statBase } from "../game/data/stats";
 import { WARRIOR_BALANCE } from "../game/data/warriorBalance";
+import { warriorSwingDamage } from "../game/core/WarriorSystem";
 import { KNOCK, knockLevel } from "../game/data/knockback";
 import {
   markTutorialSeen,
@@ -217,6 +218,7 @@ export class GameUI {
       this.captureAction = null;
       this.settingsHint = "已恢复默认键位";
       this.renderKeybindings();
+      this.syncKeyLabels();
     };
     element("btn-keybinds-back").onclick = () => this.closeKeybinds();
     element("btn-settings-close").onclick = () => this.closeSettings();
@@ -293,6 +295,24 @@ export class GameUI {
       (element(id) as HTMLButtonElement).disabled = false;
       element(id).removeAttribute("aria-busy");
     }
+    // #182：按钮上的键位文案跟随已保存的键位，不再依赖 index.html 的硬编码
+    this.syncKeyLabels();
+  }
+
+  /**
+   * #182：把当前键位写回按钮文案。
+   *
+   * 此前 `index.html` 把 `(P)` / `(C)` 直接写在按钮里，设置里改键后永远不更新。
+   * 固定键（R 重开、F/X 教程、M 静音、F2 开发者面板）不参与改键，保持原样。
+   * 调用时机：构造时、恢复默认键位后、单个键位保存后。
+   */
+  syncKeyLabels() {
+    // 复用 keyLabel()：与键位设置面板同一套格式化（空格 / Esc / 方向键 / 大写）
+    element("btn-pause").textContent =
+      `⏸ 暂停 (${keyLabel(this.core.keybinds.pause)})`;
+    const statClose = document.getElementById("btn-statclose");
+    if (statClose)
+      statClose.textContent = `返回战斗 (${keyLabel(this.core.keybinds.stats)})`;
   }
   reset() {
     [
@@ -453,9 +473,18 @@ export class GameUI {
     const elems = isMage ? mageElements(p) : [];
     const outputRows: [string, string | number][] = [
       // 文案更名（S3-C）：p.damage 是攻击基线（技能系数/raw），非 globalDamageBonus
+      // #178：战士首行改为「实际挥砍伤害」= 攻击基线 × 流层倍率，
+      // 让面板数值与手感对齐；条件倍率（重斩/破围/气势）由各自的行标注。
       isMage
         ? ["🔮 元素伤害", p.damage.toFixed(1)]
-        : ["⚔️ 基础攻击", p.damage.toFixed(1)],
+        : isWarrior
+          ? [
+              "⚔️ 近战伤害",
+              this.core.warriorFlowStacks > 0
+                ? `${warriorSwingDamage(this.core).toFixed(1)}（流 ${this.core.warriorFlowStacks} 层）`
+                : warriorSwingDamage(this.core).toFixed(1),
+            ]
+          : ["⚔️ 基础攻击", p.damage.toFixed(1)],
       ...(isMage
         ? ([
             [
@@ -619,6 +648,23 @@ export class GameUI {
     ];
     const utilityRows: [string, string | number][] = [
       ["👟 移动速度", Math.round(p.speed)],
+      // 冲刺后移速爆发（v116 新增的战士基础机制）：未激活时显示上限，
+      // 处于衰减窗口内显示当前实际加成与剩余时间。
+      ...(isWarrior
+        ? ([
+            [
+              "💨 冲刺后移速",
+              this.core.warriorDashBoostT > 0
+                ? `+${Math.round(
+                    WARRIOR_BALANCE.dashBoostMul *
+                      (this.core.warriorDashBoostT /
+                        WARRIOR_BALANCE.dashBoostWindow) *
+                      100,
+                  )}%（剩 ${this.core.warriorDashBoostT.toFixed(1)}s）`
+                : `+${Math.round(WARRIOR_BALANCE.dashBoostMul * 100)}% · ${WARRIOR_BALANCE.dashBoostWindow}s 衰减`,
+            ],
+          ] as [string, string | number][])
+        : []),
       ["🧲 拾取范围", Math.round(p.magnet)],
       [
         isMage ? "🎯 施法距离" : isWarrior ? "🎯 近战范围" : "🎯 射程",
@@ -1517,6 +1563,7 @@ export class GameUI {
       this.captureAction = null;
       this.settingsHint = "已保存 · 方向键与 Esc 始终可用";
       this.renderKeybindings();
+      this.syncKeyLabels();
       return true;
     }
     // 设置/键位子窗口打开但未捕获：吞掉所有游戏键；Esc 逐层返回。

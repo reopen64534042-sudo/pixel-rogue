@@ -223,6 +223,12 @@ export class GameCore {
   warriorFlowBurstT = 0;
   /** 每 3 次挥砍中的第 3 次为重斩。 */
   warriorSwingCount = 0;
+  /**
+   * 连斩链计数（#179）。用户裁决「最多连 3 次」：达到上限后必须走完一次
+   * 正常攻击间隔才能重新掷概率。放 GameCore 而非 Player——recompute 会重建
+   * Player 字段，运行时状态放那儿会被抹掉。
+   */
+  warriorChainCount = 0;
   /** 剑气 / 疾冲表现层（直线，寿命很短）。 */
   warriorQi: {
     x1: number;
@@ -241,6 +247,8 @@ export class GameCore {
   warriorResolveT = 0;
   /** 强袭：跃击落地后的攻速窗口。 */
   warriorLeapHasteT = 0;
+  /** 冲刺后移速爆发的剩余时间（战士基础机制，见 PlayerSystem 的 boost 乘区）。 */
+  warriorDashBoostT = 0;
   /** 教程核心步骤：是否已经打出过重斩。 */
   tutorialHeavyDone = false;
   /** 新手教程（v83）：练习场标记与分步状态 */
@@ -602,11 +610,13 @@ export class GameCore {
     this.warriorFlowT = 0;
     this.warriorFlowBurstT = 0;
     this.warriorSwingCount = 0;
+    this.warriorChainCount = 0;
     this.warriorQi = [];
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;
     this.warriorResolveT = 0;
     this.warriorLeapHasteT = 0;
+    this.warriorDashBoostT = 0;
     this.tutorialHeavyDone = false;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
@@ -847,11 +857,13 @@ export class GameCore {
     this.warriorFlowT = 0;
     this.warriorFlowBurstT = 0;
     this.warriorSwingCount = 0;
+    this.warriorChainCount = 0;
     this.warriorQi = [];
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;
     this.warriorResolveT = 0;
     this.warriorLeapHasteT = 0;
+    this.warriorDashBoostT = 0;
     this.recompute();
     this.addText(p.x, p.y - 26, "已清空天赋", "#ffd24a", true);
   }

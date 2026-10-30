@@ -345,9 +345,23 @@ export function updateEnemies(this: GameCore, dt: number) {
       // S3：距离改用当前目标（默认玩家；存在镜像残影时是残影），
       // 无残影时 target 就是玩家，行为与旧版逐位一致。
       const d = Math.hypot(targetX - e.x, targetY - e.y);
+      // #180 残局收拢：场上只剩少量敌人时，远程怪不再游走风筝，改为主动靠近。
+      // 否则近战职业清到剩几只 shooter 会陷入「满地图追」的垃圾时间。
+      //
+      // 阈值 12 是实测定的（v110）：第 4 波「最后 6–12 只分散射击」这段的耗时与
+      // DPS 无关，是纯跑图成本，所以伤害/攻速/扇形怎么调都被它淹没。对照数据
+      // （同条件单次运行）：阈值 5 → 波 4 102s；阈值 12 → 85.8s（−16s）。
+      // 而同期测得的「扇形 100°→130°」只有 −1～2s（噪声内，因为 meleeSwing
+      // 本来就是扇形内全命中、无目标上限，贴脸时 100° 已覆盖实际命中范围）。
+      const fewLeft = this.enemies.filter((x) => !x.dead).length <= 12;
       let mvx = 0,
         mvy = 0;
-      if (d > 150) {
+      if (fewLeft) {
+        if (d > 60) {
+          mvx = Math.cos(a);
+          mvy = Math.sin(a);
+        }
+      } else if (d > 150) {
         mvx = Math.cos(a);
         mvy = Math.sin(a);
       } else if (d < 90) {

@@ -157,6 +157,7 @@ D = rawAmount
 | 改怪物 HP/攻击/移速 | data/enemies.ts | EnemyStatSources 会自动缩放 | 不随意调换倍率顺序 |
 | 改怪物抗性/护甲/增伤 | data/enemies.ts 可选字段 | 生成时解析 → 快照 → 消费 | 30% 应写 0.3，不是 30 |
 | 改护甲 K/抗性上限/韧性上限 | data/combatBalance.ts | UI/说明、消费点 | 不复制新公式 |
+| 改属性强化硬顶（吸血/回复/攻速/移速） | data/attributeBalance.ts | AttributeSystem 的 capped 过滤、TalentStatSources 的投影夹紧 | 不在属性卡或消费点复制上限 |
 | 改魔弹/陨星/燃烧系数 | data/combatBalance.ts / DamageMath.ts | 技能调用及描述 | 不在多个攻击点写魔法常量 |
 | 改精英/波次成长 | EnemyStatSources.ts / WaveSystem.ts | 生命、攻击、速度、配额 | 不改变无关 RNG |
 | 改新技能攻击行为 | AttackSystem / MeleeSystem / EnemySystem / ProjectileSystem | CombatSystem、DamageRequest | 不另建伤害计算旁路 |

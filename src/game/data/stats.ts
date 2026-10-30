@@ -61,7 +61,10 @@ export function statBase(
     dashDistMul: 1,
     area: 1,
     crit: 0.05,
-    critMul: 2,
+    // #181：暴击基础倍率 2.0 → 1.5（暴伤 +50%）。
+    // 这是**基础值**：属性「暴击伤害」与「致命一击」满层觉醒都在其上叠加，
+    // 见 TalentStatSources（base.critMul）与 DamageMath.critMultiplier。
+    critMul: 1.5,
     ricochet: 0,
     slow: 0,
     burn: 0,
@@ -78,7 +81,9 @@ export function statBase(
     // 三职业共享基础动作 冲刺/受伤/拾取）。机动轴卡（充能/距离）在其上增强
     dashLv: 1,
     dashT: -1,
-    dashMax: 2.4,
+    // 冲刺冷却：#180 起战士单独配置（近战贴身的接近手段，CD 更短）。
+    // 其他职业沿用 2.4 秒。
+    dashMax: warrior ? WARRIOR_BALANCE.dashMax : 2.4,
     dashCharges: 1,
     dashRe: 0,
     dashChargeLv: 0,
