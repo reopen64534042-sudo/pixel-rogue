@@ -30,7 +30,10 @@ import {
 import { MAGE_BALANCE } from "../game/data/mageBalance";
 import { statBase } from "../game/data/stats";
 import { WARRIOR_BALANCE } from "../game/data/warriorBalance";
-import { warriorSwingDamage } from "../game/core/WarriorSystem";
+import {
+  warriorIaiCap,
+  warriorSwingDamage,
+} from "../game/core/WarriorSystem";
 import { KNOCK, knockLevel } from "../game/data/knockback";
 import {
   markTutorialSeen,
@@ -471,6 +474,12 @@ export class GameUI {
       lightning: "雷",
     };
     const elems = isMage ? mageElements(p) : [];
+    // 「居合」的势：势只增不减，满层后下一刀自动变居合斩（见 warriorBalance.iai）
+    const iaiCap =
+      isWarrior && this.core.warriorStyle === "katana"
+        ? warriorIaiCap(this.core)
+        : 0;
+    const iaiStacks = this.core.warriorIaiStacks;
     const outputRows: [string, string | number][] = [
       // 文案更名（S3-C）：p.damage 是攻击基线（技能系数/raw），非 globalDamageBonus
       // #178：战士首行改为「实际挥砍伤害」= 攻击基线 × 流层倍率，
@@ -497,7 +506,16 @@ export class GameUI {
             ? ([
                 ["🪓 重斩", "每 3 下 · 250%"],
               ] as [string, string | number][])
-            : []
+            : iaiCap > 0
+              ? ([
+                  [
+                    "⚔️ 居合势",
+                    iaiStacks >= iaiCap
+                      ? `${iaiStacks}/${iaiCap} · 下一刀居合`
+                      : `${iaiStacks}/${iaiCap}`,
+                  ],
+                ] as [string, string | number][])
+              : []
           : ([
               [
                 "🏹 普通魔弹",

@@ -800,6 +800,29 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       }
     }
   }
+  // 战士「居合」势层数（角色脚下第二行，紧贴流条下方）。
+  // 满层亮白 = 下一刀必是居合斩，给玩家一个「该落刀了」的信号。
+  if (this.prof === "warrior" && this.player.upCounts["居合"]) {
+    const cap = this.player.upCounts["居合·迅"]
+      ? WB.iai.cap2
+      : WB.iai.cap1;
+    const cw = 2;
+    const chh = 2;
+    const gap = 1;
+    const pw = cap * cw + (cap - 1) * gap;
+    const px = Math.round(this.player.x) - Math.floor(pw / 2);
+    const py = Math.round(this.player.y) + 24;
+    const full = this.warriorIaiStacks >= cap;
+    for (let i = 0; i < cap; i++) {
+      ctx.fillStyle = "#1d2440";
+      ctx.fillRect(px + i * (cw + gap), py, cw, chh);
+      if (i < this.warriorIaiStacks) {
+        ctx.fillStyle = full ? "#e8ffff" : "#5ea8c8";
+        ctx.fillRect(px + i * (cw + gap), py, cw, chh);
+      }
+    }
+  }
+
   // 强化弹经验条（角色脚下；满级或满经验时整条金色）
   // 强化弹是射手专属系统；法师不显示，否则空条会压在充能点（y+17）上。
   if (this.prof === "shooter") {
