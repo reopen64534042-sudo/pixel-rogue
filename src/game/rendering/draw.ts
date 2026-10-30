@@ -100,6 +100,54 @@ function drawFrozenOverlay(
   ctx.fillRect(x + w - 1, y + Math.floor(h / 2) - 1, 1, 1);
   ctx.globalAlpha = 1;
 }
+/**
+ * 战士「流 / 势」的分段充能条：固定 3 段，每段代表 5 层。
+ *
+ * 为什么固定 3 段而不是按当前上限画：只解锁 L1（上限 5 层）时也要保持 3 段，
+ * 未解锁的段压暗——这样升级是「点亮下一段」，布局不跳动，
+ * 玩家也一眼能看出还有几段没解锁。
+ *
+ * 段内按 5 层等分填充（每层 = 20% 段宽），所以流的每次命中、势的每段移动
+ * 都表现为「条子在长」，而不是离散地跳一格。
+ */
+const CHARGE_SEG_W = 10;
+const CHARGE_SEG_H = 3;
+const CHARGE_SEG_GAP = 2;
+const CHARGE_SEG_COUNT = 3;
+const CHARGE_PER_SEG = 5;
+const CHARGE_BAR_W =
+  CHARGE_SEG_COUNT * CHARGE_SEG_W + (CHARGE_SEG_COUNT - 1) * CHARGE_SEG_GAP;
+
+function drawChargeBar(
+  ctx: PixelPainter,
+  cx: number,
+  y: number,
+  cap: number,
+  value: number,
+  fill: string,
+  fillFull: string,
+) {
+  const left = Math.round(cx - CHARGE_BAR_W / 2);
+  for (let i = 0; i < CHARGE_SEG_COUNT; i++) {
+    const x = left + i * (CHARGE_SEG_W + CHARGE_SEG_GAP);
+    const segFloor = i * CHARGE_PER_SEG;
+    const unlocked = cap > segFloor;
+    // 槽底：已解锁的段明显一档；未解锁的压暗但保留轮廓，
+    // 让玩家能看出「还有几段没解锁」（初版 #0e1220 几乎融进背景，看不出形状）
+    ctx.fillStyle = unlocked ? "#2b3a66" : "#171d30";
+    ctx.fillRect(x, y, CHARGE_SEG_W, CHARGE_SEG_H);
+    if (!unlocked) continue;
+    const filled = Math.max(0, Math.min(CHARGE_PER_SEG, value - segFloor));
+    if (filled <= 0) continue;
+    const w = Math.max(
+      1,
+      Math.round((CHARGE_SEG_W * filled) / CHARGE_PER_SEG),
+    );
+    ctx.fillStyle = filled >= CHARGE_PER_SEG ? fillFull : fill;
+    ctx.fillRect(x, y, w, CHARGE_SEG_H);
+  }
+}
+
 export function draw(this: GameCore, ctx: PixelPainter) {
   const TS = 16,
     tw = WORLD.w / TS,
@@ -777,49 +825,40 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
-  // 战士「流」层数（角色脚下）：仅持有流·初时显示；爆发期变红。
-  if (this.prof === "warrior" && this.player.upCounts["流·初"]) {
-    const cap = this.player.upCounts["流·极"]
-      ? WB.flow.cap3
-      : this.player.upCounts["流·续"]
-        ? WB.flow.cap2
-        : WB.flow.cap1;
-    const cw = 2;
-    const chh = 2;
-    const gap = 1;
-    const pw = cap * cw + (cap - 1) * gap;
-    const px = Math.round(this.player.x) - Math.floor(pw / 2);
-    const py = Math.round(this.player.y) + 16;
-    const burst = this.warriorFlowBurstT > 0;
-    for (let i = 0; i < cap; i++) {
-      ctx.fillStyle = "#1d2440";
-      ctx.fillRect(px + i * (cw + gap), py, cw, chh);
-      if (i < this.warriorFlowStacks) {
-        ctx.fillStyle = burst ? "#d8fff4" : "#36e0c0";
-        ctx.fillRect(px + i * (cw + gap), py, cw, chh);
-      }
+  // 战士「流 / 势」两条分段充能条（角色脚下，紧贴排列）。
+  // 各 3 段、每段 5 层；未解锁的段压暗保留，升级后自然点亮。
+  if (this.prof === "warrior") {
+    const cx = Math.round(this.player.x);
+    const py = Math.round(this.player.y);
+    // 上：流（爆发期整条转亮白）
+    if (this.player.upCounts["流·初"]) {
+      const cap = this.player.upCounts["流·极"]
+        ? WB.flow.cap3
+        : this.player.upCounts["流·续"]
+          ? WB.flow.cap2
+          : WB.flow.cap1;
+      const burst = this.warriorFlowBurstT > 0;
+      drawChargeBar(
+        ctx,
+        cx,
+        py + 16,
+        cap,
+        this.warriorFlowStacks,
+        burst ? "#d8fff4" : "#36e0c0",
+        burst ? "#d8fff4" : "#7cf5dd",
+      );
     }
-  }
-  // 战士「居合」势层数（角色脚下第二行，紧贴流条下方）。
-  // 满层亮白 = 下一刀必是居合斩，给玩家一个「该落刀了」的信号。
-  if (this.prof === "warrior" && this.player.upCounts["居合"]) {
-    const cap = this.player.upCounts["居合·迅"]
-      ? WB.iai.cap2
-      : WB.iai.cap1;
-    const cw = 2;
-    const chh = 2;
-    const gap = 1;
-    const pw = cap * cw + (cap - 1) * gap;
-    const px = Math.round(this.player.x) - Math.floor(pw / 2);
-    const py = Math.round(this.player.y) + 24;
-    const full = this.warriorIaiStacks >= cap;
-    for (let i = 0; i < cap; i++) {
-      ctx.fillStyle = "#1d2440";
-      ctx.fillRect(px + i * (cw + gap), py, cw, chh);
-      if (i < this.warriorIaiStacks) {
-        ctx.fillStyle = full ? "#e8ffff" : "#5ea8c8";
-        ctx.fillRect(px + i * (cw + gap), py, cw, chh);
-      }
+    // 下：势。value 带未满一层的移动余量，因此是**平滑**增长而非跳格；
+    // 满层时整条亮白＝下一刀必是居合斩。
+    if (this.player.upCounts["居合"]) {
+      const lv2 = (this.player.upCounts["居合·迅"] || 0) > 0;
+      const cap = lv2 ? WB.iai.cap2 : WB.iai.cap1;
+      const step = lv2 ? WB.iai.distPerStack2 : WB.iai.distPerStack1;
+      const value = Math.min(
+        cap,
+        this.warriorIaiStacks + this.warriorIaiDist / step,
+      );
+      drawChargeBar(ctx, cx, py + 20, cap, value, "#5ea8c8", "#e8ffff");
     }
   }
 
