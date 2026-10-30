@@ -2768,3 +2768,24 @@ ctx.stroke();      // → strokePath()
 - e2e：5186 MODE=e2e 运行中（`?test=enemy-demo`），场上包含 8 只常规移动怪 + 1 只随机词缀精英 + 持续补充；玩家 9999 HP、强化弹 L12/9 升级。另提供 `?test=partial-true`：只保留「附带真实伤害」、玩家 9999 HP、单只 10000 HP 精英、50% 暴击，用于明确验证主伤害与小号 `+N` 的分离显示和强化弹暴击样式；按 T 可在战斗中切换「完全真实伤害」对比主数字样式。注意浏览器标签失焦会触发游戏自动暂停，点击画面或按 P 恢复；此环境后台标签不保证持续渲染，实际操控请在可见浏览器中打开。
 - 测试基线：新增类型/图鉴/主题/精英字段会进一步使 codex、parity、enemy-spawn、early-pace 等基线过期；按 2026-10-29 标准未运行 Vitest、未改基线，留待授权测试批次统一处理。
 - 未验证/风险：蛛网与掘地虫的实际手感、蛛网在 480×270 下的视觉密度、精英三词缀的随机强度都待自然试玩；掘地期间只跳过自动索敌与接触，飞行中的弹丸和范围伤害仍可能命中（刻意保留的可反制空间）；精英词缀仅在精英生成时确定，不随波次变化。
+
+## D-111 击退数值统一口径与 C 面板击退分区（v107）
+
+- 用户反馈（2026-10-30）：击退数值散落在各系统里、口径不一（有的写初速、有的写位移），C 面板看不到各招式的击退强度。
+- 分支：`feat/knockback-panel`（自 v104 / `b42a677` 起）。
+- 改动：
+  1. 新增 `data/knockback.ts`：`KNOCK` 表按「实际位移 px」登记 shooter（bolt 4 / charged 6 / missile 10 / laser 0 / reflect 4）、mage（cast 0 / meteor 4）、warrior（leap 12 / dash 0 / qi 14）、orbit 3、shock 6、thorns 4；`KNOCK_DAMP = 12` 与 `knockLevel()` 分级（— / 弱 <5 / 中 5–10 / 强 >10）同在此处。
+  2. `MeleeSystem`：`KNOCK_DAMP` 从模块内部常量改为从 `data/knockback.ts` 导入，**`meleeSwing` 的 `knock` 入参语义不变（仍是初速）**，只是把「位移 → 初速」的换算收口到调用方。
+  3. `WarriorSystem`：挥砍 `knock = style.knock × (heavy?1.2:1) × (breakout?…:1)` 后统一 `× KNOCK_DAMP`；跃击改为固定 `KNOCK.warrior.leap`。重斩倍率抽出 `WARRIOR_BALANCE.heavyKnockMul = 1.2`（原为硬编码 1.2）。
+  4. `warriorBalance`：`knock` 字段语义改为「位移 px」，注释写明；太刀 40→4、大剑 120→10（对应位移约 3.3 / 10 px，大剑等价、太刀略增）。`swordQiKnock` 字段**移除**，剑气击退改由 `KNOCK.warrior.qi`（14px）承担，避免伤害表与击退表两套口径各自漂移。
+  5. `ProjectileSystem`：普通魔弹维持 4px，强化弹 4→6px，反弹弹从写死 4 改为 `KNOCK.shooter.reflect`。
+  6. `SpecialSystem` 导弹、`MageSystem` 陨星：原先 `hurtEnemy(..., 0, 0, ...)` 不击退，现按径向补上 10px / 4px。
+  7. `CombatSystem`：护盾破碎反震的硬编码 `*6` → `KNOCK.shock`，荆棘受击反伤的 `*4` → `KNOCK.thorns`。这两处此前不在任何配置表里，是「击退共 18 处伤害入口」排查中发现的最后两个漏项；排查结论：其余 0 值入口（元素 DoT、地面灼烧、连锁闪电、法阵直伤、疾冲、激光）均属设计上的不击退，无需登记。
+  8. `index.html` + `ui/GameUI.ts`：C 面板「输出」与「生存」之间新增「击退（弱 / 中 / 强）」分区，按 `prof` 与 `upCounts` / `specialUpgrades` 动态列出（法师按星陨路线切换法阵/陨星，战士按流派与破围·剑气·跃击·疾冲解锁，射手按特殊弹升级）；护盾反震与荆棘反伤在 `p.shield > 0` / `p.thorns > 0` 时追加显示。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。e2e 受控（5299，已停止）三职业实测渲染：
+  - 射手 `普通魔弹 弱 / 强化弹 中 / 导弹 中 / 激光 —`
+  - 法师 `法阵 —`（未走星陨路线）
+  - 战士（大剑 + 破围/剑气/跃击/疾冲）`挥砍 中 / 重斩 强 / 破围挥砍（3 敌+）强 / 剑气 强 / 跃击 强 / 疾冲 —`
+  - 无控制台报错，分区两列对齐，未与上下的「输出」「生存」重叠。
+- 测试影响：按 2026-10-29 标准未运行 Vitest / Playwright、未改基线。已核对 `tests/melee.test.ts` 与 `tests/s4d-d2a-acceptance.test.ts` 直接向 `meleeSwing` 传初速（`knock: 240 / 100`），不经过 WarriorSystem 换算，故不受影响；战士/法师/特殊弹目前无位移断言，暂无预期过期项。
+- 已知待讨论：「强」档阈值过宽（>10px 一律强），重斩 12 / 破围 12 / 剑气 14 / 跃击 12 全落在同一档，面板上无法区分强弱；若要拉开需重划阈值或调整数值分布。

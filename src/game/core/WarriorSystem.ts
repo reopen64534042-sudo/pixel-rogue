@@ -1,5 +1,6 @@
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import { WORLD, clamp } from "../data/constants";
+import { KNOCK, KNOCK_DAMP } from "../data/knockback";
 import type { GameCore } from "./GameCore";
 import type { Enemy } from "./types";
 
@@ -100,7 +101,7 @@ export function warriorLeap(this: GameCore): boolean {
     spread: Math.PI * 2,
     radius: p.attackRange * 1.2,
     dmg: p.damage * WB.leapDamageMul,
-    knock: style.knock,
+    knock: KNOCK.warrior.leap * KNOCK_DAMP,
     color: style.color,
     particleColor: style.particle,
     weapon: this.warriorStyle,
@@ -240,14 +241,14 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
   const burst = this.warriorFlowBurstT > 0;
   const lifestealMul = burst ? 2 : 1;
   const knock =
-    style.knock * (heavy ? 1.2 : 1) * (breakout ? WB.breakoutKnockMul : 1);
+    style.knock * (heavy ? WB.heavyKnockMul : 1) * (breakout ? WB.breakoutKnockMul : 1);
 
   const hits = this.meleeSwing({
     angle,
     spread: style.spread,
     radius,
     dmg,
-    knock,
+    knock: knock * KNOCK_DAMP,
     color: heavy ? "#ffd24a" : style.color,
     particleColor: heavy ? "#ffe8a3" : style.particle,
     weapon: this.warriorStyle,
@@ -283,8 +284,8 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
         this.hurtEnemy(
           e,
           dmg * WB.swordQiDamageMul,
-          Math.cos(angle) * WB.swordQiKnock,
-          Math.sin(angle) * WB.swordQiKnock,
+          Math.cos(angle) * KNOCK.warrior.qi,
+          Math.sin(angle) * KNOCK.warrior.qi,
           {
             src: "melee",
             type: "physical",

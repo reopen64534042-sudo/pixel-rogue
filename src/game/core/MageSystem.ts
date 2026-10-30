@@ -1,5 +1,6 @@
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { WORLD, clamp } from "../data/constants";
+import { KNOCK } from "../data/knockback";
 import {
   applyDomainElement,
   applyDotDamage,
@@ -541,15 +542,22 @@ function updateMeteorRoute(core: GameCore, dt: number) {
       const dy = e.y - m.y;
       if (dx * dx + dy * dy > m.R * m.R) continue;
       hits++;
-      core.hurtEnemy(e, dmg, 0, 0, {
-        noChain: true,
-        src: "meteor",
-        type: m.element,
-        form: "other",
-        // 陨星直伤同样为反应让出最后一击；陨星的反应基数就是它自己的
-        // 直伤（本路线没有 castDamageMul 的下调）。
-        lethalCap: mageReactionAvailable(core, e),
-      });
+      const d = Math.hypot(dx, dy) || 1;
+      core.hurtEnemy(
+        e,
+        dmg,
+        (dx / d) * KNOCK.mage.meteor,
+        (dy / d) * KNOCK.mage.meteor,
+        {
+          noChain: true,
+          src: "meteor",
+          type: m.element,
+          form: "other",
+          // 陨星直伤同样为反应让出最后一击；陨星的反应基数就是它自己的
+          // 直伤（本路线没有 castDamageMul 的下调）。
+          lethalCap: mageReactionAvailable(core, e),
+        },
+      );
       applyMageHit(core, e, dmg);
     }
     // 充能：这一波的第一颗落地时推进一次（与出伤同步）；满充能波次三格闪一下

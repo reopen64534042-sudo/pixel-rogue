@@ -19,6 +19,7 @@ import {
   burnGroundDps,
 } from "./DamageMath";
 import { updateWarriorCombat } from "./WarriorSystem";
+import { KNOCK } from "../data/knockback";
 
 export function updateAttacks(this: GameCore, dt: number) {
   const p = this.player;
@@ -167,8 +168,8 @@ export function updateAttacks(this: GameCore, dt: number) {
           this.hurtEnemy(
             e,
             p.orbitDmg + p.damage * 0.3,
-            ((e.x - p.x) / kd) * 3,
-            ((e.y - p.y) / kd) * 3,
+            ((e.x - p.x) / kd) * KNOCK.orbit,
+            ((e.y - p.y) / kd) * KNOCK.orbit,
             { src: "orbit", type: "physical", form: "other" },
           );
         }

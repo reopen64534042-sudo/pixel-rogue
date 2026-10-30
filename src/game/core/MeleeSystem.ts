@@ -1,11 +1,10 @@
 import type { GameCore } from "./GameCore";
+import { KNOCK_DAMP } from "../data/knockback";
 import type { Enemy } from "./types";
 
 const FULL = Math.PI * 2;
 /** 角度比较容差，避免 2π 与 0 的浮点误差 */
 const EPS = 1e-6;
-/** 击退速度衰减系数（每秒），位移总量约等于初速 / 12 */
-const KNOCK_DAMP = 12;
 
 export interface MeleeSwingOptions {
   /**
