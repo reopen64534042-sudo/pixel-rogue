@@ -18,6 +18,7 @@ import {
 } from "../data/enemies";
 import { spriteEntry } from "./assetRegistry";
 import { drawGreatswordSlash } from "./vfx/greatswordSlash";
+import { drawGreatswordDashSlash } from "./vfx/greatswordEnergy";
 import { drawGreatswordLeapImpact } from "./vfx/greatswordLeapImpact";
 import {
   drawGreatswordLeapDescent,
@@ -1094,18 +1095,9 @@ export function draw(this: GameCore, ctx: PixelPainter) {
         }
         if (drew) continue;
       } else if (s.dashSlash) {
-        // v128 回退版：先画一层后退 5px、97% 大小的淡残影，再画主刀光。
-        // 专用冲刺斩美术方案待确认，确认前不再叠冷色/改刀光厚度。
-        drawGreatswordSlash(
-          ctx,
-          {
-            ...s,
-            x: s.x - Math.cos(s.a) * 5,
-            y: s.y - Math.sin(s.a) * 5,
-            r: s.r * 0.97,
-          },
-          0.3,
-        );
+        // v133：专用薄刃与风痕，按本次冲刺扇斩快照选帧。
+        if (drawGreatswordDashSlash(ctx, s)) continue;
+        // 素材尚未就绪时沿用普通大剑刀光。
         if (drawGreatswordSlash(ctx, s)) continue;
       } else if (drawGreatswordSlash(ctx, s)) continue;
     }

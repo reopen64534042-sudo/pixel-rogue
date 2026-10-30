@@ -3496,3 +3496,27 @@ dmg = Math.ceil(e.hp - 1);
   - 截图：`output/vfx-merged-tri-leap-windup.png`、`vfx-merged-tri-leap-landing.png`、`vfx-heavy-normal-fissure.png`；脚底三槽仍用 `output/vfx-foot-ui-slot-progress.png`。
 - 待办：剑气→平推移动剑气、裂地→四方强化剑气、冲刺斩专用刀光已列入 v132 提示词包（main PR #204）；当前版本仍为旧剑气直线、旧裂地延迟爆裂、冲刺斩残影，待素材生成后另开接入 PR。
 - 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件，仅做受控 e2e/无头截图自检；新卡 parity 基线留待授权测试批次统一处理。
+
+## 大剑剑气 / 裂地 / 冲刺斩素材（PR #204，2026-10-31）
+
+- 用户授权开新分支并按 docs(vfx) #204 提示词包完成素材。初始主工作区 codex/shooter-laser-draft 干净、无 stash；fetch origin / upstream 后，从已包含 #204 的 upstream/main（5af4766）创建 codex/greatsword-qi-fissure-dash-vfx，工作区 E:/AllProjects/pixel-rogue-greatsword-qi-vfx。使用 Junction 复用主目录 node_modules，主目录分支和文件保留原样。
+- 使用内置 image_gen 分别整表生成三套十帧素材；定向修正裂地中空与尘尾层级、冲刺斩薄刃与分离风痕，以及裂地末帧消散。原始提示词保持 #204 不变，全部额外提示词与生成选择记录在 assets/vfx/greatsword-energy-generation.json；最终三张源图入库，工具未返回的 model / seed 记为 null。
+- 正式表共五张、50 帧：剑气 64x64（含左右向），裂地 96x96 单道可旋转波面，冲刺斩 96x96（含左右向，64x64 逻辑网格）。全部为 5x2、五色、二值 alpha，配固定中心、帧矩形、SHA-256 与标准 Phaser JSON Hash 图集。新增两个脚本分别确定性重建与生成离线预览；无新增依赖。
+- 后处理按固定网格取样、RGB 平方距离量化、全十帧共同缩放 / 径向包络；剑气与裂地下半部反射为上下对称，中心保留逻辑 4px 透明区，冲刺斩过滤反向噪点。镜像在各帧内进行，帧序不变；不按单帧裁剪、重新居中或烘焙位移。
+- 交付 assets/vfx 下的源图、生成记录、五张透明 2x 检查表、480x270 / 960x540 静态比较图和十帧 GIF。中列固定示例位置展示四斜向旋转，预览只做慢速素材检查，不代表实际飞行速度、伤害判定、动画寿命或实机录像。
+- 运行时加载和玩法接入按 #204 约定另行实施；本批不修改 src、平衡 / 机制 / 测试 / 版本号，没有既有测试断言因本批过期。docs/greatsword-vfx-prompts.md 补齐产物、重建、方向、锚点和接入边界说明。
+- 验证：npm run typecheck、npm run build 通过；既有 >500kB Vite 分包提示仍在。检查尺寸、五色 / 二值 alpha、中心透明、十帧唯一性、逐帧镜像、上下对称、图集矩形与源图 / 成品哈希；GIF 十帧可解码且峰值帧与 PNG 一致，1x / 2x 为严格最近邻关系。重建后所有交付文件哈希不变，dist 中正式素材与源公共资源一致。按 2026-10-29 裁定未运行 Vitest / Playwright，未新增或修改测试 / 基线。
+- 当前素材保存在独立工作区，尚未提交、推送、创建 PR 或合并。后续真实战斗中的密集遮挡、移动观感和动作时机仍需在接入后试玩。
+- 并行状态说明：收尾只读检查发现主目录 codex/shooter-laser-draft 出现射手激光相关未提交改动（含 LaserSystem / LaserRenderer 等）；本次未操作这些文件，素材批次始终在独立 worktree 中，未混入其变更。
+
+## 大剑素材默认加载与可直接调用接口（v133，2026-10-31）
+
+- 用户认可已生成的素材，明确授权整理、提交、推送与创建 PR，并要求提交 / 推送 / PR 使用 gh。澄清后确认本批范围为「默认素材加载、稳定绘制接口和精确接入说明，供玩法分支直接调用」；不把另一分支的三段斩 / 移动剑气 / 四方裂地规则并入本批。
+- 起始 worktree 中的两个文档改动及素材 / 脚本均为本聊天上一阶段产物，完整保留；无 stash。fetch origin / upstream 后 main 仍为 5af4766。只读核对 upstream/feat/greatsword-triple-dash@cc7d8f5：已有 dashSlash 快照，但剑气仍是即时直线、裂地仍是脚下延迟爆裂，与 #204 的移动波面设计不同。
+- 新增 rendering/vfx/greatswordEnergy.ts：五张表的统一描述与只读清单、统一非匀速选帧、drawGreatswordWave 和 drawGreatswordDashSlash。前者读取实际波面坐标 / 朝向 / progress，后者读取 Slash 的 x/y/a/r/life/max；自动按半平面选左右表、按视觉参考半径缩放，恢复调用前 alpha，资源未就绪返回 false 供原表现回退。spin / impact / 非 130° 扇形不使用冲刺斩接口。
+- GREATSWORD_SLASH_SHEETS 追加五张表，现有 GameScene 默认加载链复用尺寸校验和注册逻辑，总计十张表、100 帧纹理；不新增加载器、时钟、监听或依赖。Core、伤害、位移、充能、RNG 和规则触发均未修改。
+- 离线预览改为调用实际生产绘制接口，直接读取运行时素材描述，并检查元数据与接口的帧尺寸 / 参考半径 / 前缀 / 时间表一致。该预览验证接口选帧、朝向与缩放，不代表 Phaser 实机或完整战斗验收。
+- docs/greatsword-vfx-prompts.md 提供导出 / 参数 / 返回值清单、可复制的移动波面适配、四方向独立快照约定，以及 cc7d8f5 的冲刺扇斩残影替换位置；明确当前即时路径与地裂圈不能直接当作移动弹体。README 增加入口。双端更新日志使用 v133，为另一玩法分支及主目录射手激光工作保留已使用的 v132。
+- 验证：npm run typecheck、npm run build、git diff --check 通过；既有 Vite >500kB 分包提示保留。五色 / 二值 alpha / 锚点 / 图集 / 哈希核对与实际接口离线预览通过，GIF 可解码、确定性重建一致、dist 资源与 public 一致。本批不改变既有规则断言；按项目裁定未运行 Vitest / Playwright，未新增、修改测试或 parity 基线。
+- 发布方式：使用 gh api Git Data API 创建本分支提交及远端引用，使用 gh pr create 向 upstream/main 提交；本地引用与索引对齐已创建的同一提交。只提交本 worktree 的明确文件清单，不改主目录的并行工作，不合并主分支。最终提交与 PR 链接见本聊天交付。
+- 发布前上游 #205 刚合入 main（f08e338，v132）。本会话创建自有临时 stash 保护本批文件，快进同步上游后恢复，解决双端更新日志与 migration.md 的追加位置冲突；完整保留 v132，v133 排在其前。三段斩的 dashSlash 已成为 main 的真实快照，因此在 draw.ts 直接调用专用刀光并保留普通刀光加载回退；全向旋斩、跃击、剑气即时直线和裂地脚下爆裂规则均保留。说明文档已按最终 f08e338 基线重写；同步后重新执行 typecheck / build 和素材接口检查。

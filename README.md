@@ -498,3 +498,5 @@ Vite 使用 `base: './'`，资源相对部署位置解析，支持静态子目�
 居合回旋斩素材已提供场景预载、PixelPainter 绘制接口与标准 Phaser 图集，接入方式和资源规格见 [居合回旋斩 VFX 素材](docs/iai-spin-slash-vfx.md)。
 
 大剑主动跃击与第三段坠击已包含默认预载、0.24 秒起手、落点预警、坠落状态和正式落地素材，合入后按正常战斗流程直接使用。触发方式、完整接线、资源路径与标准 Phaser 示例见 [大剑跃击与第三段坠击接入说明](docs/greatsword-leap-vfx.md)。
+
+大剑剑气 / 裂地 / 冲刺斩素材已默认预载；三段斩的 130° 冲刺扇斩直接使用新薄刃刀光。另提供可直接调用的 `drawGreatswordWave` / `drawGreatswordDashSlash` 表现接口，移动剑气与四方裂地由玩法分支传入实际波面状态接入。接口参数、已完成接线与移动波面示例见 [素材与直接接入说明](docs/greatsword-vfx-prompts.md#直接接入接口v133)。
