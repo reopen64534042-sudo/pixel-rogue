@@ -75,7 +75,7 @@ export function updatePlayer(this: GameCore, dt: number) {
     }
     // 「双段疾冲」：每次冲刺让强化弹装填计数前进一步
     if ((p.upCounts["双段疾冲"] || 0) > 0) this.shotCounter++;
-    // 战士疾冲：在冲刺结束帧结算路径伤害；残心开启下一刀窗口。
+    // 战士斩浪：在冲刺结束帧结算路径伤害；残心开启下一刀窗口。
     if (this.prof === "warrior") {
       if (this.warriorDashFromX !== null && this.warriorDashFromY !== null) {
         this.warriorDashDamage(
@@ -130,7 +130,7 @@ export function updatePlayer(this: GameCore, dt: number) {
       this.warriorDashFromY = null;
       if (
         this.prof === "warrior" &&
-        ((p.upCounts["疾冲"] || 0) > 0 || (p.upCounts["连闪"] || 0) > 0)
+        ((p.upCounts["斩浪"] || 0) > 0 || (p.upCounts["连闪"] || 0) > 0)
       ) {
         this.warriorDashFromX = p.x;
         this.warriorDashFromY = p.y;
@@ -142,13 +142,13 @@ export function updatePlayer(this: GameCore, dt: number) {
     if (!leap) this.audio.beep(300, 0.1, "sine", 0.06, 500);
   }
   if (p.dashT > 0) {
-    // S2：冲刺位移按 dashDistMul 缩放（疾行 +25%；疾冲再 +30%）
-    // #180：战士额外吃职业基础倍率（baseDashMul 1.5），与「疾冲」卡的 1.3 独立相乘。
+    // S2：冲刺位移按 dashDistMul 缩放（疾行 +25%；斩浪再 +30%）
+    // #180：战士额外吃职业基础倍率（baseDashMul 1.5），与「斩浪」卡的 1.3 独立相乘。
     const dashSpeed =
       280 *
       p.dashDistMul *
       (this.prof === "warrior" ? WB.baseDashMul : 1) *
-      (this.prof === "warrior" && (p.upCounts["疾冲"] || 0) > 0
+      (this.prof === "warrior" && (p.upCounts["斩浪"] || 0) > 0
         ? WB.dashDistMul
         : 1);
     const dashFromX = p.x;

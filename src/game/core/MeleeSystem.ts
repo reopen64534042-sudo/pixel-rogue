@@ -26,7 +26,7 @@ export interface MeleeSwingOptions {
   shake?: number;
   /** 刀光寿命（秒），默认 0.16 */
   life?: number;
-  /** 吸血倍率（战士「流·极」爆发期 ×2） */
+  /** 吸血效率倍率；缺省 1（特殊弹等调用方按需传入）。 */
   lifestealMul?: number;
   /** 命中粒子色（默认白色） */
   particleColor?: string;

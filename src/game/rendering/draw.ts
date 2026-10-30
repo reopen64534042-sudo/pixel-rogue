@@ -695,7 +695,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
-  // 太刀疾冲：残影与刀光置于玩家下层，避免盖住角色和脚下资源条。
+  // 太刀斩浪：残影与刀光置于玩家下层，避免盖住角色和脚下资源条。
   if (this.prof === "warrior" && this.warriorStyle === "katana") {
     const fromX = this.warriorDashFromX;
     const fromY = this.warriorDashFromY;
@@ -870,32 +870,31 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   if (this.prof === "warrior") {
     const cx = Math.round(this.player.x);
     const py = Math.round(this.player.y);
-    // 上：流（爆发期整条转亮白）
+    // 上：流（只增幅居合，不再有爆发态）
     if (this.player.upCounts["流·初"]) {
       const cap = this.player.upCounts["流·极"]
         ? WB.flow.cap3
         : this.player.upCounts["流·续"]
           ? WB.flow.cap2
           : WB.flow.cap1;
-      const burst = this.warriorFlowBurstT > 0;
       drawChargeBar(
         ctx,
         cx,
         py + 16,
         cap,
         this.warriorFlowStacks,
-        burst ? "#d8fff4" : "#36e0c0",
-        burst ? "#d8fff4" : "#7cf5dd",
+        "#36e0c0",
+        "#7cf5dd",
       );
     }
     // 下：势。value 带未满一层的移动余量，因此是**平滑**增长而非跳格；
     // 满层时整条亮白＝下一刀必是居合斩。
-    // 势的 cap 是 5/8，不是 5 的倍数：三条按 cap/3 均分，满层时三条全亮
-    // （用户反馈：原来 8 层只亮 1.6 条，看起来不像满层）。
+    // 势核心 8 层，居合·迅作为可选增幅 +4；三条按 cap/3 均分，满层全亮。
     if (this.player.upCounts["居合"]) {
       const lv2 = (this.player.upCounts["居合·迅"] || 0) > 0;
-      const cap = lv2 ? WB.iai.cap2 : WB.iai.cap1;
-      const step = lv2 ? WB.iai.distPerStack2 : WB.iai.distPerStack1;
+      const cap = WB.iai.cap + (lv2 ? WB.iai.capBonus : 0);
+      const step =
+        WB.iai.distPerStack - (lv2 ? WB.iai.stepReduction : 0);
       const value = Math.min(
         cap,
         this.warriorIaiStacks + this.warriorIaiDist / step,
@@ -983,10 +982,10 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
-  // 战士剑气 / 疾冲路径（短寿命表现层）
+  // 战士剑气 / 斩浪路径（短寿命表现层）
   if (this.warriorQi.length) {
     for (const q of this.warriorQi) {
-      // 太刀疾冲已在玩家下层绘制，不再叠旧版光束与终点三层弧。
+      // 太刀斩浪已在玩家下层绘制，不再叠旧版光束与终点三层弧。
       if (q.kind === "dash" && this.warriorStyle === "katana") continue;
       const alpha = Math.max(0, Math.min(1, q.t / q.max));
       const x1 = Math.round(q.x1);

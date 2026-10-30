@@ -173,7 +173,6 @@ export function advanceTutorial(this: GameCore) {
     this.tutorialHeavyDone = false;
     this.warriorFlowStacks = 0;
     this.warriorFlowT = 0;
-    this.warriorFlowBurstT = 0;
     this.warriorSwingCount = 0;
   }
   if (step === tutorialGemStep(prof)) this.tutorialGemPicked = false;
