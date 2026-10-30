@@ -42,6 +42,8 @@ export interface MeleeSwingOptions {
   iaiHit?: boolean;
   /** 居合·极 360° 旋斩：刀光改用全向回旋斩素材。 */
   spin?: boolean;
+  /** 三段斩的冲刺斩：刀光追加后退残影，与普通平 A 区分。 */
+  dashSlash?: boolean;
 }
 
 function angleDiff(target: number, center: number) {
@@ -121,6 +123,7 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
     ...(opts.weapon ? { weapon: opts.weapon } : {}),
     ...(opts.spin ? { spin: true } : {}),
     ...(opts.heavy ? { heavy: true } : {}),
+    ...(opts.dashSlash ? { dashSlash: true } : {}),
     ...(opts.impact ? { impact: true } : {}),
   });
 

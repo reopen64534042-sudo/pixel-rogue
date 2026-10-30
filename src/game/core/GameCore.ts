@@ -259,7 +259,19 @@ export class GameCore {
     t: number;
     max: number;
     c: string;
-    kind: "dash" | "qi";
+    /** qi=剑气直线；dash=斩浪路径；slam=跃击落地冲击波环。 */
+    kind: "dash" | "qi" | "slam";
+  }[] = [];
+  /** 裂地：重斩后在目标脚下延迟爆裂的地裂。 */
+  warriorFissures: {
+    x: number;
+    y: number;
+    t: number;
+    max: number;
+    r: number;
+    dmg: number;
+    knock: number;
+    stun: number;
   }[] = [];
   /** 斩浪的起跳点（冲刺结束时结算路径伤害）。 */
   warriorDashFromX: number | null = null;
@@ -277,10 +289,20 @@ export class GameCore {
   }[] = [];
   /** 强袭：跃击落地后的攻速窗口。 */
   warriorLeapHasteT = 0;
+  /** 三段斩：当前冲刺段（0 短冲扇斩 / 1 中冲旋斩 / 2 远冲跃击）。 */
+  warriorTriDashStage = 0;
+  /** 本次冲刺是否由三段斩接管（用于结束帧结算末尾攻击）。 */
+  warriorTriDashActive = false;
+  /** 三段斩：3 个独立冲刺槽的剩余充能时间；0 = 可用。 */
+  warriorTriSlotRe: [number, number, number] = [0, 0, 0];
   /** 冲刺后移速爆发的剩余时间（战士基础机制，见 PlayerSystem 的 boost 乘区）。 */
   warriorDashBoostT = 0;
-  /** 连闪·锐势：冲刺后 2 秒的暴击率/暴击伤害窗口。 */
+  /** 连闪·锐势：冲刺后 2 秒的暴击率/暴击伤害窗口（太刀）。 */
   warriorLianShanT = 0;
+  /** 连闪·大剑特化：冲刺后 2 秒内下一刀视为重斩的窗口。 */
+  warriorHeavyReadyT = 0;
+  /** 三段斩第三段跃击：落地后的额外无敌时间。 */
+  warriorLeapInvulnT = 0;
   /** 教程核心步骤：是否已经打出过重斩。 */
   tutorialHeavyDone = false;
   /** 新手教程（v83）：练习场标记与分步状态 */
@@ -650,13 +672,19 @@ export class GameCore {
     this.warriorIaiDist = 0;
     this.warriorIaiHasteT = 0;
     this.warriorQi = [];
+    this.warriorFissures = [];
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;
     this.warriorResolveT = 0;
     this.warriorEchoes = [];
     this.warriorLeapHasteT = 0;
+    this.warriorTriDashStage = 0;
+    this.warriorTriDashActive = false;
+    this.warriorTriSlotRe = [0, 0, 0];
     this.warriorDashBoostT = 0;
     this.warriorLianShanT = 0;
+    this.warriorHeavyReadyT = 0;
+    this.warriorLeapInvulnT = 0;
     this.tutorialHeavyDone = false;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
@@ -856,6 +884,11 @@ export class GameCore {
     this.magePhaseT = 0;
     this.pendingLevels = 0;
     this.startTalentPending = false;
+    this.warriorTriDashActive = false;
+    this.warriorTriSlotRe = [0, 0, 0];
+    this.warriorHeavyReadyT = 0;
+    this.warriorLeapInvulnT = 0;
+    this.warriorFissures = [];
     this.bpMode = null;
     this.state = "play";
     this.wavePhase = "rest";
@@ -905,13 +938,19 @@ export class GameCore {
     this.warriorIaiDist = 0;
     this.warriorIaiHasteT = 0;
     this.warriorQi = [];
+    this.warriorFissures = [];
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;
     this.warriorResolveT = 0;
     this.warriorEchoes = [];
     this.warriorLeapHasteT = 0;
+    this.warriorTriDashStage = 0;
+    this.warriorTriDashActive = false;
+    this.warriorTriSlotRe = [0, 0, 0];
     this.warriorDashBoostT = 0;
     this.warriorLianShanT = 0;
+    this.warriorHeavyReadyT = 0;
+    this.warriorLeapInvulnT = 0;
     this.recompute();
     this.addText(p.x, p.y - 26, "已清空天赋", "#ffd24a", true);
   }

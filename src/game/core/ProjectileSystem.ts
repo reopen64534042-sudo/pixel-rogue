@@ -252,8 +252,14 @@ export function updateProjectiles(this: GameCore, dt: number) {
     const dx = p.x - b.x,
       dy = p.y - b.y,
       rr = p.r + b.r;
-    if (dx * dx + dy * dy < rr * rr && p.hurtCd <= 0 && p.dashT <= 0 &&
-      this.warriorLeapState?.phase !== "fall") {
+    if (
+      dx * dx + dy * dy < rr * rr &&
+      p.hurtCd <= 0 &&
+      p.dashT <= 0 &&
+      this.warriorLeapInvulnT <= 0 &&
+      this.warriorLeapState?.phase !== "fall" &&
+      this.warriorLeapState?.triStage3 !== true
+    ) {
       this.ebullets.splice(i, 1);
       const hit = this.damagePlayer(b.dmg, {
         type: "physical",

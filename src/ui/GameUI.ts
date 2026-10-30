@@ -286,10 +286,7 @@ export class GameUI {
       else this.openLevelPanel();
     };
     element("bp-next").onclick = () => {
-      if (!this.core.startNextWave()) return;
-      element("bottom-bar").classList.add("hidden");
-      element("bp-rest").classList.add("hidden");
-      element("bp-swap").classList.add("hidden");
+      this.nextWave();
     };
     for (const id of [
       "btn-start",
@@ -318,6 +315,29 @@ export class GameUI {
     const statClose = document.getElementById("btn-statclose");
     if (statClose)
       statClose.textContent = `返回战斗 (${keyLabel(this.core.keybinds.stats)})`;
+    const nextBtn = document.getElementById("bp-next");
+    if (nextBtn)
+      nextBtn.textContent = `下一波 (${keyLabel(this.core.keybinds.nextWave)})`;
+  }
+
+  /** v128：休整面板的「下一波」快捷键是否可用（按钮实际可见时才生效）。 */
+  canUseNextWaveShortcut(): boolean {
+    const bar = document.getElementById("bp-rest");
+    return (
+      !!bar &&
+      !bar.classList.contains("hidden") &&
+      this.core.state === "play" &&
+      !this.hasOverlay()
+    );
+  }
+
+  /** 与「下一波」按钮完全同一条路径；返回是否真的进入了下一波。 */
+  nextWave(): boolean {
+    if (!this.core.startNextWave()) return false;
+    element("bottom-bar").classList.add("hidden");
+    element("bp-rest").classList.add("hidden");
+    element("bp-swap").classList.add("hidden");
+    return true;
   }
   reset() {
     [
@@ -481,6 +501,18 @@ export class GameUI {
       isWarrior && this.core.warriorStyle === "katana"
         ? warriorIaiCap(this.core)
         : 0;
+    const triStage = this.core.warriorTriDashStage;
+    const triLeapOwned = (p.upCounts["跃击"] || 0) > 0;
+    const triLabel =
+      triStage === 0
+        ? "扇斩"
+        : triStage === 1
+          ? triLeapOwned
+            ? "旋斩"
+            : "扇斩"
+          : triLeapOwned
+            ? "跃击"
+            : "旋斩";
     const iaiStacks = this.core.warriorIaiStacks;
     const outputRows: [string, string | number][] = [
       // 文案更名（S3-C）：p.damage 是攻击基线（技能系数/raw），非 globalDamageBonus
@@ -508,7 +540,28 @@ export class GameUI {
         : isWarrior
           ? this.core.warriorStyle === "greatsword"
             ? ([
-                ["🪓 重斩", "每 3 下坠击 · 0.24s 起手 · 250% · 360°"],
+                ["🪓 重斩", "每 3 下 · 250% · 范围 +50%"],
+                ...((p.upCounts["三段斩"] || 0) > 0
+                  ? ([
+                      ["🌀 冲刺段", `${triStage + 1}/3 · ${triLabel}`],
+                    ] as [string, string][])
+                  : []),
+                ...(this.core.warriorHeavyReadyT > 0
+                  ? ([
+                      [
+                        "🗡️ 下一刀",
+                        `重斩就绪 · 剩 ${this.core.warriorHeavyReadyT.toFixed(1)}s`,
+                      ],
+                    ] as [string, string][])
+                  : []),
+                ...(this.core.warriorLeapInvulnT > 0
+                  ? ([
+                      [
+                        "🛡️ 跃击无敌",
+                        `剩 ${this.core.warriorLeapInvulnT.toFixed(1)}s`,
+                      ],
+                    ] as [string, string][])
+                  : []),
               ] as [string, string | number][])
             : iaiCap > 0
               ? ([
@@ -1179,6 +1232,9 @@ export class GameUI {
     }
   }
   showRestBar() {
+    // v128：按钮文案跟随「下一波」键位（默认 F，可在设置中改）。
+    element("bp-next").textContent =
+      `下一波 (${keyLabel(this.core.keybinds.nextWave)})`;
     // 伤害统计: 合计突出 + 按占比降序
     const damage = this.core.waveDamage();
     const total = Object.values(damage).reduce((a, b) => a + b, 0);
@@ -1502,7 +1558,7 @@ export class GameUI {
           }
         : {
             title: "重斩",
-            body: "你的核心是「重斩」：每第 3 次挥砍锁定近战目标，起手后跃起坠击；后续可学习破甲与剑气，试着打出一次重斩。",
+            body: "大剑自带重斩：每第 3 次挥砍重击，范围 +50%。破甲→剑气→裂地会依次强化它；试着打出一次重斩。",
           };
     }
     if (step === tutorialGemStep(prof))

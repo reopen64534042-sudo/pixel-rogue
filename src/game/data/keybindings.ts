@@ -17,7 +17,8 @@ export type KeyAction =
   | "right"
   | "dash"
   | "pause"
-  | "stats";
+  | "stats"
+  | "nextWave";
 
 export type KeyBindings = Record<KeyAction, string>;
 
@@ -29,6 +30,7 @@ export const KEY_ACTIONS: readonly { action: KeyAction; label: string }[] = [
   { action: "dash", label: "冲刺" },
   { action: "pause", label: "暂停" },
   { action: "stats", label: "角色属性" },
+  { action: "nextWave", label: "下一波" },
 ];
 
 export const DEFAULT_KEYBINDS: KeyBindings = {
@@ -39,6 +41,7 @@ export const DEFAULT_KEYBINDS: KeyBindings = {
   dash: " ",
   pause: "p",
   stats: "c",
+  nextWave: "f",
 };
 
 export const KEY_STORE = "pixelrogue_keys";
@@ -56,7 +59,9 @@ const RESERVED = new Set([
   "2",
   "3",
   "4",
-  // 固定系统快捷键，避免与改键后的动作双重触发
+  // 固定系统快捷键，避免与改键后的动作双重触发。
+  // 注意：教程里的 F「下一步」是固定键，但正式游戏的「下一波」可改键；
+  // 教程模式会先消费 F，不会误触下一波。
   "m",
   "r",
 ]);
@@ -113,6 +118,25 @@ export function loadKeyBindings(): KeyBindings {
       if (typeof candidate !== "string") continue;
       const key = normalizeKey(candidate);
       if (isBindableKey(key)) loaded[action] = key;
+    }
+    // v128 新增「下一波」：旧存档没有该字段时默认 F；若 F 已被玩家
+    // 绑给其他动作，自动换一个空闲键，避免整组回退丢掉自定义键位。
+    const savedNext = data.bindings.nextWave;
+    if (
+      typeof savedNext !== "string" ||
+      !isBindableKey(normalizeKey(savedNext))
+    ) {
+      const used = new Set(
+        KEY_ACTIONS.filter(({ action }) => action !== "nextWave").map(
+          ({ action }) => loaded[action],
+        ),
+      );
+      if (used.has(loaded.nextWave)) {
+        const fallback = ["f", "g", "h", "j", "k", "v", "b", "n"].find(
+          (k) => !used.has(k),
+        );
+        if (fallback) loaded.nextWave = fallback;
+      }
     }
     const values = KEY_ACTIONS.map(({ action }) => loaded[action]);
     // 旧数据/手改数据可能出现重复键：整组回退，避免两个动作抢一个键。

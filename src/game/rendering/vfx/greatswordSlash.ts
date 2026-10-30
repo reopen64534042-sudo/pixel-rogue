@@ -76,10 +76,13 @@ export function registerGreatswordSlash(
 }
 
 /** The slash snapshot owns time, facing, radius and heavy state. Returns false
- * while loading so draw.ts can preserve the existing procedural fallback. */
+ * while loading so draw.ts can preserve the existing procedural fallback.
+ * `alpha` lets the dash-slash draw a faint trailing ghost without changing
+ * the opaque normal attack. */
 export function drawGreatswordSlash(
   painter: PixelPainter,
   slash: Slash,
+  alpha = 1,
 ): boolean {
   if (
     !Number.isFinite(slash.x) || !Number.isFinite(slash.y) ||
@@ -96,7 +99,7 @@ export function drawGreatswordSlash(
   const key = `${sheet.prefix}${frame}`;
   if (!painter.hasTexture(key)) return false;
   const previousAlpha = painter.globalAlpha;
-  painter.globalAlpha = 1;
+  painter.globalAlpha = alpha;
   try {
     painter.spriteRot(
       key,

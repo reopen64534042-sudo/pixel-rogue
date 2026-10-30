@@ -3479,3 +3479,20 @@ dmg = Math.ceil(e.hp - 1);
 - 本项目合入即用：GameScene 默认预载、Player/Warrior 状态推进、落地 MeleeSwing 快照与 draw 全部接通，正式 PNG/图集/元数据入库；无需重新生成素材、手动绑定事件或增加依赖。接入说明补充操作入口、文件职责、绘制参数与标准 Phaser 图集示例，README 增加入口。
 - 发布前复核 typecheck / build、差异、素材哈希与生产产物资源；按当前裁定不运行 Vitest / Playwright、不改测试基线。旧即时跃击/扇形重斩/生命周期与 RNG 时序断言的过期影响写入提交信息与 PR。
 - 使用 gh api Git Data API 创建提交及功能分支远端引用，gh pr create 向 upstream/main 提交；不合并主分支。
+
+## 大剑三段斩、重斩链与连闪特化（v132，2026-10-31）
+
+- 版本：主分支已合入 v128 射手动态难度、v129 强化弹、v130 法师飘字、v131 大剑跃击与第三段坠击；本分支原暂记 v128 的大剑开发顺延为 v132，双端更新日志保留上游 v128–v131。
+- 合并：先把本分支未提交改动提交为 WIP `0ebac0f`，再合并 `origin/main`（`5af4766`，含 PR #203 v131 与 PR #204 提示词包）；`PlayerSystem` 改用 v131 的 `updateWarriorLeapMotion` / `warriorLeapState`，删除自建 `warriorLeapFx`，避免两套跃击状态机并存。
+- 三段斩：3 个独立冲刺槽 `warriorTriSlotRe`，每槽按 `dashMax` 单独倒计时；当前段槽可用才能消费，白色 2px 亮点标出下一个消费槽。不持跃击：扇斩→扇斩（只加距离）→360° 旋斩；持跃击：扇斩→旋斩→第三段 `warriorLeap({ triStage3: true })`，复用 v131 的 0.24s 起手 + 0.12s 坠落 + 落地冲击素材。第三段落地眩晕 0.6s、推进三段循环，并开启 0.8s 落地无敌；起手/坠落/落地无敌期间 `damagePlayer`、接触/弹幕入口全部拦截，角色以半隐身表示，无额外光环。
+- 重斩链：平A第三段恢复为普通重斩（130° 扇形、范围 +50%），不再采用 v131 的「第三段自动坠击」替换；只有主动跃击与三段斩第三段使用 v131 的跃击状态机/落地素材。合并时曾误把 v131 的平A第三段坠击一起带入，已按用户反馈回退。原「重斩」卡移除；链顺次前移为 破甲（L1）→ 剑气（L2）→ 裂地（L3）。破甲/剑气/裂地在重斩命中当步走 `resolveWarriorSwing` 结算；裂地取最近命中目标位置生成 `warriorFissures`，0.22s 后 55px 爆裂、120% 伤害、强击退、眩晕 0.45s，对破甲目标 +30%。
+- 连闪：大剑流派 `warriorLianShanDash` 设置 `warriorHeavyReadyT`（2s），下一刀视为重斩但不推进自然重斩计数；太刀保留 `warriorLianShanT` 锐势。三段斩与连闪双向 `excludes`。
+- 表现：冲刺扇斩回退为后退 5px、97% 大小、30% alpha 的淡残影；专用冲刺斩刀光提示词已随 PR #204 合入 main（`assets/vfx/greatsword-dash-slash-prompt.txt`），素材生成后再接入新表。360° 回旋斩用三把金白刀光；裂地有橙金预警圈/爆裂环/眩晕转星；脚底 3 格显示独立槽进度。
+- 快捷键/作弊面板：`nextWave` 默认 F，设置可改；旧键位存档补 F，冲突时选空闲键。作弊面板 `prereq` 增加 `warriorStyle` 过滤，太刀局锁定大剑卡、大剑局锁定太刀卡。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；受控 e2e：
+  - 三段斩：独立槽三次消费后段数 0→1→2→0；第三段 v131 leap state `kind=leap/tri=true`，起手 4 帧伤害被拦（HP 80→80），落地 `warriorLeapInvulnT≈0.733`、三敌眩晕 0.516s、`impact` 刀光存在；0.8s 后同类伤害生效（80→71.67）。
+  - 重斩链：平A第三段 `warriorLeapState=null`，重斩 Slash 为 `heavy=true / arc=2.27 / r=67.5`；命中当步三敌 `armorBreakT≈3.98`、`warriorFissures=1`、`qi` 出现；0.22s 后裂地爆裂，三敌 9909→9878、眩晕 0.433s、`slam` 环出现。
+  - F 下一波：休整面板 `waveN 5→6`、`bp-rest` 隐藏；三槽独立进度保持。
+  - 截图：`output/vfx-merged-tri-leap-windup.png`、`vfx-merged-tri-leap-landing.png`、`vfx-heavy-normal-fissure.png`；脚底三槽仍用 `output/vfx-foot-ui-slot-progress.png`。
+- 待办：剑气→平推移动剑气、裂地→四方强化剑气、冲刺斩专用刀光已列入 v132 提示词包（main PR #204）；当前版本仍为旧剑气直线、旧裂地延迟爆裂、冲刺斩残影，待素材生成后另开接入 PR。
+- 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件，仅做受控 e2e/无头截图自检；新卡 parity 基线留待授权测试批次统一处理。

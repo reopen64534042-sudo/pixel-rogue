@@ -307,6 +307,12 @@ export interface Enemy extends Point {
   frostStacks: number;
   frozenT: number;
   frostImmuneT: number;
+  /**
+   * v128 大剑三段斩第三段：通用眩晕剩余秒数。
+   * 可选字段只在首次被震地命中时物化——射手/法师路径不会出现该键，
+   * 保持 parity 的逐字段对象形状对照。
+   */
+  stunT?: number;
   /* —— S3 法师池：元素印记（全部为**可选字段**）——
    *
    * 为什么是可选而不是初始化：敌人实体的对象形状会被 parity 逐字段对照，
@@ -591,6 +597,8 @@ export interface Slash extends Point {
   spin?: boolean;
   /** 本次挥砍是否为重斩，仅供表现选择；不参与命中与伤害。 */
   heavy?: boolean;
+  /** 三段斩的冲刺斩：追加一层后退残影，和平 A 刀光作轻量区分。 */
+  dashSlash?: boolean;
   /** 大剑跃击落地：使用全向地面冲击素材，绘制在角色下层。 */
   impact?: boolean;
 }

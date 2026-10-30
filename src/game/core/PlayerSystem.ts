@@ -1,7 +1,12 @@
 import { WORLD, clamp } from "../data/constants";
 import { WEB_ZONE } from "../data/enemies";
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
-import { updateWarriorLeapMotion, warriorIaiCap, warriorIaiStep } from "./WarriorSystem";
+import {
+  finishWarriorTriDash,
+  updateWarriorLeapMotion,
+  warriorIaiCap,
+  warriorIaiStep,
+} from "./WarriorSystem";
 import type { GameCore } from "./GameCore";
 
 /**
@@ -41,7 +46,24 @@ function addIaiDistance(core: GameCore, moved: number) {
 
 export function updatePlayer(this: GameCore, dt: number) {
   const p = this.player;
+  // v131：跃击起手/坠落由 WarriorSystem 统一推进；先于移动和相机。
   updateWarriorLeapMotion.call(this, dt);
+  // 三段斩使用 3 个独立冲刺槽：各自倒计时，当前段对应的槽才可消费。
+  const triOwned =
+    this.prof === "warrior" &&
+    this.warriorStyle === "greatsword" &&
+    (p.upCounts["三段斩"] || 0) > 0;
+  if (triOwned) {
+    for (let i = 0; i < 3; i++)
+      if (this.warriorTriSlotRe[i] > 0)
+        this.warriorTriSlotRe[i] = Math.max(0, this.warriorTriSlotRe[i] - dt);
+    // 触摸冲刺键/兼容旧 UI：当前段可用显示 1，否则 0；三格进度由脚底 UI 单独画。
+    p.dashCharges =
+      this.warriorTriSlotRe[this.warriorTriDashStage] <= 0 ? 1 : 0;
+    p.dashRe = 0;
+  } else if (this.warriorTriSlotRe.some((t) => t > 0)) {
+    this.warriorTriSlotRe = [0, 0, 0];
+  }
   // ---- 玩家移动 ----
   // ---- 移动 & 冲刺 ----
   // Issue #95：触控八向向量优先；无触控输入时退回键盘分支，两种来源互不覆盖。
@@ -68,7 +90,7 @@ export function updatePlayer(this: GameCore, dt: number) {
   }
   const dashingBefore = p.dashT > 0;
   p.dashT -= dt;
-  if (dashingBefore && p.dashT <= 0) {
+  if (dashingBefore && p.dashT <= 0 && !this.warriorLeapState) {
     // S2「疾行」：冲刺刚结束的那一帧开一个 0.5 秒射速窗口，并装填下一发强化弹
     if ((p.upCounts["疾行"] || 0) > 0) {
       this.dashFireBoostT = 0.5;
@@ -88,6 +110,8 @@ export function updatePlayer(this: GameCore, dt: number) {
           this.warriorDashFromY,
         );
       }
+      // 三段斩第 1/2 段末尾攻击；第 3 段已在跃击落地时结算。
+      if (this.warriorTriDashActive) finishWarriorTriDash.call(this);
       this.warriorDashFromX = null;
       this.warriorDashFromY = null;
       // 残心窗口改为读配置（原来写死 1 秒，warriorBalance.resolveWindow 是死字段）
@@ -103,39 +127,59 @@ export function updatePlayer(this: GameCore, dt: number) {
   if (this.dashFireBoostT > 0) this.dashFireBoostT -= dt;
   // 冲刺充能制（「双段疾冲」增加上限）
   const dchMax = 1 + p.dashChargeLv;
-  if (p.dashLv && p.dashCharges < dchMax) {
+  if (!triOwned && p.dashLv && p.dashCharges < dchMax) {
     p.dashRe -= dt;
     if (p.dashRe <= 0) {
       p.dashCharges++;
       if (p.dashCharges < dchMax) p.dashRe = p.dashMax;
     }
   }
+  const triSlotReady =
+    triOwned && this.warriorTriSlotRe[this.warriorTriDashStage] <= 0;
+  const hasCharge = triOwned ? triSlotReady : p.dashCharges > 0;
   if (
     p.dashLv &&
     !this.warriorLeapState &&
     (this.keys[kb.dash] || this.dashHeld) &&
-    p.dashCharges > 0 &&
+    hasCharge &&
     p.dashT <= -0.1
   ) {
+    // 大剑三段斩：第三段改走跃击状态机；其余段先按普通冲刺起手。
+    const leapOwned = (p.upCounts["跃击"] || 0) > 0;
+    const triStage3 = triOwned && this.warriorTriDashStage === 2;
+    // warriorLeap 内部要能识别「三段斩第三段」，因此先写 active 再调用。
+    this.warriorTriDashActive = triOwned;
     // 战士跃击：冲刺改为跳向密集敌群；成功时不进入普通冲刺。
+    // 三段斩第三段只有在持有跃击时才替换为跃击；否则正常冲刺出旋斩。
     const leap =
       this.prof === "warrior" &&
-      (p.upCounts["跃击"] || 0) > 0 &&
-      this.warriorLeap();
+      leapOwned &&
+      (triOwned ? triStage3 : true) &&
+      this.warriorLeap(triStage3 ? { triStage3: true } : undefined);
     if (!leap) {
       p.dashT = 0.16;
-      p.dashCharges--;
-      if (p.dashCharges === dchMax - 1 && p.dashRe <= 0)
-        p.dashRe = p.dashMax;
+      if (triOwned) {
+        this.warriorTriSlotRe[this.warriorTriDashStage] = p.dashMax;
+        p.dashCharges = 0;
+        p.dashRe = 0;
+      } else {
+        p.dashCharges--;
+        if (p.dashCharges === dchMax - 1 && p.dashRe <= 0)
+          p.dashRe = p.dashMax;
+      }
       if (this.tutorialMode) this.tutorialDashed = true;
+      this.warriorTriDashActive = triOwned;
       this.warriorDashFromX = null;
       this.warriorDashFromY = null;
-      if (
-        this.prof === "warrior" &&
-        ((p.upCounts["斩浪"] || 0) > 0 || (p.upCounts["连闪"] || 0) > 0)
-      ) {
-        this.warriorDashFromX = p.x;
-        this.warriorDashFromY = p.y;
+      if (this.prof === "warrior") {
+        if (
+          triOwned ||
+          (p.upCounts["斩浪"] || 0) > 0 ||
+          (p.upCounts["连闪"] || 0) > 0
+        ) {
+          this.warriorDashFromX = p.x;
+          this.warriorDashFromY = p.y;
+        }
       }
     }
     // S3 法师：冲刺中断施法（设计：施法前摇可被冲刺打断）。
@@ -147,13 +191,21 @@ export function updatePlayer(this: GameCore, dt: number) {
   if (!this.warriorLeapState && p.dashT > 0) {
     // S2：冲刺位移按 dashDistMul 缩放（疾行 +25%；斩浪再 +30%）
     // #180：战士额外吃职业基础倍率（baseDashMul 1.5），与「斩浪」卡的 1.3 独立相乘。
+    const triMul = this.warriorTriDashActive
+      ? this.warriorTriDashStage === 0
+        ? WB.triDash.distMul1
+        : this.warriorTriDashStage === 1
+          ? WB.triDash.distMul2
+          : WB.triDash.distMul3
+      : 1;
     const dashSpeed =
       280 *
       p.dashDistMul *
       (this.prof === "warrior" ? WB.baseDashMul : 1) *
       (this.prof === "warrior" && (p.upCounts["斩浪"] || 0) > 0
         ? WB.dashDistMul
-        : 1);
+        : 1) *
+      triMul;
     const dashFromX = p.x;
     const dashFromY = p.y;
     p.x += p.dx * dashSpeed * dt;
