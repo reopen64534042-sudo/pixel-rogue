@@ -256,8 +256,17 @@ export class GameCore {
   /** 斩浪的起跳点（冲刺结束时结算路径伤害）。 */
   warriorDashFromX: number | null = null;
   warriorDashFromY: number | null = null;
-  /** 残心：冲刺后的下一刀增伤窗口。 */
+  /** 残心：冲刺后的下一刀残影追击窗口。 */
   warriorResolveT = 0;
+  /** 残心·残影追击：延迟触发的第二刀。 */
+  warriorEchoes: {
+    t: number;
+    angle: number;
+    spread: number;
+    radius: number;
+    dmg: number;
+    spin: boolean;
+  }[] = [];
   /** 强袭：跃击落地后的攻速窗口。 */
   warriorLeapHasteT = 0;
   /** 冲刺后移速爆发的剩余时间（战士基础机制，见 PlayerSystem 的 boost 乘区）。 */
@@ -633,6 +642,7 @@ export class GameCore {
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;
     this.warriorResolveT = 0;
+    this.warriorEchoes = [];
     this.warriorLeapHasteT = 0;
     this.warriorDashBoostT = 0;
     this.warriorLianShanT = 0;
@@ -883,6 +893,7 @@ export class GameCore {
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;
     this.warriorResolveT = 0;
+    this.warriorEchoes = [];
     this.warriorLeapHasteT = 0;
     this.warriorDashBoostT = 0;
     this.warriorLianShanT = 0;
