@@ -30,8 +30,10 @@ export interface MeleeSwingOptions {
   lifestealMul?: number;
   /** 命中粒子色（默认白色） */
   particleColor?: string;
-  /** 战士武器类型：太刀使用扫击刀光。 */
+  /** 战士武器类型：选择对应扫击刀光。 */
   weapon?: "katana" | "greatsword";
+  /** 本次重斩的表现快照，不改变伤害与命中。 */
+  heavy?: boolean;
   /** 中心口径：只看敌人中心是否在扇形内，视觉扇形 = 命中扇形。 */
   preciseSector?: boolean;
   /** 太刀「居合斩」：伤害数字用专属大字样式（见 FloatingText.iaiDmg） */
@@ -113,6 +115,7 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
     max: opts.life ?? 0.16,
     c: opts.color ?? "#e8fbff",
     ...(opts.weapon ? { weapon: opts.weapon } : {}),
+    ...(opts.heavy ? { heavy: true } : {}),
   });
 
   if (hits.length) {
