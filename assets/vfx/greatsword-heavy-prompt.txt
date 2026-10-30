@@ -1,0 +1,20 @@
+Use case: stylized-concept
+Asset type: production animation sprite sheet, greatsword HEAVY THIRD STRIKE attack VFX for top-down pixel-art action roguelike.
+Input reference role: the new gold greatsword normal sweep sheet is STYLE AND SHARED GEOMETRY REFERENCE. Create a NEW heavy strike in the SAME gold/amber/white family with a substantially broader pure-white blade belly and fewer, larger angular golden chips. Preserve a single forward crescent opening left; do NOT make a circle, explosion, flame or sword. No character.
+
+Single transparent PNG, EXACT TEN chronological frames in FIVE COLUMNS x TWO ROWS, left-to-right then top-to-bottom. Canvas EXACT aspect 5:2. No gutters, no margins between square slots, no text or borders. Every slot represents an identical 64x64 logical pixel canvas with stable CENTER pivot (32,32), no per-frame recentering or rescaling. Keep ALL opaque pixels >=4 logical px from slot edges.
+Geometry: a massive right-facing crescent lies entirely in the RIGHT HALF of each square, its open side toward the LEFT. The empty player pivot at the CENTER of the square stays transparent. Crescent runs from -65 to +65 degrees about that pivot, nominal outer radius26 logical pixels, inner radius16-20. Broad white cutting edge, pale-gold belly, bright gold and dark amber trailing stepped pixels. The SAME nominal radius in every active frame, peak has more mass not more radius. Long tapering sharpened ends. Thick angular blade-cluster silhouette, no two concentric rings, no spikes pointing in every direction. Tiny deliberate gold chips confined to same fixed radial envelope. Heavy strike should look like a dense white-gold cleave, not normal crescent recolored and not a fireball.
+
+Exact chronology:
+1 top-left: one thin tense amber leading scratch upper-right.
+2: pronounced gold hook begins descending, short white tip.
+3: broad pale gold blade belly fills right-upper arc, a white front starts spreading downward.
+4: full 130-degree crescent has a VERY THICK pure white leading belly, gold trailing stepped edge, sharply tapered tips; two large angular impact chips.
+5 top-right: BRIGHTEST and heaviest white-hot cleave; a short separate parallel gold trailing scratch near upper tip; 3 angular gold impact fragments on right side. Transparent center fully open.
+6 bottom-left: still strong white belly lower-right, upper arc starts fracturing, white mass a little thinner.
+7: distinct lower-right tapering crescent remnant and 4 angular amber/gold pieces; brighter than normal sweep's frame7.
+8: sparse separated chunky angular gold/amber chips descending along arc; no full crescent.
+9: 3 tiny dim amber flecks.
+10 bottom-right: almost entirely empty; just two tiny dark amber pixel flecks. Preserve full last slot.
+
+Only FIVE flat opaque colors plus full transparency: #9b4b16, #f4a940, #ffd24a, #ffe8a3, #ffffff. Crisp 64x64 logical pixel clusters enlarged without smoothing. NO gradients, bloom, motion blur, glow, antialiasing, semitransparent pixels, smoke, ground, shadows, character, weapon, HUD, checkerboard, labels, numbers, watermark. Clear chronological motion, no repeating identical full crescent across all frames.

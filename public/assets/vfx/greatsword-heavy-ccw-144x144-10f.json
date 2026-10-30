@@ -1,0 +1,179 @@
+{
+  "key": "greatsword-heavy-ccw",
+  "image": "greatsword-heavy-ccw-144x144-10f.png",
+  "columns": 5,
+  "rows": 2,
+  "frameWidth": 144,
+  "frameHeight": 144,
+  "frameCount": 10,
+  "origin": {
+    "x": 0.5,
+    "y": 0.5
+  },
+  "anchorPx": {
+    "x": 72,
+    "y": 72
+  },
+  "referenceRadius": 67.5,
+  "baseAngle": 3.141592653589793,
+  "mirrored": true,
+  "durationSeconds": 0.16,
+  "repeat": 0,
+  "timing": "simulation-owned slash life / max; no independent animation clock",
+  "palette": [
+    "#9b4b16",
+    "#f4a940",
+    "#ffd24a",
+    "#ffe8a3",
+    "#ffffff"
+  ],
+  "alphaValues": [
+    0,
+    255
+  ],
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 144,
+      "y": 0,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 288,
+      "y": 0,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 432,
+      "y": 0,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 576,
+      "y": 0,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 0,
+      "y": 144,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 144,
+      "y": 144,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 288,
+      "y": 144,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 432,
+      "y": 144,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 576,
+      "y": 144,
+      "w": 144,
+      "h": 144
+    }
+  ],
+  "stats": [
+    {
+      "frame": 0,
+      "opaque": 220,
+      "white": 0,
+      "maxRadius": 53.03300858899106
+    },
+    {
+      "frame": 1,
+      "opaque": 924,
+      "white": 132,
+      "maxRadius": 56.890245209526036
+    },
+    {
+      "frame": 2,
+      "opaque": 2172,
+      "white": 504,
+      "maxRadius": 60.270224821216644
+    },
+    {
+      "frame": 3,
+      "opaque": 4200,
+      "white": 1176,
+      "maxRadius": 65.60868844901565
+    },
+    {
+      "frame": 4,
+      "opaque": 4793,
+      "white": 1283,
+      "maxRadius": 64.82669203345178
+    },
+    {
+      "frame": 5,
+      "opaque": 3246,
+      "white": 609,
+      "maxRadius": 62.084619673474684
+    },
+    {
+      "frame": 6,
+      "opaque": 1958,
+      "white": 242,
+      "maxRadius": 57.36287998348759
+    },
+    {
+      "frame": 7,
+      "opaque": 798,
+      "white": 28,
+      "maxRadius": 54.940877313708775
+    },
+    {
+      "frame": 8,
+      "opaque": 72,
+      "white": 0,
+      "maxRadius": 42.101068870041765
+    },
+    {
+      "frame": 9,
+      "opaque": 12,
+      "white": 0,
+      "maxRadius": 40.329889660151565
+    }
+  ],
+  "source": {
+    "tool": "built-in image_gen",
+    "model": null,
+    "seed": null,
+    "path": "assets/vfx/greatsword-heavy-source.png",
+    "width": 1983,
+    "height": 793,
+    "sha256": "a9d732000fb8ec44d0cd09479dd71821d81055306488091fde85d072843179e0",
+    "prompt": "assets/vfx/greatsword-heavy-prompt.txt"
+  },
+  "processing": {
+    "script": "scripts/build-greatsword-vfx.mjs",
+    "logicalFrameSize": 64,
+    "alphaThreshold": 128,
+    "transparentCenterLogicalRadius": 4,
+    "sampling": "nearest-neighbor; RGB squared distance palette mapping; no dithering",
+    "sharedSourceRadius": 30.43846251044885,
+    "sharedScale": 2.1445391668198424,
+    "perFrameCrop": false
+  },
+  "sha256": "3273744544083abfed54e918f9f6f5bc8eef4b92fe6d614be9546485bfe1bca4"
+}

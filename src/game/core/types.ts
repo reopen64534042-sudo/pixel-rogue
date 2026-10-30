@@ -573,10 +573,12 @@ export interface Slash extends Point {
   max: number;
   /** 颜色 */
   c: string;
-  /** 近战武器类型：太刀走扫击刀光，大剑/旧卡走原同心弧。 */
+  /** 近战武器类型：太刀/大剑使用各自刀光，旧卡使用同心弧。 */
   weapon?: "katana" | "greatsword";
   /** 居合·极 360° 回旋斩：使用 iai-spin-slash 素材，绘制在玩家中心。 */
   spin?: boolean;
+  /** 本次挥砍是否为重斩，仅供表现选择；不参与命中与伤害。 */
+  heavy?: boolean;
 }
 export interface HitOptions {
   noCrit?: boolean;

@@ -3290,7 +3290,7 @@ L2 最初写 `distPerStack2 = 70px`（8 层 = 560px），比 L1 的 500px 更慢
 - 验证：npm run typecheck 与 npm run build；PNG 与图集坐标/尺寸/色板/alpha/哈希检查。未新增测试，未运行 Vitest / Playwright，既有测试断言无本次行为变更；游戏内招式体验留待招式接入后确认。
 - PR 最终同步：上游新增居合链与反馈批（PR #192，b927f02，v117/v118），本分支更新记录顺延 v119。CHANGELOG.md、src/game/data/changelog.ts 与 migration 均保留双方新增记录，场景加载改动自动合并；未改上游居合规则。
 
-## 居合·极 360° 旋斩接入（v120，2026-10-30）
+## 居合·极 360° 旋斩接入（v121，2026-10-30）
 
 - 用户要求：把 L3「居合·极」的 360° 旋斩接到 PR #193 的 `iai-spin-slash` 素材上；普通太刀与居合 L1/L2 保持原单向刀光。
 - 分支 `feat/iai-spin-wire`（自 main `bdf9a55` / v119）。
@@ -3299,3 +3299,14 @@ L2 最初写 `distPerStack2 = 70px`（8 层 = 560px），比 L1 的 500px 更慢
 - 范围：仅改变 L3 视觉；伤害、击退、命中范围、普通太刀与 L1/L2 表现均不变。`drawIaiSpinSlash` 新增可选 `scale`（默认 1），文档同步。
 - 验证：`npm run typecheck` ✓、`npm run build` ✓；e2e 受控截取前段/峰值/末段，环中心在玩家、2× 大小与命中半径对齐；5176 已同步 playtest 快照。
 - 按 2026-10-29 标准未运行 Vitest / Playwright、未新增/修改测试基线。
+
+## 大剑金白横扫与重斩动画（v120，2026-10-30）
+
+- 用户授权：创建新分支、同步上游，并自行阅读技能制作适合大剑的动画。已阅读 Phaser 2D Game、Sprite Pipeline、imagegen 技能及工程美术/数值接口资料。
+- 隔离：原目录 `E:\AllProjects\pixel-rogue` 位于 `feat/shooter-dynamic-difficulty`，有射手/难度系统等其他任务未提交改动；保持原样。拉取 origin / upstream 后，从最新 `upstream/main`（bdf9a55，v119 / PR #193）建立 `codex/greatsword-vfx`，独立 worktree 为 `E:\AllProjects\pixel-rogue-greatsword-vfx`，以 Junction 复用现有 node_modules。
+- 素材：内置 image_gen 分别整表生成普通横扫与重斩，保存原图与完整提示词。运行资源统一为琥珀/金/浅金/白共五色、二值 alpha、5×2 共 10 帧；普通斩每帧 96×96、重斩 144×144，默认半径 45 / 67.5px；另存逐帧水平镜像、标准 Phaser 图集、元数据、放大检查图和慢放 GIF。
+- 产线：`scripts/build-greatsword-vfx.mjs` 复用现有 PNG 编解码，按整组共用 64×64 逻辑画布、中心和径向包络归一化；不按单帧包围盒缩放/重新居中。核对时发现重斩碎屑覆盖玩家锚点，统一预留 4 逻辑像素半径中心透明区后重新导出。保留源图/成品哈希、处理参数和工具未返回的 model/seed = null；未修改公共色板或新增依赖。
+- 接入：`GameScene` 异步预载 4 张表；`rendering/vfx/greatswordSlash.ts` 幂等注册 40 帧并按模拟进度、方向、半径与本次 `Slash.heavy` 快照选图。`WarriorSystem → MeleeSystem → Slash` 仅透传重斩表现标记，第三下触发与数值计算保持原样；`draw.ts` 将普通斩/重斩接入，左右半平面镜像旋转。
+- 范围：沿用 0.16 秒刀光寿命、既有伤害/扇形/击退/冷却/震屏；不创建额外时钟或监听，暂停与重开沿用模拟生命周期。标准扇形以外的跃击 360° 保留原同心弧，资源未就绪也回退同心弧；太刀、居合、剑气和疾冲路径不改。双端更新日志同步追加 v120；详见 `docs/greatsword-slash-vfx.md`。
+- 验证：`npm run typecheck` 与 `npm run build`；素材尺寸/色板/alpha/镜像/边界/图集/哈希检查及逐帧目视检查。按 2026-10-29 裁定，不运行 Vitest / Playwright，不新增或修改测试；现有测试断言无须因本次纯表现变化更新。GIF 是素材慢放，非游戏录像；实际遮挡、速度和高攻速观感未做实机验收。
+- 用户确认满意并授权整理、提交、推送与创建 PR。接入说明补齐本项目即合即用入口、输入/返回值表、标准 Phaser 四图集加载与模拟驱动切帧示例，发布前按项目约定复核编译与素材；GitHub 发布使用 gh，不执行合并。
