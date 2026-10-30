@@ -9,10 +9,9 @@ import type { Talent } from "../game/core/types";
  * 边界：
  * - `GameScene` 只在 `import.meta.env.DEV` 下实例化，生产包既没有入口、
  *   也不会加载控制桥（与 AGENTS「生产不得暴露控制接口」一致）。
- * - 走 `core.learnTalent()`，因此属性投影 / 图鉴 / upCounts 都是正常路径；
- *   但它**不经过 `canOffer`**——职业、前置、互斥、变体组都会被绕过，这正是
- *   作弊面板的用途（组合出正常流程拿不到的状态）。
- * - 不做任何数值校验（属性次数上限也绕过），只用于开发环境。
+ * - 走 `core.learnTalent()`，因此属性投影 / 图鉴 / upCounts 都是正常路径。
+ * - 面板自己的 `prereq` 仍检查职业/战士流派、前置、互斥和变体组，避免点到
+ *   另一流派的卡；仅属性次数等数值校验被绕过，用于开发环境组合测试。
  */
 const GROUPS: { key: string; label: string }[] = [
   { key: "legacy", label: "旧表（retired/hidden）" },
@@ -319,13 +318,19 @@ export class DevPanel {
   }
 
   /**
-   * 正常游玩的前置判定：职业归属、`requires`（链前置）、`req`（自定义条件）、
+   * 正常游玩的前置判定：职业归属、战士流派、`requires`（链前置）、`req`（自定义条件）、
    * 互斥（双向）与变体组 N 选 1（含 `variantBypass` 豁免）。
-   * 职业也必须匹配：法师局不再能点射手卡（v80 用户要求）。
+   * 职业/流派也必须匹配：法师局不再能点射手卡；大剑局不能点太刀卡（v128 用户要求）。
    */
   private prereq(u: Talent): { ok: boolean; hint: string } {
     if (u.prof && u.prof !== "common" && u.prof !== this.core.prof)
       return { ok: false, hint: "职业不符" };
+    if (
+      u.warriorStyle &&
+      (this.core.prof !== "warrior" ||
+        this.core.warriorStyle !== u.warriorStyle)
+    )
+      return { ok: false, hint: "流派不符" };
     const picks = this.core.player.picks;
     if (u.requires && !picks.includes(u.requires))
       return { ok: false, hint: `需 ${u.requires}` };
@@ -351,10 +356,10 @@ export class DevPanel {
   private render() {
     const body = this.body;
     if (!body) return;
-    // 只有数量变化才重建 DOM（避免无意义的 74 行重排，也保住滚动位置）
-    const sig = UPGRADES.map((u) => this.core.player.upCounts[u.n] || 0).join(
-      ",",
-    );
+    // 只有数量/职业/流派变化才重建 DOM（避免无意义的 74 行重排，也保住滚动位置）
+    const sig =
+      `${this.core.prof}|${this.core.warriorStyle}|` +
+      UPGRADES.map((u) => this.core.player.upCounts[u.n] || 0).join(",");
     if (sig === this.sig) return;
     this.sig = sig;
     body.innerHTML = "";

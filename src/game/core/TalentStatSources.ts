@@ -413,7 +413,7 @@ export function talentStatModifiers(
           value: 1,
         });
         break;
-      // 战士「连闪」（共享 t1）：冲刺充能 +1 次、冷却 -0.4s。
+      // 战士「连闪」（共享 t0）：冲刺充能 +1 次、冷却 -0.4s。
       case "连闪":
         scalars.push(
           {

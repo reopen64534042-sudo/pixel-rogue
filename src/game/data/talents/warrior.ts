@@ -10,7 +10,7 @@ import { WARRIOR_BALANCE as WB } from "../warriorBalance";
  * - 连闪：冲刺充能/冷却/破空/锐势。
  *
  * 太刀可选增幅：流·初/续/极（只增幅居合）、居合·迅/极、残心；
- * 大剑：重斩 → 破甲 → 剑气，入场跃击/强袭；
+ * 大剑自带重斩基础机制；破甲 → 剑气 → 裂地依次强化，入场三段斩/跃击/强袭；
  * 共享点缀：裂甲/破围/连斩；护盾、反远程与反击链在后续批次补。
  */
 export const WARRIOR_TALENTS: Talent[] = [
@@ -120,9 +120,11 @@ export const WARRIOR_TALENTS: Talent[] = [
     cur: () => "居合范围与破甲增幅",
   },
 
-  // ================= 大剑：重斩 =================
+  // ================= 大剑：重斩链 =================
+  // 重斩是大剑基础机制（每第 3 下自动触发），不再占卡位；
+  // 破甲/剑气/裂地依次强化它。
   {
-    n: "重斩",
+    n: "破甲",
     ico: "🪓",
     t: 0,
     cat: "核心",
@@ -130,23 +132,6 @@ export const WARRIOR_TALENTS: Talent[] = [
     layer: 1,
     prof: "warrior",
     warriorStyle: "greatsword",
-    mech: 1,
-    d: "每第 3 次挥砍变为重斩：伤害 250%、范围 +50%、间隔 +20%。",
-    max: 1,
-    pv: () => "每 3 下 · 伤害 250% · 范围 +50%",
-    f: () => {},
-    cur: () => "每第 3 次挥砍重斩",
-  },
-  {
-    n: "破甲",
-    ico: "🪓",
-    t: 0,
-    cat: "核心",
-    slot: "重斩",
-    layer: 2,
-    prof: "warrior",
-    warriorStyle: "greatsword",
-    requires: "重斩",
     mech: 1,
     d: "重斩命中使目标护甲 −40%，持续 4 秒。",
     max: 1,
@@ -160,7 +145,7 @@ export const WARRIOR_TALENTS: Talent[] = [
     t: 0,
     cat: "核心",
     slot: "重斩",
-    layer: 3,
+    layer: 2,
     prof: "warrior",
     warriorStyle: "greatsword",
     requires: "破甲",
@@ -170,6 +155,23 @@ export const WARRIOR_TALENTS: Talent[] = [
     pv: () => "200px 剑气 · 80% 伤害 · 强击退",
     f: () => {},
     cur: () => "重斩后放出剑气",
+  },
+  {
+    n: "裂地",
+    ico: "🌋",
+    t: 0,
+    cat: "核心",
+    slot: "重斩",
+    layer: 3,
+    prof: "warrior",
+    warriorStyle: "greatsword",
+    requires: "剑气",
+    mech: 1,
+    d: "重斩命中后在目标脚下撕开地裂，0.22 秒后爆裂：半径 55px，造成 120% 伤害、强击退并眩晕 0.45 秒；对已被破甲的目标伤害 +30%。",
+    max: 1,
+    pv: () => "延迟裂地 · 半径 55 · 120% · 眩晕 0.45s",
+    f: () => {},
+    cur: () => "重斩后地裂追击",
   },
 
   // ================= 太刀入场 =================
@@ -209,6 +211,23 @@ export const WARRIOR_TALENTS: Talent[] = [
 
   // ================= 大剑入场 =================
   {
+    n: "三段斩",
+    ico: "🌪️",
+    t: 0,
+    cat: "核心",
+    slot: "入场",
+    layer: 1,
+    prof: "warrior",
+    warriorStyle: "greatsword",
+    mech: 1,
+    excludes: ["连闪"],
+    d: "获得 3 次冲刺充能，可一口气放完三段（与「连闪」互斥）。不持跃击：①短冲 + 130° 扇斩（120%）→②中冲 + 130° 扇斩（120%）→③远冲 + 360° 回旋斩（100%）；同时持有跃击：①扇斩→②旋斩→③锁定最密集敌群的跃击（160%、范围 1.3×、眩晕 0.6 秒；起手与落地 0.8 秒无敌）。每次冲刺结束推进；攻击不计入重斩。",
+    max: 1,
+    pv: () => "3 段独立充能 · 无跃击：扇/扇/旋 · 有跃击：扇/旋/跃",
+    f: () => {},
+    cur: () => "三段独立充能 · 冲刺三段循环",
+  },
+  {
     n: "跃击",
     ico: "🦘",
     t: 0,
@@ -218,7 +237,7 @@ export const WARRIOR_TALENTS: Talent[] = [
     prof: "warrior",
     warriorStyle: "greatsword",
     mech: 1,
-    d: "冲刺改为跃向攻击距离 +80px 内最密集的敌群，落地 140% 范围伤害 + 击退；无目标时退回普通冲刺。",
+    d: "冲刺改为跃向攻击距离 +80px 内最密集的敌群，落地 140% 范围伤害 + 击退；无目标时退回普通冲刺。起手先渐隐并显示落点。持有三段斩时，跃击替换其第三段（三段组成变为扇斩→旋斩→跃击）。",
     max: 1,
     pv: () => "跃向密集敌群 · 落地 140% AOE",
     f: () => {},
@@ -235,9 +254,9 @@ export const WARRIOR_TALENTS: Talent[] = [
     warriorStyle: "greatsword",
     requires: "跃击",
     mech: 1,
-    d: "跃击搜索距离 +30%；落地后 2 秒内攻速 +40%。",
+    d: "跃击（含三段斩第三段）搜索距离 +30%；落地后 2 秒内攻速 +40%。",
     max: 1,
-    pv: () => "跃击范围 +30% · 落地攻速 +40%",
+    pv: () => "跃击/三段斩第三段 · 范围 +30% · 落地攻速 +40%",
     f: () => {},
     cur: () => "跃击后短时加速",
   },
@@ -252,13 +271,14 @@ export const WARRIOR_TALENTS: Talent[] = [
     layer: 1,
     prof: "warrior",
     mech: 1,
-    d: "冲刺充能 +1 次（上限 2 次），冷却 1.6→1.2 秒；冲刺穿过敌人时每个返还 10% 冷却（每次最多 30%）并减速 30%/1.5 秒；冲刺后 2 秒暴击率与暴击伤害 +30%。",
+    excludes: ["三段斩"],
+    d: "冲刺充能 +1 次（上限 2 次），冷却 1.6→1.2 秒；冲刺穿过敌人时每个返还 10% 冷却（每次最多 30%）并减速 30%/1.5 秒。太刀：冲刺后 2 秒暴击率与暴击伤害 +30%；大剑：冲刺后 2 秒内下一次挥砍视为重斩（不推进重斩计数）。与「三段斩」互斥。",
     max: 1,
     pv: (p) =>
-      `冲刺 ${1 + p.dashChargeLv}→${2 + p.dashChargeLv} 次 · 冷却 ${p.dashMax.toFixed(1)}→${(p.dashMax - WB.lianShan.cdReduction).toFixed(1)}s · 破空/锐势`,
+      `冲刺 ${1 + p.dashChargeLv}→${2 + p.dashChargeLv} 次 · 冷却 ${p.dashMax.toFixed(1)}→${(p.dashMax - WB.lianShan.cdReduction).toFixed(1)}s · 太刀锐势 / 大剑重斩就绪`,
     f: () => {},
     cur: (p) =>
-      `冲刺 ${1 + p.dashChargeLv} 次 · 冷却 ${p.dashMax.toFixed(1)}s · 破空/锐势`,
+      `冲刺 ${1 + p.dashChargeLv} 次 · 冷却 ${p.dashMax.toFixed(1)}s · 流派特化`,
   },
 
   // ================= 共享 =================

@@ -135,6 +135,15 @@ export class GameScene extends Phaser.Scene {
       // 图鉴打开时不响应属性面板，避免两层 overlay 互相遮挡
       if (key === this.core.keybinds.stats && !this.ui.hasOverlay())
         this.core.toggleStats();
+      // v128：休整面板「下一波」快捷键（默认 F，可在设置中改）。
+      if (
+        key === this.core.keybinds.nextWave &&
+        this.ui.canUseNextWaveShortcut()
+      ) {
+        event.preventDefault();
+        this.ui.nextWave();
+        return;
+      }
       if (key === "m") {
         this.core.audio.muted = !this.core.audio.muted;
         this.core.addText(

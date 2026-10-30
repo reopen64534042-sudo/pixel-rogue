@@ -24,6 +24,8 @@ export const KNOCK = {
     dash: 0,
     /** 剑气：瞬时位移 px（原先写在 warriorBalance.swordQiKnock）。 */
     qi: 14,
+    /** 裂地：重斩后地裂爆裂的击退。 */
+    fissure: 14,
   },
   orbit: 3,
   /** 护盾破碎反震（CombatSystem），原先硬编码 *6。 */

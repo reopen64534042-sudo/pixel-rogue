@@ -86,9 +86,11 @@ export function hurtEnemy(
     (p.upCounts["处决"] || 0) > 0 &&
     e.markStacks > 0 &&
     e.hp <= e.maxhp * 0.2;
-  // 连闪·锐势：冲刺后 2 秒内，战士近战暴击率/暴击伤害 +30%。
+  // 连闪·锐势：冲刺后 2 秒内，太刀近战暴击率/暴击伤害 +30%。
+  // 大剑的连闪特化走「下一刀视为重斩」，不吃锐势暴击。
   const ruiShi =
     this.prof === "warrior" &&
+    this.warriorStyle !== "greatsword" &&
     this.warriorLianShanT > 0 &&
     opts.form === "melee";
   const critChance =
@@ -625,6 +627,11 @@ export function damagePlayer(
   // 放在最前面——虚影是「完全躲开」而不是「减伤」。
   if (this.magePhaseT > 0) {
     this.addText(p.x, p.y - 10, "虚影", "#c07bff");
+    return blockedHit(dmg, { dodged: true, shieldUsed: "none" });
+  }
+  // v128 三段斩第三段跃击：起手渐隐与落地 0.8s 完全无敌，
+  // 覆盖接触、弹幕、自爆和精英新星等所有伤害入口。
+  if (this.warriorLeapInvulnT > 0 || this.warriorLeapFx?.triStage3) {
     return blockedHit(dmg, { dodged: true, shieldUsed: "none" });
   }
   // 闪避本能: 完全无效化

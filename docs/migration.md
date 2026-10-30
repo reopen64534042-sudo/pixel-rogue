@@ -3366,3 +3366,26 @@ L2 最初写 `distPerStack2 = 70px`（8 层 = 560px），比 L1 的 500px 更慢
 - 冲刺贴图：`draw.ts` 的斩浪素材绘制块追加 `upCounts["斩浪"] > 0` 条件；连闪仍保留冲刺充能/破空/锐势，但不再绘制月牙/残影/刃痕。`warriorDashFromX/Y` 仍为连闪结算提供起终点，不影响机制。
 - 验证：e2e 连续 30 次开局 3 选 1 刷新，`unchanged=0`；`npm run typecheck` ✓、`npm run build` ✓。
 - 按 2026-10-29 标准未运行 Vitest / Playwright。
+
+## 大剑三段斩、重斩链与跃击（v128，2026-10-31）
+
+- 用户反馈：① 三段循环做成一张类似斩浪的核心卡；② 跃击无前摇像闪现，希望起手渐隐、落点可见；③ 名字是「三段斩」就必须常驻三段；④ 第 2 段与第 1 段同级、只增加冲刺距离；⑤ 脚底 UI 改三格；⑥ 冲刺斩与平 A 刀光要能区分；⑦ 跃击前摇再大一点、三段位移再短一点；⑧ 连闪在大剑池需要特化并与三段斩互斥；⑨ 持跃击时组成改为扇斩→旋斩→跃击；⑩ 作弊面板按流派过滤；⑪ 三段斩要能一口气连放；⑫ 没学重斩却默认有重斩，将错就错把重斩链前移并换更好的 L3；⑬ 第三段跃击加无敌光罩；⑭ 「下一波」默认 F 且可改键。
+- 三段斩：新增 `data/talents/warrior.ts` t0 核心（大剑可见池 9 → 10）。`WarriorBalance.triDash` 位移 0.7/0.9/1.1、伤害 120%/120%/100%，跃击前冲 85px。`GameCore.warriorTriSlotRe` 改为 **3 个独立冲刺槽**，每槽单独按 `dashMax` 倒计时；当前段对应的槽 ready 才能消费，不再依赖共享 `dashCharges/dashRe`（基础充能逻辑在三段斩时跳过）。脚底 UI 三格逐槽显示独立进度，白色 2px 亮点标出当前段/下一个被消费的槽。
+- 循环：不持跃击：扇斩→扇斩（同级，只加距离）→360° 旋斩；持跃击：扇斩→旋斩→跃击（`warriorTriStage3` 同时检查两张卡）。三段末尾攻击不推进 `warriorSwingCount`、不触发连斩。
+- 跃击：起手 0.18→0.24s，渐隐 + 落点锁定 + 预警圈/光柱，外圈按实际冲击波半径绘制。持跃击的三段斩第三段在起手（`p.dashT`）与落地后 0.8s（`warriorLeapInvulnT`）完全无敌：`damagePlayer` 统一拦截，接触/弹幕入口也跳过；无敌期间角色以 **半隐身（alpha 0.5）** 表示，不再额外画光环；C 面板显示剩余时间。单独跃击仍每次冲刺跃击。
+- 重斩链：重斩是基础机制，删除原「重斩」卡；顺次前移为 **破甲（L1）→ 剑气（L2）→ 裂地（L3）**。新增「裂地」：重斩命中后在主目标脚下生成 `warriorFissures`，0.22s 后爆裂，半径 55px、120% 伤害、强击退（`KNOCK.warrior.fissure`）、眩晕 0.45s；逐个敌人检查 `armorBreakT`，已破甲 +30%。表现层用橙金预警圈/四向裂纹，爆裂时 `warriorQi.kind = "slam"` + 粒子 + 飘字「裂地」。教程大剑核心卡由「重斩」改为「破甲」。
+- 连闪特化：大剑流派设置 `warriorHeavyReadyT`（2s），下一刀按重斩结算但不推进自然重斩计数；太刀继续设置 `warriorLianShanT` 锐势暴击。`CombatSystem` 锐势按 `warriorStyle !== "greatsword"` 门控；三段斩与连闪双向 `excludes`。
+- 冲刺斩表现：已回退为「后退 5px、97% 大小、30% alpha」的淡残影版；冷青外圈/冷芯/速度像素方案经用户否决并移除。专用冲刺斩美术方案与提示词待统一批准后接入。360° 回旋斩仍用三把金白刀光。
+- 作弊面板：`prereq` 增加 `warriorStyle` 检查（流派不符灰显不可点），`sig` 纳入 `prof/warriorStyle`；太刀局锁定大剑卡，大剑局锁定斩浪/居合/流等。
+- 快捷键：`KeyAction` 新增 `nextWave`，默认 F；`canUseNextWaveShortcut()` 只在休整按钮可见且无覆盖层时生效，走与按钮同一条 `GameUI.nextWave()`；设置改键列表自动增行，旧 v1 键位存档缺失该字段时补 F，若 F 已被占用则自动选空闲键。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；e2e 受控（5334）：
+  - 三段斩独立槽：初始 `warriorTriSlotRe=[0,0,0]`；三次冲刺后 `slot0≈1.42 / slot1≈1.42 / slot2≈1.42`、段数 0→1→2→0；第 4 次冲刺在段 0 槽仍在充能（≈0.817s）时被拦截；50 帧后槽 0 归零，下一次冲刺成功消费槽 0。破甲/剑气/裂地前置链 `po:true→jq:true→ld:true`，原「重斩」卡已不存在。
+  - 裂地：重斩后 `warriorFissures=1`、目标 `armorBreakT≈3.98`；0.22s 后 `warriorFissures=0`，三敌各 9909→9878（31 伤害含破甲 +30%），眩晕 0.433s，`slam` 环与「裂地」飘字出现。
+  - 跃击无敌：起手 `triStage3=true`、落地 `warriorLeapInvulnT≈0.767`；两次 10 点 `damagePlayer` 均被拦截（HP 80→80）；0.8s 结束后同类伤害生效（80→71.67）。
+  - F 下一波：默认 `keybinds.nextWave="f"`，休整面板 `waveN 3→4`、`wavePhase=fight`、`bp-rest` 隐藏。
+  - 作弊面板：大剑局流/居合/斩浪/残心显示「流派不符」，三段斩与连闪互斥；切太刀后破甲/剑气/裂地/三段斩/跃击/强袭显示「流派不符」。
+  - 截图：`output/vfx-normal-slash.png`（平 A）、`output/vfx-dash-slash.png`（回退后的残影冲刺斩）、`output/vfx-foot-ui-3charges-clean.png`（满充能）、`output/vfx-foot-ui-slot-progress.png`（三槽独立进度）、`output/vfx-fissure-telegraph.png` / `vfx-fissure-burst.png`（旧裂地表现，待改造）、`output/vfx-leap-invuln-halfhidden.png`（半隐身；画面外环是落地冲击波，不是无敌光环）。
+- 说明：跃击的坠地 AOE 半径当前按 `player.attackRange` 计算（普通跃击 ×1.2，三段第三段 ×1.3），因此会随「近战范围」属性放大；落点预警外圈使用同一半径。裂地半径固定 55px，不吃该属性。
+- 待办：剑气→平推型移动剑气、裂地→四方强化剑气、冲刺斩专用刀光均已列入美术方案；用户要求先确认语言描述与统一提示词，当前版本暂不接入新表现（剑气仍为直线、裂地仍为延迟地裂，冲刺斩为残影版）。
+- 美术：新增 `docs/greatsword-leap-vfx-brief.md`，按「不加厚、用垂直运动 + 扁平尘环 + 暗锈裂纹区分平 A」编写 GPT Image 提示词与 10 帧落地 VFX 规格。
+- 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件，仅做受控 e2e/无头截图自检；新卡 parity 基线留待授权测试批次统一处理。

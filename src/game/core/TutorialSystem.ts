@@ -61,9 +61,10 @@ export function startTutorial(
   this.gems = [];
   this.boxes = [];
   this.potions = [];
-  // 战士教程临时给本流派 L1 核心卡，用来演示流/重斩；正式开局会重置。
+  // 战士教程临时给本流派 L1 核心卡，用来演示流/重斩链；正式开局会重置。
+  // 大剑的重斩是基础机制，教程改为给 L1「破甲」。
   if (prof === "warrior") {
-    const core = warriorStyle === "katana" ? "流·初" : "重斩";
+    const core = warriorStyle === "katana" ? "流·初" : "破甲";
     this.player.upCounts[core] = 1;
     this.player.picks.push(core);
   }

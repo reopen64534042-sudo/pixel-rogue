@@ -2,7 +2,7 @@ import type { GameCore } from "../core/GameCore";
 import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
-import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
+import { W, H, VIEW, WORLD, clamp, fmtTime } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
@@ -662,6 +662,19 @@ export function draw(this: GameCore, ctx: PixelPainter) {
         }
       }
     }
+    // v128 三段斩震地眩晕：与角兽撞墙共用转星读法。
+    if ((e.stunT ?? 0) > 0 && e.chargeState !== "stun") {
+      ctx.fillStyle = "#ffd24a";
+      for (let i = 0; i < 3; i++) {
+        const a = this.time * 4 + (i * Math.PI * 2) / 3;
+        ctx.fillRect(
+          Math.round(e.x + Math.cos(a) * 7),
+          Math.round(e.y - e.r - 8 + Math.sin(a) * 2),
+          2,
+          2,
+        );
+      }
+    }
     if (e.elite) {
       ctx.fillStyle = "#3a0d0d";
       ctx.fillRect(x, y - 4, w, 2);
@@ -690,6 +703,39 @@ export function draw(this: GameCore, ctx: PixelPainter) {
         0,
         Math.PI * 2,
       );
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // 裂地预警：0.22s 内展开的橙金地裂圈，爆裂前提示实际范围。
+  if (this.warriorFissures.length) {
+    for (const f of this.warriorFissures) {
+      const k = Math.max(0, Math.min(1, 1 - f.t / f.max));
+      const fx = Math.round(f.x);
+      const fy = Math.round(f.y);
+      const r = Math.max(2, Math.round(f.r * k));
+      ctx.globalAlpha = 0.35 + Math.sin(this.time * 30) * 0.1;
+      ctx.strokeStyle = "#ff8c3a";
+      ctx.beginPath();
+      ctx.arc(fx, fy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.18;
+      ctx.strokeStyle = "#ffd24a";
+      ctx.beginPath();
+      ctx.arc(fx, fy, Math.round(f.r), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = "#ffd24a";
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+        ctx.moveTo(fx, fy);
+        ctx.lineTo(
+          Math.round(fx + Math.cos(a) * f.r * 0.55),
+          Math.round(fy + Math.sin(a) * f.r * 0.55),
+        );
+      }
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
@@ -738,12 +784,58 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
+  // 跃击起手（v128）：落点预警圈 + 角色渐隐。
+  // 三段斩第三段只在持有跃击时存在，走同一套跃击状态机。
+  const leapFx = this.warriorLeapFx;
+  let leapFadeK: number | null = null;
+  if (leapFx) {
+    const k = Math.max(0, Math.min(1, 1 - leapFx.t / leapFx.max));
+    leapFadeK = k;
+    const sx = Math.round(clamp(leapFx.toX, 24, WORLD.w - 24));
+    const sy = Math.round(clamp(leapFx.toY, 24, WORLD.h - 24));
+    const radius = Math.round(
+      this.player.attackRange *
+        (leapFx.triStage3 ? WB.triDash.leapRadiusMul : 1.2),
+    );
+    const pulse = 0.55 + Math.sin(this.time * 26) * 0.2;
+    // 外圈直接画实际冲击波半径，让玩家能判断这一下能覆盖到谁。
+    ctx.globalAlpha = pulse * 0.5;
+    ctx.strokeStyle = "#ffd24a";
+    ctx.beginPath();
+    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = pulse;
+    ctx.beginPath();
+    ctx.arc(sx, sy, Math.max(2, Math.round(radius * k)), 0, Math.PI * 2);
+    ctx.stroke();
+    // 中心十字与上方光柱：一眼能读出「会砸在这里」。
+    ctx.beginPath();
+    ctx.moveTo(sx - 7, sy);
+    ctx.lineTo(sx + 7, sy);
+    ctx.moveTo(sx, sy - 7);
+    ctx.lineTo(sx, sy + 7);
+    ctx.stroke();
+    ctx.globalAlpha = pulse * 0.35;
+    ctx.strokeStyle = "#fff3b0";
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - 42);
+    ctx.lineTo(sx, sy);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
   // 玩家 (冲刺时半透明残影感)
   // S3 法师「镜像」虚影：半透明 + 紫色调（不可受击的状态要看得见）
-  ctx.globalAlpha =
+  let playerAlpha =
     this.magePhaseT > 0 ? 0.4 : this.player.dashT > 0 ? 0.6 : 1;
+  if (leapFadeK !== null) {
+    playerAlpha *= Math.max(0, 1 - leapFadeK * 1.15);
+  }
+  // v128：无敌用半隐身表示，不再额外画光环。
+  if (this.warriorLeapInvulnT > 0) playerAlpha = Math.min(playerAlpha, 0.5);
+  ctx.globalAlpha = playerAlpha;
   const playerRect = spriteRect("player", this.player.x, this.player.y);
-  if (playerRect)
+  if (playerRect && playerAlpha > 0.02)
     ctx.sprite(
       playerRect.tex,
       playerRect.x,
@@ -813,31 +905,61 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   // v63 减薄到 2px 高；v64 宽度 5→4：格数为奇数时总宽为奇数，无法在整数像素上
   // 沿角色中轴线轴对称，改成偶数宽后 1/2/3/4 格都能精确居中。
   if (this.player.dashLv > 0) {
-    const dchMax = 1 + this.player.dashChargeLv;
-    const cw = 4;
-    const chh = 2;
-    const gap = 2;
-    const pw = dchMax * cw + (dchMax - 1) * gap;
-    // 同读条：整数偏移居中，避免奇数宽度导致横移时左右抖动
-    const px = Math.round(this.player.x) - Math.floor(pw / 2);
     const py = Math.round(this.player.y) + 12;
-    const recharge =
-      this.player.dashCharges < dchMax && this.player.dashRe > 0
-        ? Math.min(
-            1,
-            Math.max(0, 1 - this.player.dashRe / this.player.dashMax),
-          )
-        : 0;
-    for (let i = 0; i < dchMax; i++) {
-      const x = px + i * (cw + gap);
-      ctx.fillStyle = "#1d2440";
-      ctx.fillRect(x, py, cw, chh);
-      if (i < this.player.dashCharges) {
-        ctx.fillStyle = "#57e6ff";
+    if ((this.player.upCounts["三段斩"] || 0) > 0) {
+      // v128 三段斩专属：3 格 = 3 个独立冲刺槽，每格单独记录充能进度。
+      // 亮金=可用，暗金=充能中；白色 2px 亮点标出当前段/下一个被消费的槽。
+      const total = 3;
+      const cw = 6;
+      const chh = 3;
+      const gap = 3;
+      const pw = total * cw + (total - 1) * gap;
+      const px = Math.round(this.player.x) - Math.floor(pw / 2);
+      const stage = this.warriorTriDashStage;
+      const leapOwned = (this.player.upCounts["跃击"] || 0) > 0;
+      for (let i = 0; i < total; i++) {
+        const x = px + i * (cw + gap);
+        ctx.fillStyle = "#1d2440";
         ctx.fillRect(x, py, cw, chh);
-      } else if (i === this.player.dashCharges && recharge > 0) {
-        ctx.fillStyle = "#2f8fae";
-        ctx.fillRect(x, py, Math.max(1, Math.round(cw * recharge)), chh);
+        const left = this.warriorTriSlotRe[i];
+        const progress =
+          left <= 0
+            ? 1
+            : Math.max(0, 1 - left / this.player.dashMax);
+        if (progress <= 0) continue;
+        ctx.fillStyle = left <= 0 ? "#ffd24a" : "#7a5a20";
+        ctx.fillRect(x, py, Math.max(1, Math.round(cw * progress)), chh);
+      }
+      // 下一段标记：2×1，紧贴当前段格子上方。
+      const tickX = px + stage * (cw + gap) + Math.floor((cw - 2) / 2);
+      ctx.fillStyle = stage === 2 && leapOwned ? "#fff3b0" : "#ffffff";
+      ctx.fillRect(tickX, py - 2, 2, 1);
+    } else {
+      const dchMax = 1 + this.player.dashChargeLv;
+      const cw = 4;
+      const chh = 2;
+      const gap = 2;
+      const pw = dchMax * cw + (dchMax - 1) * gap;
+      // 同读条：整数偏移居中，避免奇数宽度导致横移时左右抖动
+      const px = Math.round(this.player.x) - Math.floor(pw / 2);
+      const recharge =
+        this.player.dashCharges < dchMax && this.player.dashRe > 0
+          ? Math.min(
+              1,
+              Math.max(0, 1 - this.player.dashRe / this.player.dashMax),
+            )
+          : 0;
+      for (let i = 0; i < dchMax; i++) {
+        const x = px + i * (cw + gap);
+        ctx.fillStyle = "#1d2440";
+        ctx.fillRect(x, py, cw, chh);
+        if (i < this.player.dashCharges) {
+          ctx.fillStyle = "#57e6ff";
+          ctx.fillRect(x, py, cw, chh);
+        } else if (i === this.player.dashCharges && recharge > 0) {
+          ctx.fillStyle = "#2f8fae";
+          ctx.fillRect(x, py, Math.max(1, Math.round(cw * recharge)), chh);
+        }
       }
     }
   }
@@ -962,7 +1084,36 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       }
       continue;
     }
-    if (s.weapon === "greatsword" && drawGreatswordSlash(ctx, s)) continue;
+    if (s.weapon === "greatsword") {
+      if (s.spin) {
+        // 大剑 360° 回旋斩：用三把 130° 金白刀光绕中心铺满一圈，
+        // 比三层同心圆弧更像「回旋」，同时继续复用已加载的扫击素材。
+        let drew = false;
+        for (let i = 0; i < 3; i++) {
+          drew =
+            drawGreatswordSlash(ctx, {
+              ...s,
+              a: s.a + (i * Math.PI * 2) / 3,
+              arc: WB.styles.greatsword.spread,
+            }) || drew;
+        }
+        if (drew) continue;
+      } else if (s.dashSlash) {
+        // v128 回退版：先画一层后退 5px、97% 大小的淡残影，再画主刀光。
+        // 专用冲刺斩美术方案待确认，确认前不再叠冷色/改刀光厚度。
+        drawGreatswordSlash(
+          ctx,
+          {
+            ...s,
+            x: s.x - Math.cos(s.a) * 5,
+            y: s.y - Math.sin(s.a) * 5,
+            r: s.r * 0.97,
+          },
+          0.3,
+        );
+        if (drawGreatswordSlash(ctx, s)) continue;
+      } else if (drawGreatswordSlash(ctx, s)) continue;
+    }
     const grow = 1 + (1 - k) * 0.18;
     const half = s.arc / 2;
     for (let i = 0; i < 3; i++) {
@@ -1053,6 +1204,21 @@ export function draw(this: GameCore, ctx: PixelPainter) {
         ctx.strokeStyle = "#ffffff";
         ctx.beginPath();
         ctx.arc(tipX, tipY, 9, angle - span * 0.9, angle + span * 0.9);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else if (q.kind === "slam") {
+        // 跃击落地冲击波：外环扩散 + 内侧白环，读作一次震地。
+        const k = 1 - alpha;
+        const r = 8 + 48 * k;
+        ctx.globalAlpha = alpha * 0.75;
+        ctx.strokeStyle = q.c;
+        ctx.beginPath();
+        ctx.arc(x1, y1, Math.round(r), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = alpha * 0.4;
+        ctx.strokeStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(x1, y1, Math.max(2, Math.round(r - 6)), 0, Math.PI * 2);
         ctx.stroke();
         ctx.globalAlpha = 1;
       } else {

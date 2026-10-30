@@ -247,6 +247,15 @@ export function updateEnemies(this: GameCore, dt: number) {
     // 旧状态属于已退役的「冰霜之力」，新状态属于法师池的「霜寒之力」。
     // 计时由 ElementSystem.updateMageElements 推进，这里只判定。
     if (isFrozen(e)) continue;
+    // v128 大剑三段斩：通用眩晕。可选字段只在被震地命中时物化，
+    // 射手/法师路径不出现该键；眩晕期间跳过整段 AI（仍可受击）。
+    if (e.stunT !== undefined) {
+      if (e.stunT > 0) {
+        e.stunT -= dt;
+        if (e.stunT > 0) continue;
+      }
+      delete e.stunT;
+    }
     // S3 法师「镜像」残影：存在残影时敌人改攻残影（吸引仇恨）。
     // 残影不存在时下面的目标点仍是玩家，射手路径逐位不变。
     let targetX = p.x;
@@ -403,7 +412,12 @@ export function updateEnemies(this: GameCore, dt: number) {
         e.fuse -= dt;
         if (e.fuse <= 0) {
           const d2p = Math.hypot(p.x - e.x, p.y - e.y);
-          if (d2p < 38 + p.r && p.hurtCd <= 0 && p.dashT <= 0)
+          if (
+            d2p < 38 + p.r &&
+            p.hurtCd <= 0 &&
+            p.dashT <= 0 &&
+            this.warriorLeapInvulnT <= 0
+          )
             this.damagePlayer(e.dmg * aura.dmg, {
               type: "fire",
               form: "other",
@@ -689,6 +703,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         !burrowerHidden &&
         p.hurtCd <= 0 &&
         p.dashT <= 0 &&
+        this.warriorLeapInvulnT <= 0 &&
         this.magePhaseT <= 0
       ) {
         const contactDmg =
