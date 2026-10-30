@@ -2991,7 +2991,46 @@ ctx.stroke();      // → strokePath()
   冲刺冷却 2.4 秒、太刀 2 刀/秒、大剑 1.2 刀/秒。
 - 验证：`npm run typecheck` ✓、`npm run build` ✓。
 
-## D-117 强化弹穿透曲线调整（v113）
+## D-117 修复「裂甲」导致伤害爆小数点（v113）
+
+- 用户反馈（2026-10-30）：「发现一个 bug，在学习了裂甲天赋的时候，对敌人造成的伤害会爆出小数点」
+- 分支：`fix/melee-vuln-decimal`（自 v111 / main）。
+
+### 根因
+
+`core/CombatSystem.ts` 的裂甲易伤加成**发生在 DamageSystem 取整之后**：
+
+```ts
+dmg = settled;                                    // 已按 round-min-one 取整（整数）
+if (opts.form === "melee" && e.meleeVulnStacks > 0) {
+  dmg *= 1 + 0.02 * e.meleeVulnStacks;            // ← 又乘一次，12 → 12.24
+}
+```
+
+飘字 `addText(..., mainDamage, ...)` 直接吃 `dmg`，所以学习了裂甲之后，
+只要目标身上有易伤层数，伤害数字就会带小数（12.24、14.4…）。
+
+### 修复
+
+乘法后重新取整，口径与 `DamageSystem` 的 `round-min-one` 一致：
+
+```ts
+const scaled = dmg * (1 + 0.02 * vulnStacks);
+dmg = dmg > 0 ? Math.max(1, Math.round(scaled)) : 0;
+```
+
+注意 **0 伤害必须保持 0**：不能用无条件 `Math.max(1, ...)`，否则免疫/零伤目标会被抬成 1。
+
+### 验证
+
+临时用例（跑完已删）：
+- 学裂甲后连续命中 14 刀，每刀结算后 `e.hp` 均为整数
+- 满 10 层时 12 × 1.2 = 14.4 → 实际扣血 **14**（取整正确）
+- 传入 0 伤害时 HP 不变（未被抬成 1）
+
+`npm run typecheck` ✓、`npm run build` ✓。
+
+## D-118 强化弹穿透曲线调整（v114）
 
 - 用户反馈（2026-10-30）：测试发现强化弹穿透过多，要求最高只能到 3，并按每 3 级提升：L1=0、L3=1、L6=2、L9=3。
 - 改动：`data/specialShot.ts` 的 `SPECIAL_LEVELS[].pierceBonus` 从 L1-L6 累计 1/2/3/4/5/6 改为 L1-L2=0、L3-L5=1、L6-L8=2、L9-L12=3；C 面板「强化穿透」读取同一字段自动同步；`AttackSystem` / `EnemySystem` 的弹丸穿透计算不变。
@@ -2999,7 +3038,7 @@ ctx.stroke();      // → strokePath()
 - 验证：`npm run typecheck`、`npm run build` 通过；受控检查确认 L1/L2=0、L3=1、L6=2、L9/L12=3，L3 起无限飞行与伤害倍率未变。
 - 测试影响：未发现直接断言 `pierceBonus` 的测试；按 2026-10-29 标准未运行 Vitest / Playwright。
 
-## D-118 属性强化硬上限（v114）
+## D-119 属性强化硬上限（v115）
 
 - 用户确认（2026-10-30）：采纳默认方案，给吸血、生命回复、攻速、移速加硬顶；暴击率与闪避维持现状。
 - 实现：
