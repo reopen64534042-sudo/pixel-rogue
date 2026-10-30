@@ -38,6 +38,8 @@ export interface MeleeSwingOptions {
   preciseSector?: boolean;
   /** 太刀「居合斩」：伤害数字用专属大字样式（见 FloatingText.iaiDmg） */
   iaiHit?: boolean;
+  /** 居合·极 360° 旋斩：刀光改用全向回旋斩素材。 */
+  spin?: boolean;
 }
 
 function angleDiff(target: number, center: number) {
@@ -115,6 +117,7 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
     max: opts.life ?? 0.16,
     c: opts.color ?? "#e8fbff",
     ...(opts.weapon ? { weapon: opts.weapon } : {}),
+    ...(opts.spin ? { spin: true } : {}),
     ...(opts.heavy ? { heavy: true } : {}),
   });
 

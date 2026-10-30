@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v121",
+    date: "2026-10-30",
+    title: "居合·极 360° 旋斩接入回旋斩素材",
+    items: [
+      "居合·极的 360° 旋斩改用 iai-spin-slash 10 帧素材：以玩家为中心、2× 整数放大（环外缘约 116px，对齐 52px 命中半径）。",
+      "普通太刀与居合 L1/L2 保持原单向刀光；伤害、击退、命中范围均不变。",
+      "新增 Slash / MeleeSwingOptions 的 spin 标记；drawIaiSpinSlash 支持可选 scale，素材未就绪时回退原表现。",
+    ],
+  },
+  {
     version: "v120",
     date: "2026-10-30",
     title: "大剑金白横扫与重斩动画",

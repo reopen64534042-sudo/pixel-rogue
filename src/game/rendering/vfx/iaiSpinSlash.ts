@@ -54,13 +54,16 @@ export function registerIaiSpinSlash(
 /**
  * Draw at the effect center with simulation-owned progress in [0, 1).
  * No animation timer: the caller's pause, expiry and reset control playback.
- * Returns false before loading or outside the lifetime so callers can fall back.
+ * `scale` is an integer upscale for aligning the ring with the hit radius
+ * (the shipped L3 uses 2×). Returns false before loading or outside the
+ * lifetime so callers can fall back.
  */
 export function drawIaiSpinSlash(
   painter: PixelPainter,
   centerX: number,
   centerY: number,
   progress: number,
+  scale = 1,
 ): boolean {
   if (
     !Number.isFinite(centerX) ||
@@ -75,7 +78,7 @@ export function drawIaiSpinSlash(
   const previousAlpha = painter.globalAlpha;
   painter.globalAlpha = 1;
   try {
-    painter.spriteRot(key, Math.round(centerX), Math.round(centerY), 0);
+    painter.spriteRot(key, Math.round(centerX), Math.round(centerY), 0, scale);
   } finally {
     painter.globalAlpha = previousAlpha;
   }
