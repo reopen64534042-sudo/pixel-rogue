@@ -28,6 +28,14 @@ declare global {
 /** 外部贴图清单：由 scripts/pixelize.mjs 在入库时维护，缺失即表示全部使用程序化贴图。 */
 const SPRITE_MANIFEST = "assets/sprites/manifest.json";
 
+/** 太刀刀光素材（PR #172）：10 帧 32×32 横向精灵表，透明度已烘焙。 */
+const TAIDAO_SLASH_SHEETS = [
+  ["taidao-slash-", "assets/vfx/taidao-slash-32x32-10f.png"],
+  ["taidao-slash-ccw-", "assets/vfx/taidao-slash-ccw-32x32-10f.png"],
+] as const;
+const TAIDAO_SLASH_FRAMES = 10;
+const TAIDAO_SLASH_SIZE = 32;
+
 function loadImageElement(url: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
@@ -163,6 +171,7 @@ export class GameScene extends Phaser.Scene {
         counts: () => this.painter.counts,
       };
     void this.loadSpriteOverrides();
+    void this.loadTaidaoSlash();
     const testName = new URLSearchParams(window.location.search).get("test");
     this.specialTest =
       import.meta.env.DEV && import.meta.env.MODE === "e2e"
@@ -325,6 +334,40 @@ export class GameScene extends Phaser.Scene {
       }),
     );
   }
+  /** 太刀精灵表按帧切为独立纹理，draw 按 slash 进度取帧，无需逐次创建动画。 */
+  private async loadTaidaoSlash() {
+    for (const [prefix, url] of TAIDAO_SLASH_SHEETS) {
+      try {
+        const image = await loadImageElement(url);
+        for (let i = 0; i < TAIDAO_SLASH_FRAMES; i++) {
+          const key = `${prefix}${i}`;
+          if (this.textures.exists(key)) continue;
+          const canvas = document.createElement("canvas");
+          canvas.width = TAIDAO_SLASH_SIZE;
+          canvas.height = TAIDAO_SLASH_SIZE;
+          const g = canvas.getContext("2d");
+          if (!g) continue;
+          g.imageSmoothingEnabled = false;
+          g.drawImage(
+            image,
+            i * TAIDAO_SLASH_SIZE,
+            0,
+            TAIDAO_SLASH_SIZE,
+            TAIDAO_SLASH_SIZE,
+            0,
+            0,
+            TAIDAO_SLASH_SIZE,
+            TAIDAO_SLASH_SIZE,
+          );
+          this.textures.addCanvas(key, canvas);
+        }
+      } catch (error) {
+        if (import.meta.env.DEV)
+          console.warn(`[assets] 太刀刀光加载失败: ${url}`, error);
+      }
+    }
+  }
+
   update(_now: number, delta: number) {
     if (!this.painter) return;
     // Issue #95：输入在模拟推进前落盘，否则摇杆方向会晚一帧生效

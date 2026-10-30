@@ -86,17 +86,49 @@
     <h1>像素秘境</h1>
     <p>活下去，变强，再活下去</p>
     <p class="version" id="start-version">Pixel Rogue · 试玩版</p>
-    <!-- S3 法师池：开局职业选择。门控决定玩法——射手靠距离，法师靠时间。 -->
-    <div class="prof-select">
-      <button class="btn prof-btn" id="btn-start" disabled aria-busy="true">射 手<small>远程 · 距离门控</small></button>
-      <button class="btn prof-btn" id="btn-prof-mage" disabled aria-busy="true">法 师<small>范围 · 站定增伤</small></button>
-      <button class="btn prof-btn" id="btn-prof-warrior" disabled aria-busy="true">战 士<small>近战 · 贴身接触</small></button>
-    </div>
+    <!-- v99：主界面只保留一个入口，职业选择移到二级界面。 -->
+    <button class="btn start-main" id="btn-start" disabled aria-busy="true">开 始 游 戏</button>
     <div class="start-actions">
       <button class="btn" id="btn-tutorial" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">新 手 教 程</button>
       <button class="btn" id="btn-changelog" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">📜 更新日志</button>
       <button class="btn" id="btn-codex" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">图 鉴</button>
     </div>
+  </div>
+
+  <!-- 职业选择（v99）：主界面「开始游戏」后的二级界面，直接展示关键属性。 -->
+  <div id="ov-prof-pick" class="overlay hidden">
+    <h2>请 选 择 你 的 职 业</h2>
+    <p class="settings-hint">职业决定基础形态与天赋池；首次选择会进入对应教程。</p>
+    <div class="prof-select">
+      <button class="btn prof-btn prof-card" id="btn-pick-shooter" disabled aria-busy="true">
+        射 手<small>远程 · 距离门控</small>
+        <span class="prof-stats">
+          <span class="prof-stat"><span>❤️ 生命</span><b data-prof="shooter" data-stat="maxhp"></b></span>
+          <span class="prof-stat"><span>👟 移速</span><b data-prof="shooter" data-stat="speed"></b></span>
+          <span class="prof-stat"><span>⚔️ 基础攻击</span><b data-prof="shooter" data-stat="damage"></b></span>
+          <span class="prof-stat"><span>🪨 护甲</span><b data-prof="shooter" data-stat="defense"></b></span>
+        </span>
+      </button>
+      <button class="btn prof-btn prof-card" id="btn-pick-mage" disabled aria-busy="true">
+        法 师<small>范围 · 站定增伤</small>
+        <span class="prof-stats">
+          <span class="prof-stat"><span>❤️ 生命</span><b data-prof="mage" data-stat="maxhp"></b></span>
+          <span class="prof-stat"><span>👟 移速</span><b data-prof="mage" data-stat="speed"></b></span>
+          <span class="prof-stat"><span>⚔️ 基础攻击</span><b data-prof="mage" data-stat="damage"></b></span>
+          <span class="prof-stat"><span>🪨 护甲</span><b data-prof="mage" data-stat="defense"></b></span>
+        </span>
+      </button>
+      <button class="btn prof-btn prof-card" id="btn-pick-warrior" disabled aria-busy="true">
+        战 士<small>近战 · 贴身接触</small>
+        <span class="prof-stats">
+          <span class="prof-stat"><span>❤️ 生命</span><b data-prof="warrior" data-stat="maxhp"></b></span>
+          <span class="prof-stat"><span>👟 移速</span><b data-prof="warrior" data-stat="speed"></b></span>
+          <span class="prof-stat"><span>⚔️ 基础攻击</span><b><span data-prof="warrior" data-stat="damage"></span> <i>太刀 / 大剑</i></b></span>
+          <span class="prof-stat"><span>🪨 护甲</span><b data-prof="warrior" data-stat="defense"></b></span>
+        </span>
+      </button>
+    </div>
+    <button class="btn" id="btn-prof-pick-back">返 回</button>
   </div>
 
   <!-- 新手教程入口：选择练习职业（v83） -->
