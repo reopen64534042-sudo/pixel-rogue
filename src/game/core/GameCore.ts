@@ -349,6 +349,8 @@ export class GameCore {
   waveN = 1;
   quota = 20;
   spawnedThisWave = 0;
+  /** 本波主题首次出现时的保底怪；消费一次后清空。 */
+  themeGuarantee: string | null = null;
   /** 本波已由满血血包转化的最大生命点数（换波清零，加成本身永久保留） */
   potionGrow = 0;
   /**
@@ -615,6 +617,7 @@ export class GameCore {
     this.waveN = 1;
     this.quota = this.waveQuota(1);
     this.spawnedThisWave = 0;
+    this.themeGuarantee = null;
     this.potionGrow = 0;
     this.potionMaxHpGrow = 0; // C3-A：新游戏重置累计永久成长（D-C3-01/契约 §6 生命⑤）
     this.boxDropsThisWave = 0;

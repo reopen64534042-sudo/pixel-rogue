@@ -1,5 +1,10 @@
 import { WORLD, clamp } from "../data/constants";
-import { enemyWeight, ETYPES } from "../data/enemies";
+import {
+  CHARGER_CHARGE,
+  DRUMMER_AURA,
+  enemyWeight,
+  ETYPES,
+} from "../data/enemies";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { professionPierce } from "./AttributeSources";
@@ -11,6 +16,25 @@ import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
 import { mageDomainSlowFactor } from "./MageSystem";
 import type { Enemy, MageDecoy } from "./types";
+
+/**
+ * 战鼓手光环：每帧按位置动态计算，不写回敌人字段（避免旧怪种对象形状变化）。
+ * 多个战鼓手不叠加；被冻结/定身的鼓手不提供光环。
+ */
+function drummerAura(
+  e: Enemy,
+  drummers: readonly Enemy[],
+): { speed: number; dmg: number } {
+  for (const d of drummers) {
+    if (d === e) continue;
+    const dx = d.x - e.x;
+    const dy = d.y - e.y;
+    if (dx * dx + dy * dy <= DRUMMER_AURA.radius * DRUMMER_AURA.radius)
+      return { speed: DRUMMER_AURA.speedMul, dmg: DRUMMER_AURA.dmgMul };
+  }
+  return { speed: 1, dmg: 1 };
+}
+
 export function spawnEnemy(
   this: GameCore,
   forceType?: string | null,
@@ -120,6 +144,13 @@ export function nearestEnemy(
 
 export function updateEnemies(this: GameCore, dt: number) {
   const p = this.player;
+  const drummers = this.enemies.filter(
+    (d) =>
+      d.type === "drummer" &&
+      !d.dead &&
+      d.frozenT <= 0 &&
+      !isFrozen(d),
+  );
   // ---- 敌人 AI ----
   for (let i = this.enemies.length - 1; i >= 0; i--) {
     const e = this.enemies[i];
@@ -220,10 +251,12 @@ export function updateEnemies(this: GameCore, dt: number) {
     }
     let a = Math.atan2(targetY - e.y, targetX - e.x);
     if (e.type === "bat") a += Math.sin(this.time * 6 + e.seed) * 0.5;
+    const aura = drummerAura(e, drummers);
     // S3 法师元素：凝冰每层减速、麻痹降低移速。
     // 射手路径上两个因子恒为 1 → 乘 1 精确，数值逐位不变。
     const spd =
       e.speed *
+      aura.speed *
       (e.slowT > 0 ? 1 - e.slowF : 1) *
       (1 - frostSlowFactor(e)) *
       (isParalyzed(e) ? 1 - MB.paraMoveSlow : 1) *
@@ -256,7 +289,7 @@ export function updateEnemies(this: GameCore, dt: number) {
           y: e.y,
           vx: Math.cos(a) * 95,
           vy: Math.sin(a) * 95,
-          dmg: e.dmg,
+          dmg: e.dmg * aura.dmg,
           r: 2,
           life: 4,
           // 发射时攻击者快照：发射者可能在命中前死亡/移除，不依赖存活引用
@@ -278,7 +311,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         if (e.fuse <= 0) {
           const d2p = Math.hypot(p.x - e.x, p.y - e.y);
           if (d2p < 38 + p.r && p.hurtCd <= 0 && p.dashT <= 0)
-            this.damagePlayer(e.dmg, {
+            this.damagePlayer(e.dmg * aura.dmg, {
               type: "fire",
               form: "other",
               attackerStats: getEnemyCombatStats(e),
@@ -300,6 +333,94 @@ export function updateEnemies(this: GameCore, dt: number) {
           e.hp = 0;
           this.killEnemy(e);
           continue;
+        }
+      }
+    } else if (e.type === "drummer") {
+      // 战鼓手：保持 90–150px 的中后距离，不贴脸；光环在 spd/伤害结算时读取。
+      const d = Math.hypot(targetX - e.x, targetY - e.y);
+      let mvx = 0;
+      let mvy = 0;
+      if (d > 150) {
+        mvx = Math.cos(a);
+        mvy = Math.sin(a);
+      } else if (d < 90) {
+        mvx = -Math.cos(a);
+        mvy = -Math.sin(a);
+      } else {
+        mvx = -Math.sin(a) * Math.sin(this.time * 1.8 + e.seed) * 0.6;
+        mvy = Math.cos(a) * Math.sin(this.time * 1.8 + e.seed) * 0.6;
+      }
+      e.x += mvx * spd * dt;
+      e.y += mvy * spd * dt;
+      // 鼓点火星：确定性相位，避免推进 parity 的随机序列。
+      if (Math.sin(this.time * 5 + e.seed * 17) > 0.93) {
+        this.parts.push({
+          x: e.x,
+          y: e.y - 4,
+          vx: (Math.sin(e.seed * 7) * 8) | 0,
+          vy: -16,
+          life: 0.3,
+          c: "#ffd24a",
+        });
+      }
+    } else if (e.type === "charger") {
+      // 角兽：追近 → 0.6s 红线预警 → 0.5s 直线冲锋 → 撞墙/结束硬直 1.2s。
+      // 冲锋方向在预警开始时锁定，玩家可以靠侧移或冲刺躲开。
+      if (e.chargeCd === undefined) e.chargeCd = 0.9 + Math.random() * 1.2;
+      if (e.chargeState === "windup") {
+        e.chargeT = (e.chargeT ?? 0) - dt;
+        if (e.chargeT <= 0) {
+          e.chargeState = "dash";
+          e.chargeT = CHARGER_CHARGE.dash;
+          this.audio.beep(90, 0.18, "sawtooth", 0.06, 80);
+        }
+      } else if (e.chargeState === "dash") {
+        const dx = e.chargeDx ?? 0;
+        const dy = e.chargeDy ?? 0;
+        const step = CHARGER_CHARGE.speed * dt;
+        const nx = e.x + dx * step;
+        const ny = e.y + dy * step;
+        e.chargeT = (e.chargeT ?? 0) - dt;
+        const hitWall =
+          nx < 20 || nx > WORLD.w - 20 || ny < 20 || ny > WORLD.h - 20;
+        e.x = clamp(nx, 20, WORLD.w - 20);
+        e.y = clamp(ny, 20, WORLD.h - 20);
+        if (hitWall || e.chargeT <= 0) {
+          e.chargeState = "stun";
+          e.chargeT = CHARGER_CHARGE.stun;
+          e.chargeCd = CHARGER_CHARGE.cooldown;
+          this.shake = Math.min(this.shake + 1.5, 6);
+          this.audio.beep(70, 0.2, "square", 0.05, -40);
+          for (let i = 0; i < 6; i++) {
+            const dustA = Math.PI + dx * (i / 6);
+            this.parts.push({
+              x: e.x - dx * 4,
+              y: e.y - dy * 4,
+              vx: Math.cos(dustA) * 45,
+              vy: Math.sin(dustA) * 45 - 10,
+              life: 0.35,
+              c: "#c05050",
+            });
+          }
+        }
+      } else if (e.chargeState === "stun") {
+        e.chargeT = (e.chargeT ?? 0) - dt;
+        if (e.chargeT <= 0) {
+          e.chargeState = undefined;
+          e.chargeT = 0;
+        }
+      } else {
+        e.chargeCd = Math.max(0, (e.chargeCd ?? 0) - dt);
+        const d = Math.hypot(targetX - e.x, targetY - e.y);
+        if (e.chargeCd <= 0 && d > 50 && d < 230) {
+          e.chargeState = "windup";
+          e.chargeT = CHARGER_CHARGE.windup;
+          e.chargeDx = Math.cos(a);
+          e.chargeDy = Math.sin(a);
+          this.audio.beep(150, 0.1, "square", 0.04, 60);
+        } else {
+          e.x += Math.cos(a) * spd * dt;
+          e.y += Math.sin(a) * spd * dt;
         }
       }
     } else {
@@ -358,8 +479,20 @@ export function updateEnemies(this: GameCore, dt: number) {
         this.addText(p.x, p.y - 12, "逆矢", "#ffd24a");
       }
       // S3 法师「镜像」虚影期间无视碰撞：不结算接触伤害。
-      if (p.hurtCd <= 0 && p.dashT <= 0 && this.magePhaseT <= 0) {
-        const hit = this.damagePlayer(e.dmg, {
+      // 角兽撞墙硬直时不结算接触伤害，给玩家一个安全的惩罚窗口。
+      const chargerStunned =
+        e.type === "charger" && e.chargeState === "stun";
+      if (
+        !chargerStunned &&
+        p.hurtCd <= 0 &&
+        p.dashT <= 0 &&
+        this.magePhaseT <= 0
+      ) {
+        const contactDmg =
+          (e.type === "charger" && e.chargeState === "dash"
+            ? e.dmg * 1.3
+            : e.dmg) * aura.dmg;
+        const hit = this.damagePlayer(contactDmg, {
           melee: true,
           src: e,
           type: "physical",

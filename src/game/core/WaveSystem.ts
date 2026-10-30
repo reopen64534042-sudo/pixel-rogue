@@ -1,4 +1,5 @@
 import { UPGRADES } from "../data/talents";
+import { waveTheme } from "../data/enemies";
 import { attrPicksPerWave } from "./AttributeSystem";
 import type { GameCore } from "./GameCore";
 export function waveQuota(this: GameCore, n: number) {
@@ -18,6 +19,8 @@ export function startNextWave(this: GameCore) {
   this.swTarget = 0;
   this.swSel = {};
   this.waveN++;
+  const theme = waveTheme(this.waveN);
+  this.themeGuarantee = theme.signature ?? null;
   // S2：每波重置节点天赋开关（同一波多只精英只发一次）
   this.waveTalentGiven = false;
   // S1：属性次数按波发放，波末消费
@@ -39,7 +42,7 @@ export function startNextWave(this: GameCore) {
   this.addText(
     this.player.x,
     this.player.y - 18,
-    "WAVE " + this.waveN,
+    `WAVE ${this.waveN} · ${theme.name}`,
     "#ff5b5b",
     true,
   );
@@ -131,7 +134,10 @@ export function updateWave(this: GameCore, dt: number) {
         } else {
           const batch = this.waveN >= 5 ? 2 : 1;
           for (let i = 0; i < batch && this.spawnedThisWave < this.quota; i++) {
-            this.spawnEnemy();
+            // 波次主题首次出现时，先保证刷出一只主题怪；之后回到权重抽取。
+            const forced = this.themeGuarantee;
+            this.spawnEnemy(forced ?? undefined);
+            this.themeGuarantee = null;
             this.spawnedThisWave++;
           }
         }

@@ -4,6 +4,8 @@ import {
   BOX_DROP_RATE,
   ELITE_BOX_DROP_RATE,
   ELITE_XP_STEP,
+  WORLD,
+  clamp,
   hash01,
 } from "../data/constants";
 import { DAMAGE_TYPES } from "../data/damageTypes";
@@ -362,6 +364,35 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
         this.boxDropsThisWave++;
         this.boxes.push({ x: e.x, y: e.y });
       }
+    }
+  }
+  // 裂胶史莱姆：先分裂再结算击杀爆炸，让范围伤害有机会连子体一起清掉。
+  // 子体不占波次配额、不再分裂、不掉落，同屏数量仍受 160 上限约束。
+  if (e.type === "splitter") {
+    for (let i = 0; i < 2 && this.enemies.length < 160; i++) {
+      this.spawnEnemy("splitling");
+      const child = this.enemies[this.enemies.length - 1];
+      if (!child || child.type !== "splitling") continue;
+      child.x = clamp(e.x + (i === 0 ? -6 : 6), 20, WORLD.w - 20);
+      child.y = clamp(e.y + (i === 0 ? -3 : 3), 20, WORLD.h - 20);
+      child.maxhp = Math.max(1, Math.round(e.maxhp * 0.45));
+      child.hp = child.maxhp;
+      child.dmg = Math.max(1, Math.round(e.dmg * 0.5));
+      child.speed = e.speed * 1.15;
+      child.r = 3;
+      child.xp = 0;
+      child.noDrop = true;
+    }
+    for (let i = 0; i < 10; i++) {
+      const a = Math.random() * Math.PI * 2;
+      this.parts.push({
+        x: e.x,
+        y: e.y,
+        vx: Math.cos(a) * 70,
+        vy: Math.sin(a) * 70,
+        life: 0.35,
+        c: "#9dff9d",
+      });
     }
   }
   // 击杀爆炸

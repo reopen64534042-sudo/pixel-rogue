@@ -9,7 +9,7 @@ import { PixelPainter } from "../rendering/PixelPainter";
 import { draw } from "../rendering/draw";
 import { SPR } from "../rendering/sprites";
 import { registerSprite } from "../rendering/assetRegistry";
-import { W, H, WORLD } from "../data/constants";
+import { W, H, WORLD, clamp } from "../data/constants";
 import { UPGRADES } from "../data/talents";
 import { SPECIAL_LEVELS, SPECIAL_UPGRADES } from "../data/specialShot";
 import type { Talent } from "../core/types";
@@ -52,6 +52,7 @@ export class GameScene extends Phaser.Scene {
     | "special-max"
     | "dash-special"
     | "special-swarm"
+    | "enemy-demo"
     | null = null;
   private testReady = false;
   private testAnchors: { x: number; y: number }[] = [];
@@ -172,7 +173,9 @@ export class GameScene extends Phaser.Scene {
             ? "special-swarm"
             : testName === "special-max"
               ? "special-max"
-              : null
+              : testName === "enemy-demo"
+                ? "enemy-demo"
+                : null
         : null;
     if (this.specialTest) this.core.startGame();
   }
@@ -213,6 +216,8 @@ export class GameScene extends Phaser.Scene {
           "#ffd24a",
           true,
         );
+      } else if (this.specialTest === "enemy-demo") {
+        this.setupEnemyDemo();
       } else {
         this.testAnchors = [{ x: core.player.x + 110, y: core.player.y }];
         for (const anchor of this.testAnchors) this.spawnTestElite(anchor);
@@ -241,6 +246,15 @@ export class GameScene extends Phaser.Scene {
       for (let i = living; i < this.swarmTarget; i++) this.spawnSwarmEnemy(i);
       return;
     }
+    if (this.specialTest === "enemy-demo") {
+      const living = core.enemies.filter((e) => !e.dead).length;
+      for (let i = living; i < 6; i++) this.spawnDemoEnemy();
+      if (core.player.maxhp < 9999) {
+        core.player.maxhp = 9999;
+        core.player.hp = 9999;
+      }
+      return;
+    }
     const living = core.enemies.filter((e) => e.elite && !e.dead);
     this.testAnchors.forEach((anchor, index) => {
       const e = living[index];
@@ -253,6 +267,74 @@ export class GameScene extends Phaser.Scene {
         this.spawnTestElite(anchor);
       }
     });
+  }
+
+  private setupEnemyDemo() {
+    const core = this.core;
+    core.player.x = 700;
+    core.player.y = 520;
+    core.player.maxhp = 9999;
+    core.player.hp = 9999;
+    core.specialLoaded = true;
+    core.pendingLevels = 0;
+    core.startTalentPending = false;
+    core.bpMode = null;
+    core.slots = [];
+    for (let i = 0; i < 6; i++) this.spawnDemoEnemy(i);
+    for (const id of [
+      "bp-level",
+      "bp-attr",
+      "bp-rest",
+      "bottom-bar",
+      "start-screen",
+    ])
+      document.getElementById(id)?.classList.add("hidden");
+    core.addText(
+      core.player.x,
+      core.player.y - 38,
+      "演示：怪物会移动 · 玩家 9999 HP · 满级强化弹",
+      "#ffd24a",
+      true,
+    );
+  }
+
+  /** 持续补充的混合怪；血量按类型分档，保证演示里既有沙包也有会被打死的裂胶/自爆虫。 */
+  private spawnDemoEnemy(index = -1) {
+    const core = this.core;
+    const types = [
+      "slime",
+      "bat",
+      "brute",
+      "shooter",
+      "bomber",
+      "splitter",
+      "charger",
+      "drummer",
+    ];
+    const type =
+      index >= 0
+        ? types[index % types.length]
+        : types[Math.floor(Math.random() * types.length)];
+    core.spawnEnemy(type);
+    const enemy = core.enemies[core.enemies.length - 1];
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 100 + Math.random() * 50;
+    enemy.x = clamp(core.player.x + Math.cos(angle) * radius, 32, WORLD.w - 32);
+    enemy.y = clamp(core.player.y + Math.sin(angle) * radius, 32, WORLD.h - 32);
+    const hp: Record<string, number> = {
+      slime: 800,
+      bat: 600,
+      brute: 6000,
+      shooter: 1500,
+      bomber: 400,
+      splitter: 600,
+      charger: 2500,
+      drummer: 1200,
+    };
+    enemy.maxhp = hp[type] ?? 1500;
+    enemy.hp = enemy.maxhp;
+    // 演示只展示玩家输出，不让敌人反伤数字淹没画面；玩家仍保持 9999 HP 的真实数值。
+    enemy.dmg = 0;
   }
 
   private spawnTestElite(anchor: { x: number; y: number }) {

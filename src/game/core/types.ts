@@ -332,6 +332,15 @@ export interface Enemy extends Point {
   shootCd: number;
   fuse: number;
   noDrop: boolean;
+  /** 角兽冲锋状态：windup 预警 / dash 冲刺 / stun 撞墙硬直。 */
+  chargeState?: "windup" | "dash" | "stun";
+  /** 当前冲锋状态剩余秒数。 */
+  chargeT?: number;
+  /** 下一次冲锋冷却；只有 charger 会物化。 */
+  chargeCd?: number;
+  /** 预警时锁定的冲锋方向。 */
+  chargeDx?: number;
+  chargeDy?: number;
   /**
    * 实际移动速度（px/s）：**仅法师路径**每帧物化，用于陨星/法阵的落点提前量。
    * 可选字段——射手路径永不写入，敌人对象形状与 v8 逐字段对照保持不变。

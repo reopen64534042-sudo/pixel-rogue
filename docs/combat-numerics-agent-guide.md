@@ -202,9 +202,10 @@ frostling: {
 | updateEnemies | AI 移动、射击、引爆、接触 | shooter/bomber/bat 是硬编码特殊分支，其他默认追逐 |
 | CombatStats | getEnemyCombatStats | 发射时/引爆时拍快照；接触时实时读取 |
 
-- 只在 ETYPES 加新键，**默认行为是追逐与接触攻击**；额外的远程技能、召唤、冰冻等需要 AI 分支或独立系统。
-- spr 指向纹理/渲染资源，还要处理视觉、图鉴、击杀统计、波次权重和精英特殊表现。
-- w0 为解锁波次，wt 为抽取权重；新增怪物不会自动替代现有敌人。
+- 只在 ETYPES 加新键，**默认行为是追逐与接触攻击**；额外的远程技能、召唤、冰冻等需要 AI 分支或独立系统（现有特殊分支：shooter / bomber / charger / drummer；splitter 的死亡分裂在 `CombatSystem.killEnemy`）。
+- spr 指向纹理/渲染资源，还要处理视觉、图鉴、击杀统计、波次主题权重和精英特殊表现。
+- w0 为解锁波次；**实际刷新权重来自 `WAVE_THEMES` 的主题表，不再直接读 `wt`**。新增怪物必须加入对应波次的主题 `weights`，否则即使 w0 达到也不会刷新；`wt` 仅作为图鉴里的初始权重说明。`signature` 指定主题首次出现时保底刷出的怪（只消费一次）。
+- 隐藏子体（如 `splitling`）用 w0 999 且不加入主题表，避免进入随机刷新池；击杀日志对未登记图鉴的类型安全忽略。
 
 ## 7. 新增 StatId、天赋或 skillDamageBonus 的完整链路
 

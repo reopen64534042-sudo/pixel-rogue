@@ -8,6 +8,7 @@ import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import { getSpecialLevelStats } from "../data/specialShot";
 import { TRUE_DAMAGE_OUTLINE } from "../core/CombatSystem";
+import { CHARGER_CHARGE, DRUMMER_AURA } from "../data/enemies";
 import { spriteEntry } from "./assetRegistry";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
@@ -424,6 +425,91 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       );
       ctx.stroke();
       ctx.globalAlpha = 1;
+    }
+    // 战鼓手光环：外圈只画细线表示 120px 生效范围，近身脉冲圈表示鼓点。
+    if (e.type === "drummer") {
+      ctx.globalAlpha = 0.06 + (Math.sin(this.time * 4 + e.seed * 9) + 1) * 0.02;
+      ctx.strokeStyle = "#ffd24a";
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(e.x),
+        Math.round(e.y),
+        DRUMMER_AURA.radius,
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.globalAlpha = 0.35 + Math.sin(this.time * 6 + e.seed) * 0.15;
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(e.x),
+        Math.round(e.y),
+        12 + Math.sin(this.time * 6 + e.seed) * 2,
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    // 角兽冲锋表现：预警线锁定方向，冲刺时留金色速度线，撞墙后头顶转星。
+    if (e.type === "charger" && e.chargeState) {
+      const dx = e.chargeDx ?? 0;
+      const dy = e.chargeDy ?? 0;
+      if (e.chargeState === "windup") {
+        const len = CHARGER_CHARGE.distance;
+        const tipX = e.x + dx * len;
+        const tipY = e.y + dy * len;
+        ctx.globalAlpha = 0.35 + Math.sin(this.time * 18) * 0.15;
+        ctx.strokeStyle = "#ff3b30";
+        ctx.beginPath();
+        ctx.moveTo(Math.round(e.x), Math.round(e.y));
+        ctx.lineTo(Math.round(tipX), Math.round(tipY));
+        ctx.stroke();
+        const px = -dy;
+        const py = dx;
+        ctx.globalAlpha = 0.75;
+        ctx.strokeStyle = "#ff3b30";
+        ctx.beginPath();
+        ctx.moveTo(Math.round(tipX), Math.round(tipY));
+        ctx.lineTo(
+          Math.round(tipX - dx * 7 + px * 3),
+          Math.round(tipY - dy * 7 + py * 3),
+        );
+        ctx.moveTo(Math.round(tipX), Math.round(tipY));
+        ctx.lineTo(
+          Math.round(tipX - dx * 7 - px * 3),
+          Math.round(tipY - dy * 7 - py * 3),
+        );
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else if (e.chargeState === "dash") {
+        ctx.globalAlpha = 0.4;
+        ctx.strokeStyle = "#ffd24a";
+        for (let i = 1; i <= 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(
+            Math.round(e.x - dx * i * 5),
+            Math.round(e.y - dy * i * 5),
+          );
+          ctx.lineTo(
+            Math.round(e.x - dx * (i * 5 + 4)),
+            Math.round(e.y - dy * (i * 5 + 4)),
+          );
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      } else if (e.chargeState === "stun") {
+        ctx.fillStyle = "#ffd24a";
+        for (let i = 0; i < 3; i++) {
+          const a = this.time * 4 + (i * Math.PI * 2) / 3;
+          ctx.fillRect(
+            Math.round(e.x + Math.cos(a) * 7),
+            Math.round(e.y - e.r - 8 + Math.sin(a) * 2),
+            2,
+            2,
+          );
+        }
+      }
     }
     if (e.elite) {
       ctx.fillStyle = "#3a0d0d";
