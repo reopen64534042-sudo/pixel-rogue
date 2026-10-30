@@ -29,6 +29,18 @@ function flowDamageMul(core: GameCore): number {
     : 1;
 }
 
+/**
+ * 基准挥砍伤害（#178）：攻击基线 × 流叠层倍率。
+ *
+ * 这是战士所有伤害的共同基准，C 面板首行显示它。
+ * **不含** heavy（大剑第 3 下）、breakout（被围）、resolve 这些条件倍率——
+ * 它们随敌群状态逐帧跳动，放进面板会让数字无解释地变化；
+ * 这些条件倍率由各自的行单独标注（如「重斩 每 3 下 · 250%」）。
+ */
+export function warriorSwingDamage(core: GameCore): number {
+  return core.player.damage * flowDamageMul(core);
+}
+
 function pointSegmentDistance(
   px: number,
   py: number,
@@ -231,9 +243,10 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
 
   const resolveMul =
     this.warriorResolveT > 0 ? 1 + WB.resolveDamageMul : 1;
+  // #178：基准伤害统一走 warriorSwingDamage（面板显示同一个函数），
+  // 条件倍率在外层相乘，避免「面板值」与「实战值」两处公式各自漂移。
   const dmg =
-    p.damage *
-    flowDamageMul(this) *
+    warriorSwingDamage(this) *
     (heavy ? WB.heavyDamageMul : 1) *
     (breakout ? WB.breakoutDamageMul : 1) *
     resolveMul;
