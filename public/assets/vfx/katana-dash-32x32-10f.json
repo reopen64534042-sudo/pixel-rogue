@@ -1,0 +1,178 @@
+{
+  "key": "katana-dash",
+  "image": "katana-dash-32x32-10f.png",
+  "columns": 5,
+  "rows": 2,
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "frameCount": 10,
+  "origin": {
+    "x": 0.5,
+    "y": 0.5
+  },
+  "anchorPx": {
+    "x": 16,
+    "y": 16
+  },
+  "baseAngle": 0,
+  "timing": {
+    "rushSeconds": 0.16,
+    "pathSeconds": 0.42,
+    "rushFrames": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "releaseFrames": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ]
+  },
+  "palette": [
+    "#1a5f9e",
+    "#57e6ff",
+    "#d8f7ff",
+    "#ffffff"
+  ],
+  "alphaValues": [
+    0,
+    255
+  ],
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "x": 32,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "x": 64,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "x": 96,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "x": 128,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "x": 0,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "x": 32,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "x": 64,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "x": 96,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    },
+    {
+      "x": 128,
+      "y": 32,
+      "w": 32,
+      "h": 32
+    }
+  ],
+  "stats": [
+    {
+      "frame": 0,
+      "opaque": 20,
+      "white": 0
+    },
+    {
+      "frame": 1,
+      "opaque": 38,
+      "white": 8
+    },
+    {
+      "frame": 2,
+      "opaque": 78,
+      "white": 17
+    },
+    {
+      "frame": 3,
+      "opaque": 139,
+      "white": 28
+    },
+    {
+      "frame": 4,
+      "opaque": 179,
+      "white": 38
+    },
+    {
+      "frame": 5,
+      "opaque": 98,
+      "white": 14
+    },
+    {
+      "frame": 6,
+      "opaque": 49,
+      "white": 6
+    },
+    {
+      "frame": 7,
+      "opaque": 39,
+      "white": 2
+    },
+    {
+      "frame": 8,
+      "opaque": 18,
+      "white": 1
+    },
+    {
+      "frame": 9,
+      "opaque": 7,
+      "white": 1
+    }
+  ],
+  "source": {
+    "tool": "built-in image_gen",
+    "model": null,
+    "seed": null,
+    "path": "assets/vfx/katana-dash-source.png",
+    "width": 1983,
+    "height": 793,
+    "sha256": "9fb168ccebe0dea134c9fe69ea914ab4b792aa8986b74fcb4fb8413936f8a474",
+    "prompt": "assets/vfx/katana-dash-prompt.txt"
+  },
+  "processing": {
+    "script": "scripts/build-katana-dash-vfx.mjs",
+    "sampling": "nearest-neighbor on a shared cell grid",
+    "alphaThreshold": 128,
+    "quantization": "RGB squared distance; no dithering",
+    "perFrameCrop": false
+  },
+  "sha256": "cb5e8ab6bc72c11ab3de3ab0c1ec89ca178bcd08ef052a0f58fc3083c8a01ac4"
+}

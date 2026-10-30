@@ -14,6 +14,7 @@ import {
   GREATSWORD_SLASH_SHEETS,
   registerGreatswordSlash,
 } from "../rendering/vfx/greatswordSlash";
+import { KATANA_DASH, registerKatanaDash } from "../rendering/vfx/katanaDash";
 import { W, H, WORLD, clamp } from "../data/constants";
 import { UPGRADES } from "../data/talents";
 import { SPECIAL_LEVELS, SPECIAL_UPGRADES } from "../data/specialShot";
@@ -199,6 +200,7 @@ export class GameScene extends Phaser.Scene {
     void this.loadTaidaoSlash();
     void this.loadIaiSpinSlash();
     void this.loadGreatswordSlashes();
+    void this.loadKatanaDash();
     const testName = new URLSearchParams(window.location.search).get("test");
     this.specialTest =
       import.meta.env.DEV && import.meta.env.MODE === "e2e"
@@ -557,6 +559,18 @@ export class GameScene extends Phaser.Scene {
           console.warn(`[assets] Greatsword slash loading failed: ${sheet.image}`, error);
       }
     }));
+  }
+
+  /** Preload once; both dash phases are driven by the existing simulation state. */
+  private async loadKatanaDash() {
+    try {
+      const image = await loadImageElement(KATANA_DASH.image);
+      if (!this.sys.isActive()) return;
+      registerKatanaDash(this.textures, image);
+    } catch (error) {
+      if (import.meta.env.DEV)
+        console.warn("[assets] Katana dash loading failed; using procedural blade", error);
+    }
   }
 
   update(_now: number, delta: number) {
