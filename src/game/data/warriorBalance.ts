@@ -148,7 +148,7 @@ export const WARRIOR_BALANCE = {
   breakoutKnockMul: 3,
   heavyArmorBreakT: 4,
   /**
-   * 大剑护盾链（v133）：
+   * 大剑护盾链（v134）：
    * 铁壁提供每波 1 层护盾，破裂后 15 秒重建；碎盾反震在破盾时触发
    * 80px 震波；重壁增加 1 层上限，并让护盾有 15% 概率受击不消耗层数
    *（层数制护盾下，用「护盾保全」表达原设计的「15% 减伤」）。
@@ -157,19 +157,33 @@ export const WARRIOR_BALANCE = {
     rebuild: 15,
     guardChance: 0.15,
   },
-  swordQiRange: 200,
-  swordQiWidth: 10,
-  swordQiDamageMul: 0.8,
   /**
-   * 「裂地」（重斩链 L3）：重斩命中后在主目标脚下延迟 0.22s 裂开。
-   * 半径固定 55px，不吃「近战范围」属性；对已破甲目标 +30%。
+   * 重斩链剑气（v135）：
+   * - 剑气（L2）：向前一道脱离角色的平推波面，80% 伤害、强击退、穿透。
+   * - 裂地（L3）：同时向四个斜向放出强化波面，120% 伤害、眩晕 0.45s、
+   *   对破甲目标 +30%；四道共享命中表，同一敌人整次只吃一次。
+   * halfW/halfH 是“飞行方向半宽 / 垂直方向半高”的碰撞盒；不是圆形半径。
    */
-  fissure: {
-    delay: 0.22,
-    radius: 55,
-    dmgMul: 1.2,
-    armorBonus: 0.3,
-    stunT: 0.45,
+  energyWaves: {
+    qi: {
+      speed: 230,
+      life: 0.8,
+      dmgMul: 0.8,
+      halfW: 8,
+      halfH: 21,
+      offset: 22,
+    },
+    fissure: {
+      speed: 200,
+      life: 0.85,
+      dmgMul: 1.2,
+      halfW: 12,
+      halfH: 32,
+      offset: 10,
+      stunT: 0.45,
+      armorBonus: 0.3,
+      scale: 1,
+    },
   },
   // 剑气击退不在此表：已统一到 data/knockback.ts 的 KNOCK.warrior.qi（14px），
   // 避免「伤害数值」与「击退数值」两套口径各自漂移。

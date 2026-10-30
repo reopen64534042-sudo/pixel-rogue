@@ -18,7 +18,10 @@ import {
 } from "../data/enemies";
 import { spriteEntry } from "./assetRegistry";
 import { drawGreatswordSlash } from "./vfx/greatswordSlash";
-import { drawGreatswordDashSlash } from "./vfx/greatswordEnergy";
+import {
+  drawGreatswordDashSlash,
+  drawGreatswordWave,
+} from "./vfx/greatswordEnergy";
 import { drawGreatswordLeapImpact } from "./vfx/greatswordLeapImpact";
 import {
   drawGreatswordLeapDescent,
@@ -734,36 +737,17 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
-  // 裂地预警：0.22s 内展开的橙金地裂圈，爆裂前提示实际范围。
-  if (this.warriorFissures.length) {
-    for (const f of this.warriorFissures) {
-      const k = Math.max(0, Math.min(1, 1 - f.t / f.max));
-      const fx = Math.round(f.x);
-      const fy = Math.round(f.y);
-      const r = Math.max(2, Math.round(f.r * k));
-      ctx.globalAlpha = 0.35 + Math.sin(this.time * 30) * 0.1;
-      ctx.strokeStyle = "#ff8c3a";
-      ctx.beginPath();
-      ctx.arc(fx, fy, r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 0.18;
-      ctx.strokeStyle = "#ffd24a";
-      ctx.beginPath();
-      ctx.arc(fx, fy, Math.round(f.r), 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 0.55;
-      ctx.strokeStyle = "#ffd24a";
-      ctx.beginPath();
-      for (let i = 0; i < 4; i++) {
-        const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-        ctx.moveTo(fx, fy);
-        ctx.lineTo(
-          Math.round(fx + Math.cos(a) * f.r * 0.55),
-          Math.round(fy + Math.sin(a) * f.r * 0.55),
-        );
-      }
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+  // 剑气/裂地：脱离角色的移动波面（素材由 GameScene 预载）。
+  if (this.warriorWaves.length) {
+    for (const w of this.warriorWaves) {
+      drawGreatswordWave(ctx, {
+        kind: w.kind,
+        x: w.x,
+        y: w.y,
+        angle: w.angle,
+        progress: 1 - w.t / w.max,
+        scale: w.scale,
+      });
     }
   }
 

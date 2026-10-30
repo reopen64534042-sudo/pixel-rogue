@@ -3535,3 +3535,16 @@ dmg = Math.ceil(e.hp - 1);
   - 有碎盾破盾：shield 2→1、shieldCd=15、`dmgBy.shock=120`、80px 内三敌 9999→9959、HP 80。
   - 重壁：shieldMax=2；强制 random 0 时护盾 2→2、无震波（保全）；random 0.99 时护盾 2→1、触发震波；每波开始 shield 0→1、max2、cd15。
 - 后续：v135 太刀反远程链（护刃/刃返/刃轮），v136 大剑反击链（荆棘重铠/血偿/不屈战魂）；本批未运行 Vitest / Playwright 测试套件，parity 留待授权批次。
+
+## 大剑剑气 / 裂地移动波面接入（v135，2026-10-31）
+
+- 版本：main v133 素材接口（PR #206）之后、v134 护盾链同分支接入；本批消费已交付的 `greatsword-sword-qi` / `greatsword-fissure` / `greatsword-dash-slash` 表与 `greatswordEnergy` 适配器，不改素材、不新增加载器。
+- 剑气：`GameCore.warriorWaves` 新增移动波面状态；重斩命中时在角色前方生成 1 道 `kind:"qi"`，以 `energyWaves.qi` 的 230px/s、0.8s 寿命前进，视觉中心每帧更新。碰撞使用「飞行方向半宽 8px / 垂直半高 21px + 敌人半径」的定向矩形；每个波面每个敌人只命中一次，80% 伤害 + `KNOCK.warrior.qi` 强击退，可穿透。
+- 裂地：持裂地时不再生成单道剑气，改为同时生成 4 道 `kind:"fissure"`，方向 -135°/-45°/45°/135°；速度 200、寿命 0.85s、碰撞盒 12/32，120% 伤害、眩晕 0.45s、对 `armorBreakT >0` 目标 +30%。四道共享同一个 `hit` 数组，同一敌人整次只结算一次。
+- 表现：`draw.ts` 在敌人层之后的 `warriorWaves` 循环调用 `drawGreatswordWave`，pass 实际中心/朝向/模拟进度/scale；冲刺斩由 v133 的 `drawGreatswordDashSlash` 接管，不再绘制旧残影。旧 `warriorQi` 即时直线、`warriorFissures` 延迟地裂与预警圈均已移除。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；受控 e2e（5338）：
+  - 剑气：重斩命中后 `warriorWaves=1`、kind=qi、中心从 x718 前进到 x749（0.667s）、命中 1 次、敌人 HP 9999→9933；波面寿命结束后清空。
+  - 裂地：`warriorWaves=4`，四道角度 -135/-45/45/135，`sharedHit=true`，无额外 qi；四斜向敌人各被命中一次，HP 9999→9975、眩晕 0.283s；中心近敌由重斩单独结算。
+  - 冲刺斩截图使用 v133 专用薄刃表；素材未就绪时回退普通大剑刀光。
+  - 截图：`output/vfx-energy-qi.png`、`vfx-energy-fissure.png`、`vfx-dash-slash.png`。
+- 当前分支 `feat/greatsword-shield-chain-v133` 同时包含 v134 护盾链与 v135 波面接入；尚未提交/推送/PR。后续按既定顺序进入 v136 太刀反远程链（护刃/刃返/刃轮）。按 2026-10-29 标准未运行 Vitest / Playwright 测试套件，parity 留待授权批次。
