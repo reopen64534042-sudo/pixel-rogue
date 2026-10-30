@@ -1,4 +1,5 @@
 import { WORLD, clamp } from "../data/constants";
+import { WEB_ZONE } from "../data/enemies";
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import type { GameCore } from "./GameCore";
 
@@ -113,8 +114,16 @@ export function updatePlayer(this: GameCore, dt: number) {
   } else {
     // S2「滞空」：闪避成功后 0.5 秒的移速加成
     const boost = this.dodgeBoostT > 0 ? 1.2 : 1;
-    p.x += mx * p.speed * boost * dt;
-    p.y += my * p.speed * boost * dt;
+    const webSlow = this.webZones.some((z) => {
+      if (z.arm > 0) return false;
+      const dx = p.x - z.x;
+      const dy = p.y - z.y;
+      return dx * dx + dy * dy < z.R * z.R;
+    })
+      ? WEB_ZONE.slow
+      : 1;
+    p.x += mx * p.speed * boost * webSlow * dt;
+    p.y += my * p.speed * boost * webSlow * dt;
   }
   // 世界边界
   p.x = clamp(p.x, 24, WORLD.w - 24);

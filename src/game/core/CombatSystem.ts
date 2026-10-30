@@ -4,6 +4,8 @@ import {
   BOX_DROP_RATE,
   ELITE_BOX_DROP_RATE,
   ELITE_XP_STEP,
+  WORLD,
+  clamp,
   hash01,
 } from "../data/constants";
 import { DAMAGE_TYPES } from "../data/damageTypes";
@@ -144,9 +146,6 @@ export function hurtEnemy(
     settled += trueDamage;
   }
   dmg = settled;
-  // 完全真实伤害（type=true）或附带真实伤害（trueFraction）都使用银白飘字，
-  // 避免被强化弹/暴击的金色淹没。
-  const hasTrueDamage = opts.type === "true" || trueDamage > 0;
   // 战士「裂甲」：本次命中吃**已有**层数；新层在伤害结算后添加。
   if (opts.form === "melee" && (e.meleeVulnStacks ?? 0) > 0) {
     dmg *= 1 + 0.02 * (e.meleeVulnStacks ?? 0);
@@ -156,6 +155,55 @@ export function hurtEnemy(
   // 另行传入，不受本处影响（反应/连锁不得使用 lethalCap）。
   if (opts.lethalCap && e.hp > 1 && dmg >= e.hp) {
     dmg = e.hp - 1;
+  }
+  // 主伤害和附带的真实伤害分开显示：主数字保持原样式，真实部分用小号 +N 紧跟右侧。
+  const mainIsTrue = opts.type === "true";
+  const mainSpecial = opts.specialHit === true && !mainIsTrue;
+  const mainDamage = trueDamage > 0 ? Math.max(0, dmg - trueDamage) : dmg;
+  const mainText = this.addText(
+    e.x,
+    e.y - e.r - 2,
+    mainDamage,
+    mainIsTrue
+      ? TRUE_DAMAGE_COLOR
+      : opts.specialHit || crit
+        ? "#ffd24a"
+        : "#ffffff",
+    crit,
+    mainIsTrue,
+    false,
+    mainSpecial,
+    crit,
+  );
+  if (crit) {
+    // 暴击火花：不推进随机数，按敌人 seed 给四向金色/白色短粒子。
+    for (let i = 0; i < 4; i++) {
+      const a = e.seed + (i * Math.PI) / 2;
+      this.parts.push({
+        x: e.x,
+        y: e.y,
+        vx: Math.cos(a) * 70,
+        vy: Math.sin(a) * 70,
+        life: 0.25,
+        c: i % 2 === 0 ? "#ffd24a" : "#ffffff",
+      });
+    }
+  }
+  if (trueDamage > 0) {
+    const subLabel = `+${trueDamage}`;
+    // Press Start 2P 近似等宽：按字号估宽，给主数字和 +N 之间留 3px 空隙。
+    const mainCharW = mainIsTrue ? (crit ? 16 : 12) : mainSpecial ? 9 : 8;
+    const mainW = Math.max(8, String(mainDamage).length * mainCharW);
+    const subW = subLabel.length * 8;
+    this.addText(
+      mainText.x + mainW / 2 + 3 + subW / 2,
+      mainText.y,
+      subLabel,
+      TRUE_DAMAGE_COLOR,
+      false,
+      true,
+      true,
+    );
   }
   // 「贯穿标记」：只有强化弹直接命中才叠层，普通命中不叠。
   // 上限由「深痕」决定；标记常驻，不因换目标清空。
@@ -177,18 +225,6 @@ export function hurtEnemy(
       this.player.maxhp,
       this.player.hp + dmg * this.player.lifesteal * (opts.lifestealMul ?? 1),
     );
-  this.addText(
-    e.x,
-    e.y - e.r - 2,
-    dmg,
-    hasTrueDamage
-      ? TRUE_DAMAGE_COLOR
-      : opts.specialHit || crit
-        ? "#ffd24a"
-        : "#ffffff",
-    crit,
-    hasTrueDamage,
-  );
   if ((kx || ky) && !e.noKnock) {
     e.x += kx;
     e.y += ky;
@@ -365,6 +401,62 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
       }
     }
   }
+  // 精英「分裂」词缀：死亡裂成两只非精英小一号本体，不产生额外掉落。
+  if (e.elite && e.affix === "split") {
+    for (let i = 0; i < 2 && this.enemies.length < 160; i++) {
+      this.spawnEnemy(e.type);
+      const child = this.enemies[this.enemies.length - 1];
+      if (!child || child.elite) continue;
+      child.maxhp = Math.max(1, Math.round(e.maxhp * 0.25));
+      child.hp = child.maxhp;
+      child.dmg = Math.max(1, Math.round(e.dmg * 0.45));
+      child.speed = e.speed * 1.1;
+      child.x = clamp(e.x + (i === 0 ? -14 : 14), 20, WORLD.w - 20);
+      child.y = clamp(e.y + (i === 0 ? -8 : 8), 20, WORLD.h - 20);
+      child.noDrop = true;
+      child.xp = 0;
+    }
+    for (let i = 0; i < 12; i++) {
+      const a = Math.random() * Math.PI * 2;
+      this.parts.push({
+        x: e.x,
+        y: e.y,
+        vx: Math.cos(a) * 100,
+        vy: Math.sin(a) * 100,
+        life: 0.4,
+        c: "#ff8a2b",
+      });
+    }
+  }
+  // 裂胶史莱姆：先分裂再结算击杀爆炸，让范围伤害有机会连子体一起清掉。
+  // 子体不占波次配额、不再分裂、不掉落，同屏数量仍受 160 上限约束。
+  if (e.type === "splitter") {
+    for (let i = 0; i < 2 && this.enemies.length < 160; i++) {
+      this.spawnEnemy("splitling");
+      const child = this.enemies[this.enemies.length - 1];
+      if (!child || child.type !== "splitling") continue;
+      child.x = clamp(e.x + (i === 0 ? -6 : 6), 20, WORLD.w - 20);
+      child.y = clamp(e.y + (i === 0 ? -3 : 3), 20, WORLD.h - 20);
+      child.maxhp = Math.max(1, Math.round(e.maxhp * 0.45));
+      child.hp = child.maxhp;
+      child.dmg = Math.max(1, Math.round(e.dmg * 0.5));
+      child.speed = e.speed * 1.15;
+      child.r = 3;
+      child.xp = 0;
+      child.noDrop = true;
+    }
+    for (let i = 0; i < 10; i++) {
+      const a = Math.random() * Math.PI * 2;
+      this.parts.push({
+        x: e.x,
+        y: e.y,
+        vx: Math.cos(a) * 70,
+        vy: Math.sin(a) * 70,
+        life: 0.35,
+        c: "#9dff9d",
+      });
+    }
+  }
   // 击杀爆炸
   if (p.explode && !fromExplode) {
     const R = (26 + p.explode * 6) * p.area;
@@ -427,20 +519,25 @@ export function addText(
   c: string,
   big = false,
   trueDmg = false,
+  small = false,
+  specialDmg = false,
+  critDmg = false,
 ) {
   // 同位置叠字是玩家实机反馈的问题（伤害数字与机制标签互相盖住，两个都看不清）。
   // 生成时就按当前飘字错开：同一列（x 差 <18px）每撞到一条，新字上移 9px（最多 4 层）。
   // 只读现有飘字位置，不消耗随机数、不改变任何战斗数值；飘字本来就在上浮，
   // 因此错位在视觉上是一条「字往上排」的队列。
   let ny = y;
-  for (let i = 0; i < 4; i++) {
-    const clash = this.texts.some(
-      (t) => Math.abs(t.x - x) < 18 && Math.abs(t.y - ny) < 8,
-    );
-    if (!clash) break;
-    ny -= 9;
+  if (!small) {
+    for (let i = 0; i < 4; i++) {
+      const clash = this.texts.some(
+        (t) => Math.abs(t.x - x) < 18 && Math.abs(t.y - ny) < 8,
+      );
+      if (!clash) break;
+      ny -= 9;
+    }
   }
-  this.texts.push({
+  const text = {
     x,
     y: ny,
     s: String(s),
@@ -449,7 +546,12 @@ export function addText(
     vy: -22,
     big: !!big,
     ...(trueDmg ? { trueDmg: true } : {}),
-  });
+    ...(specialDmg ? { specialDmg: true } : {}),
+    ...(critDmg ? { critDmg: true } : {}),
+    ...(small ? { small: true } : {}),
+  };
+  this.texts.push(text);
+  return this.texts[this.texts.length - 1];
 }
 
 export function damagePlayer(

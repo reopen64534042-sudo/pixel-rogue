@@ -51,6 +51,83 @@ SPR.slime = makeSprite(
   ["  ssss  ", " ssssss ", " skssks ", "ssssssss", "ssssssss", ".ssssss."],
   { s: "#4dd44d", k: "#0a3d0a" },
 );
+/** 裂胶史莱姆：双叶轮廓 + 两颗青色核，死亡后从核的位置裂成两只子体。 */
+SPR.splitter = makeSprite(
+  [
+    "  sssss  ",
+    " sssssss ",
+    "sskssskss",
+    "ssccsccss",
+    "sssssssss",
+    ".sss.sss.",
+    "..s...s..",
+  ],
+  { s: "#4dd44d", c: "#57e6ff", k: "#0a3d0a" },
+);
+SPR.splitling = makeSprite(
+  [".sss.", "sssss", "sksks", ".s.s."],
+  { s: "#9dff9d", k: "#0a3d0a" },
+);
+/** 战鼓手：紫袍小体型 + 金色鼓面，站在怪群中后提供光环。 */
+SPR.drummer = makeSprite(
+  [
+    "..pppp..",
+    ".pppppp.",
+    ".pkppkp.",
+    ".pppppp.",
+    "..pppp..",
+    ".pppppp.",
+    "pppppppp",
+    "pggggggp",
+    ".pggggp.",
+    "..p..p..",
+  ],
+  { p: "#b05cff", k: "#1a0a2a", g: "#ffd24a" },
+);
+/** 掘地虫：棕色甲壳 + 金色复眼，前肢骨白；钻地时由绘制层改为土丘。 */
+SPR.burrower = makeSprite(
+  [
+    "..bbbb....",
+    ".bbbbbb...",
+    "bbkbbkbb..",
+    "bbbbbbbb..",
+    ".bwwwwb...",
+    "bwb..bwb..",
+    "bb....bb..",
+    "..........",
+  ],
+  { b: "#5a3a20", k: "#ffd24a", w: "#e8e8f0" },
+);
+/** 织网蛛：紫色八足剪影 + 青色复眼，和蝙蝠/战鼓手的紫色区分在体型与足部。 */
+SPR.spinner = makeSprite(
+  [
+    "..s....s..",
+    ".ss.ss.ss.",
+    "..ssssss..",
+    ".skssskss.",
+    "..ssssss..",
+    ".ss.ss.ss.",
+    "..s....s..",
+    "..........",
+  ],
+  { s: "#5c4dff", k: "#57e6ff" },
+);
+/** 角兽：四足冲锋兽，金色独角是预警方向的第一视觉锚点。 */
+SPR.charger = makeSprite(
+  [
+    "......hh....",
+    ".....hhhh...",
+    "...gggggg...",
+    "..gggggggg..",
+    ".ggkggggkgg.",
+    "gggggggggggg",
+    "gggggggggggg",
+    ".gg.gggg.gg.",
+    ".gg.gggg.gg.",
+    ".gg......gg.",
+  ],
+  { g: "#c05050", h: "#ffd24a", k: "#3a0d0d" },
+);
 SPR.bat = makeSprite(
   ["..h..h..", "b.bbbb.b", "bbbbbbbb", ".brbbrb.", "..bbbb..", "........"],
   { h: "#e8e8f0", b: "#5c4dff", r: "#ff5b5b" },

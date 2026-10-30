@@ -273,6 +273,8 @@ export interface Talent {
 }
 /** 职业标识。`common` 表示三职业共用池。 */
 export type Profession = "shooter" | "mage" | "warrior" | "common";
+/** 精英词缀：分裂 / 召唤蝙蝠 / 冰霜新星。 */
+export type EliteAffix = "split" | "summon" | "nova";
 
 /** 战士开局流派：太刀（快、近、弱击退）/ 大剑（慢、远、强击退）。 */
 export type WarriorStyle = "katana" | "greatsword";
@@ -332,6 +334,28 @@ export interface Enemy extends Point {
   shootCd: number;
   fuse: number;
   noDrop: boolean;
+  /** 角兽冲锋状态：windup 预警 / dash 冲刺 / stun 撞墙硬直。 */
+  chargeState?: "windup" | "dash" | "stun";
+  /** 当前冲锋状态剩余秒数。 */
+  chargeT?: number;
+  /** 下一次冲锋冷却；只有 charger 会物化。 */
+  chargeCd?: number;
+  /** 预警时锁定的冲锋方向。 */
+  chargeDx?: number;
+  chargeDy?: number;
+  /** 织网蛛的吐网冷却；只有 spinner 会物化。 */
+  webCd?: number;
+  /** 掘地虫钻地状态：dive 下沉 / under 地下移动 / surface 地面预警。 */
+  burrowState?: "dive" | "under" | "surface";
+  /** 当前钻地状态剩余时间。 */
+  burrowT?: number;
+  /** 下一次钻地冷却；只有 burrower 会物化。 */
+  burrowCd?: number;
+  /** 精英词缀与对应计时；只有精英会物化。 */
+  affix?: EliteAffix;
+  affixT?: number;
+  /** 冰霜新星预警剩余时间。 */
+  novaT?: number;
   /**
    * 实际移动速度（px/s）：**仅法师路径**每帧物化，用于陨星/法阵的落点提前量。
    * 可选字段——射手路径永不写入，敌人对象形状与 v8 逐字段对照保持不变。
@@ -465,6 +489,12 @@ export interface FloatingText extends Point {
   big: boolean;
   /** 真实伤害专属样式：银白字 + 冷蓝描边并放大，和普通白字区分 */
   trueDmg?: boolean;
+  /** 强化弹专属样式：金色主体 + 青色外圈，和普通暴击区分 */
+  specialDmg?: boolean;
+  /** 暴击专属样式：橙红外圈 + 金色主体；强化弹暴击会再叠青色内圈 */
+  critDmg?: boolean;
+  /** 附带真实伤害的补充数字：小一号，显示在主伤害右侧 */
+  small?: boolean;
 }
 export interface Meteor extends Point {
   t: number;

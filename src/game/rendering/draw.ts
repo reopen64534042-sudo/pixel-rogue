@@ -8,6 +8,13 @@ import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import { getSpecialLevelStats } from "../data/specialShot";
 import { TRUE_DAMAGE_OUTLINE } from "../core/CombatSystem";
+import {
+  BURROWER,
+  CHARGER_CHARGE,
+  DRUMMER_AURA,
+  ELITE_AFFIX_INFO,
+  WEB_ZONE,
+} from "../data/enemies";
 import { spriteEntry } from "./assetRegistry";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
@@ -187,6 +194,57 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.globalAlpha = 1;
   }
 
+  // 织网蛛蛛网：预警时金色圈收缩，生效后画白色网纹；网只减速，不造成伤害。
+  for (const z of this.webZones) {
+    if (z.arm > 0) {
+      const k = 1 - z.arm / WEB_ZONE.arm;
+      ctx.globalAlpha = 0.45 + Math.sin(this.time * 18) * 0.2;
+      ctx.strokeStyle = "#ffd24a";
+      ctx.beginPath();
+      ctx.arc(Math.round(z.x), Math.round(z.y), z.R, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(z.x),
+        Math.round(z.y),
+        Math.max(2, z.R * k),
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.globalAlpha = 0.3 + Math.sin(this.time * 3 + z.x) * 0.05;
+      ctx.strokeStyle = "#d9e7ff";
+      ctx.beginPath();
+      ctx.arc(Math.round(z.x), Math.round(z.y), z.R, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(z.x),
+        Math.round(z.y),
+        Math.round(z.R * 0.55),
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.moveTo(
+          Math.round(z.x + Math.cos(a) * 4),
+          Math.round(z.y + Math.sin(a) * 4),
+        );
+        ctx.lineTo(
+          Math.round(z.x + Math.cos(a) * z.R * 0.95),
+          Math.round(z.y + Math.sin(a) * z.R * 0.95),
+        );
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
   // 陨星预告（#112）：圆环与十字合并为一次 lineStyle + strokePath。
   // 原先每个陨石要 2 次 beginPath + 2 次 strokePath，多个陨石时反复打断批次。
   if (this.meteors.length) {
@@ -361,9 +419,34 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       : spriteRect(e.spr, e.x, e.y, (e.elite ? 1.8 : 1) * puff);
     if (!rect) continue;
     const { x, y, w, h } = rect;
+    const burrowHidden =
+      e.type === "burrower" && e.burrowState === "under";
     // 冰冻染色
     if (e.slowT > 0) ctx.globalAlpha = 0.9;
-    ctx.sprite(rect.tex, x, y, w, h);
+    if (e.type === "burrower" && e.burrowState === "dive") ctx.globalAlpha = 0.55;
+    if (burrowHidden) {
+      // 地下只剩土丘、两只前爪与复眼；贴图不画，但敌人实体仍在场上（可被范围伤害命中）。
+      ctx.fillStyle = "#5a3a20";
+      ctx.fillRect(Math.round(e.x - 8), Math.round(e.y - 3), 16, 6);
+      ctx.fillStyle = "#3a1a0a";
+      ctx.fillRect(Math.round(e.x - 5), Math.round(e.y - 2), 10, 2);
+      ctx.fillStyle = "#e8e8f0";
+      ctx.fillRect(Math.round(e.x - 8), Math.round(e.y + 1), 3, 2);
+      ctx.fillRect(Math.round(e.x + 5), Math.round(e.y + 1), 3, 2);
+      ctx.fillStyle = "#ffd24a";
+      ctx.fillRect(Math.round(e.x - 2), Math.round(e.y - 1), 2, 2);
+      ctx.fillRect(Math.round(e.x + 2), Math.round(e.y - 1), 2, 2);
+      ctx.globalAlpha = 0.35 + Math.sin(this.time * 8 + e.seed) * 0.12;
+      ctx.strokeStyle = "#8a5a30";
+      ctx.beginPath();
+      ctx.arc(Math.round(e.x), Math.round(e.y), 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.sprite(rect.tex, x, y, w, h);
+    }
+    if (e.type === "burrower" && e.burrowState === "dive")
+      ctx.globalAlpha = 1;
 
     if (e.slowT > 0) {
       ctx.globalAlpha = 0.35;
@@ -425,11 +508,140 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
+    // 战鼓手光环：外圈只画细线表示 120px 生效范围，近身脉冲圈表示鼓点。
+    if (e.type === "drummer") {
+      ctx.globalAlpha = 0.06 + (Math.sin(this.time * 4 + e.seed * 9) + 1) * 0.02;
+      ctx.strokeStyle = "#ffd24a";
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(e.x),
+        Math.round(e.y),
+        DRUMMER_AURA.radius,
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.globalAlpha = 0.35 + Math.sin(this.time * 6 + e.seed) * 0.15;
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(e.x),
+        Math.round(e.y),
+        12 + Math.sin(this.time * 6 + e.seed) * 2,
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    // 掘地虫钻出预警：地面收缩圈，结束后才恢复接触伤害。
+    if (e.type === "burrower" && e.burrowState === "surface") {
+      const k = 1 - (e.burrowT ?? 0) / BURROWER.surface;
+      ctx.globalAlpha = 0.5 + Math.sin(this.time * 20) * 0.2;
+      ctx.strokeStyle = "#ffd24a";
+      ctx.beginPath();
+      ctx.arc(Math.round(e.x), Math.round(e.y), 24, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(e.x),
+        Math.round(e.y),
+        Math.max(2, 24 * k),
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    // 角兽冲锋表现：预警线锁定方向，冲刺时留金色速度线，撞墙后头顶转星。
+    if (e.type === "charger" && e.chargeState) {
+      const dx = e.chargeDx ?? 0;
+      const dy = e.chargeDy ?? 0;
+      if (e.chargeState === "windup") {
+        const len = CHARGER_CHARGE.distance;
+        const tipX = e.x + dx * len;
+        const tipY = e.y + dy * len;
+        ctx.globalAlpha = 0.35 + Math.sin(this.time * 18) * 0.15;
+        ctx.strokeStyle = "#ff3b30";
+        ctx.beginPath();
+        ctx.moveTo(Math.round(e.x), Math.round(e.y));
+        ctx.lineTo(Math.round(tipX), Math.round(tipY));
+        ctx.stroke();
+        const px = -dy;
+        const py = dx;
+        ctx.globalAlpha = 0.75;
+        ctx.strokeStyle = "#ff3b30";
+        ctx.beginPath();
+        ctx.moveTo(Math.round(tipX), Math.round(tipY));
+        ctx.lineTo(
+          Math.round(tipX - dx * 7 + px * 3),
+          Math.round(tipY - dy * 7 + py * 3),
+        );
+        ctx.moveTo(Math.round(tipX), Math.round(tipY));
+        ctx.lineTo(
+          Math.round(tipX - dx * 7 - px * 3),
+          Math.round(tipY - dy * 7 - py * 3),
+        );
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else if (e.chargeState === "dash") {
+        ctx.globalAlpha = 0.4;
+        ctx.strokeStyle = "#ffd24a";
+        for (let i = 1; i <= 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(
+            Math.round(e.x - dx * i * 5),
+            Math.round(e.y - dy * i * 5),
+          );
+          ctx.lineTo(
+            Math.round(e.x - dx * (i * 5 + 4)),
+            Math.round(e.y - dy * (i * 5 + 4)),
+          );
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      } else if (e.chargeState === "stun") {
+        ctx.fillStyle = "#ffd24a";
+        for (let i = 0; i < 3; i++) {
+          const a = this.time * 4 + (i * Math.PI * 2) / 3;
+          ctx.fillRect(
+            Math.round(e.x + Math.cos(a) * 7),
+            Math.round(e.y - e.r - 8 + Math.sin(a) * 2),
+            2,
+            2,
+          );
+        }
+      }
+    }
     if (e.elite) {
       ctx.fillStyle = "#3a0d0d";
       ctx.fillRect(x, y - 4, w, 2);
       ctx.fillStyle = "#ff5b5b";
       ctx.fillRect(x, y - 4, (w * e.hp) / e.maxhp, 2);
+    }
+    if (e.elite && e.affix) {
+      ctx.fillStyle = ELITE_AFFIX_INFO[e.affix].color;
+      const mx = Math.round(e.x);
+      const my = Math.round(y - 8);
+      ctx.fillRect(mx - 2, my, 5, 2);
+      ctx.fillRect(mx, my - 2, 2, 5);
+    }
+    if (e.elite && e.affix === "nova" && (e.novaT ?? 0) > 0) {
+      const k = 1 - (e.novaT ?? 0) / 0.55;
+      ctx.globalAlpha = 0.45 + Math.sin(this.time * 24) * 0.2;
+      ctx.strokeStyle = "#57e6ff";
+      ctx.beginPath();
+      ctx.arc(Math.round(e.x), Math.round(e.y), 90, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(e.x),
+        Math.round(e.y),
+        Math.max(2, 90 * k),
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -844,7 +1056,17 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
   for (const t of this.texts) {
-    const layers = t.trueDmg ? (t.big ? 4 : 3) : 2;
+    const layers = t.trueDmg
+      ? t.big
+        ? 4
+        : 3
+      : t.specialDmg
+        ? t.critDmg
+          ? 4
+          : 3
+        : t.critDmg
+          ? 3
+          : 2;
     let slots = slotState.slots.get(t);
     if (!slots || slots.length !== layers) {
       if (slots) slotState.free.push(...slots);
@@ -858,7 +1080,17 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     const y = Math.round(t.y);
     if (t.trueDmg) {
       // 真实伤害：冷蓝外圈 + 深色落影 + 银白主体；暴击再叠金色外圈并放大。
-      if (t.big) {
+      if (t.small) {
+        // 附带真实伤害的补充数字：比常规真实伤害小一圈，跟在主伤害右侧。
+        ctx.font = '9px "Press Start 2P", monospace';
+        ctx.fillStyle = TRUE_DAMAGE_OUTLINE;
+        ctx.fillTextSlot(slots[0], t.s, x, y);
+        ctx.font = '8px "Press Start 2P", monospace';
+        ctx.fillStyle = "#10131f";
+        ctx.fillTextSlot(slots[1], t.s, x + 1, y + 1);
+        ctx.fillStyle = t.c;
+        ctx.fillTextSlot(slots[2], t.s, x, y);
+      } else if (t.big) {
         ctx.font = '16px "Press Start 2P", monospace';
         ctx.fillStyle = "#ffd24a";
         ctx.fillTextSlot(slots[0], t.s, x, y);
@@ -880,6 +1112,40 @@ export function draw(this: GameCore, ctx: PixelPainter) {
         ctx.fillStyle = t.c;
         ctx.fillTextSlot(slots[2], t.s, x, y);
       }
+    } else if (t.specialDmg) {
+      // 强化弹：金色主体 + 青色外圈；暴击再叠橙红外圈，和普通暴击区分。
+      if (t.critDmg) {
+        ctx.font = '11px "Press Start 2P", monospace';
+        ctx.fillStyle = "#ff8a3d";
+        ctx.fillTextSlot(slots[0], t.s, x, y);
+        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.fillStyle = "#57e6ff";
+        ctx.fillTextSlot(slots[1], t.s, x, y);
+        ctx.font = '9px "Press Start 2P", monospace';
+        ctx.fillStyle = "#10131f";
+        ctx.fillTextSlot(slots[2], t.s, x + 1, y + 1);
+        ctx.fillStyle = t.c;
+        ctx.fillTextSlot(slots[3], t.s, x, y);
+      } else {
+        ctx.font = '9px "Press Start 2P", monospace';
+        ctx.fillStyle = "#57e6ff";
+        ctx.fillTextSlot(slots[0], t.s, x, y);
+        ctx.font = '8px "Press Start 2P", monospace';
+        ctx.fillStyle = "#10131f";
+        ctx.fillTextSlot(slots[1], t.s, x + 1, y + 1);
+        ctx.fillStyle = t.c;
+        ctx.fillTextSlot(slots[2], t.s, x, y);
+      }
+    } else if (t.critDmg) {
+      // 普通暴击：8px 金色主体 + 9px 橙红外圈。
+      ctx.font = '9px "Press Start 2P", monospace';
+      ctx.fillStyle = "#ff8a3d";
+      ctx.fillTextSlot(slots[0], t.s, x, y);
+      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.fillStyle = "#10131f";
+      ctx.fillTextSlot(slots[1], t.s, x + 1, y + 1);
+      ctx.fillStyle = t.c;
+      ctx.fillTextSlot(slots[2], t.s, x, y);
     } else {
       ctx.font = '8px "Press Start 2P", monospace';
       ctx.fillStyle = "#10131f";

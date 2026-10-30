@@ -128,6 +128,14 @@ export class GameCore {
     hit: Enemy[];
     lifestealMul?: number;
   }[] = [];
+  /** 织网蛛蛛网：arm 为落点预警剩余时间，t 为生效剩余时间。 */
+  webZones: {
+    x: number;
+    y: number;
+    R: number;
+    t: number;
+    arm: number;
+  }[] = [];
   /** S2「疾行」：冲刺结束后的射速加成剩余时间（秒）。 */
   dashFireBoostT = 0;
   /** 「装填」：下一发必为强化弹（闪避/冲刺/接触装填）。 */
@@ -349,6 +357,8 @@ export class GameCore {
   waveN = 1;
   quota = 20;
   spawnedThisWave = 0;
+  /** 本波主题首次出现时的保底怪；消费一次后清空。 */
+  themeGuarantee: string | null = null;
   /** 本波已由满血血包转化的最大生命点数（换波清零，加成本身永久保留） */
   potionGrow = 0;
   /**
@@ -539,6 +549,7 @@ export class GameCore {
     this.boxes = [];
     this.burnZones = [];
     this.trailZones = [];
+    this.webZones = [];
     this.dashFireBoostT = 0;
     this.specialLoaded = false;
     this.dodgeNextCrit = false;
@@ -615,6 +626,7 @@ export class GameCore {
     this.waveN = 1;
     this.quota = this.waveQuota(1);
     this.spawnedThisWave = 0;
+    this.themeGuarantee = null;
     this.potionGrow = 0;
     this.potionMaxHpGrow = 0; // C3-A：新游戏重置累计永久成长（D-C3-01/契约 §6 生命⑤）
     this.boxDropsThisWave = 0;
@@ -776,6 +788,7 @@ export class GameCore {
     this.meteors = [];
     this.burnZones = [];
     this.trailZones = [];
+    this.webZones = [];
     this.mageMeteors = [];
     this.mageDomains = [];
     this.mageDecoys = [];
