@@ -33,7 +33,11 @@ import {
 } from "./MageSystem";
 import { meleeSwing } from "./MeleeSystem";
 import { devSetSpecialLevel, gainSpecialXp } from "./SpecialSystem";
-import { warriorDashDamage, warriorLeap } from "./WarriorSystem";
+import {
+  warriorDashDamage,
+  warriorLeap,
+  warriorLianShanDash,
+} from "./WarriorSystem";
 import {
   advanceTutorial,
   finishTutorial,
@@ -259,6 +263,8 @@ export class GameCore {
   warriorLeapHasteT = 0;
   /** 冲刺后移速爆发的剩余时间（战士基础机制，见 PlayerSystem 的 boost 乘区）。 */
   warriorDashBoostT = 0;
+  /** 连闪·锐势：冲刺后 2 秒的暴击率/暴击伤害窗口。 */
+  warriorLianShanT = 0;
   /** 教程核心步骤：是否已经打出过重斩。 */
   tutorialHeavyDone = false;
   /** 新手教程（v83）：练习场标记与分步状态 */
@@ -503,6 +509,7 @@ export class GameCore {
   meleeSwing = meleeSwing.bind(this);
   warriorLeap = warriorLeap.bind(this);
   warriorDashDamage = warriorDashDamage.bind(this);
+  warriorLianShanDash = warriorLianShanDash.bind(this);
   // S3 法师池：施法状态机、元素状态、以及「脱离」槽的两个触发器。
   // 后两者由 CombatSystem.damagePlayer 调用——CombatSystem 不 import
   // MageSystem（避免运行时循环），统一走 GameCore 上的方法引用。
@@ -630,6 +637,7 @@ export class GameCore {
     this.warriorResolveT = 0;
     this.warriorLeapHasteT = 0;
     this.warriorDashBoostT = 0;
+    this.warriorLianShanT = 0;
     this.tutorialHeavyDone = false;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
@@ -880,6 +888,7 @@ export class GameCore {
     this.warriorResolveT = 0;
     this.warriorLeapHasteT = 0;
     this.warriorDashBoostT = 0;
+    this.warriorLianShanT = 0;
     this.recompute();
     this.addText(p.x, p.y - 26, "已清空天赋", "#ffd24a", true);
   }

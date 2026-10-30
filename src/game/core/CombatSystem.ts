@@ -84,10 +84,19 @@ export function hurtEnemy(
     (p.upCounts["处决"] || 0) > 0 &&
     e.markStacks > 0 &&
     e.hp <= e.maxhp * 0.2;
+  // 连闪·锐势：冲刺后 2 秒内，战士近战暴击率/暴击伤害 +30%。
+  const ruiShi =
+    this.prof === "warrior" &&
+    this.warriorLianShanT > 0 &&
+    opts.form === "melee";
   const critChance =
     !opts.noCrit && (forcedByDodge || executing)
       ? 1
-      : (opts.attackerStats?.critChance ?? p.crit);
+      : Math.min(
+          1,
+          (opts.attackerStats?.critChance ?? p.crit) +
+            (ruiShi ? WARRIOR_BALANCE.lianShan.critBonus : 0),
+        );
   let crit = false;
   if (!opts.noCrit && Math.random() < critChance) {
     crit = true;
@@ -119,6 +128,13 @@ export function hurtEnemy(
         critMultiplier: baseStats.critMultiplier + 0.4,
       }
     : baseStats;
+  const effectiveAttackerStats = ruiShi
+    ? {
+        ...attackerStats,
+        critMultiplier:
+          attackerStats.critMultiplier + WARRIOR_BALANCE.lianShan.critBonus,
+      }
+    : attackerStats;
   // 战士职业底座：近战无视 30% 护甲。其他职业与伤害形式保持原状。
   const armorPen =
     this.prof === "warrior" && opts.form === "melee"
@@ -134,7 +150,7 @@ export function hurtEnemy(
     kind: "hit",
     precision: "round-min-one",
     isCritical: crit,
-    attackerStats,
+    attackerStats: effectiveAttackerStats,
     defenderStats: getEnemyCombatStats(e, armorPen),
   });
   let settled = calc.settledDamage;
@@ -149,7 +165,7 @@ export function hurtEnemy(
       kind: "hit",
       precision: "round-min-one",
       isCritical: crit,
-      attackerStats,
+      attackerStats: effectiveAttackerStats,
       defenderStats: getEnemyCombatStats(e, armorPen),
     });
     trueDamage = trueCalc.settledDamage;

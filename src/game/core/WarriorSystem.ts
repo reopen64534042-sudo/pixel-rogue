@@ -217,6 +217,36 @@ export function warriorDashDamage(
 }
 
 /**
+ * 连闪·破空：冲刺穿过敌人时减速并返还冷却；无论是否命中都开启 2 秒锐势窗口。
+ * 不造成伤害——路径伤害仍归「疾冲」，两者可以同时持有。
+ */
+export function warriorLianShanDash(
+  this: GameCore,
+  fromX: number,
+  fromY: number,
+): void {
+  const p = this.player;
+  if (this.prof !== "warrior" || (p.upCounts["连闪"] || 0) === 0) return;
+  this.warriorLianShanT = WB.lianShan.critWindow;
+  let hits = 0;
+  for (const e of this.enemies) {
+    if (e.dead) continue;
+    if (pointSegmentDistance(e.x, e.y, fromX, fromY, p.x, p.y) > 12 + e.r)
+      continue;
+    e.slowT = WB.lianShan.slowT;
+    e.slowF = WB.lianShan.slowF;
+    hits++;
+  }
+  if (!hits) return;
+  const refund = Math.min(
+    WB.lianShan.refundCap,
+    hits * WB.lianShan.refundPerHit,
+  );
+  if (p.dashRe > 0)
+    p.dashRe = Math.max(0, p.dashRe - p.dashMax * refund);
+}
+
+/**
  * 战士自动挥砍 + 流/重斩/共享卡核心链。
  *
  * 由 AttackSystem 每帧调用（与射手共用 p.fireCd）。扇形命中走 `meleeSwing`，
@@ -237,6 +267,8 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     this.warriorLeapHasteT = Math.max(0, this.warriorLeapHasteT - dt);
   if (this.warriorIaiHasteT > 0)
     this.warriorIaiHasteT = Math.max(0, this.warriorIaiHasteT - dt);
+  if (this.warriorLianShanT > 0)
+    this.warriorLianShanT = Math.max(0, this.warriorLianShanT - dt);
 
   // 流计时：爆发期冻结层数与倒计时
   if (this.warriorFlowBurstT > 0) {

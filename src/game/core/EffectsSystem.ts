@@ -1,3 +1,4 @@
+import { SHAKE_MAX } from "../data/constants";
 import type { GameCore } from "./GameCore";
 
 export function updateEffects(this: GameCore, dt: number) {
@@ -20,6 +21,6 @@ export function updateEffects(this: GameCore, dt: number) {
     if (this.bolts[i].life <= 0) this.bolts.splice(i, 1);
   }
 
-  this.shake = Math.max(0, this.shake - dt * 14);
+  this.shake = Math.min(SHAKE_MAX, Math.max(0, this.shake - dt * 14));
   this.hurtFlash = Math.max(0, this.hurtFlash - dt);
 }

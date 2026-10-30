@@ -1,4 +1,5 @@
 import type { Talent } from "../../core/types";
+import { WARRIOR_BALANCE as WB } from "../warriorBalance";
 
 /**
  * 战士池（S3b，基础可玩批次）。
@@ -8,8 +9,8 @@ import type { Talent } from "../../core/types";
  * - 太刀：居合 → 居合·迅 → 居合·极（走路积势 → 更快更强 → 360° 旋斩）
  * - 大剑：重斩 → 破甲 → 剑气（第 3 下重斩 → 破甲 → 直线剑气）
  *
- * 两个流派由开局选择决定，另一流派的卡不进本局池；入场、护盾、
- * 反远程与共享卡（裂甲/破围/连斩）在后续批次补。
+ * 两个流派由开局选择决定，另一流派的卡不进本局池；当前含入场 4 张与共享
+ * 裂甲/破围/连斩/连闪；护盾、反远程与反击链在后续批次补。
  */
 export const WARRIOR_TALENTS: Talent[] = [
   // ================= 太刀：流 =================
@@ -238,6 +239,25 @@ export const WARRIOR_TALENTS: Talent[] = [
     pv: () => "跃击范围 +30% · 落地攻速 +40%",
     f: () => {},
     cur: () => "跃击后短时加速",
+  },
+
+  // ================= 共享：机动 =================
+  {
+    n: "连闪",
+    ico: "💫",
+    t: 1,
+    cat: "机动",
+    slot: "机动",
+    layer: 1,
+    prof: "warrior",
+    mech: 1,
+    d: "冲刺充能 +1 次（上限 2 次），冷却 1.6→1.2 秒；冲刺穿过敌人时每个返还 10% 冷却（每次最多 30%）并减速 30%/1.5 秒；冲刺后 2 秒暴击率与暴击伤害 +30%。",
+    max: 1,
+    pv: (p) =>
+      `冲刺 ${1 + p.dashChargeLv}→${2 + p.dashChargeLv} 次 · 冷却 ${p.dashMax.toFixed(1)}→${(p.dashMax - WB.lianShan.cdReduction).toFixed(1)}s · 破空/锐势`,
+    f: () => {},
+    cur: (p) =>
+      `冲刺 ${1 + p.dashChargeLv} 次 · 冷却 ${p.dashMax.toFixed(1)}s · 破空/锐势`,
   },
 
   // ================= 共享 =================

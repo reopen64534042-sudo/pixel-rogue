@@ -10,8 +10,8 @@ import type { WarriorStyle } from "../core/types";
  * - 职业底座：近战无视 30% 护甲（与大剑「破甲」叠乘，不改怪物数值）。
  *
  * 战士的强度靠「贴住」换覆盖：挥砍本身是扇形、不依赖排线，
- * 代价是必须贴身吃伤害。当前含流/居合/重斩三链、入场 4 张与共享 3 张，
- * 共 16 张（单流派可见：太刀 11、大剑 8）。
+ * 代价是必须贴身吃伤害。当前含流/居合/重斩三链、入场 4 张与共享 4 张，
+ * 共 17 张（单流派可见：太刀 12、大剑 9）。
  */
 export interface WarriorStyleStats {
   readonly label: string;
@@ -60,6 +60,20 @@ export const WARRIOR_BALANCE = {
   baseDashMul: 1.5,
   /** 冲刺冷却（秒）：战士 1.6（原 2.4），近战靠短 CD 反复接近。 */
   dashMax: 1.6,
+  /**
+   * 「连闪」共享机动天赋（t1）：
+   * 充能 +1、冷却 -0.4s；冲刺穿过敌人减速并返还冷却；
+   * 冲刺后 2 秒暴击率/暴击伤害 +30%。
+   */
+  lianShan: {
+    cdReduction: 0.4,
+    slowT: 1.5,
+    slowF: 0.3,
+    refundPerHit: 0.1,
+    refundCap: 0.3,
+    critWindow: 2,
+    critBonus: 0.3,
+  },
   /**
    * 冲刺后移速爆发（战士基础机制，不占卡位）。
    * 冲刺结束瞬间 +45%，在 dashBoostWindow 秒内线性衰减到 0。

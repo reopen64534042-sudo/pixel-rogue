@@ -546,8 +546,36 @@ export class GameUI {
               " /秒" +
               (p.haste ? ` (狂热 +${p.haste * 10}%)` : ""),
           ],
-      ["💥 暴击", (p.crit * 100).toFixed(0) + "%"],
-      ["💥 暴击伤害", (critMultiplier(p) * 100).toFixed(0) + "%"],
+      [
+        "💥 暴击",
+        (Math.min(
+          1,
+          p.crit +
+            (isWarrior && this.core.warriorLianShanT > 0
+              ? WARRIOR_BALANCE.lianShan.critBonus
+              : 0),
+        ) *
+          100
+        ).toFixed(0) +
+          "%" +
+          (isWarrior && this.core.warriorLianShanT > 0
+            ? `（锐势 +${(WARRIOR_BALANCE.lianShan.critBonus * 100).toFixed(0)}% · 剩 ${this.core.warriorLianShanT.toFixed(1)}s）`
+            : ""),
+      ],
+      [
+        "💥 暴击伤害",
+        (
+          (critMultiplier(p) +
+            (isWarrior && this.core.warriorLianShanT > 0
+              ? WARRIOR_BALANCE.lianShan.critBonus
+              : 0)) *
+          100
+        ).toFixed(0) +
+          "%" +
+          (isWarrior && this.core.warriorLianShanT > 0
+            ? `（锐势 +${(WARRIOR_BALANCE.lianShan.critBonus * 100).toFixed(0)}%）`
+            : ""),
+      ],
       // 职业专属输出行：法师当前元素，射手穿透，战士流层数。
       ...(isMage
         ? ([

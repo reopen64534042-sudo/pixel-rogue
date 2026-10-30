@@ -95,6 +95,7 @@
  */
 import { ATTRIBUTE_CAPS } from "../data/attributeBalance";
 import { statBase } from "../data/stats";
+import { WARRIOR_BALANCE } from "../data/warriorBalance";
 import { resolveStats, type StatModifier } from "./StatModel";
 import { resolveKeyedMap, type TypeDamageBonusModifier } from "./StatSheets";
 import type { Player, Profession, WarriorStyle } from "./types";
@@ -411,6 +412,23 @@ export function talentStatModifiers(
           stage: "flat",
           value: 1,
         });
+        break;
+      // 战士「连闪」（共享 t1）：冲刺充能 +1 次、冷却 -0.4s。
+      case "连闪":
+        scalars.push(
+          {
+            sourceId: "天赋:连闪",
+            stat: "dashChargeLv",
+            stage: "flat",
+            value: 1,
+          },
+          {
+            sourceId: "天赋:连闪",
+            stat: "dashMax",
+            stage: "flat",
+            value: -WARRIOR_BALANCE.lianShan.cdReduction,
+          },
+        );
         break;
       case "壁垒": // data/talents.ts：barrierLv++（max 2）；tempShield
         // 每波重建属换波语义（WaveSystem），不在本表

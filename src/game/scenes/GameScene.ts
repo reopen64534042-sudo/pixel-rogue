@@ -15,7 +15,7 @@ import {
   registerGreatswordSlash,
 } from "../rendering/vfx/greatswordSlash";
 import { KATANA_DASH, registerKatanaDash } from "../rendering/vfx/katanaDash";
-import { W, H, WORLD, clamp } from "../data/constants";
+import { W, H, WORLD, SHAKE_MAX, clamp } from "../data/constants";
 import { UPGRADES } from "../data/talents";
 import { SPECIAL_LEVELS, SPECIAL_UPGRADES } from "../data/specialShot";
 import type { Talent } from "../core/types";
@@ -596,7 +596,7 @@ export class GameScene extends Phaser.Scene {
         this.painter.fillRect(Math.round(s.x), Math.round(s.y), 1, 1);
       }
     } else {
-      const shake = this.core.shake;
+      const shake = Math.min(this.core.shake, SHAKE_MAX);
       // 震屏偏移必须取整：小数滚动会让画布做亚像素采样，整屏的字和精灵一起发糊。
       // 流·极 爆发期 5 刀/秒，不取整会叠成「屏幕全花、看不清怪」（用户实机反馈）。
       this.cameras.main.setScroll(
