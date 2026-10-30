@@ -648,6 +648,23 @@ export class GameUI {
     ];
     const utilityRows: [string, string | number][] = [
       ["👟 移动速度", Math.round(p.speed)],
+      // 冲刺后移速爆发（v116 新增的战士基础机制）：未激活时显示上限，
+      // 处于衰减窗口内显示当前实际加成与剩余时间。
+      ...(isWarrior
+        ? ([
+            [
+              "💨 冲刺后移速",
+              this.core.warriorDashBoostT > 0
+                ? `+${Math.round(
+                    WARRIOR_BALANCE.dashBoostMul *
+                      (this.core.warriorDashBoostT /
+                        WARRIOR_BALANCE.dashBoostWindow) *
+                      100,
+                  )}%（剩 ${this.core.warriorDashBoostT.toFixed(1)}s）`
+                : `+${Math.round(WARRIOR_BALANCE.dashBoostMul * 100)}% · ${WARRIOR_BALANCE.dashBoostWindow}s 衰减`,
+            ],
+          ] as [string, string | number][])
+        : []),
       ["🧲 拾取范围", Math.round(p.magnet)],
       [
         isMage ? "🎯 施法距离" : isWarrior ? "🎯 近战范围" : "🎯 射程",

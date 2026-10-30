@@ -100,8 +100,12 @@ export function updateProgression(this: GameCore, dt: number) {
     if (dx * dx + dy * dy < 64) {
       this.boxes.splice(i, 1);
       // v79：普通/精英宝箱拾取回血相同；满血时回复 0，但属性/经验照常。
-      const healed = Math.min(CHEST_HEAL, Math.max(0, p.maxhp - p.hp));
-      if (healed > 0) p.hp += healed;
+      // 取整：p.hp 可能是小数（生命汲取、生命回复都走浮点），直接相减会得到
+      // 4.63000000000001 这类值并被原样拼进飘字（用户反馈「宝箱弹出一串小数」）。
+      const healed = Math.round(
+        Math.min(CHEST_HEAL, Math.max(0, p.maxhp - p.hp)),
+      );
+      if (healed > 0) p.hp = Math.min(p.maxhp, p.hp + healed);
       const healText = healed > 0 ? ` · 生命 +${healed}` : "";
       if (!b.special) {
         // 普通宝箱：固定 1 点，不受精英上限约束
