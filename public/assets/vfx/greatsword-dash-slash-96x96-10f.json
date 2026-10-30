@@ -1,0 +1,266 @@
+{
+  "key": "greatsword-dash-slash",
+  "image": "greatsword-dash-slash-96x96-10f.png",
+  "columns": 5,
+  "rows": 2,
+  "frameWidth": 96,
+  "frameHeight": 96,
+  "frameCount": 10,
+  "origin": {
+    "x": 0.5,
+    "y": 0.5
+  },
+  "anchorPx": {
+    "x": 48,
+    "y": 48
+  },
+  "referenceRadius": 39,
+  "baseAngle": 0,
+  "mirrored": false,
+  "topBottomSymmetric": false,
+  "repeat": 0,
+  "durationSeconds": null,
+  "frameStarts": [
+    0,
+    0.06,
+    0.12,
+    0.19,
+    0.27,
+    0.38,
+    0.5,
+    0.64,
+    0.78,
+    0.91
+  ],
+  "timing": "normalized progress only; consumer owns movement/lifetime; no runtime integration in this asset batch",
+  "palette": [
+    "#9b4b16",
+    "#f4a940",
+    "#ffd24a",
+    "#ffe8a3",
+    "#ffffff"
+  ],
+  "alphaValues": [
+    0,
+    255
+  ],
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 96,
+      "h": 96
+    },
+    {
+      "x": 96,
+      "y": 0,
+      "w": 96,
+      "h": 96
+    },
+    {
+      "x": 192,
+      "y": 0,
+      "w": 96,
+      "h": 96
+    },
+    {
+      "x": 288,
+      "y": 0,
+      "w": 96,
+      "h": 96
+    },
+    {
+      "x": 384,
+      "y": 0,
+      "w": 96,
+      "h": 96
+    },
+    {
+      "x": 0,
+      "y": 96,
+      "w": 96,
+      "h": 96
+    },
+    {
+      "x": 96,
+      "y": 96,
+      "w": 96,
+      "h": 96
+    },
+    {
+      "x": 192,
+      "y": 96,
+      "w": 96,
+      "h": 96
+    },
+    {
+      "x": 288,
+      "y": 96,
+      "w": 96,
+      "h": 96
+    },
+    {
+      "x": 384,
+      "y": 96,
+      "w": 96,
+      "h": 96
+    }
+  ],
+  "stats": [
+    {
+      "frame": 0,
+      "opaque": 71,
+      "white": 13,
+      "maxRadius": 35.16390194503448,
+      "bounds": {
+        "left": 62,
+        "top": 21,
+        "right": 79,
+        "bottom": 35
+      },
+      "sha256": "bdea9251c5e55a9044a4ed5e5d8679db32d79ce0377cd5fa052211e81a423f56"
+    },
+    {
+      "frame": 1,
+      "opaque": 186,
+      "white": 37,
+      "maxRadius": 31.945265689926572,
+      "bounds": {
+        "left": 57,
+        "top": 20,
+        "right": 78,
+        "bottom": 70
+      },
+      "sha256": "c3adaabc7f260eb1630170a2b20209449e43fbb7744d68639532a03c92b0b904"
+    },
+    {
+      "frame": 2,
+      "opaque": 394,
+      "white": 113,
+      "maxRadius": 33.948490393535906,
+      "bounds": {
+        "left": 48,
+        "top": 21,
+        "right": 81,
+        "bottom": 79
+      },
+      "sha256": "863b5d3df45644676e533462a972a4c1fa18450fc20844b47ff0990ed350ac9c"
+    },
+    {
+      "frame": 3,
+      "opaque": 454,
+      "white": 117,
+      "maxRadius": 36.77635109686659,
+      "bounds": {
+        "left": 48,
+        "top": 20,
+        "right": 84,
+        "bottom": 79
+      },
+      "sha256": "ee22f52fd89ebabc5765ec0bbaeed6cc70cb19b31557f96d29d9f58abcab56ba"
+    },
+    {
+      "frame": 4,
+      "opaque": 386,
+      "white": 91,
+      "maxRadius": 34.648232278140824,
+      "bounds": {
+        "left": 48,
+        "top": 23,
+        "right": 79,
+        "bottom": 79
+      },
+      "sha256": "6f3b9d8a67cc830cbcce06a51437c358f4cbc7097b62f369b6ddc1e0e288763b"
+    },
+    {
+      "frame": 5,
+      "opaque": 289,
+      "white": 51,
+      "maxRadius": 36.77635109686659,
+      "bounds": {
+        "left": 48,
+        "top": 18,
+        "right": 84,
+        "bottom": 75
+      },
+      "sha256": "5838a210f7ecb0e5598af6a8d5f4975112435603727128fe0eed2c03cc39a166"
+    },
+    {
+      "frame": 6,
+      "opaque": 213,
+      "white": 36,
+      "maxRadius": 35.672117963473944,
+      "bounds": {
+        "left": 48,
+        "top": 23,
+        "right": 83,
+        "bottom": 75
+      },
+      "sha256": "a89c072f485fad1301a9e01c38d0c16761812c8e0498f0d896d4a8a0318e9c9b"
+    },
+    {
+      "frame": 7,
+      "opaque": 83,
+      "white": 9,
+      "maxRadius": 31.59905061864992,
+      "bounds": {
+        "left": 48,
+        "top": 26,
+        "right": 79,
+        "bottom": 73
+      },
+      "sha256": "2026f4e8eedfdd52a95ea6a5b7c7cc4355de07ae0d555a470d95bb90fa3e5a2e"
+    },
+    {
+      "frame": 8,
+      "opaque": 25,
+      "white": 0,
+      "maxRadius": 24.01041440708594,
+      "bounds": {
+        "left": 58,
+        "top": 43,
+        "right": 70,
+        "bottom": 68
+      },
+      "sha256": "d8734d1401ecf4eca9a02910868c41ac7bd64588deede74a3fed2e65192041a8"
+    },
+    {
+      "frame": 9,
+      "opaque": 6,
+      "white": 0,
+      "maxRadius": 23.50531854708632,
+      "bounds": {
+        "left": 61,
+        "top": 58,
+        "right": 66,
+        "bottom": 66
+      },
+      "sha256": "6644ae10a86d78a944b393d65aba874e55cd29c21470b1c0ac723e098bf4d0a9"
+    }
+  ],
+  "source": {
+    "tool": "built-in image_gen",
+    "model": null,
+    "seed": null,
+    "path": "assets/vfx/greatsword-dash-slash-source.png",
+    "width": 1983,
+    "height": 793,
+    "sha256": "5c15d095a2e7c581093c784bed7bac39b83e7601961db54c7ae5653c63aea6be",
+    "prompt": "assets/vfx/greatsword-dash-slash-prompt.txt",
+    "generationLog": "assets/vfx/greatsword-energy-generation.json"
+  },
+  "processing": {
+    "script": "scripts/build-greatsword-energy-vfx.mjs",
+    "logicalFrameSize": 64,
+    "alphaThreshold": 128,
+    "transparentCenterLogicalRadius": 4,
+    "sampling": "nearest-neighbor; RGB squared distance five-color mapping; no dithering",
+    "symmetry": null,
+    "sharedSourceRadius": 28.71410803072246,
+    "sharedSourceHeight": 48,
+    "sharedLogicalScale": 0.8596821504656393,
+    "logicalToOutputScale": 1.5,
+    "perFrameCrop": false
+  },
+  "sha256": "3c7afb3e6b73eb580fcea1a286b146f64e1f1ae5aaf2f0a2d68563bab386255d"
+}

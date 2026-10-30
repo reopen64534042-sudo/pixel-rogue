@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-31",
+  "brief": "https://github.com/reopen64534042-sudo/pixel-rogue/pull/204",
+  "briefCommit": "2f2f0f209388fde2e0cc9fe8be3d4972ad3d2efa",
+  "tool": "built-in image_gen",
+  "transparentBackground": true,
+  "model": null,
+  "seed": null,
+  "assets": [
+    {
+      "key": "greatsword-sword-qi",
+      "original": "exec-14c46055-d4db-4bea-b0f2-dcb5dbf8aec2.png",
+      "passes": [
+        {
+          "promptFile": "assets/vfx/greatsword-sword-qi-prompt.txt",
+          "operation": "generate"
+        }
+      ]
+    },
+    {
+      "key": "greatsword-fissure",
+      "original": "exec-f52562ae-3ff0-4c03-97d2-130c30ccb0ce.png",
+      "passes": [
+        {
+          "promptFile": "assets/vfx/greatsword-fissure-prompt.txt",
+          "operation": "generate"
+        },
+        {
+          "operation": "edit",
+          "prompt": "Refine this exact 5-column, 2-row, ten-frame pixel VFX sheet. Preserve its transparent canvas, equal square cells, fixed anchor and rightward direction. Correct TWO defects: the current wave body is too solid, and the ground tail is bottom-heavy. Open a LARGE transparent cavity inside every active gold arc: at least half the area inside the arc stays completely transparent. The white edge must become a SINGLE thin bright line (1 logical pixel on a 96x96 cell), not a wide white stripe. Keep a denser but BROKEN amber/gold band just behind it. The wave's extra weight comes from short forked DARK RUST cracks and dusty chips trailing left. Distribute the crack/dust fragments approximately symmetrically above and below the horizontal centerline, so a single wave can rotate to all four diagonals without an upside-down ground slab. No solid dark ground or floor underneath. Keep the vertical arc silhouette fixed in place; no travel. Frame 0 should be just the thin leading scratch and two tiny cracks; frames 1-4 form the open arc; frames 5-7 fragment it; frame 8 has only a few fragments; frame 9 exactly 1-2 tiny flecks. Preserve all ten full square slots. Crisp flat pixel clusters only, true transparent background, no glow, no soft halo, no gradients or translucent edge noise. EXACT five-color palette: #9b4b16 #f4a940 #ffd24a #ffe8a3 #ffffff. The effect remains a heavier sword-wave projectile, NOT an explosion, full ring or beam.",
+          "result": "exec-79ce7dd0-4cd2-44f5-b7c5-b6e51e894325.png"
+        },
+        {
+          "operation": "edit",
+          "prompt": "Edit ONLY THE BOTTOM-RIGHT CELL (frame 9) of this exact 5-column by 2-row transparent sprite sheet. Keep the entire other nine cells exactly unchanged, same pixels, placement, colors and cell grid. In the bottom-right cell ERASE THE ARC ENTIRELY; remove every white and pale-gold pixel and every blade fragment. Leave ONLY TWO VERY TINY isolated dull #f4a940 or #9b4b16 flecks, each 1-2 logical pixels on a 96x96 cell, close to the center-right. The rest of that final square cell is absolutely transparent. This last frame should look almost empty, with no bright edge or curve whatsoever. Preserve transparent background, same canvas aspect 5:2, exact ten equal square cells. No soft glow or translucent pixels. Again, change only the last square slot; other nine cells unchanged.",
+          "result": "exec-2b4ce23c-dfc5-4809-8278-dbf0a9df6877.png",
+          "selection": "Only frame 9 from this edit is composited into the previous source; frames 0-8 preserved byte-for-byte. Fixed lower-right cell: x >= ceil(width*4/5), y >= ceil(height/2)."
+        }
+      ]
+    },
+    {
+      "key": "greatsword-dash-slash",
+      "original": "exec-03ae69d3-789c-41a4-a979-d8261ddeeb34.png",
+      "passes": [
+        {
+          "promptFile": "assets/vfx/greatsword-dash-slash-prompt.txt",
+          "operation": "generate"
+        },
+        {
+          "operation": "edit",
+          "prompt": "Edit this ten-frame 5x2 transparent sprite sheet, preserve its exact grid, square cells and fixed player pivot at the exact center of each cell. It currently looks like the ordinary HEAVY SLASH. Make it a DASH-CUT by REDUCING THE ENTIRE BLADE BAND THICKNESS TO ONE THIRD its current thickness, across every active frame. Preserve the OUTER ARC position and radius, erase the inner two thirds of the blade band to true transparency. The white leading edge should be ONE logical pixel wide on a 64x64 cell. The amber/gold band behind it should be only ONE TO TWO logical pixels wide, with clear transparent gaps. Add TWO or THREE LONG THIN SEPARATED WIND SCRATCHES behind the arc, each one logical pixel thick, tapered and interrupted, in amber/gold only. These are parallel curved air streaks with TRANSPARENT SPACE between them and the blade; not filled wings, not another blade, not a broad rim. Everything stays in the RIGHT HALF of the cell. The pivot remains empty at cell center; arc runs from -65 to +65 degrees, opening left, radius26 on64. Frame0 a short upper-right scratch; 1 upper hook; 2 slim arc forming; 3 thin complete arc and two long wind streaks; 4 leading edge down-right, upper arc fragments; 5 lower-right with broken winds;6 lower tip and separate chips;7 tiny lower-right shards and one scratch;8 only3tiny specks;9 only1or2flecks. Keep all ten cells. Transparent background, flat hard-edged pixel clusters; no glow, gradients, translucent halos or chunky white mass. EXACT same gold palette only: #9b4b16 #f4a940 #ffd24a #ffe8a3 #ffffff. No cyan. No character or weapon. Output must read noticeably thinner, flatter, and faster than the input.",
+          "result": "exec-624e3fb9-f7f1-4a2a-87d8-d42b2042ddf5.png"
+        }
+      ]
+    }
+  ]
+}

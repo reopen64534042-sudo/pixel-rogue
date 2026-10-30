@@ -1,0 +1,266 @@
+{
+  "key": "greatsword-sword-qi-left",
+  "image": "greatsword-sword-qi-left-64x64-10f.png",
+  "columns": 5,
+  "rows": 2,
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "frameCount": 10,
+  "origin": {
+    "x": 0.5,
+    "y": 0.5
+  },
+  "anchorPx": {
+    "x": 32,
+    "y": 32
+  },
+  "referenceRadius": 27,
+  "baseAngle": 3.141592653589793,
+  "mirrored": true,
+  "topBottomSymmetric": true,
+  "repeat": 0,
+  "durationSeconds": null,
+  "frameStarts": [
+    0,
+    0.06,
+    0.12,
+    0.19,
+    0.27,
+    0.38,
+    0.5,
+    0.64,
+    0.78,
+    0.91
+  ],
+  "timing": "normalized progress only; consumer owns movement/lifetime; no runtime integration in this asset batch",
+  "palette": [
+    "#9b4b16",
+    "#f4a940",
+    "#ffd24a",
+    "#ffe8a3",
+    "#ffffff"
+  ],
+  "alphaValues": [
+    0,
+    255
+  ],
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64
+    },
+    {
+      "x": 64,
+      "y": 0,
+      "w": 64,
+      "h": 64
+    },
+    {
+      "x": 128,
+      "y": 0,
+      "w": 64,
+      "h": 64
+    },
+    {
+      "x": 192,
+      "y": 0,
+      "w": 64,
+      "h": 64
+    },
+    {
+      "x": 256,
+      "y": 0,
+      "w": 64,
+      "h": 64
+    },
+    {
+      "x": 0,
+      "y": 64,
+      "w": 64,
+      "h": 64
+    },
+    {
+      "x": 64,
+      "y": 64,
+      "w": 64,
+      "h": 64
+    },
+    {
+      "x": 128,
+      "y": 64,
+      "w": 64,
+      "h": 64
+    },
+    {
+      "x": 192,
+      "y": 64,
+      "w": 64,
+      "h": 64
+    },
+    {
+      "x": 256,
+      "y": 64,
+      "w": 64,
+      "h": 64
+    }
+  ],
+  "stats": [
+    {
+      "frame": 0,
+      "opaque": 118,
+      "white": 30,
+      "maxRadius": 18.66815470259447,
+      "bounds": {
+        "left": 18,
+        "top": 14,
+        "right": 39,
+        "bottom": 49
+      },
+      "sha256": "ac87239126834ff86e5d64817d75d2022755a53130db1fc70fae91b119d46154"
+    },
+    {
+      "frame": 1,
+      "opaque": 248,
+      "white": 32,
+      "maxRadius": 20.0124960961895,
+      "bounds": {
+        "left": 17,
+        "top": 12,
+        "right": 44,
+        "bottom": 51
+      },
+      "sha256": "f73e0df679677f8cc71de277db37af19d4f80ad6c1e753110a56d9c18491671b"
+    },
+    {
+      "frame": 2,
+      "opaque": 348,
+      "white": 54,
+      "maxRadius": 21.50581316760657,
+      "bounds": {
+        "left": 17,
+        "top": 11,
+        "right": 44,
+        "bottom": 52
+      },
+      "sha256": "23f569837f41ef77b5b50d9972b71f34af49315c360d1f98f99f39b3475bb392"
+    },
+    {
+      "frame": 3,
+      "opaque": 298,
+      "white": 50,
+      "maxRadius": 19.96246477767713,
+      "bounds": {
+        "left": 17,
+        "top": 12,
+        "right": 45,
+        "bottom": 51
+      },
+      "sha256": "bd31f766e880e8d36f107569d6147c2f302e7ef0cab3ea402afe85e3dd54da66"
+    },
+    {
+      "frame": 4,
+      "opaque": 266,
+      "white": 42,
+      "maxRadius": 20.79663434308542,
+      "bounds": {
+        "left": 18,
+        "top": 11,
+        "right": 44,
+        "bottom": 52
+      },
+      "sha256": "6ffd60f86b716f60f4cf4c8cf77429c7d3b97d981f5453911710bb76bf02ff90"
+    },
+    {
+      "frame": 5,
+      "opaque": 212,
+      "white": 38,
+      "maxRadius": 19.659603251337497,
+      "bounds": {
+        "left": 19,
+        "top": 12,
+        "right": 40,
+        "bottom": 51
+      },
+      "sha256": "f6ff5a0667649e3f28770a8abe33a917bab4e9a2f2672cd4ff795d707412827c"
+    },
+    {
+      "frame": 6,
+      "opaque": 144,
+      "white": 16,
+      "maxRadius": 20.40833163195855,
+      "bounds": {
+        "left": 19,
+        "top": 12,
+        "right": 43,
+        "bottom": 51
+      },
+      "sha256": "fb8a5445d107e226b1577a7535a69309ba2b9e19530d76783a79ecc5484234e7"
+    },
+    {
+      "frame": 7,
+      "opaque": 94,
+      "white": 18,
+      "maxRadius": 20.89258241577618,
+      "bounds": {
+        "left": 20,
+        "top": 12,
+        "right": 38,
+        "bottom": 51
+      },
+      "sha256": "f928dc94531454e2f200358b0ba5bae02b27b4e4711fc64d106dd6852e16a30e"
+    },
+    {
+      "frame": 8,
+      "opaque": 60,
+      "white": 10,
+      "maxRadius": 17.102631376487068,
+      "bounds": {
+        "left": 22,
+        "top": 15,
+        "right": 37,
+        "bottom": 48
+      },
+      "sha256": "873968e7aa4a810a196d44552e87717260e75b2ec10329d9f64fe9c139c02932"
+    },
+    {
+      "frame": 9,
+      "opaque": 6,
+      "white": 0,
+      "maxRadius": 12.747548783981962,
+      "bounds": {
+        "left": 29,
+        "top": 19,
+        "right": 34,
+        "bottom": 44
+      },
+      "sha256": "f42aaf98ae03e64d3d680c9a9c3a269419f1749671858f4c0c11955729d0c80a"
+    }
+  ],
+  "source": {
+    "tool": "built-in image_gen",
+    "model": null,
+    "seed": null,
+    "path": "assets/vfx/greatsword-sword-qi-source.png",
+    "width": 1983,
+    "height": 793,
+    "sha256": "a75304661f478858b9df2e9c6e979b04f0aada2f08d25a653c6b77c20785e350",
+    "prompt": "assets/vfx/greatsword-sword-qi-prompt.txt",
+    "generationLog": "assets/vfx/greatsword-energy-generation.json"
+  },
+  "processing": {
+    "script": "scripts/build-greatsword-energy-vfx.mjs",
+    "logicalFrameSize": 64,
+    "alphaThreshold": 128,
+    "transparentCenterLogicalRadius": 4,
+    "sampling": "nearest-neighbor; RGB squared distance five-color mapping; no dithering",
+    "symmetry": "lower half reflected across fixed horizontal center",
+    "sharedSourceRadius": 25.109759058979442,
+    "sharedSourceHeight": 50,
+    "sharedLogicalScale": 0.84,
+    "logicalToOutputScale": 1,
+    "perFrameCrop": false
+  },
+  "sha256": "cc760533a03ec1b44cd5a2c57236ee1e978b47c312bd1c68964eee917399d624"
+}

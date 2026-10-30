@@ -556,7 +556,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Preload sweeps, heavy slashes and landing impact; playback uses core slash time. */
+  /** Preload all greatsword sheets, including the ready-to-call wave/dash-cut views. */
   private async loadGreatswordSlashes() {
     await Promise.all(GREATSWORD_SLASH_SHEETS.map(async (sheet) => {
       try {
