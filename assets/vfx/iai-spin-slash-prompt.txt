@@ -1,0 +1,23 @@
+Use case: stylized-concept
+Asset type: production VFX animation sprite sheet for a top-down 2D pixel-art action roguelike.
+Input image: the existing taidao-slash sprite sheet is STYLE REFERENCE ONLY for hard pixel clusters and icy blade shape. Create a NEW distinct full-circle attack, not a copy of the one-sided slash. Do not include any other attached screenshot or any UI from it.
+
+DELIVERABLE: one transparent PNG sprite sheet, EXACTLY TEN frames in FIVE COLUMNS and TWO ROWS, left-to-right then top-to-bottom. Landscape aspect ratio EXACTLY 5:2. Ideally 1600x640 pixels, each square slot 320x320. No gutter or margin between the invisible slots. Every slot uses a 32x32 logical pixel grid enlarged exactly 10x with nearest-neighbor hard square pixels. Each cell has identical center anchor at (160,160). Ring outer diameter 260px (26 logical pixels), fixed in all frames, with at least 20px clearance to each slot edge. Keep the whole ring inside each slot. DO NOT tightly crop or individually rescale any frame. Leave the tenth slot almost empty, but retain its entire square area.
+
+Effect: a 360-degree iai spin slash: a broken circular ring of THREE large icy crescent blade arcs sweeping around an empty transparent player center. Each crescent has a long thin trailing tail, a thick white-hot belly, sharply tapered tips, and slight organic asymmetry. A very thin broken circular motion trail connects the three crescents. Include only three to five SMALL white spark flecks and a few angular ice shards trailing the rotation at the active frames. This must read as a fast slashing whirlwind with three distinct interlocking long blade arcs and visible gaps, not a solid donut, not a perfect geometric circle, not a portal, not a snowflake, not multiple concentric rings. The empty center is large and transparent. No radial spokes, no sword weapon.
+
+EXACT chronological frames by position:
+Top left (1): a single short thin spark arc on the same future ring circumference, most of cell empty.
+Top second (2): two thin crescents sweep in, incomplete ring.
+Top middle (3): three crescents establish roughly a half ring.
+Top fourth (4): the broken ring closes, three arcs still distinct, thin and bright.
+Top right (5): PEAK full ring, three LARGE crescents with thick pure white leading bellies, cyan and deep blue trailing tails. This frame is brightest and thickest.
+Bottom left (6): the full ring starts to separate into three crescent arcs, slightly thinner.
+Bottom second (7): crescents become thin with outward pointing tips and fragments within the SAME fixed outer envelope. Do not enlarge ring diameter.
+Bottom middle (8): small angular fragments and sparse sparks, mostly empty, almost no intact blades.
+Bottom fourth (9): only a few sparse tiny white/ice-cyan spark pixels, no ring.
+Bottom right (10): almost empty with only two to four isolated logical pixels. Absolutely no visible circular ring in this final slot.
+Only arc coverage, thickness, palette brightness, rotation and fragmentation change: all ten share the same ring center and fixed radius, not different scale circles.
+
+Style: crisp 16-bit pixel art, large readable stair-step PIXEL CLUSTERS on a uniform logical grid, flat solid color regions, no anti-aliasing. Strictly FOUR opaque RGB colors plus fully transparent pixels: #1a5f9e deep steel blue, #57e6ff ice cyan, #d8f7ff pale ice, #ffffff pure white. No other colors, no gray, no partial-alpha pixels. Actual transparent background; if absolutely unavailable use flat #ff00ff only. No baked checkerboard. No gradient, no soft shading, no airbrush, no motion blur, no glow blur, no 3D, no lens flare.
+No character, no enemies, no ground, no shadow, no UI, no text, no frame numbers, no grid lines, no watermark, no border.

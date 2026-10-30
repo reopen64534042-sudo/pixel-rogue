@@ -1,0 +1,209 @@
+{
+  "key": "iai-spin-slash",
+  "image": "iai-spin-slash-64x64-10f.png",
+  "layout": "grid",
+  "columns": 5,
+  "rows": 2,
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "frameCount": 10,
+  "margin": 0,
+  "spacing": 0,
+  "order": "left-to-right, top-to-bottom",
+  "origin": {
+    "x": 0.5,
+    "y": 0.5
+  },
+  "anchorPx": {
+    "x": 32,
+    "y": 32
+  },
+  "frameRate": 60,
+  "repeat": 0,
+  "playbackMs": 166.667,
+  "timingStatus": "suggested; not connected to gameplay",
+  "palette": [
+    "#1a5f9e",
+    "#57e6ff",
+    "#d8f7ff",
+    "#ffffff"
+  ],
+  "alphaValues": [
+    0,
+    255
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "x": 0,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "phase": "spark-arc"
+    },
+    {
+      "index": 1,
+      "x": 64,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "phase": "two-crescents"
+    },
+    {
+      "index": 2,
+      "x": 128,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "phase": "three-crescents-forming"
+    },
+    {
+      "index": 3,
+      "x": 192,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "phase": "thin-broken-ring"
+    },
+    {
+      "index": 4,
+      "x": 256,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "phase": "peak"
+    },
+    {
+      "index": 5,
+      "x": 0,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "phase": "separating"
+    },
+    {
+      "index": 6,
+      "x": 64,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "phase": "thin-arcs"
+    },
+    {
+      "index": 7,
+      "x": 128,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "phase": "fragments"
+    },
+    {
+      "index": 8,
+      "x": 192,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "phase": "sparse-sparks"
+    },
+    {
+      "index": 9,
+      "x": 256,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "phase": "last-pixels"
+    }
+  ],
+  "source": {
+    "file": "assets/vfx/iai-spin-slash-source.png",
+    "width": 1983,
+    "height": 793,
+    "sha256": "c14edbc398b9f5b97d77624ef98aac7edf7f17676a780e0db265e2ef5c7df6af",
+    "generator": "built-in image_gen",
+    "model": null,
+    "seed": null,
+    "prompt": "assets/vfx/iai-spin-slash-prompt.txt",
+    "reference": "public/assets/vfx/taidao-slash-32x32-10f.png",
+    "referenceSha256": "70bffe865c57238886308f7d8ec7a8dd02e8c074e00df6f75ad1903060e864ff"
+  },
+  "processing": {
+    "resample": "nearest-neighbor pixel-center sampling",
+    "mapping": "single whole-sheet 1983x793 to 320x128; no per-frame bounding-box crop, resize, or recenter",
+    "alphaThreshold": 128,
+    "paletteMetric": "squared RGB distance, no dithering",
+    "sizeDecision": "64x64 retains crescent tails and final sparks; 32x32 inspection lost the final sparks"
+  },
+  "validation": {
+    "uniqueOpaqueColors": 4,
+    "partialAlphaPixels": 0,
+    "frames": [
+      {
+        "index": 0,
+        "opaquePixels": 37,
+        "whitePixels": 5,
+        "edgePixels": 0
+      },
+      {
+        "index": 1,
+        "opaquePixels": 245,
+        "whitePixels": 82,
+        "edgePixels": 0
+      },
+      {
+        "index": 2,
+        "opaquePixels": 426,
+        "whitePixels": 151,
+        "edgePixels": 0
+      },
+      {
+        "index": 3,
+        "opaquePixels": 612,
+        "whitePixels": 220,
+        "edgePixels": 0
+      },
+      {
+        "index": 4,
+        "opaquePixels": 1093,
+        "whitePixels": 394,
+        "edgePixels": 0
+      },
+      {
+        "index": 5,
+        "opaquePixels": 544,
+        "whitePixels": 192,
+        "edgePixels": 0
+      },
+      {
+        "index": 6,
+        "opaquePixels": 312,
+        "whitePixels": 112,
+        "edgePixels": 0
+      },
+      {
+        "index": 7,
+        "opaquePixels": 90,
+        "whitePixels": 24,
+        "edgePixels": 0
+      },
+      {
+        "index": 8,
+        "opaquePixels": 21,
+        "whitePixels": 1,
+        "edgePixels": 0
+      },
+      {
+        "index": 9,
+        "opaquePixels": 2,
+        "whitePixels": 0,
+        "edgePixels": 0
+      }
+    ]
+  },
+  "sha256": "c989548fdf459492c7d3c280a6b450cd0d2e745b66737ad3a9d74819c4ede559",
+  "preview": "assets/vfx/iai-spin-slash-preview.gif",
+  "previewFrameMs": 60,
+  "previewBackground": "#161826",
+  "contactSheet": "assets/vfx/iai-spin-slash-contact-sheet.png",
+  "contactSheetScale": 4,
+  "runtimeIntegrated": false
+}

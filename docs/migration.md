@@ -2789,3 +2789,12 @@ ctx.stroke();      // → strokePath()
   - 无控制台报错，分区两列对齐，未与上下的「输出」「生存」重叠。
 - 测试影响：按 2026-10-29 标准未运行 Vitest / Playwright、未改基线。已核对 `tests/melee.test.ts` 与 `tests/s4d-d2a-acceptance.test.ts` 直接向 `meleeSwing` 传初速（`knock: 240 / 100`），不经过 WarriorSystem 换算，故不受影响；战士/法师/特殊弹目前无位移断言，暂无预期过期项。
 - 已知待讨论：「强」档阈值过宽（>10px 一律强），重斩 12 / 破围 12 / 剑气 14 / 跃击 12 全落在同一档，面板上无法区分强弱；若要拉开需重划阈值或调整数值分布。
+## 居合回旋斩素材（2026-10-30）
+
+- 用户要求：新分支制作 360° 三月牙冰蓝回旋斩，透明底、5×2 共 10 帧、固定中心锚点与指定四色，参考现有太刀刀光。
+- 隔离：主目录位于 `feat/shooter-dynamic-difficulty` 且含其他任务未提交改动，因此从 `origin/main`（a2de6de）创建 `codex/iai-spin-vfx` 与独立 worktree `E:\AllProjects\pixel-rogue-iai-spin-vfx`，保留原目录状态。
+- 新增：`public/assets/vfx/iai-spin-slash-64x64-10f.png` 及 JSON；`assets/vfx/iai-spin-slash-*` 保存生成原图、完整提示词、4× 检查图和慢放 GIF；规格见 `docs/iai-spin-slash-vfx.md`。
+- 处理：内置 image_gen 整表生成后统一最近邻采样、alpha 128 二值化与指定四色量化；64×64 单帧保留细尾与末帧火星，32×32 检查版会丢失末帧火星，未选用。整表映射保持共用画布与锚点，不逐帧按包围盒重缩放。
+- 素材验证：320×128 / 5×2 / 10 帧；不透明像素仅 #1a5f9e / #57e6ff / #d8f7ff / #ffffff；无半透明像素与触边像素；第 5 帧白色像素最多，末帧保留 2 个像素。
+- 范围：独立素材交付，尚未接入游戏；未改原太刀资源、公共色板、玩法或测试断言。按 2026-10-29 标准仅执行类型检查和构建，不运行 Vitest / Playwright。
+- 编译结果：npm run typecheck 与 npm run build 均通过；构建保留超过 500 kB 的分包警告。GIF 解码确认 10 帧、256×256、60 ms、循环播放。
