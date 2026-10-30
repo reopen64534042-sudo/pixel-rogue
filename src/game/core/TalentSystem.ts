@@ -196,9 +196,12 @@ export function refreshSlot(this: GameCore, index: number) {
   if (this.state !== "play" || this.bpMode !== "level" || !slot || slot.used)
     return false;
   slot.used = true;
-  const next = this.rollOne(
-    this.slots.filter((_, i) => i !== index).map((s) => s.u.n),
-  );
+  // 同时排除当前卡：旧逻辑只排除另外两张，刷新有概率抽回原卡，
+  // 玩家看到的就是「点了刷新但卡没变」。
+  const next = this.rollOne([
+    ...this.slots.filter((_, i) => i !== index).map((s) => s.u.n),
+    slot.u.n,
+  ]);
   if (next) slot.u = next;
   this.view.level();
   this.audio.beep(500, 0.06, "square", 0.04, 150);

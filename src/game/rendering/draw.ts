@@ -696,7 +696,12 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   }
 
   // 太刀斩浪：残影与刀光置于玩家下层，避免盖住角色和脚下资源条。
-  if (this.prof === "warrior" && this.warriorStyle === "katana") {
+  // 这套素材只属于「斩浪」；只学「连闪」时保留冲刺机制，但不借用月牙/残影。
+  if (
+    this.prof === "warrior" &&
+    this.warriorStyle === "katana" &&
+    (this.player.upCounts["斩浪"] || 0) > 0
+  ) {
     const fromX = this.warriorDashFromX;
     const fromY = this.warriorDashFromY;
     if (this.player.dashT > 0 && fromX !== null && fromY !== null) {
