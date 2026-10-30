@@ -21,7 +21,7 @@
   "frameRate": 60,
   "repeat": 0,
   "playbackMs": 166.667,
-  "timingStatus": "suggested; not connected to gameplay",
+  "timingStatus": "60 fps suggestion; drawIaiSpinSlash uses caller-owned simulation progress",
   "palette": [
     "#1a5f9e",
     "#57e6ff",
@@ -205,5 +205,16 @@
   "previewBackground": "#161826",
   "contactSheet": "assets/vfx/iai-spin-slash-contact-sheet.png",
   "contactSheetScale": 4,
-  "runtimeIntegrated": false
+  "runtimeIntegrated": true,
+  "atlas": "iai-spin-slash-64x64-10f.atlas.json",
+  "integration": {
+    "module": "src/game/rendering/vfx/iaiSpinSlash.ts",
+    "scenePreloadsFrames": true,
+    "textureKeys": "iai-spin-slash-0 through iai-spin-slash-9",
+    "draw": "drawIaiSpinSlash(painter, centerX, centerY, progress)",
+    "progress": "[0, 1); 1 - life/max; false on missing texture, invalid input or expired progress",
+    "canvasSizePx": 64,
+    "transform": "center origin, rounded world position, no rotation, scale 1",
+    "gameplayTriggerConnected": false
+  }
 }

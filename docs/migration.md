@@ -3126,3 +3126,13 @@ dmg = dmg > 0 ? Math.max(1, Math.round(scaled)) : 0;
 - 素材验证：320×128 / 5×2 / 10 帧；不透明像素仅 #1a5f9e / #57e6ff / #d8f7ff / #ffffff；无半透明像素与触边像素；第 5 帧白色像素最多，末帧保留 2 个像素。
 - 范围：独立素材交付，尚未接入游戏；未改原太刀资源、公共色板、玩法或测试断言。按 2026-10-29 标准仅执行类型检查和构建，不运行 Vitest / Playwright。
 - 编译结果：npm run typecheck 与 npm run build 均通过；构建保留超过 500 kB 的分包警告。GIF 解码确认 10 帧、256×256、60 ms、循环播放。
+
+## 居合回旋斩直接接入整理（v119，2026-10-30）
+
+- 用户确认满意素材，授权整理为可直接接入的资源、留下说明，并提交、推送和创建 PR。
+- 分支同步：先提交素材里程碑 3a34196，再合并 upstream/main 的 v116（0e1177f）；仅 migration 尾部追加发生冲突，保留上游全部记录并追加本素材记录，合并提交 0062ee3。
+- 接入：新增 src/game/rendering/vfx/iaiSpinSlash.ts，集中登记 64×64、5×2、10 帧几何；registerIaiSpinSlash 按行切片并幂等注册；drawIaiSpinSlash(ctx, x, y, progress) 复用 PixelPainter 图片池，保持中心锚点、固定比例与二值透明效果，恢复调用前 alpha；进度无效、播放结束或资源未就绪返回 false。
+- 加载：GameScene 启动时异步预载素材，沿用已有图像解码流程，完成时检查场景仍活动；无额外定时器、RAF 或监听。播放由调用方模拟进度驱动，暂停与重开无需维护独立动画时钟。
+- 标准格式：新增 iai-spin-slash-64x64-10f.atlas.json，可直接交给 Phaser load.atlas；原 JSON 保留来源与接入参数。docs/iai-spin-slash-vfx.md 写明本项目一行绘制调用、坐标/寿命/回退约定及通用 Phaser 图集用法。
+- 范围：已接入加载并提供绘制接口，未自动绑定技能触发，未替换普通太刀单向刀光、未改变伤害/命中/冷却；CHANGELOG.md 与 src/game/data/changelog.ts 同步追加 v119。
+- 验证：npm run typecheck 与 npm run build；PNG 与图集坐标/尺寸/色板/alpha/哈希检查。未新增测试，未运行 Vitest / Playwright，既有测试断言无本次行为变更；游戏内招式体验留待招式接入后确认。
