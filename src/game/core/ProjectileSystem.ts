@@ -7,6 +7,7 @@ import {
   MAX_HP_DAMAGE_FRACTION,
   PARTIAL_TRUE_FRACTION,
   SPECIAL_LIFESTEAL_MUL,
+  TRUE_DAMAGE_MUL,
 } from "../data/specialShot";
 import { KNOCK } from "../data/knockback";
 import type { GameCore } from "./GameCore";
@@ -22,7 +23,10 @@ export function updateProjectiles(this: GameCore, dt: number) {
       this.bullets.splice(i, 1);
       continue;
     }
-    if (b.special && this.specialUpgrades.includes("homing")) {
+    if (
+      (b.special || b.inheritHoming) &&
+      this.specialUpgrades.includes("homing")
+    ) {
       let target = null;
       let best = HOMING_RANGE * HOMING_RANGE;
       for (const e of this.enemies) {
@@ -85,8 +89,9 @@ export function updateProjectiles(this: GameCore, dt: number) {
             ? { ...b.stats, critChance: b.stats.critChance + b.critBonus }
             : b.stats;
         const special = b.special === true;
-        const specialTrue =
-          special && this.specialUpgrades.includes("trueDamage");
+        const isTrue =
+          (special && this.specialUpgrades.includes("trueDamage")) ||
+          b.inheritTrue === true;
         let hitDmg = b.dmg;
         if (special && this.specialUpgrades.includes("currentHpDamage")) {
           // %生命部分与强化弹同一结算：默认吃护甲，完全真实伤害升级后一起转为真伤。
@@ -103,9 +108,12 @@ export function updateProjectiles(this: GameCore, dt: number) {
         }
         const partialTrue =
           special && this.specialUpgrades.includes("partialTrue");
+        // 完全真实伤害：无视防御，但直伤只结算 80%；分裂/穿透衰减仍作用在 b.dmg 上。
+        // 强化普通弹继承真伤时同样吃 80%，但仍不是 special（不叠标记/裂变/强化弹经验）。
+        if (isTrue) hitDmg *= TRUE_DAMAGE_MUL;
         this.hurtEnemy(e, hitDmg, kx, ky, {
           src: "bullet",
-          type: specialTrue ? "true" : "physical",
+          type: isTrue ? "true" : "physical",
           form: "ranged",
           attackerStats: stats,
           specialHit: special,
@@ -122,8 +130,11 @@ export function updateProjectiles(this: GameCore, dt: number) {
         if (b.pierce > 0) {
           b.pierce--;
           // S2：衰减系数从硬编码 0.85 改为发射时固化的属性值
-          //（射手职业 0.5、快速装填 0.8、超载装填 1.0）
+          //（射手职业 0.5、快速装填 0.8；超载装填改为 30% 地板，不再回到 100%）
           b.dmg *= b.falloff;
+          if (b.pierceFloor && b.launchDmg !== undefined) {
+            b.dmg = Math.max(b.dmg, b.launchDmg * b.pierceFloor);
+          }
         } else if (b.jumps > 0) {
           // 弹射: 转向最近的未命中敌人
           const t = this.nearestEnemy(b.x, b.y, 95, e);

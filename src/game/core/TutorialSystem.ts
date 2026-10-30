@@ -122,7 +122,8 @@ export function updateTutorial(this: GameCore, _dt: number) {
     done = this.tutorialHit;
   } else if (step === 3) {
     if (this.tutorialProf === "shooter") {
-      // 保持 60% 射程外，并打出 3 发强化弹（默认每 4 发自动替换 1 发；快速装填后 3 发）。
+      // 保持 60% 射程外，并打出 3 发强化弹（默认每 4 发自动替换 1 发；
+      // 快速装填只提升穿透/衰减，不再改变节奏）。
       const atRange = this.enemies.some(
         (e) =>
           !e.dead &&

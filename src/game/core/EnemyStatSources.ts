@@ -80,6 +80,10 @@ export interface EnemySpawnContext {
   readonly wave: number;
   readonly elite: boolean;
   readonly speedJitter: number;
+  /** 动态难度：生命最终倍率（省略 = 1） */
+  readonly hpMul?: number;
+  /** 动态难度：攻击最终倍率（省略 = 1） */
+  readonly attackMul?: number;
 }
 
 export interface EnemySpawnStats {
@@ -110,6 +114,8 @@ export function resolveEnemySpawnStats(
       { sourceId: "elite", stat: "maxHp", stage: "final", value: ctx.elite ? 5 : 1 },
       { sourceId: "wave", stat: "attack", stage: "final", value: dmgScale },
       { sourceId: "elite", stat: "attack", stage: "final", value: ctx.elite ? 1.6 : 1 },
+      { sourceId: "difficulty", stat: "maxHp", stage: "final", value: ctx.hpMul ?? 1 },
+      { sourceId: "difficulty", stat: "attack", stage: "final", value: ctx.attackMul ?? 1 },
       { sourceId: "elite", stat: "moveSpeed", stage: "final", value: ctx.elite ? 0.8 : 1 },
       { sourceId: "jitter", stat: "moveSpeed", stage: "final", value: ctx.speedJitter },
     ],
@@ -129,13 +135,28 @@ export interface EnemyDefenseStats {
 }
 
 /** 将配置声明的标量防御值放入 StatModel 的基础区，不物化缺省字段。 */
-export function enemyDefenseSheet(cfg: EnemyConfig, wave = 1): StatSheet {
+export function enemyDefenseSheet(cfg: EnemyConfig, wave = 1, extraDefense = 0): StatSheet {
   const base: Partial<Record<StatId, number>> = {};
   if (cfg.defense !== undefined) base.defense = cfg.defense;
+  else if (extraDefense > 0) base.defense = 0;
   if (cfg.tough !== undefined) base.tough = cfg.tough;
-  const modifiers: StatModifier[] = cfg.defense === undefined ? [] : [
-    { sourceId: "wave-defense", stat: "defense", stage: "flat", value: Math.min(24, Math.max(0, wave - 8) * 1.2) },
-  ];
+  const modifiers: StatModifier[] = [];
+  if (cfg.defense !== undefined) {
+    modifiers.push({
+      sourceId: "wave-defense",
+      stat: "defense",
+      stage: "flat",
+      value: Math.min(24, Math.max(0, wave - 8) * 1.2),
+    });
+  }
+  if (extraDefense > 0) {
+    modifiers.push({
+      sourceId: "difficulty",
+      stat: "defense",
+      stage: "flat",
+      value: extraDefense,
+    });
+  }
   return { base, modifiers };
 }
 
@@ -170,15 +191,16 @@ function requireFiniteResistanceMap(
 export function resolveEnemyDefense(
   cfg: EnemyConfig,
   wave = 1,
+  extraDefense = 0,
 ): EnemyDefenseStats {
-  const resolved = resolveStats(enemyDefenseSheet(cfg, wave));
+  const resolved = resolveStats(enemyDefenseSheet(cfg, wave, extraDefense));
   const out: {
     defense?: number;
     resistances?: Readonly<Record<string, number>>;
     tough?: number;
   } = {};
 
-  if (cfg.defense !== undefined) {
+  if (cfg.defense !== undefined || extraDefense > 0) {
     const defense = resolved.defense;
     if (defense === undefined) {
       throw new TypeError("EnemyStatSources: defense 声明后未得到解析值");

@@ -4,6 +4,7 @@ import { tutorialGemStep, tutorialTotalSteps } from "../game/core/TutorialSystem
 import type { WarriorStyle } from "../game/core/types";
 import { groupLabel, rarityLabel } from "../game/core/AttributeSystem";
 import { CHANGELOG, CURRENT_VERSION } from "../game/data/changelog";
+import { resolveDifficulty } from "../game/data/difficulty";
 import {
   UPGRADES,
   TIERS,
@@ -720,6 +721,11 @@ export class GameUI {
           ] as [string, string | number][])
         : []),
     ];
+    const dynamicDifficulty = resolveDifficulty(
+      this.core.prof,
+      this.core.waveN,
+      this.core.qualityScore,
+    );
     const infoRows: [string, string | number][] = [
       ["📈 等级", p.lvl],
       ["📘 下级所需经验", p.xpNext],
@@ -727,6 +733,17 @@ export class GameUI {
         "🌊 当前波次",
         `${this.core.waveN} · ${waveTheme(this.core.waveN).name}（配额 ${this.core.quota}）`,
       ],
+      ...(dynamicDifficulty.hpMul === 1 &&
+      dynamicDifficulty.attackMul === 1 &&
+      dynamicDifficulty.armorAdd === 0 &&
+      dynamicDifficulty.totalDr <= 0.0001
+        ? []
+        : ([
+            [
+              "🌪️ 动态难度",
+              `减伤 ${(dynamicDifficulty.totalDr * 100).toFixed(0)}% · 生命 ×${dynamicDifficulty.hpMul.toFixed(2)} · 护甲 +${Math.round(dynamicDifficulty.armorAdd)} · 攻击 ×${dynamicDifficulty.attackMul.toFixed(2)}`,
+            ],
+          ] as [string, string | number][])),
     ];
 
     const renderRows = (items: [string, string | number][]) =>
@@ -1474,7 +1491,7 @@ export class GameUI {
         };
       return {
         title: "强化弹",
-        body: "保持距离输出。默认每 4 发自动变成强化弹；命中会填充角色下方的强化弹经验条，升级解锁导弹 / 激光 / 追踪等新形态。正式战斗中拿到「快速装填」可回到 3 发。试着打出 3 发强化弹。",
+        body: "保持距离输出。默认每 4 发自动变成强化弹；命中会填充角色下方的强化弹经验条，升级解锁新形态。快速装填 / 超载装填提升穿透与穿透伤害，不改变发射节奏。试着打出 3 发强化弹。",
       };
     }
     if (prof === "warrior" && step === 4) {

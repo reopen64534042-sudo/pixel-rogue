@@ -439,8 +439,9 @@ export function applyDotDamage(
     attackerStats: getPlayerCombatStats(core.player),
     defenderStats: getEnemyCombatStats(e),
   });
-  e.hp -= calc.settledDamage;
-  core.dmgBy.element += calc.settledDamage;
+  const taken = calc.settledDamage * (e.damageTakenMul ?? 1);
+  e.hp -= taken;
+  core.dmgBy.element += taken;
 }
 
 /** 灼烧 DoT：每帧按层数 × 每层 DPS 扣血。 */
