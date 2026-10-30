@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v112",
+    date: "2026-10-30",
+    title: "残心与强袭加强（战士入场 L2）",
+    items: [
+      "残心：窗口 1 秒 → 2 秒，下一刀 +40% → +100%（等效 DPS 约 +8% → +21%）。",
+      "强袭：窗口 1 秒 → 2 秒，落地攻速 +25% → +40%（等效约 +10% → +33%）。",
+      "修复：残心窗口原先写死在 PlayerSystem，warriorBalance.resolveWindow 是死字段，现改为读配置。",
+    ],
+  },
+  {
     version: "v111",
     date: "2026-10-30",
     title: "「流」加强：每层伤害 3%、攻速 2.5%、维持 4/6 秒",

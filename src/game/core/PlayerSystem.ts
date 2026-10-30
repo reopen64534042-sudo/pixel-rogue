@@ -48,7 +48,9 @@ export function updatePlayer(this: GameCore, dt: number) {
         );
       this.warriorDashFromX = null;
       this.warriorDashFromY = null;
-      if ((p.upCounts["残心"] || 0) > 0) this.warriorResolveT = 1;
+      // 残心窗口改为读配置（原来写死 1 秒，warriorBalance.resolveWindow 是死字段）
+      if ((p.upCounts["残心"] || 0) > 0)
+        this.warriorResolveT = WB.resolveWindow;
     }
   }
   if (this.dashFireBoostT > 0) this.dashFireBoostT -= dt;
