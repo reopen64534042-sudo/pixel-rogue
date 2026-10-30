@@ -8,7 +8,7 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "v113",
+    version: "v114",
     date: "2026-10-30",
     title: "属性强化硬上限",
     items: [
@@ -19,13 +19,23 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
   {
-    version: "v112",
+    version: "v113",
     date: "2026-10-30",
     title: "强化弹穿透曲线调整",
     items: [
       "强化弹自身穿透改为每 3 级 +1：L1-L2 为 0，L3 为 1，L6 为 2，L9 为 3，L9-L12 保持 3（此前 L1-L6 累计 1→6）。",
       "C 属性面板的「强化穿透」同步显示新数值；伤害倍率、L3 起无限飞行、L4-L12 升级与经验曲线不变。",
       "天赋「快速装填」「超载装填」「距离即收益」提供的额外穿透仍按原规则叠加。",
+    ],
+  },
+  {
+    version: "v112",
+    date: "2026-10-30",
+    title: "残心与强袭加强（战士入场 L2）",
+    items: [
+      "残心：窗口 1 秒 → 2 秒，下一刀 +40% → +100%（等效 DPS 约 +8% → +21%）。",
+      "强袭：窗口 1 秒 → 2 秒，落地攻速 +25% → +40%（等效约 +10% → +33%）。",
+      "修复：残心窗口原先写死在 PlayerSystem，warriorBalance.resolveWindow 是死字段，现改为读配置。",
     ],
   },
   {
