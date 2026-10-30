@@ -3,6 +3,7 @@ import type { Slash } from "../../core/types";
 import type { PixelPainter } from "../PixelPainter";
 import { WARRIOR_BALANCE } from "../../data/warriorBalance";
 import { GREATSWORD_LEAP_IMPACT } from "./greatswordLeapImpact";
+import { GREATSWORD_ENERGY_SHEETS } from "./greatswordEnergy";
 
 /** Default radii are baked into native-size frames; range upgrades scale around
  * the same player pivot with the game's nearest-neighbor texture filtering. */
@@ -32,6 +33,7 @@ export const GREATSWORD_SLASH_SHEETS = [
     radius: 67.5,
   },
   GREATSWORD_LEAP_IMPACT,
+  ...GREATSWORD_ENERGY_SHEETS,
 ] as const;
 
 type SlashSheet = (typeof GREATSWORD_SLASH_SHEETS)[number];
