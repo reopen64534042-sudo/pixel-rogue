@@ -10,6 +10,10 @@ import {
 } from "../data/constants";
 import { DAMAGE_TYPES } from "../data/damageTypes";
 import { KNOCK } from "../data/knockback";
+
+/** 战士「裂甲」：每层近战易伤与层数上限（共享卡，数值集中在此避免卡面与代码不一致）。 */
+const MELEE_VULN_PER_STACK = 0.04;
+const MELEE_VULN_MAX_STACKS = 10;
 import { calculateDamage } from "./DamageSystem";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { elementDamageMultiplier } from "./ElementMath";
@@ -154,7 +158,7 @@ export function hurtEnemy(
   // round-min-one 保持一致：正值至少 1，0 仍为 0（免疫/零伤不该被抬成 1）。
   const vulnStacks = e.meleeVulnStacks ?? 0;
   if (opts.form === "melee" && vulnStacks > 0) {
-    const scaled = dmg * (1 + 0.02 * vulnStacks);
+    const scaled = dmg * (1 + MELEE_VULN_PER_STACK * vulnStacks);
     dmg = dmg > 0 ? Math.max(1, Math.round(scaled)) : 0;
   }
   // v76 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多留
@@ -224,7 +228,10 @@ export function hurtEnemy(
   e.flash = 0.08;
   // 战士「裂甲」：每次近战命中叠 1 层，最多 10 层，无衰退计时。
   if (opts.form === "melee" && (p.upCounts["裂甲"] || 0) > 0) {
-    e.meleeVulnStacks = Math.min(10, (e.meleeVulnStacks ?? 0) + 1);
+    e.meleeVulnStacks = Math.min(
+      MELEE_VULN_MAX_STACKS,
+      (e.meleeVulnStacks ?? 0) + 1,
+    );
   }
   if (opts.src) this.dmgBy[opts.src] = (this.dmgBy[opts.src] || 0) + dmg;
   if (this.player.lifesteal && !opts.noLifesteal)

@@ -247,6 +247,8 @@ export class GameCore {
   warriorResolveT = 0;
   /** 强袭：跃击落地后的攻速窗口。 */
   warriorLeapHasteT = 0;
+  /** 冲刺后移速爆发的剩余时间（战士基础机制，见 PlayerSystem 的 boost 乘区）。 */
+  warriorDashBoostT = 0;
   /** 教程核心步骤：是否已经打出过重斩。 */
   tutorialHeavyDone = false;
   /** 新手教程（v83）：练习场标记与分步状态 */
@@ -614,6 +616,7 @@ export class GameCore {
     this.warriorDashFromY = null;
     this.warriorResolveT = 0;
     this.warriorLeapHasteT = 0;
+    this.warriorDashBoostT = 0;
     this.tutorialHeavyDone = false;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
@@ -860,6 +863,7 @@ export class GameCore {
     this.warriorDashFromY = null;
     this.warriorResolveT = 0;
     this.warriorLeapHasteT = 0;
+    this.warriorDashBoostT = 0;
     this.recompute();
     this.addText(p.x, p.y - 26, "已清空天赋", "#ffd24a", true);
   }

@@ -81,7 +81,9 @@ export function statBase(
     // 三职业共享基础动作 冲刺/受伤/拾取）。机动轴卡（充能/距离）在其上增强
     dashLv: 1,
     dashT: -1,
-    dashMax: 2.4,
+    // 冲刺冷却：#180 起战士单独配置（近战贴身的接近手段，CD 更短）。
+    // 其他职业沿用 2.4 秒。
+    dashMax: warrior ? WARRIOR_BALANCE.dashMax : 2.4,
     dashCharges: 1,
     dashRe: 0,
     dashChargeLv: 0,
