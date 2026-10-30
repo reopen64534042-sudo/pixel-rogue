@@ -61,7 +61,10 @@ export function statBase(
     dashDistMul: 1,
     area: 1,
     crit: 0.05,
-    critMul: 2,
+    // #181：暴击基础倍率 2.0 → 1.5（暴伤 +50%）。
+    // 这是**基础值**：属性「暴击伤害」与「致命一击」满层觉醒都在其上叠加，
+    // 见 TalentStatSources（base.critMul）与 DamageMath.critMultiplier。
+    critMul: 1.5,
     ricochet: 0,
     slow: 0,
     burn: 0,

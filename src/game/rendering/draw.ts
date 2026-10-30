@@ -823,7 +823,8 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       sy = Math.round(s.y);
     if (s.weapon === "katana") {
       // 素材 PR #172：10 帧 32×32 刀光。右侧半圆用顺时针表，左侧用逆时针表；
-      // 中心固定在角色前方 22px，出现/消失与透明度已烘焙进帧。
+      // 中心固定在角色前方 26px（#180：太刀射程 34 → 42，中心同步 22 → 26，
+      // 让素材外缘跟得上判定半径），出现/消失与透明度已烘焙进帧。
       const prog = 1 - Math.max(0, Math.min(1, s.life / s.max));
       const frame = Math.min(9, Math.floor(prog * 10));
       const angle = Math.atan2(Math.sin(s.a), Math.cos(s.a));
@@ -833,8 +834,8 @@ export function draw(this: GameCore, ctx: PixelPainter) {
         ctx.globalAlpha = 1;
         ctx.spriteRot(
           key,
-          Math.round(sx + Math.cos(angle) * 22),
-          Math.round(sy + Math.sin(angle) * 22),
+          Math.round(sx + Math.cos(angle) * 26),
+          Math.round(sy + Math.sin(angle) * 26),
           rightHalf ? angle : angle - Math.PI,
         );
       }
