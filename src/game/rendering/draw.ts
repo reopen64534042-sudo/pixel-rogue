@@ -18,6 +18,7 @@ import {
 } from "../data/enemies";
 import { spriteEntry } from "./assetRegistry";
 import { drawGreatswordSlash } from "./vfx/greatswordSlash";
+import { drawKatanaDash, KATANA_DASH } from "./vfx/katanaDash";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
   h = (h ^ (h >> 13)) * 1274126177;
@@ -694,6 +695,44 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
+  // 太刀疾冲：残影与刀光置于玩家下层，避免盖住角色和脚下资源条。
+  if (this.prof === "warrior" && this.warriorStyle === "katana") {
+    const fromX = this.warriorDashFromX;
+    const fromY = this.warriorDashFromY;
+    if (this.player.dashT > 0 && fromX !== null && fromY !== null) {
+      const dx = this.player.x - fromX;
+      const dy = this.player.y - fromY;
+      const length = Math.hypot(dx, dy);
+      // 三个固定间距的淡残影；短冲刺不把残影画到实际起点后面。
+      for (let i = 3; i >= 1; i--) {
+        const distance = i * 11;
+        if (length <= distance) continue;
+        const ghost = spriteRect(
+          "player",
+          this.player.x - dx / length * distance,
+          this.player.y - dy / length * distance,
+        );
+        if (!ghost) continue;
+        ctx.globalAlpha = (4 - i) * 0.08;
+        ctx.sprite(ghost.tex, ghost.x, ghost.y, ghost.w, ghost.h);
+      }
+      ctx.globalAlpha = 1;
+      drawKatanaDash(ctx, {
+        x1: fromX, y1: fromY,
+        x2: this.player.x, y2: this.player.y,
+        phase: "rush",
+        progress: Math.max(0, 1 - this.player.dashT / KATANA_DASH.rushDurationSeconds),
+      });
+    }
+    for (const q of this.warriorQi) {
+      if (q.kind !== "dash") continue;
+      drawKatanaDash(ctx, {
+        x1: q.x1, y1: q.y1, x2: q.x2, y2: q.y2,
+        phase: "release", progress: 1 - q.t / q.max,
+      });
+    }
+  }
+
   // 玩家 (冲刺时半透明残影感)
   // S3 法师「镜像」虚影：半透明 + 紫色调（不可受击的状态要看得见）
   ctx.globalAlpha =
@@ -947,6 +986,8 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   // 战士剑气 / 疾冲路径（短寿命表现层）
   if (this.warriorQi.length) {
     for (const q of this.warriorQi) {
+      // 太刀疾冲已在玩家下层绘制，不再叠旧版光束与终点三层弧。
+      if (q.kind === "dash" && this.warriorStyle === "katana") continue;
       const alpha = Math.max(0, Math.min(1, q.t / q.max));
       const x1 = Math.round(q.x1);
       const y1 = Math.round(q.y1);

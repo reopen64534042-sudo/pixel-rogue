@@ -14,7 +14,8 @@ import {
   GREATSWORD_SLASH_SHEETS,
   registerGreatswordSlash,
 } from "../rendering/vfx/greatswordSlash";
-import { W, H, WORLD, clamp } from "../data/constants";
+import { KATANA_DASH, registerKatanaDash } from "../rendering/vfx/katanaDash";
+import { W, H, WORLD, SHAKE_MAX, clamp } from "../data/constants";
 import { UPGRADES } from "../data/talents";
 import { SPECIAL_LEVELS, SPECIAL_UPGRADES } from "../data/specialShot";
 import type { Talent } from "../core/types";
@@ -199,6 +200,7 @@ export class GameScene extends Phaser.Scene {
     void this.loadTaidaoSlash();
     void this.loadIaiSpinSlash();
     void this.loadGreatswordSlashes();
+    void this.loadKatanaDash();
     const testName = new URLSearchParams(window.location.search).get("test");
     this.specialTest =
       import.meta.env.DEV && import.meta.env.MODE === "e2e"
@@ -559,6 +561,18 @@ export class GameScene extends Phaser.Scene {
     }));
   }
 
+  /** Preload once; both dash phases are driven by the existing simulation state. */
+  private async loadKatanaDash() {
+    try {
+      const image = await loadImageElement(KATANA_DASH.image);
+      if (!this.sys.isActive()) return;
+      registerKatanaDash(this.textures, image);
+    } catch (error) {
+      if (import.meta.env.DEV)
+        console.warn("[assets] Katana dash loading failed; using procedural blade", error);
+    }
+  }
+
   update(_now: number, delta: number) {
     if (!this.painter) return;
     // Issue #95：输入在模拟推进前落盘，否则摇杆方向会晚一帧生效
@@ -582,7 +596,7 @@ export class GameScene extends Phaser.Scene {
         this.painter.fillRect(Math.round(s.x), Math.round(s.y), 1, 1);
       }
     } else {
-      const shake = this.core.shake;
+      const shake = Math.min(this.core.shake, SHAKE_MAX);
       // 震屏偏移必须取整：小数滚动会让画布做亚像素采样，整屏的字和精灵一起发糊。
       // 流·极 爆发期 5 刀/秒，不取整会叠成「屏幕全花、看不清怪」（用户实机反馈）。
       this.cameras.main.setScroll(

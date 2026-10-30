@@ -2,6 +2,11 @@ export const W = 480,
   H = 270;
 export const VIEW = { w: W, h: H };
 export const WORLD = { w: 1392, h: 1040 };
+/**
+ * 全局震屏上限（像素）。怪物受击/死亡、招式、精英等多来源会在同一帧叠加；
+ * 后期必须让玩家看清画面，所有来源统一受此上限约束。
+ */
+export const SHAKE_MAX = 4;
 /** 满血拾取血包转化为最大生命的每波上限（加成本身永久保留，不设总上限） */
 export const POTION_GROW_CAP = 10;
 /** 宝箱拾取回血：普通与精英宝箱相同（v79 用户裁定） */
