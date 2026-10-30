@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v127",
+    date: "2026-10-31",
+    title: "修复开局天赋刷新可能抽回原卡",
+    items: [
+      "天赋单卡刷新现在同时排除另外两张卡和当前卡，确保点击「刷新」一定换一张。",
+      "旧逻辑只排除另外两张，7 张起手可抽池里约 1/5 概率原地不动，表现为“刷了没反应”。",
+    ],
+  },
+  {
     version: "v126",
     date: "2026-10-31",
     title: "残心残影追击、裂甲引爆与破围口径",

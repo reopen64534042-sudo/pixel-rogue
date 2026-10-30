@@ -3357,3 +3357,11 @@ L2 最初写 `distPerStack2 = 70px`（8 层 = 560px），比 L1 的 500px 更慢
 - 连斩：保持 30% 重置 / 最多 3 连 / 回 3% 生命，不做改动。
 - 验证：`npm run typecheck` ✓、`npm run build` ✓；e2e 受控：裂甲三刀 15 → 15 → 27，层数 1→2→0，第三刀后 `armorBreakPct=0.2`、`armorBreakT=3`，飘字含「裂甲」；残心主刀 15、队列伤害 7.5（结算 8），总损失 23，0.25s 后队列清空。
 - 按 2026-10-29 标准未运行 Vitest / Playwright；新机制未补 parity 基线，留待授权测试批次统一处理。
+
+## 开局天赋刷新抽回原卡修复（v127，2026-10-31）
+
+- 用户反馈：开局三张天赋卡点刷新后不变。
+- 原因：`refreshSlot` 的 `rollOne` 只排除了另外两个槽位，没有排除当前卡；起手可抽池 7 张时约 1/5 概率抽回原卡。
+- 修复：排除列表加入 `slot.u.n`，刷新一定换一张；若可抽池耗尽仍保持原卡（返回 false 的既有语义不变）。
+- 验证：e2e 连续 30 次开局 3 选 1 刷新，`unchanged=0`；`npm run typecheck` ✓、`npm run build` ✓。
+- 按 2026-10-29 标准未运行 Vitest / Playwright。
