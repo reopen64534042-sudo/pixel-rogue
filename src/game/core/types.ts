@@ -615,8 +615,8 @@ export interface HitOptions {
   attackerStats?: Readonly<CombatStatsSnapshot>;
   /**
    * v74 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多
-   * 留 1 HP，让后续反应完成击杀。只允许法阵/陨星直伤使用；反应、连锁、
-   * 灼烧等伤害不得传本选项（否则反应永远收不了尾）。
+   * 留 1 HP（整数伤害），让后续反应完成击杀。只允许法阵/陨星直伤使用；
+   * 反应、连锁、灼烧等伤害不得传本选项（否则反应永远收不了尾）。
    */
   lethalCap?: boolean;
 }

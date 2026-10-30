@@ -200,8 +200,10 @@ export function hurtEnemy(
   // v76 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多留
   // 1 HP，让随后结算的反应完成击杀。只压低实际应用值；反应基数由调用方
   // 另行传入，不受本处影响（反应/连锁不得使用 lethalCap）。
+  // 敌人 HP 被灼烧/残域按 preserve-float 扣成小数时，e.hp - 1 会把小数
+  // 带进飘字；向上取整保证整数伤害，且 ceil(e.hp - 1) 恒小于 e.hp，不会击杀。
   if (opts.lethalCap && e.hp > 1 && dmg >= e.hp) {
-    dmg = e.hp - 1;
+    dmg = Math.ceil(e.hp - 1);
   }
   // 主伤害和附带的真实伤害分开显示：主数字保持原样式，真实部分用小号 +N 紧跟右侧。
   const mainIsTrue = opts.type === "true";
