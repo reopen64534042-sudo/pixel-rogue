@@ -495,6 +495,11 @@ export interface FloatingText extends Point {
   critDmg?: boolean;
   /** 附带真实伤害的补充数字：小一号，显示在主伤害右侧 */
   small?: boolean;
+  /**
+   * 太刀「居合斩」专属样式：全场最大字号 + 冰白主体 + 双层青蓝描边。
+   * 居合是周期性爆发（每波 2–6 次），数字需要一眼能从满屏白字里认出来。
+   */
+  iaiDmg?: boolean;
 }
 export interface Meteor extends Point {
   t: number;
@@ -582,6 +587,8 @@ export interface HitOptions {
   trueFraction?: number;
   /** 强化弹直击：伤害数字用金色，便于和导弹/爆炸区分 */
   specialHit?: boolean;
+  /** 太刀「居合斩」：伤害数字用专属大字样式（见 FloatingText.iaiDmg） */
+  iaiHit?: boolean;
   src?: DamageSource;
   fromExplode?: boolean;
   /** Combat Foundation S2（§5）：伤害属性，缺省 physical；所有既有调用点均已显式声明 */

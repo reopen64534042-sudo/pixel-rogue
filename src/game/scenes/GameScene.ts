@@ -564,9 +564,11 @@ export class GameScene extends Phaser.Scene {
       }
     } else {
       const shake = this.core.shake;
+      // 震屏偏移必须取整：小数滚动会让画布做亚像素采样，整屏的字和精灵一起发糊。
+      // 流·极 爆发期 5 刀/秒，不取整会叠成「屏幕全花、看不清怪」（用户实机反馈）。
       this.cameras.main.setScroll(
-        this.core.cam.x + (shake ? (Math.random() - 0.5) * shake : 0),
-        this.core.cam.y + (shake ? (Math.random() - 0.5) * shake : 0),
+        Math.round(this.core.cam.x + (shake ? (Math.random() - 0.5) * shake : 0)),
+        Math.round(this.core.cam.y + (shake ? (Math.random() - 0.5) * shake : 0)),
       );
       draw.call(this.core, this.painter);
     }
