@@ -315,8 +315,11 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     weapon: this.warriorStyle,
     preciseSector: this.warriorStyle === "katana",
     ...(this.warriorStyle === "katana" ? { life: 0.167 } : {}),
-    shake: iai ? 5 : heavy ? 3 : 2,
+    // 流·极 爆发期攻速 ×2（5 刀/秒），若每刀照常震屏 2，叠加起来会变成
+    // 持续抖动 + 满屏数字，用户实机反馈「屏幕全花、看不清怪物」。爆发期降为 1。
+    shake: iai ? 5 : heavy ? 3 : burst ? 1 : 2,
     lifestealMul,
+    ...(iai ? { iaiHit: true } : {}),
   });
   if (this.warriorResolveT > 0) this.warriorResolveT = 0;
 

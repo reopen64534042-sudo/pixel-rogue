@@ -126,24 +126,23 @@ function drawChargeBar(
   value: number,
   fill: string,
   fillFull: string,
+  perSeg = CHARGE_PER_SEG,
+  dimLocked = true,
 ) {
   const left = Math.round(cx - CHARGE_BAR_W / 2);
   for (let i = 0; i < CHARGE_SEG_COUNT; i++) {
     const x = left + i * (CHARGE_SEG_W + CHARGE_SEG_GAP);
-    const segFloor = i * CHARGE_PER_SEG;
-    const unlocked = cap > segFloor;
+    const segFloor = i * perSeg;
+    const unlocked = !dimLocked || cap > segFloor;
     // 槽底：已解锁的段明显一档；未解锁的压暗但保留轮廓，
     // 让玩家能看出「还有几段没解锁」（初版 #0e1220 几乎融进背景，看不出形状）
     ctx.fillStyle = unlocked ? "#2b3a66" : "#171d30";
     ctx.fillRect(x, y, CHARGE_SEG_W, CHARGE_SEG_H);
     if (!unlocked) continue;
-    const filled = Math.max(0, Math.min(CHARGE_PER_SEG, value - segFloor));
+    const filled = Math.max(0, Math.min(perSeg, value - segFloor));
     if (filled <= 0) continue;
-    const w = Math.max(
-      1,
-      Math.round((CHARGE_SEG_W * filled) / CHARGE_PER_SEG),
-    );
-    ctx.fillStyle = filled >= CHARGE_PER_SEG ? fillFull : fill;
+    const w = Math.max(1, Math.round((CHARGE_SEG_W * filled) / perSeg));
+    ctx.fillStyle = filled >= perSeg - 1e-9 ? fillFull : fill;
     ctx.fillRect(x, y, w, CHARGE_SEG_H);
   }
 }
@@ -850,6 +849,8 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
     // 下：势。value 带未满一层的移动余量，因此是**平滑**增长而非跳格；
     // 满层时整条亮白＝下一刀必是居合斩。
+    // 势的 cap 是 5/8，不是 5 的倍数：三条按 cap/3 均分，满层时三条全亮
+    // （用户反馈：原来 8 层只亮 1.6 条，看起来不像满层）。
     if (this.player.upCounts["居合"]) {
       const lv2 = (this.player.upCounts["居合·迅"] || 0) > 0;
       const cap = lv2 ? WB.iai.cap2 : WB.iai.cap1;
@@ -858,7 +859,17 @@ export function draw(this: GameCore, ctx: PixelPainter) {
         cap,
         this.warriorIaiStacks + this.warriorIaiDist / step,
       );
-      drawChargeBar(ctx, cx, py + 20, cap, value, "#5ea8c8", "#e8ffff");
+      drawChargeBar(
+        ctx,
+        cx,
+        py + 20,
+        cap,
+        value,
+        "#5ea8c8",
+        "#e8ffff",
+        cap / CHARGE_SEG_COUNT,
+        false,
+      );
     }
   }
 
@@ -1119,17 +1130,19 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
   for (const t of this.texts) {
-    const layers = t.trueDmg
-      ? t.big
-        ? 4
-        : 3
-      : t.specialDmg
-        ? t.critDmg
+    const layers = t.iaiDmg
+      ? 4
+      : t.trueDmg
+        ? t.big
           ? 4
           : 3
-        : t.critDmg
-          ? 3
-          : 2;
+        : t.specialDmg
+          ? t.critDmg
+            ? 4
+            : 3
+          : t.critDmg
+            ? 3
+            : 2;
     let slots = slotState.slots.get(t);
     if (!slots || slots.length !== layers) {
       if (slots) slotState.free.push(...slots);
@@ -1141,7 +1154,23 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.globalAlpha = Math.min(1, t.life * 3);
     const x = Math.round(t.x);
     const y = Math.round(t.y);
-    if (t.trueDmg) {
+    if (t.iaiDmg) {
+      // 居合斩：全场最大字号 + 冰白主体。四层从外到内：
+      // 深青粗外圈（16px）→ 亮青细边（14px）→ 深色落影 → 冰白主体（12px）。
+      // 两层描边必须都比主体大一圈，同字号会被主体完全盖住。
+      // 居合每波只出 2–6 次，数字必须能从满屏白字里一眼认出来。
+      ctx.font = '16px "Press Start 2P", monospace';
+      ctx.fillStyle = "#0a3a4a";
+      ctx.fillTextSlot(slots[0], t.s, x, y);
+      ctx.font = '14px "Press Start 2P", monospace';
+      ctx.fillStyle = "#57e6ff";
+      ctx.fillTextSlot(slots[1], t.s, x, y);
+      ctx.font = '12px "Press Start 2P", monospace';
+      ctx.fillStyle = "#10131f";
+      ctx.fillTextSlot(slots[2], t.s, x + 1, y + 1);
+      ctx.fillStyle = t.c;
+      ctx.fillTextSlot(slots[3], t.s, x, y);
+    } else if (t.trueDmg) {
       // 真实伤害：冷蓝外圈 + 深色落影 + 银白主体；暴击再叠金色外圈并放大。
       if (t.small) {
         // 附带真实伤害的补充数字：比常规真实伤害小一圈，跟在主伤害右侧。

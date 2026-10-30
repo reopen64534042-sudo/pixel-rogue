@@ -34,6 +34,8 @@ export interface MeleeSwingOptions {
   weapon?: "katana" | "greatsword";
   /** 中心口径：只看敌人中心是否在扇形内，视觉扇形 = 命中扇形。 */
   preciseSector?: boolean;
+  /** 太刀「居合斩」：伤害数字用专属大字样式（见 FloatingText.iaiDmg） */
+  iaiHit?: boolean;
 }
 
 function angleDiff(target: number, center: number) {
@@ -97,6 +99,7 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
       ...(opts.lifestealMul !== undefined
         ? { lifestealMul: opts.lifestealMul }
         : {}),
+      ...(opts.iaiHit ? { iaiHit: true } : {}),
     });
   }
 

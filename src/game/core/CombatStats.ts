@@ -35,12 +35,16 @@ export function getPlayerCombatStats(p: Player): CombatStatsSnapshot {
   };
 }
 
-export function getEnemyCombatStats(e?: Enemy): CombatStatsSnapshot {
+export function getEnemyCombatStats(
+  e?: Enemy,
+  armorPen = 0,
+): CombatStatsSnapshot {
   const armorBreak =
     e && (e.armorBreakT ?? 0) > 0 ? (e.armorBreakPct ?? 0) : 0;
+  const pen = Math.max(0, Math.min(1, armorPen));
   return {
     attack: e ? e.dmg : 0,
-    defense: (e?.defense ?? 0) * (1 - armorBreak),
+    defense: (e?.defense ?? 0) * (1 - armorBreak) * (1 - pen),
     // 敌人不暴击；作为攻击方时三个增伤乘区随发射/引爆时快照固化
     critChance: 0,
     critMultiplier: 1,
