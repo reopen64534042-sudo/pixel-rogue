@@ -568,6 +568,8 @@ export interface Slash extends Point {
   max: number;
   /** 颜色 */
   c: string;
+  /** 近战武器类型：太刀走扫击刀光，大剑/旧卡走原同心弧。 */
+  weapon?: "katana" | "greatsword";
 }
 export interface HitOptions {
   noCrit?: boolean;

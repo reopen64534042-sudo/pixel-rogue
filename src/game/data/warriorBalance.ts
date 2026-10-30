@@ -4,8 +4,8 @@ import type { WarriorStyle } from "../core/types";
  * 战士基础形态与核心链系数。
  *
  * 数值口径（2026-10-30 用户确认的提案）：
- * - 80 HP / 60 移速 / 10 护甲 / 5% 吸血；
- * - 太刀 9 伤害 ×2.0/s、30px、100° 扇形、击退 40；
+ * - 80 HP / 60 移速 / 10 护甲 / 4% 吸血；
+ * - 太刀 9 伤害 ×2.0/s、34px、100° 扇形、击退 40；
  * - 大剑 17 伤害 ×1.2/s、36px、130° 扇形、击退 120。
  *
  * 战士的强度靠「贴住」换覆盖：挥砍本身是扇形，k 天然 ≥2，
@@ -31,7 +31,7 @@ export const WARRIOR_BALANCE = {
   maxhp: 80,
   speed: 60,
   defense: 10,
-  lifesteal: 0.05,
+  lifesteal: 0.04,
   heavyEvery: 3,
   heavyDamageMul: 2.5,
   heavyRangeMul: 1.5,
@@ -74,7 +74,7 @@ export const WARRIOR_BALANCE = {
       short: "太 刀",
       damage: 9,
       fireRate: 2.0,
-      range: 30,
+      range: 34,
       spread: (100 * Math.PI) / 180,
       knock: 40,
       color: "#5ef2c8",

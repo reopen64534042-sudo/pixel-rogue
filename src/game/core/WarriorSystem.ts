@@ -103,6 +103,7 @@ export function warriorLeap(this: GameCore): boolean {
     knock: style.knock,
     color: style.color,
     particleColor: style.particle,
+    weapon: this.warriorStyle,
     shake: 4,
   });
   for (let i = 0; i < 12; i++) {
@@ -203,13 +204,16 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
   if (p.fireCd > 0) return;
 
   const style = WB.styles[this.warriorStyle];
-  const target = this.nearestEnemy(p.x, p.y, p.attackRange + 24);
+  const target = this.nearestEnemy(p.x, p.y, p.attackRange);
   if (!target) {
     p.fireCd = 0.06;
     return;
   }
   const angle = Math.atan2(target.y - p.y, target.x - p.x);
-  const heavy = (this.warriorSwingCount + 1) % WB.heavyEvery === 0;
+  // 重斩是大剑流派的核心机制；太刀只走流，不出重斩。
+  const heavy =
+    this.warriorStyle === "greatsword" &&
+    (this.warriorSwingCount + 1) % WB.heavyEvery === 0;
   this.warriorSwingCount = (this.warriorSwingCount + 1) % WB.heavyEvery;
 
   // 破围：近战范围内同时有 ≥3 个敌人时，击退 ×2、伤害 +15%
@@ -246,6 +250,9 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     knock,
     color: heavy ? "#ffd24a" : style.color,
     particleColor: heavy ? "#ffe8a3" : style.particle,
+    weapon: this.warriorStyle,
+    preciseSector: this.warriorStyle === "katana",
+    ...(this.warriorStyle === "katana" ? { life: 0.167 } : {}),
     shake: heavy ? 3 : 2,
     lifestealMul,
   });
@@ -320,7 +327,6 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
   ) {
     const heal = p.maxhp * WB.lianZhanHeal;
     p.hp = Math.min(p.maxhp, p.hp + heal);
-    this.addText(p.x, p.y - 18, "连斩", "#ffd24a");
     resetCd = true;
   }
 

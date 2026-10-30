@@ -31,6 +31,10 @@ export interface MeleeSwingOptions {
   lifestealMul?: number;
   /** 命中粒子色（默认白色） */
   particleColor?: string;
+  /** 战士武器类型：太刀使用扫击刀光。 */
+  weapon?: "katana" | "greatsword";
+  /** 中心口径：只看敌人中心是否在扇形内，视觉扇形 = 命中扇形。 */
+  preciseSector?: boolean;
 }
 
 function angleDiff(target: number, center: number) {
@@ -62,10 +66,20 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
     if (e.dead) continue;
     const dx = e.x - p.x,
       dy = e.y - p.y;
-    const reach = opts.radius + e.r;
+    const reach = opts.preciseSector ? opts.radius : opts.radius + e.r;
     if (dx * dx + dy * dy > reach * reach) continue;
-    if (!full && Math.abs(angleDiff(Math.atan2(dy, dx), angle)) > half)
-      continue;
+    if (!full) {
+      const diff = Math.abs(angleDiff(Math.atan2(dy, dx), angle));
+      if (opts.preciseSector) {
+        // 中心口径：中心在扇形内就命中，和绘制的扇形完全一致。
+        if (diff > half) continue;
+      } else {
+        // 身体口径：敌人圆与扇形重叠（旧近战/大剑沿用）。
+        const d = Math.hypot(dx, dy);
+        const pad = d > e.r ? Math.asin(Math.min(1, e.r / d)) : Math.PI;
+        if (diff > half + pad) continue;
+      }
+    }
     hits.push(e);
   }
 
@@ -96,6 +110,7 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
     life: opts.life ?? 0.16,
     max: opts.life ?? 0.16,
     c: opts.color ?? "#e8fbff",
+    ...(opts.weapon ? { weapon: opts.weapon } : {}),
   });
 
   if (hits.length) {

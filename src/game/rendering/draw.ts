@@ -816,12 +816,31 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.fillRect(sx, sy, Math.round(sw * ratio), 2);
   }
 
-  // 近战刀光（三层同心弧：外缘最亮，向内渐淡）
+  // 近战刀光：太刀走「碧水扫击」，其余武器保留原三层同心弧。
   for (const s of this.slashes) {
     const k = Math.max(0, s.life / s.max);
-    const grow = 1 + (1 - k) * 0.18;
     const sx = Math.round(s.x),
       sy = Math.round(s.y);
+    if (s.weapon === "katana") {
+      // 素材 PR #172：10 帧 32×32 刀光。右侧半圆用顺时针表，左侧用逆时针表；
+      // 中心固定在角色前方 22px，出现/消失与透明度已烘焙进帧。
+      const prog = 1 - Math.max(0, Math.min(1, s.life / s.max));
+      const frame = Math.min(9, Math.floor(prog * 10));
+      const angle = Math.atan2(Math.sin(s.a), Math.cos(s.a));
+      const rightHalf = angle >= -Math.PI / 2 && angle < Math.PI / 2;
+      const key = `taidao-slash-${rightHalf ? "" : "ccw-"}${frame}`;
+      if (ctx.hasTexture(key)) {
+        ctx.globalAlpha = 1;
+        ctx.spriteRot(
+          key,
+          Math.round(sx + Math.cos(angle) * 22),
+          Math.round(sy + Math.sin(angle) * 22),
+          rightHalf ? angle : angle - Math.PI,
+        );
+      }
+      continue;
+    }
+    const grow = 1 + (1 - k) * 0.18;
     const half = s.arc / 2;
     for (let i = 0; i < 3; i++) {
       const r = (s.r - i * 4) * grow;
