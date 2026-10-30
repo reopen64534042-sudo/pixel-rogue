@@ -18,6 +18,12 @@ import {
 } from "../data/enemies";
 import { spriteEntry } from "./assetRegistry";
 import { drawGreatswordSlash } from "./vfx/greatswordSlash";
+import { drawGreatswordLeapImpact } from "./vfx/greatswordLeapImpact";
+import {
+  drawGreatswordLeapDescent,
+  drawGreatswordLeapTelegraph,
+  greatswordLeapPose,
+} from "./vfx/greatswordLeapMotion";
 import { drawKatanaDash, KATANA_DASH } from "./vfx/katanaDash";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
@@ -456,6 +462,25 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.globalAlpha = 1;
   }
 
+  // 大剑落地尘环贴地，置于敌人与玩家下层；缺图时沿用扩散环。
+  if (this.warriorLeapState) drawGreatswordLeapTelegraph(ctx, this.warriorLeapState);
+  for (const s of this.slashes) {
+    if (s.weapon !== "greatsword" || !s.impact) continue;
+    if (drawGreatswordLeapImpact(ctx, s)) continue;
+    const k = Math.max(0, s.life / s.max);
+    const grow = 1 + (1 - k) * 0.18;
+    for (let i = 0; i < 3; i++) {
+      const r = (s.r - i * 4) * grow;
+      if (r <= 2) continue;
+      ctx.globalAlpha = k * (i === 0 ? 0.9 : i === 1 ? 0.5 : 0.28);
+      ctx.strokeStyle = i === 0 ? "#ffffff" : s.c;
+      ctx.beginPath();
+      ctx.arc(Math.round(s.x), Math.round(s.y), r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
   // 敌人
   for (const e of this.enemies) {
     // 精英优先用独立贴图；没有时退回「同系列贴图 ×1.8」。
@@ -739,10 +764,14 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   }
 
   // 玩家 (冲刺时半透明残影感)
+  const leapPose = greatswordLeapPose(this.warriorLeapState);
+  if (this.warriorLeapState)
+    drawGreatswordLeapDescent(ctx, this.warriorLeapState, this.player.x, this.player.y);
   // S3 法师「镜像」虚影：半透明 + 紫色调（不可受击的状态要看得见）
   ctx.globalAlpha =
     this.magePhaseT > 0 ? 0.4 : this.player.dashT > 0 ? 0.6 : 1;
-  const playerRect = spriteRect("player", this.player.x, this.player.y);
+  ctx.globalAlpha *= leapPose.alpha;
+  const playerRect = spriteRect("player", this.player.x, this.player.y - leapPose.height);
   if (playerRect)
     ctx.sprite(
       playerRect.tex,
@@ -936,6 +965,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
 
   // 近战刀光：太刀碧水扫击、大剑金白宽刃；未加载时大剑回退同心弧。
   for (const s of this.slashes) {
+    if (s.weapon === "greatsword" && s.impact) continue;
     const k = Math.max(0, s.life / s.max);
     const sx = Math.round(s.x),
       sy = Math.round(s.y);

@@ -171,6 +171,7 @@ export function advanceTutorial(this: GameCore) {
     this.tutorialSpecialHits = 0;
   }
   if (prof === "warrior" && step === 4) {
+    this.warriorLeapState = null;
     this.tutorialHeavyDone = false;
     this.warriorFlowStacks = 0;
     this.warriorFlowT = 0;

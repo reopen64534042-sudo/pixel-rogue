@@ -87,6 +87,10 @@ export const WARRIOR_BALANCE = {
   dashDamageMul: 1.0,
   leapRange: 80,
   leapRangeMul: 1.3,
+  /** 跃击 / 第三段重斩共用的动作时间（秒）；由固定模拟时钟推进。 */
+  leapWindup: 0.24,
+  leapFall: 0.12,
+  leapImpactLife: 0.32,
   // 跃击落地 120% → 140%（机动链全面升级）。
   leapDamageMul: 1.4,
   leapRechargeExtra: 0.8,

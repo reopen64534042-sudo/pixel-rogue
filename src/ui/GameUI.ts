@@ -508,7 +508,7 @@ export class GameUI {
         : isWarrior
           ? this.core.warriorStyle === "greatsword"
             ? ([
-                ["🪓 重斩", "每 3 下 · 250%"],
+                ["🪓 重斩", "每 3 下坠击 · 0.24s 起手 · 250% · 360°"],
               ] as [string, string | number][])
             : iaiCap > 0
               ? ([
@@ -1502,7 +1502,7 @@ export class GameUI {
           }
         : {
             title: "重斩",
-            body: "你的核心是「重斩」：每第 3 次挥砍重击，破甲并放出剑气；试着打出一次重斩。",
+            body: "你的核心是「重斩」：每第 3 次挥砍锁定近战目标，起手后跃起坠击；后续可学习破甲与剑气，试着打出一次重斩。",
           };
     }
     if (step === tutorialGemStep(prof))
