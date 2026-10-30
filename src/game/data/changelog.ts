@@ -8,12 +8,22 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "v112",
+    version: "v113",
     date: "2026-10-30",
     title: "修复裂甲导致伤害显示小数",
     items: [
       "学习「裂甲」后，伤害数字不再出现小数点（易伤加成原本在取整之后相乘，把 12 变成 12.24）。",
       "取整口径与伤害系统一致：正值至少 1，0 伤害仍为 0（不会把免疫/零伤抬成 1）。",
+    ],
+  },
+  {
+    version: "v112",
+    date: "2026-10-30",
+    title: "残心与强袭加强（战士入场 L2）",
+    items: [
+      "残心：窗口 1 秒 → 2 秒，下一刀 +40% → +100%（等效 DPS 约 +8% → +21%）。",
+      "强袭：窗口 1 秒 → 2 秒，落地攻速 +25% → +40%（等效约 +10% → +33%）。",
+      "修复：残心窗口原先写死在 PlayerSystem，warriorBalance.resolveWindow 是死字段，现改为读配置。",
     ],
   },
   {
