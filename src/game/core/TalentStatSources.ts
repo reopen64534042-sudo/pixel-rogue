@@ -93,6 +93,7 @@
  * / 磨刃×2 13.310000000000002）与 S4-B shadow 独立重述
  * （playerShadowFromPicks，flat 五卡）双重暴露。
  */
+import { ATTRIBUTE_CAPS } from "../data/attributeBalance";
 import { statBase } from "../data/stats";
 import { resolveStats, type StatModifier } from "./StatModel";
 import { resolveKeyedMap, type TypeDamageBonusModifier } from "./StatSheets";
@@ -585,8 +586,15 @@ export function applyTalentStatProjection(
   p.damage = resolved.attack ?? base.damage;
   // C2-B：五字段解析结果写回既有 Player 字段（speed 字段 = moveSpeed StatId）
   p.boltDmgMul = resolved.boltDmgMul ?? base.boltDmgMul;
-  p.fireRate = resolved.fireRate ?? base.fireRate;
-  p.speed = resolved.moveSpeed ?? base.speed;
+  // 属性硬顶：攻速/移速按本职业基础值封顶；临时 Buff 在消费点乘算，不在此投影内
+  p.fireRate = Math.min(
+    resolved.fireRate ?? base.fireRate,
+    base.fireRate * ATTRIBUTE_CAPS.fireRateMul,
+  );
+  p.speed = Math.min(
+    resolved.moveSpeed ?? base.speed,
+    base.speed * ATTRIBUTE_CAPS.moveSpeedMul,
+  );
   p.magnet = resolved.magnet ?? base.magnet;
   p.area = resolved.area ?? base.area;
   // S1：射程写回（base 130；属性/天赋都未改动时写回 130，与旧硬编码等价）
@@ -609,6 +617,9 @@ export function applyTalentStatProjection(
   // 两者都不在 base 里，所以属性 flat 从 0 起算，符合 statBase 的初始值。
   if (resolved.lifesteal !== undefined) p.lifesteal = resolved.lifesteal;
   if (resolved.regen !== undefined) p.regen = resolved.regen;
+  // 属性硬顶：旧表卡直接写 f 的路径也一并夹紧，避免绕过投影超过上限
+  p.lifesteal = Math.min(p.lifesteal, ATTRIBUTE_CAPS.lifesteal);
+  p.regen = Math.min(p.regen, ATTRIBUTE_CAPS.regen);
   // defense 无 base（键缺席 = 0），有来源才出现——与旧 f 的键存在性一致
   if (resolved.defense !== undefined) p.defense = resolved.defense;
   else delete p.defense;
