@@ -1,0 +1,21 @@
+Use case: stylized-concept
+Asset type: production animation sprite sheet, greatsword NORMAL SWEEP attack VFX in an existing top-down 2D pixel-art roguelike.
+Reference image role: STYLE REFERENCE ONLY, the shipped cyan taidao slash sheet. Preserve its crisp pixel clusters and one-sided crescent readability, but create a NEW broad, heavy GOLDEN greatsword sweep, with a much thicker blade belly, amber tail, and white edge. NO sword, NO character.
+
+DELIVERABLE: single actual transparent PNG, EXACTLY TEN chronological frames arranged in FIVE COLUMNS and TWO ROWS, left-to-right then top-to-bottom. Exact canvas aspect 5:2. Each invisible slot is square, same size, with no gutters or labels. All frames use the SAME 64x64 logical pixel grid; pixels must be square hard-edged clusters. Keep a stable SHARED center at the middle of each slot and a constant nominal radius of 26 logical pixels. Full-cell mapping stays unchanged. At least 4 logical pixels clear of every edge. No individual recentering or rescaling of frames.
+The attack is a SINGLE thick crescent opening to the LEFT, entirely in the RIGHT HALF of its cell. The transparent player pivot is at the CENTER of the square, not the center of the crescent bounding box. Crescent centered on the rightward axis: sweep only from -65 degrees (upper-right) to +65 degrees (lower-right) around that fixed center, total 130-degree arc. Arc lies at radius 20-26 logical px, with a broad white/pale gold leading cutting edge and dark amber tapered trailing stroke. Keep left half empty except for a few tiny trailing specks. This is a WEIGHTY forward cut, not a ring or circular orbit. No handle, weapon or limbs.
+Use only FIVE flat opaque colors plus transparency: #9b4b16 dark amber, #f4a940 rich gold, #ffd24a bright gold, #ffe8a3 pale gold, #ffffff white. Color regions must be solid, no blur, glow, gradients or semitransparency. Retain open transparent center.
+
+Frame sequence:
+1 top-left: thin short amber lead-in scratch near upper-right circumference; mostly empty.
+2: small gold hooked stroke sweeping down from upper-right.
+3: crescent grows along the fixed right-hand arc, thick golden belly.
+4: full 130-degree crescent, white cutting edge and gold trailing belly; visually heavy.
+5 top-right: strongest complete broad golden crescent, white edge, 3 tiny angular sparks.
+6 bottom-left: leading edge has moved down-right, upper trail already breaking, still a thick crescent.
+7: lower-right crescent narrowing; short angular gold chips.
+8: separated little gold trail fragments in the lower-right quadrant, no complete arc.
+9: only a few small amber/gold spark flecks.
+10 bottom-right: almost empty with 2-3 tiny gold flecks. Keep the last full square slot.
+
+Each frame is a DISTINCT time step with clear motion, NOT ten similar complete crescents. No ground, background, checkerboard, text, watermark, numbering, panel borders, UI, 3D shading, realistic flames, sword silhouette, smoke or soft effects. Crisp production pixel art that reads at native 64x64.

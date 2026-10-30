@@ -16,6 +16,7 @@ import {
   WEB_ZONE,
 } from "../data/enemies";
 import { spriteEntry } from "./assetRegistry";
+import { drawGreatswordSlash } from "./vfx/greatswordSlash";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
   h = (h ^ (h >> 13)) * 1274126177;
@@ -889,7 +890,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.fillRect(sx, sy, Math.round(sw * ratio), 2);
   }
 
-  // 近战刀光：太刀走「碧水扫击」，其余武器保留原三层同心弧。
+  // 近战刀光：太刀碧水扫击、大剑金白宽刃；未加载时大剑回退同心弧。
   for (const s of this.slashes) {
     const k = Math.max(0, s.life / s.max);
     const sx = Math.round(s.x),
@@ -914,6 +915,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       }
       continue;
     }
+    if (s.weapon === "greatsword" && drawGreatswordSlash(ctx, s)) continue;
     const grow = 1 + (1 - k) * 0.18;
     const half = s.arc / 2;
     for (let i = 0; i < 3; i++) {

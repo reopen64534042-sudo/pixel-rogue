@@ -10,6 +10,10 @@ import { draw } from "../rendering/draw";
 import { SPR } from "../rendering/sprites";
 import { registerSprite } from "../rendering/assetRegistry";
 import { IAI_SPIN_SLASH, registerIaiSpinSlash } from "../rendering/vfx/iaiSpinSlash";
+import {
+  GREATSWORD_SLASH_SHEETS,
+  registerGreatswordSlash,
+} from "../rendering/vfx/greatswordSlash";
 import { W, H, WORLD, clamp } from "../data/constants";
 import { UPGRADES } from "../data/talents";
 import { SPECIAL_LEVELS, SPECIAL_UPGRADES } from "../data/specialShot";
@@ -194,6 +198,7 @@ export class GameScene extends Phaser.Scene {
     void this.loadSpriteOverrides();
     void this.loadTaidaoSlash();
     void this.loadIaiSpinSlash();
+    void this.loadGreatswordSlashes();
     const testName = new URLSearchParams(window.location.search).get("test");
     this.specialTest =
       import.meta.env.DEV && import.meta.env.MODE === "e2e"
@@ -538,6 +543,20 @@ export class GameScene extends Phaser.Scene {
       if (import.meta.env.DEV)
         console.warn("[assets] Iai spin slash loading failed", error);
     }
+  }
+
+  /** Preload both facing directions and weights; playback uses core slash time. */
+  private async loadGreatswordSlashes() {
+    await Promise.all(GREATSWORD_SLASH_SHEETS.map(async (sheet) => {
+      try {
+        const image = await loadImageElement(sheet.image);
+        if (!this.sys.isActive()) return;
+        registerGreatswordSlash(this.textures, image, sheet);
+      } catch (error) {
+        if (import.meta.env.DEV)
+          console.warn(`[assets] Greatsword slash loading failed: ${sheet.image}`, error);
+      }
+    }));
   }
 
   update(_now: number, delta: number) {
