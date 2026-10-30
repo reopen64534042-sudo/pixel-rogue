@@ -288,6 +288,8 @@ export interface Enemy extends Point {
   dmg: number;
   r: number;
   xp: number;
+  /** 动态难度：击杀经验倍率（1 或缺省 = 无补偿；仅射手高波次物化）。 */
+  xpMul?: number;
   elite: boolean;
   flash: number;
   orbCd: number;
@@ -340,6 +342,8 @@ export interface Enemy extends Point {
   shootCd: number;
   fuse: number;
   noDrop: boolean;
+  /** 动态难度：最终伤害乘区（1 或缺省 = 无减伤；仅射手高波次物化）。 */
+  damageTakenMul?: number;
   /** 角兽冲锋状态：windup 预警 / dash 冲刺 / stun 撞墙硬直。 */
   chargeState?: "windup" | "dash" | "stun";
   /** 当前冲锋状态剩余秒数。 */
@@ -420,6 +424,10 @@ export interface Bullet extends Point {
   pierce: number;
   /** 每穿一个目标后的剩余伤害倍率（发射时从玩家属性固化）。 */
   falloff: number;
+  /** 超载装填：发射时伤害，用于穿透伤害地板（仅特殊弹物化）。 */
+  launchDmg?: number;
+  /** 超载装填：穿透后的伤害地板（相对 launchDmg）。 */
+  pierceFloor?: number;
   life: number;
   size: number;
   jumps: number;
@@ -432,6 +440,10 @@ export interface Bullet extends Point {
   critBonus?: number;
   /** 射手强化弹标记；普通弹不写该键，保持旧对象形状。 */
   special?: boolean;
+  /** 强化普通弹：继承真伤（发射时固化）。 */
+  inheritTrue?: boolean;
+  /** 强化普通弹：继承完全追踪（发射时固化）。 */
+  inheritHoming?: boolean;
   /**
    * 发射时攻击者快照（Combat Foundation S3-B 定稿接口）：
    * 与 EnemyBullet.stats 对称——增伤等攻击方属性按发射时固化，
@@ -587,6 +599,8 @@ export interface Slash extends Point {
   heavy?: boolean;
   /** 三段斩的冲刺斩：追加一层后退残影，和平 A 刀光作轻量区分。 */
   dashSlash?: boolean;
+  /** 大剑跃击落地：使用全向地面冲击素材，绘制在角色下层。 */
+  impact?: boolean;
 }
 export interface HitOptions {
   noCrit?: boolean;
@@ -611,8 +625,8 @@ export interface HitOptions {
   attackerStats?: Readonly<CombatStatsSnapshot>;
   /**
    * v74 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多
-   * 留 1 HP，让后续反应完成击杀。只允许法阵/陨星直伤使用；反应、连锁、
-   * 灼烧等伤害不得传本选项（否则反应永远收不了尾）。
+   * 留 1 HP（整数伤害），让后续反应完成击杀。只允许法阵/陨星直伤使用；
+   * 反应、连锁、灼烧等伤害不得传本选项（否则反应永远收不了尾）。
    */
   lethalCap?: boolean;
 }

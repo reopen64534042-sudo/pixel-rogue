@@ -10,6 +10,7 @@ import {
   ETYPES,
 } from "../data/enemies";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
+import { resolveDifficulty } from "../data/difficulty";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { professionPierce } from "./AttributeSources";
 import { boltDamage, chargedShotDamage } from "./DamageMath";
@@ -63,8 +64,17 @@ export function spawnEnemy(
     if (!type) type = "slime";
   }
   const T = ETYPES[type];
+  const difficulty = resolveDifficulty(
+    this.prof,
+    this.waveN,
+    this.qualityScore,
+  );
   // 防御属性只在生成时解析一次；伤害/快照路径继续读取实体字段。
-  const defenseStats = resolveEnemyDefense(T, this.waveN);
+  const defenseStats = resolveEnemyDefense(
+    T,
+    this.waveN,
+    difficulty.armorAdd,
+  );
   // 在世界内、远离玩家的位置生成
   let sx = this.player.x,
     sy = this.player.y;
@@ -79,6 +89,8 @@ export function spawnEnemy(
     wave: this.waveN,
     elite,
     speedJitter,
+    hpMul: difficulty.hpMul,
+    attackMul: difficulty.attackMul,
   });
   this.enemies.push({
     type,
@@ -91,6 +103,7 @@ export function spawnEnemy(
     dmg: spawnStats.attack,
     r: T.r * (elite ? 1.8 : 1),
     xp: elite ? 25 : T.xp,
+    ...(difficulty.xpMul !== 1 ? { xpMul: difficulty.xpMul } : {}),
     elite: !!elite,
     flash: 0,
     orbCd: 0,
@@ -119,6 +132,9 @@ export function spawnEnemy(
       : {}),
     ...(defenseStats.tough !== undefined
       ? { tough: defenseStats.tough }
+      : {}),
+    ...(difficulty.damageTakenMul !== 1
+      ? { damageTakenMul: difficulty.damageTakenMul }
       : {}),
     ...resolveEnemyAttackBonuses(T),
   });
@@ -416,7 +432,8 @@ export function updateEnemies(this: GameCore, dt: number) {
             d2p < 38 + p.r &&
             p.hurtCd <= 0 &&
             p.dashT <= 0 &&
-            this.warriorLeapInvulnT <= 0
+            this.warriorLeapInvulnT <= 0 &&
+            this.warriorLeapState?.triStage3 !== true
           )
             this.damagePlayer(e.dmg * aura.dmg, {
               type: "fire",
@@ -704,6 +721,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         p.hurtCd <= 0 &&
         p.dashT <= 0 &&
         this.warriorLeapInvulnT <= 0 &&
+        this.warriorLeapState?.triStage3 !== true &&
         this.magePhaseT <= 0
       ) {
         const contactDmg =

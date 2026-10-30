@@ -2,7 +2,101 @@ import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import { WORLD, clamp } from "../data/constants";
 import { KNOCK, KNOCK_DAMP } from "../data/knockback";
 import type { GameCore } from "./GameCore";
-import type { Enemy } from "./types";
+import type { Enemy, Point } from "./types";
+import type { MeleeSwingOptions } from "./MeleeSystem";
+
+interface WarriorSwingSnapshot {
+  angle: number;
+  spread: number;
+  radius: number;
+  dmg: number;
+  knock: number;
+  heavy: boolean;
+  resolveReady: boolean;
+  iai: { cap: number } | null;
+  greatIai: boolean;
+  flowConsume: boolean;
+}
+
+type WarriorLeapAttack =
+  | { kind: "leap"; impact: MeleeSwingOptions }
+  | { kind: "combo"; swing: WarriorSwingSnapshot };
+
+/** One locked destination and attack snapshot for windup -> fall -> impact. */
+export type WarriorLeapState = WarriorLeapAttack & {
+  phase: "windup" | "fall";
+  elapsed: number;
+  fromX: number;
+  fromY: number;
+  x: number;
+  y: number;
+  radius: number;
+  /** 三段斩第三段：落地附带眩晕、推进循环并开启 0.8s 无敌。 */
+  triStage3?: boolean;
+};
+
+function beginWarriorLeap(
+  core: GameCore,
+  target: Point,
+  attack: WarriorLeapAttack,
+  triStage3 = false,
+) {
+  core.warriorLeapState = {
+    ...attack,
+    ...(triStage3 ? { triStage3: true } : {}),
+    phase: "windup",
+    elapsed: 0,
+    fromX: core.player.x,
+    fromY: core.player.y,
+    x: clamp(target.x, 24, WORLD.w - 24),
+    y: clamp(target.y, 24, WORLD.h - 24),
+    radius: attack.kind === "leap" ? attack.impact.radius : attack.swing.radius,
+  };
+}
+
+/** Advance before player movement/camera; damage is settled by warrior combat. */
+export function updateWarriorLeapMotion(this: GameCore, dt: number) {
+  const leap = this.warriorLeapState;
+  if (!leap) return;
+  const total = WB.leapWindup + WB.leapFall;
+  leap.elapsed = Math.min(total, leap.elapsed + dt);
+  if (leap.elapsed < WB.leapWindup) return;
+  leap.phase = "fall";
+  const progress = Math.min(1, (leap.elapsed - WB.leapWindup) / WB.leapFall);
+  const travel = 1 - (1 - progress) ** 2;
+  this.player.x = leap.fromX + (leap.x - leap.fromX) * travel;
+  this.player.y = leap.fromY + (leap.y - leap.fromY) * travel;
+}
+
+function landWarriorLeap(core: GameCore, leap: WarriorLeapState) {
+  core.player.x = leap.x;
+  core.player.y = leap.y;
+  // Clear before settling damage: impact is grounded and cannot resolve twice.
+  core.warriorLeapState = null;
+  if (leap.kind === "combo") {
+    resolveWarriorSwing.call(core, leap.swing, leap.elapsed, true);
+    return;
+  }
+  const hits = core.meleeSwing(leap.impact);
+  if (leap.triStage3) {
+    for (const e of hits)
+      e.stunT = Math.max(e.stunT ?? 0, WB.triDash.stunT);
+    advanceWarriorTriDash.call(core);
+    core.warriorLeapInvulnT = WB.triDash.leapInvulnT;
+  }
+  if ((core.player.upCounts["强袭"] || 0) > 0)
+    core.warriorLeapHasteT = WB.leapHasteWindow;
+  const style = WB.styles.greatsword;
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    core.parts.push({
+      x: leap.x, y: leap.y,
+      vx: Math.cos(a) * 80, vy: Math.sin(a) * 80,
+      life: 0.25, c: style.particle,
+    });
+  }
+  core.audio.beep(220, 0.12, "square", 0.05, -120);
+}
 
 function flowOwned(core: GameCore): boolean {
   return (core.player.upCounts["流·初"] || 0) > 0;
@@ -163,20 +257,36 @@ function forwardLeapPoint(core: GameCore): { x: number; y: number } {
 }
 
 /**
- * 跃击起手（v128）：先渐隐 + 落点预警，再坠击。
+ * 跃击（v131 状态机）：锁定落点，起手 + 坠落结束后才结算 AOE。
  *
- * 起手期间借 `p.dashT` 进入冲刺无敌，但不产生位移、不自动攻击；
- * 实际落点在起手瞬间锁定，敌人移动不会追踪。
- * - 持有「跃击」：锁定最密集敌群；无目标时退回普通冲刺。
- * - 三段斩第三段：即使没有跃击卡也必定起跳，向当前朝向远冲。
+ * - 普通跃击：消耗一次共享冲刺充能，锁定最密集敌群；无目标退回普通冲刺。
+ * - 三段斩第三段（triStage3）：消费第 3 个独立冲刺槽；无目标时向前 85px
+ *   起跳；落地附带眩晕、推进三段循环，并开启 0.8s 落地无敌。
  */
-export function warriorLeap(this: GameCore): boolean {
+export function warriorLeap(
+  this: GameCore,
+  opts?: { triStage3?: boolean },
+): boolean {
   const p = this.player;
-  if (this.prof !== "warrior") return false;
-  const tri = warriorTriStage3(this);
-  const leapOwned = (p.upCounts["跃击"] || 0) > 0;
-  if (!tri && !leapOwned) return false;
-  const target = leapOwned ? findLeapTarget(this) : null;
+  const tri = opts?.triStage3 === true;
+  if (
+    this.state !== "play" ||
+    this.prof !== "warrior" ||
+    this.warriorStyle !== "greatsword" ||
+    this.warriorLeapState ||
+    p.dashT > 0
+  )
+    return false;
+  if (tri) {
+    if (!warriorTriStage3(this)) return false;
+    if (this.warriorTriSlotRe[2] > 0) return false;
+  } else if (
+    (p.upCounts["跃击"] || 0) === 0 ||
+    p.dashCharges <= 0
+  ) {
+    return false;
+  }
+  const target = findLeapTarget(this);
   if (!target && !tri) return false;
   const point = target
     ? { x: target.x, y: target.y }
@@ -193,57 +303,32 @@ export function warriorLeap(this: GameCore): boolean {
       p.dashRe = p.dashMax + WB.leapRechargeExtra;
   }
   if (this.tutorialMode) this.tutorialDashed = true;
-  this.warriorLeapFx = {
-    t: WB.leapWindup,
-    max: WB.leapWindup,
-    fromX: p.x,
-    fromY: p.y,
-    toX: point.x,
-    toY: point.y,
-    triStage3: tri,
-  };
-  // 只借 dashT 做无敌判定；updatePlayer 会跳过跃击期间的冲刺位移。
-  p.dashT = WB.leapWindup + 0.1;
-  this.audio.beep(180, 0.12, "sine", 0.04, 120);
-  return true;
-}
-
-/** 跃击/三段斩第三段落点结算；由 updatePlayer 每帧推进。 */
-export function updateWarriorLeap(this: GameCore, dt: number): void {
-  const fx = this.warriorLeapFx;
-  if (!fx) return;
-  fx.t -= dt;
-  if (fx.t > 0) return;
-  const p = this.player;
-  this.warriorLeapFx = null;
-  p.x = clamp(fx.toX, 24, WORLD.w - 24);
-  p.y = clamp(fx.toY, 24, WORLD.h - 24);
-  p.dashT = 0;
   const style = WB.styles[this.warriorStyle];
-  const tri = fx.triStage3;
-  const hits = this.meleeSwing({
-    spread: Math.PI * 2,
-    radius: p.attackRange * (tri ? WB.triDash.leapRadiusMul : 1.2),
-    dmg: p.damage * (tri ? WB.triDash.leapDmgMul : WB.leapDamageMul),
-    knock:
-      KNOCK.warrior.leap *
-      KNOCK_DAMP *
-      (tri ? WB.triDash.leapKnockMul : 1),
-    color: style.color,
-    particleColor: style.particle,
-    weapon: this.warriorStyle,
-    shake: tri ? 6 : 4,
-  });
-  if (tri) {
-    for (const e of hits)
-      e.stunT = Math.max(e.stunT ?? 0, WB.triDash.stunT);
-    advanceWarriorTriDash.call(this);
-    // 起手已靠 dashT 无敌；落地后再给 0.8s 保护，用光环表现。
-    this.warriorLeapInvulnT = WB.triDash.leapInvulnT;
-  }
-  if ((p.upCounts["强袭"] || 0) > 0)
-    this.warriorLeapHasteT = WB.leapHasteWindow;
-  spawnWarriorSlamFx(this, tri);
+  beginWarriorLeap(
+    this,
+    point,
+    {
+      kind: "leap",
+      impact: {
+        angle: 0,
+        spread: Math.PI * 2,
+        radius: p.attackRange * (tri ? WB.triDash.leapRadiusMul : 1.2),
+        dmg: p.damage * (tri ? WB.triDash.leapDmgMul : WB.leapDamageMul),
+        knock:
+          KNOCK.warrior.leap *
+          KNOCK_DAMP *
+          (tri ? WB.triDash.leapKnockMul : 1),
+        color: style.color,
+        particleColor: style.particle,
+        weapon: "greatsword",
+        impact: true,
+        life: WB.leapImpactLife,
+        shake: tri ? 6 : 4,
+      },
+    },
+    tri,
+  );
+  return true;
 }
 
 function advanceWarriorTriDash(this: GameCore): void {
@@ -299,36 +384,6 @@ function eruptWarriorFissure(
   this.shake = Math.min(this.shake + 3, 8);
   this.audio.beep(90, 0.16, "square", 0.05, -40);
   this.addText(f.x, f.y - 14, "裂地", "#ff8c3a", false, false, true);
-}
-
-/** 跃击/三段斩第三段落地的冲击波环、粒子与音效。 */
-function spawnWarriorSlamFx(core: GameCore, tri: boolean): void {
-  const p = core.player;
-  const style = WB.styles[core.warriorStyle];
-  core.warriorQi.push({
-    x1: p.x,
-    y1: p.y,
-    x2: p.x,
-    y2: p.y,
-    t: tri ? 0.4 : 0.3,
-    max: tri ? 0.4 : 0.3,
-    c: style.color,
-    kind: "slam",
-  });
-  const ring = tri ? 24 : 12;
-  for (let i = 0; i < ring; i++) {
-    const a = (i / ring) * Math.PI * 2;
-    core.parts.push({
-      x: p.x,
-      y: p.y,
-      vx: Math.cos(a) * (tri ? 110 : 80),
-      vy: Math.sin(a) * (tri ? 110 : 80),
-      life: 0.25,
-      c: style.particle,
-    });
-  }
-  core.audio.beep(220, 0.12, "square", 0.05, -120);
-  if (tri) core.audio.beep(90, 0.18, "sawtooth", 0.05, -40);
 }
 
 /**
@@ -523,8 +578,12 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     });
   }
 
-  // 跃击起手期间角色不在场上：只推进计时，不自动挥砍。
-  if (this.warriorLeapFx) return;
+  const leap = this.warriorLeapState;
+  if (leap) {
+    if (leap.elapsed >= WB.leapWindup + WB.leapFall)
+      landWarriorLeap(this, leap);
+    return;
+  }
   if (p.fireCd > 0) return;
 
   const style = WB.styles[this.warriorStyle];
@@ -541,9 +600,11 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     (this.warriorSwingCount + 1) % WB.heavyEvery === 0;
   const dashHeavy =
     this.warriorStyle === "greatsword" && this.warriorHeavyReadyT > 0;
+  const heavy = naturalHeavy || dashHeavy;
+  // Finish an existing ordinary dash before starting a locked combo leap.
+  if (heavy && p.dashT > 0) return;
   if (!dashHeavy)
     this.warriorSwingCount = (this.warriorSwingCount + 1) % WB.heavyEvery;
-  const heavy = naturalHeavy || dashHeavy;
   if (dashHeavy) this.warriorHeavyReadyT = 0;
 
   // 破围：以玩家为圆心、攻击距离+e.r 内同时有 ≥3 敌（不看朝向，不是身体接触）。
@@ -592,20 +653,44 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     (heavy ? WB.heavyKnockMul : 1) *
     (breakout ? WB.breakoutKnockMul : 1) *
     iaiKnock;
-  // 居合核心是全向旋斩；普通挥砍仍是前方扇形。
-  const spread = iai ? Math.PI * 2 : style.spread;
+  // 居合与第三段坠击为全向；前两段普通挥砍仍是前方扇形。
+  const spread = iai || heavy ? Math.PI * 2 : style.spread;
+
+  const swing: WarriorSwingSnapshot = {
+    angle, spread, radius, dmg, knock: knock * KNOCK_DAMP,
+    heavy, resolveReady, iai, greatIai, flowConsume,
+  };
+  if (heavy) {
+    beginWarriorLeap(this, target, { kind: "combo", swing });
+    return;
+  }
+  resolveWarriorSwing.call(this, swing);
+}
+
+/** Shared actual-hit settlement, used immediately by normal swings and once at
+ * combo landing. Heavy talents, chain procs and cooldown keep one owner. */
+function resolveWarriorSwing(
+  this: GameCore,
+  swing: WarriorSwingSnapshot,
+  elapsed = 0,
+  impact = false,
+) {
+  const p = this.player;
+  const style = WB.styles[this.warriorStyle];
+  const { angle, spread, radius, dmg, knock, heavy, resolveReady, iai, greatIai, flowConsume } = swing;
 
   const hits = this.meleeSwing({
     angle,
     spread,
     radius,
     dmg,
-    knock: knock * KNOCK_DAMP,
+    knock,
     color: iai ? "#a8f0ff" : heavy ? "#ffd24a" : style.color,
     particleColor: iai ? "#e8ffff" : heavy ? "#ffe8a3" : style.particle,
     weapon: this.warriorStyle,
     preciseSector: this.warriorStyle === "katana",
     ...(heavy ? { heavy: true } : {}),
+    ...(impact ? { impact: true, life: WB.leapImpactLife } : {}),
     ...(this.warriorStyle === "katana" ? { life: 0.167 } : {}),
     shake: iai ? 5 : heavy ? 3 : 2,
     ...(iai ? { iaiHit: true } : {}),
@@ -700,11 +785,20 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
         kind: "qi",
       });
     }
-    // 裂地：重斩命中后，在主目标脚下延迟撕开地面。
-    if ((p.upCounts["裂地"] || 0) > 0) {
+    // 裂地：重斩落地后，在最近命中目标脚下延迟撕开地面。
+    if ((p.upCounts["裂地"] || 0) > 0 && hits.length) {
+      let focus = hits[0];
+      let bestD = Infinity;
+      for (const e of hits) {
+        const d = Math.hypot(e.x - p.x, e.y - p.y);
+        if (d < bestD) {
+          bestD = d;
+          focus = e;
+        }
+      }
       this.warriorFissures.push({
-        x: target.x,
-        y: target.y,
+        x: focus.x,
+        y: focus.y,
         t: WB.fissure.delay,
         max: WB.fissure.delay,
         r: WB.fissure.radius,
@@ -759,6 +853,6 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     (this.warriorIaiHasteT > 0 ? 1 + WB.iai.hasteMul : 1);
   p.fireCd = resetCd
     ? 0
-    : (1 / (p.fireRate * flowSpeed * haste)) *
-      (heavy ? WB.heavyIntervalMul : 1);
+    : Math.max(0, (1 / (p.fireRate * flowSpeed * haste)) *
+      (heavy ? WB.heavyIntervalMul : 1) - elapsed);
 }

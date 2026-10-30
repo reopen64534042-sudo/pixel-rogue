@@ -38,6 +38,7 @@ import {
   warriorLeap,
   warriorLianShanDash,
 } from "./WarriorSystem";
+import type { WarriorLeapState } from "./WarriorSystem";
 import {
   advanceTutorial,
   finishTutorial,
@@ -211,6 +212,11 @@ export class GameCore {
    */
   attributePicks: AttributePoint[] = [];
   /**
+   * 射手动态难度：本局属性选择相对同级期望品质的累计偏离。
+   * 永久累计，可为负；难度档案只把正偏离转成 DR，低于期望不返利。
+   */
+  qualityScore = 0;
+  /**
    * S3：当前职业池。
    *
    * S2 只有射手，职业被硬编码；S3 起开局可选「射手 / 法师」，
@@ -226,6 +232,8 @@ export class GameCore {
   warriorFlowT = 0;
   /** 每 3 次挥砍中的第 3 次为重斩。 */
   warriorSwingCount = 0;
+  /** 大剑起手 / 坠落中的落点与攻击快照；空值表示可以自由行动。 */
+  warriorLeapState: WarriorLeapState | null = null;
   /**
    * 连斩链计数（#179）。用户裁决「最多连 3 次」：达到上限后必须走完一次
    * 正常攻击间隔才能重新掷概率。放 GameCore 而非 Player——recompute 会重建
@@ -287,20 +295,6 @@ export class GameCore {
   warriorTriDashActive = false;
   /** 三段斩：3 个独立冲刺槽的剩余充能时间；0 = 可用。 */
   warriorTriSlotRe: [number, number, number] = [0, 0, 0];
-  /**
-   * 跃击起手/坠击状态（v128）。起手期间角色渐隐、按冲刺无敌、不自动攻击；
-   * 计时结束后在锁定落点结算 AOE。落点在起手瞬间锁定，不追踪敌人。
-   */
-  warriorLeapFx: {
-    t: number;
-    max: number;
-    fromX: number;
-    fromY: number;
-    toX: number;
-    toY: number;
-    /** 三段斩第三段：落地附带眩晕并推进循环。 */
-    triStage3: boolean;
-  } | null = null;
   /** 冲刺后移速爆发的剩余时间（战士基础机制，见 PlayerSystem 的 boost 乘区）。 */
   warriorDashBoostT = 0;
   /** 连闪·锐势：冲刺后 2 秒的暴击率/暴击伤害窗口（太刀）。 */
@@ -415,6 +409,8 @@ export class GameCore {
   chainCd = 0;
   /** 射手职业被动：普通射击计数，每第 3 次触发强化弹 */
   shotCounter = 0;
+  /** 「过载」：已触发的强化弹次数（只计强化弹触发，不计弹丸数）。 */
+  specialShotCount = 0;
   /** 强化弹等级/经验/已获得升级（一局内成长，resetGame 重置） */
   specialLevel = 1;
   specialXp = 0;
@@ -670,6 +666,7 @@ export class GameCore {
     this.warriorFlowStacks = 0;
     this.warriorFlowT = 0;
     this.warriorSwingCount = 0;
+    this.warriorLeapState = null;
     this.warriorChainCount = 0;
     this.warriorIaiStacks = 0;
     this.warriorIaiDist = 0;
@@ -684,7 +681,6 @@ export class GameCore {
     this.warriorTriDashStage = 0;
     this.warriorTriDashActive = false;
     this.warriorTriSlotRe = [0, 0, 0];
-    this.warriorLeapFx = null;
     this.warriorDashBoostT = 0;
     this.warriorLianShanT = 0;
     this.warriorHeavyReadyT = 0;
@@ -692,6 +688,7 @@ export class GameCore {
     this.tutorialHeavyDone = false;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
+    this.qualityScore = 0;
     // #134：走统一入口，让「第 1 波基础额度」也受单波上限约束
     this.attrPicks = 0;
     this.attrGrantedThisWave = 0;
@@ -700,6 +697,7 @@ export class GameCore {
     this.attrRefreshUsed = false;
     this.chainCd = 0;
     this.shotCounter = 0;
+    this.specialShotCount = 0;
     this.specialLevel = 1;
     this.specialXp = 0;
     this.specialUpgrades = [];
@@ -860,6 +858,7 @@ export class GameCore {
    * 只由 `gameOver` 在 `devRevive` 开启时调用；不写战绩。
    */
   private devReviveRun() {
+    this.warriorLeapState = null;
     const wave = Math.max(1, this.waveN);
     this.enemies = [];
     this.ebullets = [];
@@ -885,7 +884,6 @@ export class GameCore {
     this.magePhaseT = 0;
     this.pendingLevels = 0;
     this.startTalentPending = false;
-    this.warriorLeapFx = null;
     this.warriorTriDashActive = false;
     this.warriorTriSlotRe = [0, 0, 0];
     this.warriorHeavyReadyT = 0;
@@ -908,6 +906,7 @@ export class GameCore {
    * 清掉：picks/upCounts 与依赖天赋的运行态（护盾/充能/陨星/残域/法阵读条）。
    */
   devClearTalents() {
+    this.warriorLeapState = null;
     const p = this.player;
     // 原地清空，避免任何持有 upCounts/picks 引用的系统读到旧对象。
     for (const key of Object.keys(p.upCounts)) delete p.upCounts[key];
@@ -948,7 +947,6 @@ export class GameCore {
     this.warriorTriDashStage = 0;
     this.warriorTriDashActive = false;
     this.warriorTriSlotRe = [0, 0, 0];
-    this.warriorLeapFx = null;
     this.warriorDashBoostT = 0;
     this.warriorLianShanT = 0;
     this.warriorHeavyReadyT = 0;
@@ -958,6 +956,7 @@ export class GameCore {
   }
 
   gameOver() {
+    this.warriorLeapState = null;
     if (this.state === "over") return;    // DEV-only：允许复活时拦截死亡，保留本局构筑并重开当前波。
     if (import.meta.env.DEV && this.devRevive) {
       this.devReviveRun();

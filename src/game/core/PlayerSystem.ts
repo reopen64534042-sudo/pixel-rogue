@@ -3,7 +3,7 @@ import { WEB_ZONE } from "../data/enemies";
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import {
   finishWarriorTriDash,
-  updateWarriorLeap,
+  updateWarriorLeapMotion,
   warriorIaiCap,
   warriorIaiStep,
 } from "./WarriorSystem";
@@ -46,8 +46,8 @@ function addIaiDistance(core: GameCore, moved: number) {
 
 export function updatePlayer(this: GameCore, dt: number) {
   const p = this.player;
-  // 跃击起手/坠击：先于移动与输入推进，落点结算后再允许下一帧正常移动。
-  updateWarriorLeap.call(this, dt);
+  // v131：跃击起手/坠落由 WarriorSystem 统一推进；先于移动和相机。
+  updateWarriorLeapMotion.call(this, dt);
   // 三段斩使用 3 个独立冲刺槽：各自倒计时，当前段对应的槽才可消费。
   const triOwned =
     this.prof === "warrior" &&
@@ -90,7 +90,7 @@ export function updatePlayer(this: GameCore, dt: number) {
   }
   const dashingBefore = p.dashT > 0;
   p.dashT -= dt;
-  if (dashingBefore && p.dashT <= 0 && !this.warriorLeapFx) {
+  if (dashingBefore && p.dashT <= 0 && !this.warriorLeapState) {
     // S2「疾行」：冲刺刚结束的那一帧开一个 0.5 秒射速窗口，并装填下一发强化弹
     if ((p.upCounts["疾行"] || 0) > 0) {
       this.dashFireBoostT = 0.5;
@@ -137,7 +137,13 @@ export function updatePlayer(this: GameCore, dt: number) {
   const triSlotReady =
     triOwned && this.warriorTriSlotRe[this.warriorTriDashStage] <= 0;
   const hasCharge = triOwned ? triSlotReady : p.dashCharges > 0;
-  if (p.dashLv && (this.keys[kb.dash] || this.dashHeld) && hasCharge && p.dashT <= -0.1) {
+  if (
+    p.dashLv &&
+    !this.warriorLeapState &&
+    (this.keys[kb.dash] || this.dashHeld) &&
+    hasCharge &&
+    p.dashT <= -0.1
+  ) {
     // 大剑三段斩：第三段改走跃击状态机；其余段先按普通冲刺起手。
     const leapOwned = (p.upCounts["跃击"] || 0) > 0;
     const triStage3 = triOwned && this.warriorTriDashStage === 2;
@@ -149,7 +155,7 @@ export function updatePlayer(this: GameCore, dt: number) {
       this.prof === "warrior" &&
       leapOwned &&
       (triOwned ? triStage3 : true) &&
-      this.warriorLeap();
+      this.warriorLeap(triStage3 ? { triStage3: true } : undefined);
     if (!leap) {
       p.dashT = 0.16;
       if (triOwned) {
@@ -181,7 +187,8 @@ export function updatePlayer(this: GameCore, dt: number) {
     this.interruptMageCast();
     if (!leap) this.audio.beep(300, 0.1, "sine", 0.06, 500);
   }
-  if (p.dashT > 0 && !this.warriorLeapFx) {
+  // Dedicated leap motion owns position until its landing hit settles.
+  if (!this.warriorLeapState && p.dashT > 0) {
     // S2：冲刺位移按 dashDistMul 缩放（疾行 +25%；斩浪再 +30%）
     // #180：战士额外吃职业基础倍率（baseDashMul 1.5），与「斩浪」卡的 1.3 独立相乘。
     const triMul = this.warriorTriDashActive
@@ -216,7 +223,7 @@ export function updatePlayer(this: GameCore, dt: number) {
           ? WB.styles[this.warriorStyle].trail
           : "#57e6ff",
     });
-  } else if (!this.warriorLeapFx) {
+  } else if (!this.warriorLeapState) {
     // S2「滞空」：闪避成功后 0.5 秒的移速加成
     // 机动链基础层：冲刺后 dashBoostWindow 秒内线性衰减的移速爆发
     const moveSpeed = playerMoveSpeed(this);

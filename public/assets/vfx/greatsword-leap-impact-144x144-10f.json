@@ -1,0 +1,191 @@
+{
+  "key": "greatsword-leap-impact",
+  "image": "greatsword-leap-impact-144x144-10f.png",
+  "columns": 5,
+  "rows": 2,
+  "frameWidth": 144,
+  "frameHeight": 144,
+  "frameCount": 10,
+  "origin": {
+    "x": 0.5,
+    "y": 0.5
+  },
+  "anchorPx": {
+    "x": 72,
+    "y": 72
+  },
+  "referenceRadius": 67.5,
+  "omnidirectional": true,
+  "rotation": 0,
+  "repeat": 0,
+  "durationSeconds": 0.32,
+  "frameStarts": [
+    0,
+    0.06,
+    0.12,
+    0.18,
+    0.27,
+    0.37,
+    0.49,
+    0.62,
+    0.76,
+    0.9
+  ],
+  "timing": "simulation-owned slash life / max; fast contact, ground expansion, slower decay",
+  "palette": [
+    "#9b4b16",
+    "#f4a940",
+    "#ffd24a",
+    "#ffe8a3",
+    "#ffffff"
+  ],
+  "alphaValues": [
+    0,
+    255
+  ],
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 144,
+      "y": 0,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 288,
+      "y": 0,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 432,
+      "y": 0,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 576,
+      "y": 0,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 0,
+      "y": 144,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 144,
+      "y": 144,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 288,
+      "y": 144,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 432,
+      "y": 144,
+      "w": 144,
+      "h": 144
+    },
+    {
+      "x": 576,
+      "y": 144,
+      "w": 144,
+      "h": 144
+    }
+  ],
+  "stats": [
+    {
+      "frame": 0,
+      "opaque": 79,
+      "white": 9,
+      "maxRadius": 15.182226450688976
+    },
+    {
+      "frame": 1,
+      "opaque": 694,
+      "white": 17,
+      "maxRadius": 31.40859754907882
+    },
+    {
+      "frame": 2,
+      "opaque": 1521,
+      "white": 20,
+      "maxRadius": 41.188590653237945
+    },
+    {
+      "frame": 3,
+      "opaque": 1699,
+      "white": 0,
+      "maxRadius": 51.56064390598705
+    },
+    {
+      "frame": 4,
+      "opaque": 2200,
+      "white": 0,
+      "maxRadius": 60.60115510450275
+    },
+    {
+      "frame": 5,
+      "opaque": 2777,
+      "white": 0,
+      "maxRadius": 61.93948659780771
+    },
+    {
+      "frame": 6,
+      "opaque": 2708,
+      "white": 0,
+      "maxRadius": 66.15512073906297
+    },
+    {
+      "frame": 7,
+      "opaque": 1522,
+      "white": 0,
+      "maxRadius": 55.98660554096846
+    },
+    {
+      "frame": 8,
+      "opaque": 595,
+      "white": 0,
+      "maxRadius": 51.56064390598705
+    },
+    {
+      "frame": 9,
+      "opaque": 37,
+      "white": 0,
+      "maxRadius": 37.583240945932275
+    }
+  ],
+  "source": {
+    "tool": "built-in image_gen",
+    "model": null,
+    "seed": null,
+    "path": "assets/vfx/greatsword-leap-impact-source.png",
+    "width": 1983,
+    "height": 793,
+    "sha256": "af1de1680865685801de670ee9dd5fb74cc73e91cff5e9fc2f846e9ea276ef42",
+    "prompt": "assets/vfx/greatsword-leap-impact-prompt.txt"
+  },
+  "processing": {
+    "script": "scripts/build-greatsword-leap-vfx.mjs",
+    "logicalFrameSize": 144,
+    "alphaThreshold": 128,
+    "transparentCenterRadius": 4,
+    "sampling": "nearest-neighbor; RGB squared distance palette mapping; no dithering",
+    "sharedSourceRadius": 73.3655232380987,
+    "sharedScale": 0.9017216372825363,
+    "perFrameCrop": false
+  },
+  "sha256": "d88e51eb965bcc14723ff5f71b18045b033f2d300f4b2631bb4ddcf0b43fcea6"
+}

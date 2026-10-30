@@ -5,8 +5,8 @@
  * - L1-L2 无额外穿透，L3 起每 3 级 +1：L3=1、L6=2、L9=3，L9-L12 保持 3；
  * - L3 起强化弹无限飞行；穿透耗尽或飞出世界边界时消失；
  * - L4-L12 每级随机获得 1 条升级，最多 9 条，已获得的升级保留并共存；
- * - 获取顺序为「固定档位 + 档内加权随机」：第 1 抽只出基础形态（连发/导弹/附带真实伤害），
- *   第 2 抽起解锁激光、两系生命伤害与裂变，第 3 抽起解锁完全追踪与完全真实伤害；
+ * - 获取顺序为「固定档位 + 档内加权随机」：第 1 抽只出基础形态（连发/强化普通弹/附带真实伤害），
+ *   第 2 抽起解锁过载、两系生命伤害与裂变，第 8 抽（L11/L12）才解锁完全追踪与完全真实伤害；
  * - 升级形态是附加效果，不替换主弹道；
  * - 普通弹默认不继承升级，后续用「同化」升级单独开启。
  */
@@ -20,7 +20,9 @@ export type SpecialUpgradeId =
   | "missile"
   | "partialTrue"
   | "maxHpDamage"
-  | "laser";
+  | "laser"
+  | "enhancedNormal"
+  | "overload";
 
 export interface SpecialLevelStats {
   /** 升到下一级所需经验；满级为 null */
@@ -69,6 +71,10 @@ export interface SpecialUpgrade {
 export const DOUBLE_SHOT_DAMAGE_MUL = 0.8;
 /** 强化弹直击与轨迹的吸血效率（普通弹为 100%） */
 export const SPECIAL_LIFESTEAL_MUL = 0.3;
+/** 完全真实伤害的直伤倍率：无视防御，但只造成 80% 伤害 */
+export const TRUE_DAMAGE_MUL = 0.8;
+/** 超载装填：穿透后的伤害地板（相对该发强化弹的发射伤害） */
+export const PIERCE_FLOOR_OVERLOAD = 0.3;
 /** 附带真实伤害：额外真实伤害占强化弹原始伤害的比例 */
 export const PARTIAL_TRUE_FRACTION = 0.3;
 /** 当前生命伤害：目标当前生命的比例 */
@@ -80,6 +86,11 @@ export const HP_DAMAGE_CAP_MUL = 2;
 /** 完全追踪：转向速率（弧度/秒）与索敌半径 */
 export const HOMING_TURN_RATE = 6;
 export const HOMING_RANGE = 280;
+/** 强化普通弹：额外伤害占强化弹直伤的比例 */
+export const ENHANCED_NORMAL_DAMAGE_FRACTION = 0.05;
+/** 过载：每第几次强化弹触发一次，及该次伤害倍率 */
+export const OVERLOAD_EVERY = 4;
+export const OVERLOAD_DAMAGE_MUL = 1.8;
 /** 裂变：强化弹击杀时碎片数量、伤害倍率、索敌半径、速度与寿命 */
 export const FISSION_FRAGMENTS = 2;
 export const FISSION_DAMAGE_MUL = 0.5;
@@ -111,9 +122,9 @@ export const SPECIAL_UPGRADES: readonly SpecialUpgrade[] = [
     minPick: 1,
   },
   {
-    id: "missile",
-    name: "导弹",
-    desc: "强化弹首次命中时爆炸，造成范围物理伤害并留下燃烧地带",
+    id: "enhancedNormal",
+    name: "强化普通弹",
+    desc: "普通弹额外造成强化弹 5% 的伤害，并继承穿透 / 真伤 / 追踪；不计入强化弹经验",
     weight: 3,
     minPick: 1,
   },
@@ -125,11 +136,11 @@ export const SPECIAL_UPGRADES: readonly SpecialUpgrade[] = [
     minPick: 1,
   },
 
-  // 第 2 抽（L5）起：独立伤害来源与两系生命伤害
+  // 第 2 抽（L5）起：过载、独立伤害来源与两系生命伤害
   {
-    id: "laser",
-    name: "激光",
-    desc: "强化弹发射时额外发射一道激光，命中路径上的敌人",
+    id: "overload",
+    name: "过载",
+    desc: "每第 4 发强化弹伤害 ×1.8",
     weight: 2,
     minPick: 2,
   },
@@ -155,19 +166,19 @@ export const SPECIAL_UPGRADES: readonly SpecialUpgrade[] = [
     minPick: 2,
   },
 
-  // 第 3 抽（L6）起：质变件，权重压低，通常落在 L7-L9
+  // 第 8 抽（L11）起：质变件，权重压低，只在最后两次升级出现
   {
     id: "homing",
     name: "完全追踪",
     desc: "强化弹会转向最近的敌人",
     weight: 1,
-    minPick: 3,
+    minPick: 8,
   },
   {
     id: "trueDamage",
     name: "完全真实伤害",
-    desc: "强化弹无视护甲、抗性与韧性",
+    desc: "强化弹无视护甲、抗性与韧性；直伤 ×0.8，分裂/穿透仍会衰减",
     weight: 1,
-    minPick: 3,
+    minPick: 8,
   },
 ];

@@ -1,0 +1,26 @@
+Use case: stylized-concept
+Asset type: production pixel-art VFX sprite sheet for the top-down 2D action game Pixel Rogue.
+Primary request: ONE coherent full sprite sheet showing a heavy greatsword leap landing IMPACT. It is a vertical drop into the ground, spreading a thin low dust ring with rust-colored branching ground cracks and tiny amber debris, never a horizontal sword slash. Make all ten frames in one sheet.
+Layout: exactly 5 columns x 2 rows = 10 equal square frames in reading order left-to-right, top-to-bottom, seamless transparent canvas. Target each frame 144x144 pixels, total 720x288 (5:2 aspect). If image resolution differs, preserve that exact layout and aspect. No gutters, borders, labels or text. Fixed impact anchor at the exact center of every cell (72,72 at target scale). No per-frame recentering.
+Style: restrained crisp chunky pixel-art clusters that will read at 1:1 in a 480x270 game, sharp nearest-neighbor pixels, no antialiasing, gradients, soft glow, bloom, motion blur or painterly smoke. Transparent background, only fully opaque or fully transparent pixels.
+Palette ONLY: #9b4b16 dark rust, #f4a940 amber, #ffd24a gold, #ffe8a3 pale gold, #ffffff white-hot. Outer dust and cracks mostly dark rust/amber, very little pale gold/white. Debris tiny 1-2 target pixels, never large rocks.
+Composition: omnidirectional landing seen from a fixed top-down 3/4 camera; expanding FLATTENED horizontal ellipse approximately twice as wide as tall, low and attached to ground. No baked left or right attack direction. Keep a generous transparent center for the player, radius at least 4 target pixels. A tiny white contact glint or very short vertical stroke can sit just ABOVE that clear center in early frames, never a white ball covering center. Maximum horizontal radius about 65 target pixels; maximum vertical radius about 28-34 target pixels. All frames use same center and pixel scale. Leave 6px transparent border inside each cell. Fragmented ring, much negative space, no filled disc.
+Frame choreography:
+0: tiny white-hot 1-2px contact glint just above clear center plus 2-3 small rust dust flecks, almost empty.
+1: short vertical residual glint, very small FLAT elliptical amber/rust compression ring around open center, two short forked cracks.
+2: thin broken dust ring expands to 1/3 radius, 2-4 tiny amber/gold sparks thrown outward; cracks start forking.
+3: thin ring reaches half radius, darker dust puffs made of sparse 1-2px clusters; cracks lengthen.
+4: ring reaches 2/3 radius, open center, sparse low outward debris, glint shrinks.
+5: widest low dust ring around 60px horizontal radius, 3-4 thin irregular branching rust cracks, sparse amber dust; NO large white highlight.
+6: ring reaches maximum 65px radius, breaks apart into small clusters; white center gone, cracks longest, tiny gold falling sparks.
+7: expanding dust dissolves, dark crack fragments and a few amber embers remain, no continuous bright ring.
+8: only sparse dark rust dust and 2 tiny gold embers, cracks nearly gone.
+9: near transparent, a few dark rust specks and 1 tiny ember only.
+Motion: vertical impact -> ground compression -> wide low radial ground shockwave -> sparse decay. Weight comes from ground cracks and dust, NOT thick light outlines. It should be thinner and less bright than a gold-white greatsword crescent slash, while clearly reading as a heavy landing.
+Avoid: character, weapon, UI, letters, numbers, arrows, crosshair, scenery, ground tile background, baked shadows, thick symmetric cartoon explosion rings, thick smoke columns, filled gold discs, huge white flashes, realistic fire, horizontal crescent blades.
+
+Second pass: edit the first generated sheet to improve palette hierarchy.
+
+Edit this ten-frame ground-impact sprite sheet with ONE targeted improvement: strengthen the gold-white greatsword palette hierarchy while preserving the exact 5-column x 2-row layout, every frame's anchor, growing ring geometry, cracks, transparent negative space and decay choreography.
+The previous sheet reads too uniformly dark brown after five-color quantization. Keep all ground cracks dark rust #9b4b16, but add clearly opaque #f4a940 amber pixel CLUSTERS to the upper/facing edges of the expanding dust ring in frames 1-6. At least one third of each mid-action ring's visible pixels should be amber instead of dark brown. Keep them thin and broken, 1-2 target pixels. Add a few tiny #ffd24a gold specks and #ffe8a3 pale-gold chips in frames 2-6. Preserve only a 1-2px tiny #ffffff contact flash in frames 0-2, no white later. Do not enlarge the effect or make a continuous bright outline. The majority of cracks and trailing dust must still be dark rust. Frame 7 starts breaking apart, frames 8-9 remain near empty.
+Limited exact palette ONLY #9b4b16 #f4a940 #ffd24a #ffe8a3 #ffffff, each visible pixel fully opaque (alpha255), all empty areas truly transparent (alpha0); no semitransparency, red fringe, antialiasing, soft glow, gradient or realistic texture. At target scale: every cell144x144, total720x288, fixed center72,72, a clear transparent central hole for the player, flattened ground ring max radius65 horizontal and32 vertical. Crisp pixel clusters, production game sprite sheet. No text or other objects.

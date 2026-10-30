@@ -89,6 +89,10 @@ export const WARRIOR_BALANCE = {
   dashDamageMul: 1.0,
   leapRange: 80,
   leapRangeMul: 1.3,
+  /** 跃击 / 第三段重斩共用的动作时间（秒）；由固定模拟时钟推进。 */
+  leapWindup: 0.24,
+  leapFall: 0.12,
+  leapImpactLife: 0.32,
   // 跃击落地 120% → 140%（机动链全面升级）。
   leapDamageMul: 1.4,
   leapRechargeExtra: 0.8,
@@ -118,12 +122,6 @@ export const WARRIOR_BALANCE = {
     /** 持跃击的三段斩第三段：落地后额外无敌时间（起手本身也无敌）。 */
     leapInvulnT: 0.8,
   },
-  /**
-   * 跃击起手：先渐隐、落点预警，再坠击。
-   * 起手期间按冲刺处理（无敌、不自动攻击），解决「无前摇像闪现」的问题。
-   * v128 反馈后 0.18 → 0.24：让渐隐与落点预警有足够可读时间。
-   */
-  leapWindup: 0.24,
   // 残心（太刀入场 L2）：冲刺后下一次命中追加 50% 残影斩。
   // 由「下一刀 +100%」改为派生追击：保留冲刺后的节奏，但不再与居合/锐势的爆发数字重叠。
   resolveWindow: 2,

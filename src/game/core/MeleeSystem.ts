@@ -34,6 +34,8 @@ export interface MeleeSwingOptions {
   weapon?: "katana" | "greatsword";
   /** 本次重斩的表现快照，不改变伤害与命中。 */
   heavy?: boolean;
+  /** 大剑落地冲击的表现快照，不改变命中结算。 */
+  impact?: boolean;
   /** 中心口径：只看敌人中心是否在扇形内，视觉扇形 = 命中扇形。 */
   preciseSector?: boolean;
   /** 太刀「居合斩」：伤害数字用专属大字样式（见 FloatingText.iaiDmg） */
@@ -122,6 +124,7 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
     ...(opts.spin ? { spin: true } : {}),
     ...(opts.heavy ? { heavy: true } : {}),
     ...(opts.dashSlash ? { dashSlash: true } : {}),
+    ...(opts.impact ? { impact: true } : {}),
   });
 
   if (hits.length) {

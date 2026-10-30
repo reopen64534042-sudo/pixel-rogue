@@ -3367,25 +3367,132 @@ L2 最初写 `distPerStack2 = 70px`（8 层 = 560px），比 L1 的 500px 更慢
 - 验证：e2e 连续 30 次开局 3 选 1 刷新，`unchanged=0`；`npm run typecheck` ✓、`npm run build` ✓。
 - 按 2026-10-29 标准未运行 Vitest / Playwright。
 
-## 大剑三段斩、重斩链与跃击（v128，2026-10-31）
+## D-123 射手动态难度（v128）
 
-- 用户反馈：① 三段循环做成一张类似斩浪的核心卡；② 跃击无前摇像闪现，希望起手渐隐、落点可见；③ 名字是「三段斩」就必须常驻三段；④ 第 2 段与第 1 段同级、只增加冲刺距离；⑤ 脚底 UI 改三格；⑥ 冲刺斩与平 A 刀光要能区分；⑦ 跃击前摇再大一点、三段位移再短一点；⑧ 连闪在大剑池需要特化并与三段斩互斥；⑨ 持跃击时组成改为扇斩→旋斩→跃击；⑩ 作弊面板按流派过滤；⑪ 三段斩要能一口气连放；⑫ 没学重斩却默认有重斩，将错就错把重斩链前移并换更好的 L3；⑬ 第三段跃击加无敌光罩；⑭ 「下一波」默认 F 且可改键。
-- 三段斩：新增 `data/talents/warrior.ts` t0 核心（大剑可见池 9 → 10）。`WarriorBalance.triDash` 位移 0.7/0.9/1.1、伤害 120%/120%/100%，跃击前冲 85px。`GameCore.warriorTriSlotRe` 改为 **3 个独立冲刺槽**，每槽单独按 `dashMax` 倒计时；当前段对应的槽 ready 才能消费，不再依赖共享 `dashCharges/dashRe`（基础充能逻辑在三段斩时跳过）。脚底 UI 三格逐槽显示独立进度，白色 2px 亮点标出当前段/下一个被消费的槽。
-- 循环：不持跃击：扇斩→扇斩（同级，只加距离）→360° 旋斩；持跃击：扇斩→旋斩→跃击（`warriorTriStage3` 同时检查两张卡）。三段末尾攻击不推进 `warriorSwingCount`、不触发连斩。
-- 跃击：起手 0.18→0.24s，渐隐 + 落点锁定 + 预警圈/光柱，外圈按实际冲击波半径绘制。持跃击的三段斩第三段在起手（`p.dashT`）与落地后 0.8s（`warriorLeapInvulnT`）完全无敌：`damagePlayer` 统一拦截，接触/弹幕入口也跳过；无敌期间角色以 **半隐身（alpha 0.5）** 表示，不再额外画光环；C 面板显示剩余时间。单独跃击仍每次冲刺跃击。
-- 重斩链：重斩是基础机制，删除原「重斩」卡；顺次前移为 **破甲（L1）→ 剑气（L2）→ 裂地（L3）**。新增「裂地」：重斩命中后在主目标脚下生成 `warriorFissures`，0.22s 后爆裂，半径 55px、120% 伤害、强击退（`KNOCK.warrior.fissure`）、眩晕 0.45s；逐个敌人检查 `armorBreakT`，已破甲 +30%。表现层用橙金预警圈/四向裂纹，爆裂时 `warriorQi.kind = "slam"` + 粒子 + 飘字「裂地」。教程大剑核心卡由「重斩」改为「破甲」。
-- 连闪特化：大剑流派设置 `warriorHeavyReadyT`（2s），下一刀按重斩结算但不推进自然重斩计数；太刀继续设置 `warriorLianShanT` 锐势暴击。`CombatSystem` 锐势按 `warriorStyle !== "greatsword"` 门控；三段斩与连闪双向 `excludes`。
-- 冲刺斩表现：已回退为「后退 5px、97% 大小、30% alpha」的淡残影版；冷青外圈/冷芯/速度像素方案经用户否决并移除。专用冲刺斩美术方案与提示词待统一批准后接入。360° 回旋斩仍用三把金白刀光。
-- 作弊面板：`prereq` 增加 `warriorStyle` 检查（流派不符灰显不可点），`sig` 纳入 `prof/warriorStyle`；太刀局锁定大剑卡，大剑局锁定斩浪/居合/流等。
-- 快捷键：`KeyAction` 新增 `nextWave`，默认 F；`canUseNextWaveShortcut()` 只在休整按钮可见且无覆盖层时生效，走与按钮同一条 `GameUI.nextWave()`；设置改键列表自动增行，旧 v1 键位存档缺失该字段时补 F，若 F 已被占用则自动选空闲键。
-- 验证：`npm run typecheck` ✓、`npm run build` ✓；e2e 受控（5334）：
-  - 三段斩独立槽：初始 `warriorTriSlotRe=[0,0,0]`；三次冲刺后 `slot0≈1.42 / slot1≈1.42 / slot2≈1.42`、段数 0→1→2→0；第 4 次冲刺在段 0 槽仍在充能（≈0.817s）时被拦截；50 帧后槽 0 归零，下一次冲刺成功消费槽 0。破甲/剑气/裂地前置链 `po:true→jq:true→ld:true`，原「重斩」卡已不存在。
-  - 裂地：重斩后 `warriorFissures=1`、目标 `armorBreakT≈3.98`；0.22s 后 `warriorFissures=0`，三敌各 9909→9878（31 伤害含破甲 +30%），眩晕 0.433s，`slam` 环与「裂地」飘字出现。
-  - 跃击无敌：起手 `triStage3=true`、落地 `warriorLeapInvulnT≈0.767`；两次 10 点 `damagePlayer` 均被拦截（HP 80→80）；0.8s 结束后同类伤害生效（80→71.67）。
-  - F 下一波：默认 `keybinds.nextWave="f"`，休整面板 `waveN 3→4`、`wavePhase=fight`、`bp-rest` 隐藏。
-  - 作弊面板：大剑局流/居合/斩浪/残心显示「流派不符」，三段斩与连闪互斥；切太刀后破甲/剑气/裂地/三段斩/跃击/强袭显示「流派不符」。
-  - 截图：`output/vfx-normal-slash.png`（平 A）、`output/vfx-dash-slash.png`（回退后的残影冲刺斩）、`output/vfx-foot-ui-3charges-clean.png`（满充能）、`output/vfx-foot-ui-slot-progress.png`（三槽独立进度）、`output/vfx-fissure-telegraph.png` / `vfx-fissure-burst.png`（旧裂地表现，待改造）、`output/vfx-leap-invuln-halfhidden.png`（半隐身；画面外环是落地冲击波，不是无敌光环）。
-- 说明：跃击的坠地 AOE 半径当前按 `player.attackRange` 计算（普通跃击 ×1.2，三段第三段 ×1.3），因此会随「近战范围」属性放大；落点预警外圈使用同一半径。裂地半径固定 55px，不吃该属性。
-- 待办：剑气→平推型移动剑气、裂地→四方强化剑气、冲刺斩专用刀光均已列入美术方案；用户要求先确认语言描述与统一提示词，当前版本暂不接入新表现（剑气仍为直线、裂地仍为延迟地裂，冲刺斩为残影版）。
-- 美术：新增 `docs/greatsword-leap-vfx-brief.md`，按「不加厚、用垂直运动 + 扁平尘环 + 暗锈裂纹区分平 A」编写 GPT Image 提示词与 10 帧落地 VFX 规格。
+- 用户决策（2026-10-31）：选 B——射手 20 波后给敌人全局 DR，HP / 护甲 / 攻击辅助；只对射手生效，法师 / 战士 neutral；品质威胁永久、低品质不返利。
+- 模型（`output/difficulty-model.mjs`，临时）：满配射手 L12 + 9 升级、8 张天赋、每波最多 3 次属性、期望品质；24 只小怪场校准。HP +50% 时当前/最大生命伤害使单体 DPS 也约 +49%，清场基本不变；DR 是主杠杆。攻击 +50% 后普通约 5.1～6.3 下、精英 2.1～2.6 下。
+- 实现：
+  1. `data/difficulty.ts`：射手 B 档案；W21-25 DR 0→32%，W20-30 HP +35% / 护甲 +14 / 攻击 +50%，XP +15%，品质 DR 上限 5%；非射手 neutral。
+  2. `core/AttributeSystem.ts`：`chooseAttr` 记录品质偏离（稀有度倍率 − 同级期望）；功能属性权重 0；`GameCore.qualityScore` 永久累计（可为负，最终只取正偏离）。
+  3. `core/EnemyStatSources.ts`：生成时接受 `hpMul` / `attackMul` / `extraDefense`；`EnemySystem` 按职业、波次、品质写入；`Enemy` 新增可选 `damageTakenMul` / `xpMul`。
+  4. `core/CombatSystem.ts` / `core/ElementSystem.ts`：在所有伤害修正之后、`lethalCap` 前应用 `damageTakenMul`，主伤害与 +真实伤害分别取整；覆盖弹丸、近战、爆炸等 `hurtEnemy` 路径，以及灼烧 / 元素残域等直扣 DoT 路径。
+  5. `ui/GameUI.ts` + `WaveSystem`：C 面板「动态难度」行与波次提示显示减伤 / HP / 护甲 / 攻击。
+- 验证：`npm run typecheck`、`npm run build` 通过；e2e 受控：
+  - mage20 与 shooter20 生成属性完全一致（neutral）。
+  - shooter25：HP ×1.175、护甲 +7、攻击 ×1.25、DR 32%；shooter30：HP ×1.35、护甲 +14、攻击 ×1.5、DR 32%、XP ×1.15。
+  - `qualityScore=7` 时 shooter30 总 DR 35.4%（`damageTakenMul=0.646`）；true 100 伤害实际 65，无品质时 68，法师 100。
+  - `chooseAttr` 在 Lv30 选一张金色攻击，`qualityScore` 从 0 变 0.768（=2.9−同级期望）。
+  - W30 波次提示：射手「WAVE 30 · 狂潮 · 难度减伤 32%」，法师无后缀。
+  - C 面板行：射手 W30 显示「减伤 32% · 生命 ×1.35 · 护甲 +14 · 攻击 ×1.50」。
+  - DoT：同样 100 点火焰 DPS，射手实扣 68，法师 100。
+- 后续压力诊断（v129 升级池 + 本 B）：期望品质 W25/W30 清场约 43.6/38.8s，全金品质约 26.4/23.7s；金品质 DPS 是期望的 1.45～1.85 倍，而品质 DR 只有 5%；防御吸血+回复仍是 3 下/秒敌方输出的 1.3～4.1 倍。说明 B 对幸运满配 build 仍偏轻；用户暂决定保留 v128，不整套加压，后续按单杠杆试。
+- 测试影响：新增可选 `Enemy` 字段与高波次生成数值，可能影响 parity / 高波次伤害断言；按 2026-10-29 标准未运行 Vitest、未改基线。
+
+## D-124 射手强化弹平衡与补位升级（v129）
+
+- 用户实测（2026-10-31）：第一把在强化弹 L9 拿到完全真伤 + 完全追踪，配合核心流派后 7 波起无压力；快速/超载同时选后（再叠双段疾冲的冲刺 +1）计数过快。决定先削武器本身：
+  1. 快速/超载不再减少计数，基础固定每 4 发；它们只保留穿透 +1、快速 80% 衰减、超载 30% 穿透地板。
+  2. 射手吸血上限单独 10%，法师/战士维持 30%。
+  3. 完全真实伤害直伤 ×0.8；分裂/穿透继续衰减；超载不再回到 100%，改为 30% 地板；真伤/追踪只从 L11/L12 出现，允许同时拿。
+  4. 移除激光/导弹升级，补「强化普通弹」「过载」，保持 9 条升级 / 12 级。
+- 实现：
+  1. `data/attributeBalance.ts`：新增 `shooterLifesteal=0.1` 与 `lifestealCap(prof)`；射手 10%，其他 30%。`AttributeSystem` 候选过滤与 `TalentStatSources` 投影都按职业夹紧。
+  2. `core/AttackSystem.ts`：`specialEvery` 固定为 `SPECIAL_SHOT_EVERY=4`；快速/超载不再参与计数。
+  3. `data/specialShot.ts`：`TRUE_DAMAGE_MUL=0.8`、`PIERCE_FLOOR_OVERLOAD=0.3`、`ENHANCED_NORMAL_DAMAGE_FRACTION=0.05`、`OVERLOAD_EVERY=4`、`OVERLOAD_DAMAGE_MUL=1.8`；真伤/追踪 `minPick=8`；池改为双发/强化普通弹/附带真伤、过载/两系生命/裂变、真伤/追踪。
+  4. `core/AttackSystem.ts`：普通弹在 `enhancedNormal` 下伤害 = 普通伤害 + 强化弹直伤 ×5%，继承强化弹穿透；发射时固化 `inheritTrue/inheritHoming`；不计入 `gainSpecialXp`，但仍照常 `shotCounter++`（4 发节奏）。过载按强化弹触发次数累计，第 4 次整发 ×1.8。
+  5. `core/ProjectileSystem.ts`：`isTrue` 包含 `b.inheritTrue`；真伤直伤 ×0.8；homing 条件包含 `b.inheritHoming`；穿透时按 `launchDmg × pierceFloor` 夹紧。
+  6. `data/talents/shooter.ts` / `TalentStatSources`：快速/超载卡面改为穿透/衰减/30% 地板，不再写节奏；教程文案同步。
+- 验证：`npm run typecheck`、`npm run build` 通过；e2e 受控：
+  - 快速+超载：普通/强化弹序列 `N,N,N,S`，不再每 2 发；双段疾冲只推进计数，不会每发强化弹。
+  - 吸血注入 50%：射手 0.1、法师/战士 0.3。
+  - 真伤打靶：普通 26 → 真伤 21（≈80%）。
+  - 强化普通弹：普通 13 → 强化普通 14.69（+5%×强化弹 33.8）；继承真伤后 15→12（×0.8）；`specialXp` 不增加。
+  - 过载：连续 4 发强化弹 33.8/33.8/33.8/60.84（第 4 发 ×1.8）。
+  - 升级池 9 条；强化普通弹/过载进入 L4/L5 池，真伤/追踪 minPick=8。
+- 测试影响：旧测试中 4→3→2 节奏、激光/导弹、9 条旧名称、真伤全额、超载 100% falloff 的断言会过期；按 2026-10-29 标准未运行 Vitest、未改基线。
+- 未验证/风险：强化普通弹 5% 与继承真伤/追踪的实际手感；过载第 4 发在齐射/双发下的爆发；固定 4 发节奏是否让核心 build 过弱；自然试玩待确认。激光/导弹代码保留但不在升级池，后续独立武器复用。
+
+## D-125 修复法师直伤飘字小数（v130）
+
+- 用户反馈（2026-10-31）：「法师有时候造成伤害会出现小数点，好像是出现在雷霆连锁的时候」。
+- 分支：`fix/mage-decimal-damage`（自 upstream/main 8926ede / v129）。
+
+### 根因
+
+`CombatSystem.hurtEnemy` 的 v76 反应保护在「目标会被这一发击杀且满足反应条件」时执行：
+
+```ts
+if (opts.lethalCap && e.hp > 1 && dmg >= e.hp) {
+  dmg = e.hp - 1;   // ← e.hp 带小数时，伤害与飘字都带小数
+}
+```
+
+法师的灼烧（`applyFireDot`）与元素残域（`applyDotDamage`）按 `preserve-float` 扣血，敌人 HP 常为小数；保护后的直伤因此是 `2.734` 这类小数，并被 `addText` 原样显示。闪电连锁在 `applyMageHit` 中与直伤同一帧结算，所以小数常和链电一起出现；链上目标自身仍走 `round-min-one`，是整数。
+
+### 修复
+
+```ts
+dmg = Math.ceil(e.hp - 1);
+```
+
+- 整数伤害，飘字恢复整数。
+- `ceil(e.hp - 1) < e.hp` 恒成立：仍然不会抢掉反应击杀。
+- 整数 HP 时与原行为完全一致（留 1 HP）；小数 HP 时留 <1 HP，反应照常收尾。
+
+### 验证
+
+受控脚本（`output/mage-decimal-check.mjs`，本地临时、未提交）：
+
+- 修复前：`e.hp=3.734` + `lethalCap` → 飘字 `2.734`。
+- 修复后：同一用例飘字 `3`，剩余 HP `0.734`；陨星路径 `7.318 → 7`；强制触发的超载 + 闪电链飘字 `8` / `5`，全部整数。
+- `npm run typecheck` ✓、`npm run build` ✓。
+
+### 测试影响
+
+无既有测试引用 `lethalCap`；按 2026-10-29 标准未运行 Vitest、未改基线。
+
+## 大剑跃击落地冲击（v130，2026-10-31）
+
+- 用户授权：创建新分支、同步上游并阅读所给跃击 VFX 简报，制作适合大剑的动画。起始工作区干净、无 stash；fetch origin / upstream 后，从最新 upstream/main（8926ede，v129 / PR #201）创建并切换至 codex/greatsword-leap-impact-vfx。未提交、推送或创建 PR。
+- 当前代码与简报差异：上游 warriorLeap 是立即位移后结算全向伤害，没有简报所称 0.24s 起手、落点预警、玩家坠击状态或三段斩第三段跃击；基础跃击半径为 45×1.2=54px，而非 58.5px。本轮接已有跃击并提供可复用落地接口，没有新增战斗状态或更改第三下重斩规则。
+- 素材：使用内置 image_gen 整表生成，再调亮金橙尘环与碎屑层级；保存最终源图和两次完整提示词。最终为 720×288、5×2、10 帧、每帧 144×144，五色、二值 alpha、中心 (72,72)、原生 4px 透明区、共同 67.5px 径向包络。为保留 1px 裂纹使用 144×144 逻辑画布；不按单帧裁剪/缩放/重居中。原图/成品哈希与未知 model/seed=null 写入元数据；提供 Phaser 图集、2× 检查图、1×/2× 并排静帧和三倍慢放 GIF。
+- 接线：GameScene 的现有大剑加载列表追加第 5 张表（共 50 帧纹理）；WarriorSystem 的大剑跃击传 impact:true / life:0.32，经 MeleeSystem 保存至 Slash。draw.ts 在敌人与玩家下层绘制，普通刀光循环跳过此快照；新 drawGreatswordLeapImpact 按 life/max 非匀速选帧，固定本次落点，按实际半径缩放，不旋转/镜像。资源未加载时回退原扩散环。
+- 范围：只延长大剑落地表现到 0.32s，命中仍即时结算；伤害、位移、半径、冷却、击退、RNG、音效和既有粒子保持原逻辑。无额外 RAF/计时器/tween；暂停、重开与对象回收沿用原生命周期。双端更新日志追加 v130，新增 docs/greatsword-leap-vfx.md 并修正旧刀光文档的跃击接管说明。
+- 验证：npm run typecheck 与 npm run build 通过；既有 >500kB Vite 分包提示仍在。完成 PNG 尺寸/五色/alpha/中心透明/径向边界、元数据/图集/哈希检查和 1×/2× 目视检查，GIF 全 21 帧可解码。离线预览右侧使用实际落地绘制函数，左/中为原横扫/重斩；不是实机录像。
+- 测试影响：新增可选 Slash.impact 与跃击刀光 0.32s 寿命，直接断言旧快照/0.16s 生命周期的测试可能过期；按 2026-10-29 标准不运行 Vitest / Playwright，不新增或修改测试与 parity 基线，留待授权批次统一处理。自然战斗遮挡、射程叠加和真实播放速度仍待试玩。
+
+## 大剑起手预警与第三段坠击（v131，2026-10-31）
+
+- 用户认可 v130 落地素材后，明确要求继续实现简报中的 0.24 秒起手、落点预警和第三段坠击；异步澄清确认第三段跳向当前近战目标，主动跃击仍找最密集敌群。沿用 codex/greatsword-leap-impact-vfx，起始未提交改动均为本聊天 v130 产物，完整保留；fetch 后上游未前移。
+- 状态：GameCore.warriorLeapState 保存 windup / fall、累计模拟时间、起点/锁定落点、半径和攻击快照；数值配置新增 leapWindup=0.24 / leapFall=0.12 / leapImpactLife=0.32。PlayerSystem 先推进专用运动，暂停走路/普通冲刺，随后战斗系统到点清空状态并只结算一次。普通攻击、充能回复与回血的原计时继续，动作进行中不追加自动出刀。
+- 主动跃击：起手扣一次充能，原搜索/140% 伤害/54px 基础半径/击退保留，落地再生效；强袭从落地起计时。无目标仍退回普通冲刺，禁止动作重入。
+- 第三段：每第 3 次自动挥砍锁当前近战目标位置，0.24s 起手后坠落；360°、250% 伤害、1.5 倍半径（基础 67.5px），不消耗充能/不要求先学习跃击。将原命中后半段收为 resolveWarriorSwing 共用结算，保留破甲/剑气/连斩等原系数与联动；第三段已花的动作时间从原攻击间隔扣除，避免额外等整段 CD。普通冲刺未结束时先等其完成，保留冲刺结束联动。
+- 受击与清理：起手可受击，坠落段免伤；弹丸在离地时不被角色吸收，落地即恢复正常规则。死亡/重开/DEV 复活/清天赋/教程核心步骤切换清除待落地状态。末敌在起手中死亡时，波次等本次动作落地再收球，防止跨入休整结算。
+- 表现：新增 greatswordLeapMotion.ts，固定半径预警外圈 + 进度弧 + 落点十字，起手轻微上升渐隐、坠落高度/显现/竖直速度线。表现高度不参与命中，实际地面位置与相机共用，落地复用已认可的金白尘环；未新增 RAF/定时器/tween。同步重斩/跃击卡面、C 面板、教程、接入文档与双端 v131 更新日志。
+- 预览：新增 preview-greatsword-leap-sequence.mjs，调用实际运动和绘制函数，现有 Python/Pillow 仅做 GIF 导出；不新增项目依赖。输出完整起手/坠落/余波的三倍慢放与分段静帧，左为主动跃击距离，右为第三段近战距离与半径；不运行真实战斗，不代表命中联动或实机验收。
+- 验证：npm run typecheck、npm run build；最终差异与动作预览检查。按 2026-10-29 标准不运行 Vitest / Playwright，不新增/修改测试与 parity 基线。旧即时位移/伤害、第三段 130° 当步命中、0.16s 重斩刀光及原 RNG/联动时序断言会过期，留待授权批次处理。实际移动目标命中率、后期攻速节奏、免伤与锁移动的手感仍待自然试玩。
+
+## 大剑 v131 交付整理与直接接入（2026-10-31）
+
+- 用户认可素材与完整动作，明确授权整理、提交、推送并创建 PR，要求这些发布操作使用 gh。
+- 整理时上游已合入 PR #202 / ca1ef61（法师飘字修复 v130）。保留其代码与完整记录，把本聊天开发时暂记 v130 的素材和 v131 动作统一作为正式 v131 交付，双端更新日志只保留一条大剑 v131，避免覆盖上游 v130。
+- 本项目合入即用：GameScene 默认预载、Player/Warrior 状态推进、落地 MeleeSwing 快照与 draw 全部接通，正式 PNG/图集/元数据入库；无需重新生成素材、手动绑定事件或增加依赖。接入说明补充操作入口、文件职责、绘制参数与标准 Phaser 图集示例，README 增加入口。
+- 发布前复核 typecheck / build、差异、素材哈希与生产产物资源；按当前裁定不运行 Vitest / Playwright、不改测试基线。旧即时跃击/扇形重斩/生命周期与 RNG 时序断言的过期影响写入提交信息与 PR。
+- 使用 gh api Git Data API 创建提交及功能分支远端引用，gh pr create 向 upstream/main 提交；不合并主分支。
+
+## 大剑三段斩、重斩链与连闪特化（v132，2026-10-31）
+
+- 版本：主分支已合入 v128 射手动态难度、v129 强化弹、v130 法师飘字、v131 大剑跃击与第三段坠击；本分支原暂记 v128 的大剑开发顺延为 v132，双端更新日志保留上游 v128–v131。
+- 合并：先把本分支未提交改动提交为 WIP `0ebac0f`，再合并 `origin/main`（`5af4766`，含 PR #203 v131 与 PR #204 提示词包）；`PlayerSystem` 改用 v131 的 `updateWarriorLeapMotion` / `warriorLeapState`，删除自建 `warriorLeapFx`，避免两套跃击状态机并存。
+- 三段斩：3 个独立冲刺槽 `warriorTriSlotRe`，每槽按 `dashMax` 单独倒计时；当前段槽可用才能消费，白色 2px 亮点标出下一个消费槽。不持跃击：扇斩→扇斩（只加距离）→360° 旋斩；持跃击：扇斩→旋斩→第三段 `warriorLeap({ triStage3: true })`，复用 v131 的 0.24s 起手 + 0.12s 坠落 + 落地冲击素材。第三段落地眩晕 0.6s、推进三段循环，并开启 0.8s 落地无敌；起手/坠落/落地无敌期间 `damagePlayer`、接触/弹幕入口全部拦截，角色以半隐身表示，无额外光环。
+- 重斩链：重斩为 v131 第三段坠击基础机制，原「重斩」卡移除；链顺次前移为 破甲（L1）→ 剑气（L2）→ 裂地（L3）。v131 的 combo 坠击落地后走 `resolveWarriorSwing`，破甲/剑气/裂地均在实际落地后结算；裂地取最近命中目标位置生成 `warriorFissures`，0.22s 后 55px 爆裂、120% 伤害、强击退、眩晕 0.45s，对破甲目标 +30%。
+- 连闪：大剑流派 `warriorLianShanDash` 设置 `warriorHeavyReadyT`（2s），下一刀视为重斩但不推进自然重斩计数；太刀保留 `warriorLianShanT` 锐势。三段斩与连闪双向 `excludes`。
+- 表现：冲刺扇斩回退为后退 5px、97% 大小、30% alpha 的淡残影；专用冲刺斩刀光提示词已随 PR #204 合入 main（`assets/vfx/greatsword-dash-slash-prompt.txt`），素材生成后再接入新表。360° 回旋斩用三把金白刀光；裂地有橙金预警圈/爆裂环/眩晕转星；脚底 3 格显示独立槽进度。
+- 快捷键/作弊面板：`nextWave` 默认 F，设置可改；旧键位存档补 F，冲突时选空闲键。作弊面板 `prereq` 增加 `warriorStyle` 过滤，太刀局锁定大剑卡、大剑局锁定太刀卡。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；受控 e2e：
+  - 三段斩：独立槽三次消费后段数 0→1→2→0；第三段 v131 leap state `kind=leap/tri=true`，起手 4 帧伤害被拦（HP 80→80），落地 `warriorLeapInvulnT≈0.733`、三敌眩晕 0.516s、`impact` 刀光存在；0.8s 后同类伤害生效（80→71.67）。
+  - 重斩链：第三段 `kind=combo` 坠击落地后 `warriorFissures=1`、三敌破甲、`qi` 出现；0.22s 后裂地爆裂，三敌 9909→9878、眩晕 0.433s、`slam` 环出现。
+  - F 下一波：休整面板 `waveN 5→6`、`bp-rest` 隐藏；三槽独立进度保持。
+  - 截图：`output/vfx-merged-tri-leap-windup.png`、`vfx-merged-tri-leap-landing.png`、`vfx-merged-heavy-leap-fissure.png`；脚底三槽仍用 `output/vfx-foot-ui-slot-progress.png`。
+- 待办：剑气→平推移动剑气、裂地→四方强化剑气、冲刺斩专用刀光已列入 v132 提示词包（main PR #204）；当前版本仍为旧剑气直线、旧裂地延迟爆裂、冲刺斩残影，待素材生成后另开接入 PR。
 - 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件，仅做受控 e2e/无头截图自检；新卡 parity 基线留待授权测试批次统一处理。

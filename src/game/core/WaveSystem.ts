@@ -1,5 +1,6 @@
 import { UPGRADES } from "../data/talents";
 import { waveTheme } from "../data/enemies";
+import { resolveDifficulty } from "../data/difficulty";
 import { attrPicksPerWave } from "./AttributeSystem";
 import type { GameCore } from "./GameCore";
 export function waveQuota(this: GameCore, n: number) {
@@ -40,10 +41,19 @@ export function startNextWave(this: GameCore) {
   this.player.tempShield = this.player.barrierLv; // 壁垒: 每波临时护盾
   this.player.ndUsed = false; // 不屈: 每波重置
   this.swapUsedThisRest = false;
+  const difficulty = resolveDifficulty(
+    this.prof,
+    this.waveN,
+    this.qualityScore,
+  );
+  const difficultyText =
+    difficulty.totalDr > 0.001
+      ? ` · 难度减伤 ${Math.round(difficulty.totalDr * 100)}%`
+      : "";
   this.addText(
     this.player.x,
     this.player.y - 18,
-    `WAVE ${this.waveN} · ${theme.name}`,
+    `WAVE ${this.waveN} · ${theme.name}${difficultyText}`,
     "#ff5b5b",
     true,
   );
@@ -143,7 +153,7 @@ export function updateWave(this: GameCore, dt: number) {
           }
         }
       }
-    } else if (this.enemies.length === 0) {
+    } else if (this.enemies.length === 0 && !this.warriorLeapState) {
       // 本波怪清空 → 收尾: 先吸经验球、选完升级，再收宝箱，最后休整
       this.wavePhase = "collect";
       this.gems.forEach((g) => (g.auto = true));

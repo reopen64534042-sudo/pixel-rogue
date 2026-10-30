@@ -1,0 +1,29 @@
+Use case: stylized-concept
+Asset type: production pixel-art VFX sprite sheet for a GREATSWORD DASH-CUT slash in the top-down 2D action game Pixel Rogue.
+Reference style: the shipped gold-white greatsword sweep/heavy sheets of this project; preserve their crisp pixel clusters, five-color hierarchy and 130-degree forward crescent geometry. Create a NEW, clearly faster and flatter dash-cut, not a recolored normal sweep. No character, no weapon, no UI.
+
+DELIVERABLE: one transparent PNG containing EXACTLY TEN chronological frames in FIVE COLUMNS x TWO ROWS, left-to-right then top-to-bottom. Exact 5:2 canvas aspect. Equal square cells, no gutters, borders, labels or text. Target 64x64 logical pixels per cell (total 320x128 at target scale); if resolution differs, preserve the exact 5x2 layout and 5:2 aspect. Keep ALL opaque pixels at least 4 logical pixels from the cell edges.
+
+GEOMETRY: a single forward crescent opening to the LEFT, entirely in the RIGHT HALF of each cell. The transparent player pivot is the exact center of the square (32,32), not the center of the crescent. The arc runs from -65 degrees (upper-right) to +65 degrees (lower-right) around that pivot, total 130 degrees, nominal outer radius about 26 logical px. Keep the center and the left half transparent except for a few tiny trailing specks. This is not a projectile: the slash stays anchored to the player; do NOT bake travel across the cell. All frames use the same pivot, same arc envelope and no per-frame recentering.
+
+SHAPE: a THIN, flat, fast cut. The white-hot leading edge is narrow and sharp; the gold body is a slim band, noticeably thinner than the normal greatsword sweep and heavy strike; the trailing tail is long, broken and tapered, with 2-3 thin wind-streak fragments. The silhouette should read as "the player is dashing while cutting": a thin bright leading edge with a broken wind tail, NOT a broad white-hot heavy belly and NOT an extra ring. The difference from the normal sweep must come from shape/motion (thinner band, longer broken tail, wind streaks), never from a new color field.
+
+COLOR: only five flat opaque colors plus transparency: #9b4b16 dark rust, #f4a940 amber, #ffd24a gold, #ffe8a3 pale gold, #ffffff white-hot. Keep it gold-white. Do NOT use cyan, blue, purple, green or any large colored mass. White/pale-gold only on the thin leading edge; gold/amber for the slim body and wind streaks; dark rust only for tiny trailing chips.
+
+FRAME CHOREOGRAPHY (ten DISTINCT time steps, not ten copies of the same crescent):
+0: a short thin amber lead-in scratch near the upper-right arc; mostly empty.
+1: a narrow white hook begins sweeping down; a few gold pixels; the start of a thin wind tail.
+2: a slim gold crescent forms along the right arc; the white edge is narrow; 1-2 wind streaks trail behind.
+3: peak: the thinnest complete 130-degree crescent, sharp white leading edge, slim gold body, 2 broken wind streaks; 1-2 tiny angular chips.
+4: the leading edge moves down-right; the upper body begins breaking; wind streaks lengthen and separate.
+5: lower-right crescent remains, noticeably narrow; the tail is broken into 2-3 short wind fragments; no thick belly.
+6: only the lower-right half survives; the leading edge is still white; 3-4 separated gold/amber chips.
+7: sparse separated gold/amber shards follow the lower-right arc; no full crescent; 1 thin wind line.
+8: 3-4 tiny amber/gold speckles and a faint thin streak; almost empty.
+9: near transparent; 1-2 tiny dark-rust/gold flecks only. Preserve the full last square slot.
+
+MOTION: a fast, shallow cut that starts at the upper-right and snaps down through the lower-right, with the tail breaking away as wind streaks. Keep the arc envelope and pivot fixed; do not make the crescent grow, spin, orbit or leave the cell.
+
+Avoid: character, weapon, hands, UI, letters, numbers, arrows, crosshair, background, ground tiles, checkerboard, labels, watermark, broad/heavy white belly, thick white outline, thick normal slash, cyan/blue/purple color fields, huge sparks, filled crescent, full ring, circular orbit, long beam, realistic fire/smoke, gradients, soft glow, bloom, motion blur, antialiasing, semitransparent pixels, more than five colors. Crisp production pixel art that reads at 1:1 in a 480x270 game.
+
+Second pass if needed: if the first sheet reads too weak, add a narrow pale-gold edge or extend the thin broken wind streaks; do NOT thicken the white leading edge or enlarge the crescent. If it reads too similar to the normal sweep, increase the tail fragmentation and the gap between the thin body and wind streaks, not the blade mass.

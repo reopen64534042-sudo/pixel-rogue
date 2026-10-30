@@ -93,7 +93,7 @@
  * / 磨刃×2 13.310000000000002）与 S4-B shadow 独立重述
  * （playerShadowFromPicks，flat 五卡）双重暴露。
  */
-import { ATTRIBUTE_CAPS } from "../data/attributeBalance";
+import { ATTRIBUTE_CAPS, lifestealCap } from "../data/attributeBalance";
 import { statBase } from "../data/stats";
 import { WARRIOR_BALANCE } from "../data/warriorBalance";
 import { resolveStats, type StatModifier } from "./StatModel";
@@ -189,8 +189,9 @@ export function talentStatModifiers(
         break;
       // ---- S2 射手池：核心链（强化弹）/ 距离链 / 机动链 ----
       // 基础链：全局 pierceFalloff 0.85，射手职业被动 −0.35 → 0.5（第二目标 50%）。
-      // 下面两张卡按有序 flat 继续改这个值，语义是「设为」，不是「乘以」。
-      case "快速装填": // 强化弹每 4→3 发；穿透 +1，穿透伤害 50% → 80%
+      // 快速装填继续把 falloff 提到 0.8；超载装填不再改 falloff，
+      // 改为在发射时写入 pierceFloor=0.3（见 AttackSystem / ProjectileSystem）。
+      case "快速装填": // 穿透 +1，穿透伤害 50% → 80%（不再改变强化弹节奏）
         scalars.push(
           {
             sourceId: "天赋:快速装填",
@@ -206,21 +207,13 @@ export function talentStatModifiers(
           },
         );
         break;
-      case "超载装填": // 强化弹每 3→2 发；穿透 +1，穿透后不再衰减（100%）
-        scalars.push(
-          {
-            sourceId: "天赋:超载装填",
-            stat: "pierce",
-            stage: "flat",
-            value: 1,
-          },
-          {
-            sourceId: "天赋:超载装填",
-            stat: "pierceFalloff",
-            stage: "flat",
-            value: 0.2,
-          },
-        );
+      case "超载装填": // 穿透 +1，穿透后伤害最低 30%（不再改变强化弹节奏）
+        scalars.push({
+          sourceId: "天赋:超载装填",
+          stat: "pierce",
+          stage: "flat",
+          value: 1,
+        });
         break;
       case "长弓": // 射程 +15%
         scalars.push({
@@ -636,7 +629,7 @@ export function applyTalentStatProjection(
   if (resolved.lifesteal !== undefined) p.lifesteal = resolved.lifesteal;
   if (resolved.regen !== undefined) p.regen = resolved.regen;
   // 属性硬顶：旧表卡直接写 f 的路径也一并夹紧，避免绕过投影超过上限
-  p.lifesteal = Math.min(p.lifesteal, ATTRIBUTE_CAPS.lifesteal);
+  p.lifesteal = Math.min(p.lifesteal, lifestealCap(prof));
   p.regen = Math.min(p.regen, ATTRIBUTE_CAPS.regen);
   // defense 无 base（键缺席 = 0），有来源才出现——与旧 f 的键存在性一致
   if (resolved.defense !== undefined) p.defense = resolved.defense;

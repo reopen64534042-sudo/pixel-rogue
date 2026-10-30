@@ -1,5 +1,4 @@
 import type { Talent } from "../../core/types";
-import { SPECIAL_SHOT_EVERY } from "../constants";
 
 /**
  * 射手池（S2）。
@@ -27,17 +26,12 @@ export const SHOOTER_TALENTS: Talent[] = [
     slot: "核心",
     layer: 1,
     prof: "shooter",
-    d: "强化弹每 4 发触发 → 每 3 发；强化弹穿透 +1，穿透伤害 50% → 80%",
+    d: "强化弹穿透 +1，穿透伤害 50% → 80%",
     max: 1,
-    pv: () => "每 4→3 发 · 穿透 +1 · 穿透伤害 80%",
+    pv: () => "穿透 +1 · 穿透伤害 80%",
     f: () => {},
     cur: (p) =>
-      `当前每 ${Math.max(
-        1,
-        SPECIAL_SHOT_EVERY -
-          ((p.upCounts["快速装填"] || 0) > 0 ? 1 : 0) -
-          ((p.upCounts["超载装填"] || 0) > 0 ? 1 : 0),
-      )} 发 · 穿透 ${p.pierce} 次 · 衰减 ${(p.pierceFalloff * 100).toFixed(0)}%`,
+      `当前穿透 ${p.pierce} 次 · 穿透伤害 ${(p.pierceFalloff * 100).toFixed(0)}%`,
   },
   {
     n: "超载装填",
@@ -48,17 +42,12 @@ export const SHOOTER_TALENTS: Talent[] = [
     layer: 2,
     prof: "shooter",
     requires: "快速装填",
-    d: "强化弹每 3 发触发 → 每 2 发；强化弹穿透再 +1，穿透后伤害不再衰减（100%）",
+    d: "强化弹穿透再 +1，穿透后伤害最低保留 30%",
     max: 1,
-    pv: () => "每 3→2 发 · 穿透 +1 · 不衰减",
+    pv: () => "穿透 +1 · 穿透伤害 ≥30%",
     f: () => {},
     cur: (p) =>
-      `当前每 ${Math.max(
-        1,
-        SPECIAL_SHOT_EVERY -
-          ((p.upCounts["快速装填"] || 0) > 0 ? 1 : 0) -
-          ((p.upCounts["超载装填"] || 0) > 0 ? 1 : 0),
-      )} 发 · 穿透 ${p.pierce} 次 · 衰减 ${(p.pierceFalloff * 100).toFixed(0)}%`,
+      `当前穿透 ${p.pierce} 次 · 穿透伤害 ≥30%`,
   },
   {
     n: "贯穿轨迹",

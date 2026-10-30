@@ -1,6 +1,6 @@
 # 大剑横扫与重斩动画（v120）
 
-大剑使用金白色宽刃月牙，普通横扫从金色引刀、完整宽刃到碎屑消散；每第三下重斩切换为更厚的白热刃面与较大的金色碎屑。两组动画各 10 帧，5 列 × 2 行；另附左右镜像版本。已接入当前游戏的普通斩与重斩，不只是独立素材。
+v120 的大剑刀光为金白色宽刃月牙，普通横扫从金色引刀、完整宽刃到碎屑消散；原第三下重斩使用更厚的白热刃面与较大的金色碎屑。两组动画各 10 帧，5 列 × 2 行；另附左右镜像版本。**v131 起实际第三下已改成起手后的全向坠击，见 `docs/greatsword-leap-vfx.md`；普通横扫继续使用本表，原重斩表保留作美术参考及既有接口兼容。**
 
 ## 文件
 
@@ -30,15 +30,15 @@
 
 ## 游戏接入
 
-`GameScene.create()` 异步加载 4 张表，`registerGreatswordSlash()` 校验尺寸并切取共 40 个独立帧纹理。纹理重复注册会复用；场景已停止时不注册。加载失败在 DEV 下告警，表现回退现有程序化同心弧。
+`GameScene.create()` 异步加载 4 张刀光表，`registerGreatswordSlash()` 校验尺寸并切取独立帧纹理；v131 再追加跃击落地表，总计 5 张表、50 帧。纹理重复注册会复用；场景已停止时不注册。加载失败在 DEV 下告警，表现回退现有程序化同心弧。
 
 `WarriorSystem.updateWarriorCombat()` 在已有第三下重斩判定处，把 `heavy: true` 透传给 `meleeSwing()`，随后保存在该次 `Slash` 记录。该字段只参与选图，不参与伤害、命中、范围、攻速或击退计算，也不会依赖后来变化的连击计数来回推本次动画。
 
 `draw.ts` 对大剑调用 `drawGreatswordSlash(ctx, slash)`：进度为 `1 - life / max`，10 帧沿用现有 0.16 秒寿命；右半平面使用原表，左半平面使用镜像表，并相对 0 / π 基准方向旋转。锚点始终是本次出刀位置，无太刀的前方偏移。角度、半径与重斩状态均读取该次挥砍快照。
 
-v128 起 `drawGreatswordSlash` 增加可选 `alpha` 参数（默认 1）。三段斩的冲刺扇斩（`Slash.dashSlash`）当前为回退版：先画一次 alpha 0.3、后退 5px、97% 半径的淡残影，再画不透明主刀光；普通平 A 与重斩不画残影。冷青外圈/冷芯/速度像素方案已被用户否决并移除，专用冲刺斩刀光表待统一确认提示词后再接入。这样目前只增加速度感，不改变金白刃面厚度。
+v132 起 `drawGreatswordSlash` 增加可选 `alpha` 参数（默认 1）。三段斩的冲刺扇斩（`Slash.dashSlash`）当前为回退版：先画一次 alpha 0.3、后退 5px、97% 半径的淡残影，再画不透明主刀光；普通平 A 与重斩不画残影。专用冲刺斩刀光表见 `assets/vfx/greatsword-dash-slash-prompt.txt`，生成后接入；当前不使用青色/冷色外圈，也不改变金白刃面厚度。
 
-绘制接口只接管大剑标准扇形；跃击的 360° 刀光、其他旧近战卡、太刀和居合保留原有分支。剑气和斩浪路径继续使用原表现。纹理未就绪、数据无效或扇形不同则返回 `false`，继续绘制同心弧。绘制会恢复进入函数前的 alpha。
+绘制接口只接管大剑标准扇形；v131 起主动跃击与第三段重斩的 360° 落地均由独立的 `impact` 快照和地面素材接管，见 `docs/greatsword-leap-vfx.md`。其他旧近战卡、太刀和居合保留原有分支。剑气和斩浪路径继续使用原表现。纹理未就绪、数据无效或扇形不同则返回 `false`，继续绘制同心弧。绘制会恢复进入函数前的 alpha。
 
 播放没有独立 RAF、定时器、Phaser tween 或动画监听，复用 `PixelPainter` 图片池；暂停和属性面板冻结模拟时帧号不推进，重开与清理沿用 `slashes` 生命周期。GIF 每帧 60ms，刻意慢放；游戏播放速度仍由模拟寿命控制。
 
@@ -70,11 +70,11 @@ if (slash.weapon === "greatsword" && drawGreatswordSlash(ctx, slash)) {
 | `true` | 已画出本帧 |
 | `false` | 资源未就绪、已过期、参数无效或扇形不匹配；应执行原表现回退 |
 
-加载层只需使用本项目已有的 `GameScene.loadGreatswordSlashes()`。若迁入另一个使用 `PixelPainter` 的场景，可遍历 `GREATSWORD_SLASH_SHEETS`，分别解码 `sheet.image` 后调用 `registerGreatswordSlash(this.textures, image, sheet)`。必须在图像解码完成且场景仍活动时注册；重复调用会复用已存在的帧纹理。
+加载层只需使用本项目已有的 `GameScene.loadGreatswordSlashes()`。若迁入另一个使用 `PixelPainter` 的场景，可遍历 `GREATSWORD_SLASH_SHEETS`，分别解码 `sheet.image` 后调用 `registerGreatswordSlash(this.textures, image, sheet)`。v131 起列表还包含第 5 张跃击落地表，其全向绘制接口见独立文档。必须在图像解码完成且场景仍活动时注册；重复调用会复用已存在的帧纹理。
 
 ## 标准 Phaser 图集使用
 
-对不使用 `PixelPainter` 的 Phaser 项目，可直接消费标准 `.atlas.json`。下列 `preload()` 同时加载普通 / 重斩、右向 / 左向四张图集：
+对不使用 `PixelPainter` 的 Phaser 项目，可直接消费标准 `.atlas.json`。下列 `preload()` 通过列表加载普通 / 重斩、右向 / 左向四张图集，以及 v131 的跃击落地图集：
 
 ```ts
 import { GREATSWORD_SLASH_SHEETS } from "./rendering/vfx/greatswordSlash";

@@ -2,7 +2,7 @@ import type { GameCore } from "../core/GameCore";
 import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
-import { W, H, VIEW, WORLD, clamp, fmtTime } from "../data/constants";
+import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
@@ -18,6 +18,12 @@ import {
 } from "../data/enemies";
 import { spriteEntry } from "./assetRegistry";
 import { drawGreatswordSlash } from "./vfx/greatswordSlash";
+import { drawGreatswordLeapImpact } from "./vfx/greatswordLeapImpact";
+import {
+  drawGreatswordLeapDescent,
+  drawGreatswordLeapTelegraph,
+  greatswordLeapPose,
+} from "./vfx/greatswordLeapMotion";
 import { drawKatanaDash, KATANA_DASH } from "./vfx/katanaDash";
 function hash(x: number, y: number) {
   let h = x * 374761393 + y * 668265263;
@@ -456,6 +462,25 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.globalAlpha = 1;
   }
 
+  // 大剑落地尘环贴地，置于敌人与玩家下层；缺图时沿用扩散环。
+  if (this.warriorLeapState) drawGreatswordLeapTelegraph(ctx, this.warriorLeapState);
+  for (const s of this.slashes) {
+    if (s.weapon !== "greatsword" || !s.impact) continue;
+    if (drawGreatswordLeapImpact(ctx, s)) continue;
+    const k = Math.max(0, s.life / s.max);
+    const grow = 1 + (1 - k) * 0.18;
+    for (let i = 0; i < 3; i++) {
+      const r = (s.r - i * 4) * grow;
+      if (r <= 2) continue;
+      ctx.globalAlpha = k * (i === 0 ? 0.9 : i === 1 ? 0.5 : 0.28);
+      ctx.strokeStyle = i === 0 ? "#ffffff" : s.c;
+      ctx.beginPath();
+      ctx.arc(Math.round(s.x), Math.round(s.y), r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
   // 敌人
   for (const e of this.enemies) {
     // 精英优先用独立贴图；没有时退回「同系列贴图 ×1.8」。
@@ -784,57 +809,26 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
-  // 跃击起手（v128）：落点预警圈 + 角色渐隐。
-  // 三段斩第三段只在持有跃击时存在，走同一套跃击状态机。
-  const leapFx = this.warriorLeapFx;
-  let leapFadeK: number | null = null;
-  if (leapFx) {
-    const k = Math.max(0, Math.min(1, 1 - leapFx.t / leapFx.max));
-    leapFadeK = k;
-    const sx = Math.round(clamp(leapFx.toX, 24, WORLD.w - 24));
-    const sy = Math.round(clamp(leapFx.toY, 24, WORLD.h - 24));
-    const radius = Math.round(
-      this.player.attackRange *
-        (leapFx.triStage3 ? WB.triDash.leapRadiusMul : 1.2),
-    );
-    const pulse = 0.55 + Math.sin(this.time * 26) * 0.2;
-    // 外圈直接画实际冲击波半径，让玩家能判断这一下能覆盖到谁。
-    ctx.globalAlpha = pulse * 0.5;
-    ctx.strokeStyle = "#ffd24a";
-    ctx.beginPath();
-    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = pulse;
-    ctx.beginPath();
-    ctx.arc(sx, sy, Math.max(2, Math.round(radius * k)), 0, Math.PI * 2);
-    ctx.stroke();
-    // 中心十字与上方光柱：一眼能读出「会砸在这里」。
-    ctx.beginPath();
-    ctx.moveTo(sx - 7, sy);
-    ctx.lineTo(sx + 7, sy);
-    ctx.moveTo(sx, sy - 7);
-    ctx.lineTo(sx, sy + 7);
-    ctx.stroke();
-    ctx.globalAlpha = pulse * 0.35;
-    ctx.strokeStyle = "#fff3b0";
-    ctx.beginPath();
-    ctx.moveTo(sx, sy - 42);
-    ctx.lineTo(sx, sy);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-
   // 玩家 (冲刺时半透明残影感)
+  const leapPose = greatswordLeapPose(this.warriorLeapState);
+  if (this.warriorLeapState)
+    drawGreatswordLeapDescent(ctx, this.warriorLeapState, this.player.x, this.player.y);
   // S3 法师「镜像」虚影：半透明 + 紫色调（不可受击的状态要看得见）
   let playerAlpha =
     this.magePhaseT > 0 ? 0.4 : this.player.dashT > 0 ? 0.6 : 1;
-  if (leapFadeK !== null) {
-    playerAlpha *= Math.max(0, 1 - leapFadeK * 1.15);
-  }
-  // v128：无敌用半隐身表示，不再额外画光环。
-  if (this.warriorLeapInvulnT > 0) playerAlpha = Math.min(playerAlpha, 0.5);
+  playerAlpha *= leapPose.alpha;
+  // v128：三段斩第三段的无敌用半隐身表示，不再额外画光环。
+  if (
+    this.warriorLeapInvulnT > 0 ||
+    this.warriorLeapState?.triStage3
+  )
+    playerAlpha = Math.min(playerAlpha, 0.5);
   ctx.globalAlpha = playerAlpha;
-  const playerRect = spriteRect("player", this.player.x, this.player.y);
+  const playerRect = spriteRect(
+    "player",
+    this.player.x,
+    this.player.y - leapPose.height,
+  );
   if (playerRect && playerAlpha > 0.02)
     ctx.sprite(
       playerRect.tex,
@@ -1058,6 +1052,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
 
   // 近战刀光：太刀碧水扫击、大剑金白宽刃；未加载时大剑回退同心弧。
   for (const s of this.slashes) {
+    if (s.weapon === "greatsword" && s.impact) continue;
     const k = Math.max(0, s.life / s.max);
     const sx = Math.round(s.x),
       sy = Math.round(s.y);

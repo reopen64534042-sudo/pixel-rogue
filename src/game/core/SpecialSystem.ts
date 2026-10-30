@@ -11,6 +11,7 @@ import {
   OFFHAND_OFFSET,
   SPECIAL_LEVELS,
   SPECIAL_UPGRADES,
+  TRUE_DAMAGE_MUL,
   getSpecialLevelStats,
 } from "../data/specialShot";
 import { KNOCK } from "../data/knockback";
@@ -59,7 +60,7 @@ function shoulderPoint(core: GameCore, side: number) {
   };
 }
 
-/** 「激光」升级：从另一侧肩位独立索敌并发射穿透光束。 */
+/** 「激光」升级：从另一侧肩位独立索敌并发射穿透光束。预留：后续独立武器复用，当前不在强化弹升级池。 */
 export function fireSpecialLaser(
   this: GameCore,
   specialTarget: Enemy,
@@ -77,7 +78,10 @@ export function fireSpecialLaser(
   const x2 = x1 + Math.cos(angle) * length;
   const y2 = y1 + Math.sin(angle) * length;
   const type = this.specialUpgrades.includes("trueDamage") ? "true" : "physical";
-  const laserDamage = damage * LASER_DAMAGE_MUL;
+  const laserDamage =
+    damage *
+    LASER_DAMAGE_MUL *
+    (this.specialUpgrades.includes("trueDamage") ? TRUE_DAMAGE_MUL : 1);
   for (const e of this.enemies) {
     if (e.dead) continue;
     if (pointSegmentDistance(e.x, e.y, x1, y1, x2, y2) <= LASER_WIDTH + e.r) {
@@ -95,7 +99,7 @@ export function fireSpecialLaser(
   this.audio.beep(1320, 0.08, "sawtooth", 0.035, -300);
 }
 
-/** 「导弹」升级：从另一侧肩位独立索敌，带侧向初速的弧线追踪弹。 */
+/** 「导弹」升级：从另一侧肩位独立索敌，带侧向初速的弧线追踪弹。预留：后续独立武器复用，当前不在强化弹升级池。 */
 export function launchSpecialMissile(
   this: GameCore,
   specialTarget: Enemy,
@@ -214,8 +218,8 @@ export function updateSpecialMissiles(this: GameCore, dt: number) {
 /**
  * 强化弹命中积累经验；升级时按等级表提升伤害/穿透，
  * 并在 L4-L12 按「档位 + 权重」随机获得一条尚未拥有的升级：
- * 第 1 抽只出基础形态，第 2 抽解锁激光与两系生命伤害，
- * 第 3 抽解锁完全追踪与完全真实伤害。
+ * 第 1 抽只出基础形态，第 2 抽解锁过载、两系生命伤害与裂变，
+ * 第 8 抽（L11/L12）解锁完全追踪与完全真实伤害。
  * 升级结果统一在 C 属性面板查看，不再弹出世界飘字。
  */
 export function gainSpecialXp(this: GameCore, amount: number) {
