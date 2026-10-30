@@ -332,16 +332,23 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     }
   }
 
-  // 连斩：每次挥砍只要至少命中 1 个敌人，30% 重置间隔并回 3% 生命
+  // 连斩：每次挥砍只要至少命中 1 个敌人，30% 重置间隔并回 3% 生命。
+  // #179：单次链式最多连 lianZhanMaxChain 次（用户裁决 3）。达到上限后必须
+  // 走完一次正常间隔（即下一次挥砍没触发连斩）才归零，节奏因此可预期。
   let resetCd = false;
   if (
     (p.upCounts["连斩"] || 0) > 0 &&
     hits.length &&
+    this.warriorChainCount < WB.lianZhanMaxChain &&
     Math.random() < WB.lianZhanChance
   ) {
     const heal = p.maxhp * WB.lianZhanHeal;
     p.hp = Math.min(p.maxhp, p.hp + heal);
+    this.warriorChainCount++;
     resetCd = true;
+  } else {
+    // 没触发（含达到上限、未命中、未学卡）：链结束，重新计数
+    this.warriorChainCount = 0;
   }
 
   if (

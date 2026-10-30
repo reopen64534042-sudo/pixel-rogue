@@ -223,6 +223,12 @@ export class GameCore {
   warriorFlowBurstT = 0;
   /** 每 3 次挥砍中的第 3 次为重斩。 */
   warriorSwingCount = 0;
+  /**
+   * 连斩链计数（#179）。用户裁决「最多连 3 次」：达到上限后必须走完一次
+   * 正常攻击间隔才能重新掷概率。放 GameCore 而非 Player——recompute 会重建
+   * Player 字段，运行时状态放那儿会被抹掉。
+   */
+  warriorChainCount = 0;
   /** 剑气 / 疾冲表现层（直线，寿命很短）。 */
   warriorQi: {
     x1: number;
@@ -602,6 +608,7 @@ export class GameCore {
     this.warriorFlowT = 0;
     this.warriorFlowBurstT = 0;
     this.warriorSwingCount = 0;
+    this.warriorChainCount = 0;
     this.warriorQi = [];
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;
@@ -847,6 +854,7 @@ export class GameCore {
     this.warriorFlowT = 0;
     this.warriorFlowBurstT = 0;
     this.warriorSwingCount = 0;
+    this.warriorChainCount = 0;
     this.warriorQi = [];
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;

@@ -30,7 +30,7 @@ export interface WarriorStyleStats {
 
 export const WARRIOR_BALANCE = {
   maxhp: 80,
-  speed: 60,
+  speed: 68,
   defense: 10,
   lifesteal: 0.04,
   heavyEvery: 3,
@@ -40,6 +40,15 @@ export const WARRIOR_BALANCE = {
   heavyIntervalMul: 1.2,
   heavyArmorBreakPct: 0.4,
   dashDistMul: 1.3,
+  /**
+   * 冲刺特化（#180）：战士基础冲刺距离 ×1.5（45px → 约 67px）。
+   *
+   * 起因：第 4 波的 `shooter` 在 90–150px 环带横向游走，太刀射程 42px
+   * 结构上够不到，实测把伤害提到 12、射程提到 42、移速提到 70/80 都清不完这波。
+   * 近战对远程必须有「接近手段」，因此把冲刺做成战士的职业优势——
+   * 一次冲刺能跨进环带内，与「疾冲」卡的 1.3 独立相乘。
+   */
+  baseDashMul: 1.5,
   dashDamageMul: 0.8,
   leapRange: 80,
   leapRangeMul: 1.3,
@@ -51,6 +60,13 @@ export const WARRIOR_BALANCE = {
   leapHasteMul: 0.25,
   lianZhanChance: 0.3,
   lianZhanHeal: 0.03,
+  /**
+   * #179：单次链式最多连续触发几次。
+   * 用户裁决「最多连 3 次」——原来 30% 独立掷骰会让短时间内连出 3、4 次，
+   * 观感像「一刀多段伤害」且节奏不可预期。加上限后节奏可读，
+   * 代价是削弱太刀清场，故与 #180（伤害 9→12、射程 34→42）同批配平。
+   */
+  lianZhanMaxChain: 3,
   breakoutCount: 3,
   breakoutDamageMul: 1.15,
   breakoutKnockMul: 2,
@@ -75,9 +91,14 @@ export const WARRIOR_BALANCE = {
     katana: {
       label: "太刀流",
       short: "太 刀",
-      damage: 9,
+      // #180：9 → 12。太刀原本 DPS 18（射手 24.2 / 大剑 20.4）且射程与扇形都是最小，
+      // 加上护甲对低基数伤害的相对削减更狠（9 经 25 护甲只剩 6），
+      // 前期清场明显跟不上。提伤害把「贴身」的代价换回来。
+      damage: 12,
       fireRate: 2.0,
-      range: 34,
+      // #180：34 → 42。只补伤害解决不了「贴不住就白给」，
+      // 射程 +8px 让玩家更容易黏住目标。刀光素材中心同步 22 → 26（见 draw.ts）。
+      range: 42,
       spread: (100 * Math.PI) / 180,
       knock: 4,
       color: "#5ef2c8",

@@ -345,9 +345,18 @@ export function updateEnemies(this: GameCore, dt: number) {
       // S3：距离改用当前目标（默认玩家；存在镜像残影时是残影），
       // 无残影时 target 就是玩家，行为与旧版逐位一致。
       const d = Math.hypot(targetX - e.x, targetY - e.y);
+      // #180 残局收拢：场上只剩少量敌人时，远程怪不再游走风筝，
+      // 改为主动靠近。否则近战职业清到剩几只 shooter 会陷入「满地图追」的垃圾时间
+      // （实测第 4 波最后 4 只分散射击，单波耗时 115s，几乎全是在跑路）。
+      const fewLeft = this.enemies.filter((x) => !x.dead).length <= 5;
       let mvx = 0,
         mvy = 0;
-      if (d > 150) {
+      if (fewLeft) {
+        if (d > 60) {
+          mvx = Math.cos(a);
+          mvy = Math.sin(a);
+        }
+      } else if (d > 150) {
         mvx = Math.cos(a);
         mvy = Math.sin(a);
       } else if (d < 90) {

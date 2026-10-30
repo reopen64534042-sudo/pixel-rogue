@@ -92,9 +92,11 @@ export function updatePlayer(this: GameCore, dt: number) {
   }
   if (p.dashT > 0) {
     // S2：冲刺位移按 dashDistMul 缩放（疾行 +25%；疾冲再 +30%）
+    // #180：战士额外吃职业基础倍率（baseDashMul 1.5），与「疾冲」卡的 1.3 独立相乘。
     const dashSpeed =
       280 *
       p.dashDistMul *
+      (this.prof === "warrior" ? WB.baseDashMul : 1) *
       (this.prof === "warrior" && (p.upCounts["疾冲"] || 0) > 0
         ? WB.dashDistMul
         : 1);
