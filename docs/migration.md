@@ -3268,3 +3268,24 @@ L2 最初写 `distPerStack2 = 70px`（8 层 = 560px），比 L1 的 500px 更慢
 - `npm run typecheck` ✓、`npm run build` ✓。
 - e2e 受控截图：普通 6 / 居合 26 大字、势 8/8 三条全白、爆发期画面清晰、冲刺后 C 面板移动速度 99（68×1.45）、无「冲刺后移速」行。
 - 按 2026-10-29 标准未运行 Vitest / Playwright、未新增/修改测试基线。
+
+## 居合回旋斩素材（2026-10-30）
+
+- 用户要求：新分支制作 360° 三月牙冰蓝回旋斩，透明底、5×2 共 10 帧、固定中心锚点与指定四色，参考现有太刀刀光。
+- 隔离：主目录位于 `feat/shooter-dynamic-difficulty` 且含其他任务未提交改动，因此从 `origin/main`（a2de6de）创建 `codex/iai-spin-vfx` 与独立 worktree `E:\AllProjects\pixel-rogue-iai-spin-vfx`，保留原目录状态。
+- 新增：`public/assets/vfx/iai-spin-slash-64x64-10f.png` 及 JSON；`assets/vfx/iai-spin-slash-*` 保存生成原图、完整提示词、4× 检查图和慢放 GIF；规格见 `docs/iai-spin-slash-vfx.md`。
+- 处理：内置 image_gen 整表生成后统一最近邻采样、alpha 128 二值化与指定四色量化；64×64 单帧保留细尾与末帧火星，32×32 检查版会丢失末帧火星，未选用。整表映射保持共用画布与锚点，不逐帧按包围盒重缩放。
+- 素材验证：320×128 / 5×2 / 10 帧；不透明像素仅 #1a5f9e / #57e6ff / #d8f7ff / #ffffff；无半透明像素与触边像素；第 5 帧白色像素最多，末帧保留 2 个像素。
+- 范围：独立素材交付，尚未接入游戏；未改原太刀资源、公共色板、玩法或测试断言。按 2026-10-29 标准仅执行类型检查和构建，不运行 Vitest / Playwright。
+- 编译结果：npm run typecheck 与 npm run build 均通过；构建保留超过 500 kB 的分包警告。GIF 解码确认 10 帧、256×256、60 ms、循环播放。
+
+## 居合回旋斩直接接入整理（v119，2026-10-30）
+
+- 用户确认满意素材，授权整理为可直接接入的资源、留下说明，并提交、推送和创建 PR。
+- 分支同步：先提交素材里程碑 3a34196，再合并 upstream/main 的 v116（0e1177f）；仅 migration 尾部追加发生冲突，保留上游全部记录并追加本素材记录，合并提交 0062ee3。
+- 接入：新增 src/game/rendering/vfx/iaiSpinSlash.ts，集中登记 64×64、5×2、10 帧几何；registerIaiSpinSlash 按行切片并幂等注册；drawIaiSpinSlash(ctx, x, y, progress) 复用 PixelPainter 图片池，保持中心锚点、固定比例与二值透明效果，恢复调用前 alpha；进度无效、播放结束或资源未就绪返回 false。
+- 加载：GameScene 启动时异步预载素材，沿用已有图像解码流程，完成时检查场景仍活动；无额外定时器、RAF 或监听。播放由调用方模拟进度驱动，暂停与重开无需维护独立动画时钟。
+- 标准格式：新增 iai-spin-slash-64x64-10f.atlas.json，可直接交给 Phaser load.atlas；原 JSON 保留来源与接入参数。docs/iai-spin-slash-vfx.md 写明本项目一行绘制调用、坐标/寿命/回退约定及通用 Phaser 图集用法。
+- 范围：已接入加载并提供绘制接口，未自动绑定技能触发，未替换普通太刀单向刀光、未改变伤害/命中/冷却；CHANGELOG.md 与 src/game/data/changelog.ts 同步追加 v119。
+- 验证：npm run typecheck 与 npm run build；PNG 与图集坐标/尺寸/色板/alpha/哈希检查。未新增测试，未运行 Vitest / Playwright，既有测试断言无本次行为变更；游戏内招式体验留待招式接入后确认。
+- PR 最终同步：上游新增居合链与反馈批（PR #192，b927f02，v117/v118），本分支更新记录顺延 v119。CHANGELOG.md、src/game/data/changelog.ts 与 migration 均保留双方新增记录，场景加载改动自动合并；未改上游居合规则。
