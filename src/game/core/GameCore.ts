@@ -229,6 +229,16 @@ export class GameCore {
    * Player 字段，运行时状态放那儿会被抹掉。
    */
   warriorChainCount = 0;
+  /**
+   * 「居合」的势层数 / 距离余量 / L2 攻速窗口（太刀专属链）。
+   *
+   * 势只增不减：走路积攒，**满层才触发居合斩**并清零。这样零碎积累不会被
+   * 单次挥砍浪费（实测两次挥砍之间只移动 27px，若挥砍就倾泻则永远停在 0–1 层）。
+   * 与 warriorFlowStacks 一样放 GameCore——recompute 会重建 Player 字段。
+   */
+  warriorIaiStacks = 0;
+  warriorIaiDist = 0;
+  warriorIaiHasteT = 0;
   /** 剑气 / 疾冲表现层（直线，寿命很短）。 */
   warriorQi: {
     x1: number;
@@ -611,6 +621,9 @@ export class GameCore {
     this.warriorFlowBurstT = 0;
     this.warriorSwingCount = 0;
     this.warriorChainCount = 0;
+    this.warriorIaiStacks = 0;
+    this.warriorIaiDist = 0;
+    this.warriorIaiHasteT = 0;
     this.warriorQi = [];
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;
@@ -858,6 +871,9 @@ export class GameCore {
     this.warriorFlowBurstT = 0;
     this.warriorSwingCount = 0;
     this.warriorChainCount = 0;
+    this.warriorIaiStacks = 0;
+    this.warriorIaiDist = 0;
+    this.warriorIaiHasteT = 0;
     this.warriorQi = [];
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;

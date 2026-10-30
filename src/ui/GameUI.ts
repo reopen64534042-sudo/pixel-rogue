@@ -1,4 +1,5 @@
 import type { GameCore } from "../game/core/GameCore";
+import { playerMoveSpeed } from "../game/core/PlayerSystem";
 import { tutorialGemStep, tutorialTotalSteps } from "../game/core/TutorialSystem";
 import type { WarriorStyle } from "../game/core/types";
 import { groupLabel, rarityLabel } from "../game/core/AttributeSystem";
@@ -30,7 +31,10 @@ import {
 import { MAGE_BALANCE } from "../game/data/mageBalance";
 import { statBase } from "../game/data/stats";
 import { WARRIOR_BALANCE } from "../game/data/warriorBalance";
-import { warriorSwingDamage } from "../game/core/WarriorSystem";
+import {
+  warriorIaiCap,
+  warriorSwingDamage,
+} from "../game/core/WarriorSystem";
 import { KNOCK, knockLevel } from "../game/data/knockback";
 import {
   markTutorialSeen,
@@ -471,6 +475,12 @@ export class GameUI {
       lightning: "雷",
     };
     const elems = isMage ? mageElements(p) : [];
+    // 「居合」的势：势只增不减，满层后下一刀自动变居合斩（见 warriorBalance.iai）
+    const iaiCap =
+      isWarrior && this.core.warriorStyle === "katana"
+        ? warriorIaiCap(this.core)
+        : 0;
+    const iaiStacks = this.core.warriorIaiStacks;
     const outputRows: [string, string | number][] = [
       // 文案更名（S3-C）：p.damage 是攻击基线（技能系数/raw），非 globalDamageBonus
       // #178：战士首行改为「实际挥砍伤害」= 攻击基线 × 流层倍率，
@@ -485,6 +495,13 @@ export class GameUI {
                 : warriorSwingDamage(this.core).toFixed(1),
             ]
           : ["⚔️ 基础攻击", p.damage.toFixed(1)],
+      // 战士职业底座：近战无视护甲，面板显式展示，避免伤害变化无解释。
+      ...(isWarrior
+        ? ([["🪓 护甲穿透", pct(WARRIOR_BALANCE.armorPen)]] as [
+            string,
+            string | number,
+          ][])
+        : []),
       ...(isMage
         ? ([
             [
@@ -497,7 +514,16 @@ export class GameUI {
             ? ([
                 ["🪓 重斩", "每 3 下 · 250%"],
               ] as [string, string | number][])
-            : []
+            : iaiCap > 0
+              ? ([
+                  [
+                    "⚔️ 居合势",
+                    iaiStacks >= iaiCap
+                      ? `${iaiStacks}/${iaiCap} · 下一刀居合`
+                      : `${iaiStacks}/${iaiCap}`,
+                  ],
+                ] as [string, string | number][])
+              : []
           : ([
               [
                 "🏹 普通魔弹",
@@ -647,24 +673,8 @@ export class GameUI {
       ["✨ 生命回复", p.regen ? p.regen.toFixed(1) + " /秒" : "—"],
     ];
     const utilityRows: [string, string | number][] = [
-      ["👟 移动速度", Math.round(p.speed)],
-      // 冲刺后移速爆发（v116 新增的战士基础机制）：未激活时显示上限，
-      // 处于衰减窗口内显示当前实际加成与剩余时间。
-      ...(isWarrior
-        ? ([
-            [
-              "💨 冲刺后移速",
-              this.core.warriorDashBoostT > 0
-                ? `+${Math.round(
-                    WARRIOR_BALANCE.dashBoostMul *
-                      (this.core.warriorDashBoostT /
-                        WARRIOR_BALANCE.dashBoostWindow) *
-                      100,
-                  )}%（剩 ${this.core.warriorDashBoostT.toFixed(1)}s）`
-                : `+${Math.round(WARRIOR_BALANCE.dashBoostMul * 100)}% · ${WARRIOR_BALANCE.dashBoostWindow}s 衰减`,
-            ],
-          ] as [string, string | number][])
-        : []),
+      // 显示当前实际移速（含冲刺/闪避加成与蛛网减速），不再单独列冲刺加成行。
+      ["👟 移动速度", Math.round(playerMoveSpeed(this.core))],
       ["🧲 拾取范围", Math.round(p.magnet)],
       [
         isMage ? "🎯 施法距离" : isWarrior ? "🎯 近战范围" : "🎯 射程",

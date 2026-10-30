@@ -1,7 +1,30 @@
 import { WORLD, clamp } from "../data/constants";
 import { WEB_ZONE } from "../data/enemies";
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
+import { warriorIaiCap, warriorIaiStep } from "./WarriorSystem";
 import type { GameCore } from "./GameCore";
+
+/**
+ * 当前实际移动速度：基础移速 × 闪避/冲刺加成 × 蛛网减速。
+ * 移动与 C 面板共用，避免面板显示基础值、实战却按加成跑。
+ */
+export function playerMoveSpeed(core: GameCore): number {
+  const p = core.player;
+  const dashBoost =
+    core.warriorDashBoostT > 0
+      ? 1 + WB.dashBoostMul * (core.warriorDashBoostT / WB.dashBoostWindow)
+      : 1;
+  const boost = (core.dodgeBoostT > 0 ? 1.2 : 1) * dashBoost;
+  const webSlow = core.webZones.some((z) => {
+    if (z.arm > 0) return false;
+    const dx = p.x - z.x;
+    const dy = p.y - z.y;
+    return dx * dx + dy * dy < z.R * z.R;
+  })
+    ? WEB_ZONE.slow
+    : 1;
+  return p.speed * boost * webSlow;
+}
 
 export function updatePlayer(this: GameCore, dt: number) {
   const p = this.player;
@@ -123,21 +146,24 @@ export function updatePlayer(this: GameCore, dt: number) {
   } else {
     // S2「滞空」：闪避成功后 0.5 秒的移速加成
     // 机动链基础层：冲刺后 dashBoostWindow 秒内线性衰减的移速爆发
-    const dashBoost =
-      this.warriorDashBoostT > 0
-        ? 1 + WB.dashBoostMul * (this.warriorDashBoostT / WB.dashBoostWindow)
-        : 1;
-    const boost = (this.dodgeBoostT > 0 ? 1.2 : 1) * dashBoost;
-    const webSlow = this.webZones.some((z) => {
-      if (z.arm > 0) return false;
-      const dx = p.x - z.x;
-      const dy = p.y - z.y;
-      return dx * dx + dy * dy < z.R * z.R;
-    })
-      ? WEB_ZONE.slow
-      : 1;
-    p.x += mx * p.speed * boost * webSlow * dt;
-    p.y += my * p.speed * boost * webSlow * dt;
+    const moveSpeed = playerMoveSpeed(this);
+    p.x += mx * moveSpeed * dt;
+    p.y += my * moveSpeed * dt;
+
+    // 「居合」积势：走路攒层，满层后停攒等下一刀（见 warriorBalance.iai）。
+    // 势只增不减——挥砍不清空，只有满层触发的居合斩才会归零。
+    const iaiCap = warriorIaiCap(this);
+    if (iaiCap > 0 && this.warriorIaiStacks < iaiCap) {
+      const moved = Math.hypot(mx, my) * moveSpeed * dt;
+      const step = warriorIaiStep(this);
+      this.warriorIaiDist += moved;
+      while (this.warriorIaiDist >= step && this.warriorIaiStacks < iaiCap) {
+        this.warriorIaiDist -= step;
+        this.warriorIaiStacks++;
+      }
+      // 满层后余量归零，避免触发后立刻又攒出一层
+      if (this.warriorIaiStacks >= iaiCap) this.warriorIaiDist = 0;
+    }
   }
   // 世界边界
   p.x = clamp(p.x, 24, WORLD.w - 24);

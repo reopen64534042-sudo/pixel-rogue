@@ -10,6 +10,7 @@ import {
 } from "../data/constants";
 import { DAMAGE_TYPES } from "../data/damageTypes";
 import { KNOCK } from "../data/knockback";
+import { WARRIOR_BALANCE } from "../data/warriorBalance";
 
 /** 战士「裂甲」：每层近战易伤与层数上限（共享卡，数值集中在此避免卡面与代码不一致）。 */
 const MELEE_VULN_PER_STACK = 0.04;
@@ -118,6 +119,11 @@ export function hurtEnemy(
         critMultiplier: baseStats.critMultiplier + 0.4,
       }
     : baseStats;
+  // 战士职业底座：近战无视 30% 护甲。其他职业与伤害形式保持原状。
+  const armorPen =
+    this.prof === "warrior" && opts.form === "melee"
+      ? WARRIOR_BALANCE.armorPen
+      : 0;
   // §3.4 步骤 4：数值交给 DamageSystem。敌方离散命中用 round-min-one，
   // 与旧 Math.max(1, Math.round(dmg × 暴击倍率（含 #41 觉醒）× 易伤)) 一致
   const calc = calculateDamage(DAMAGE_TYPES, {
@@ -129,7 +135,7 @@ export function hurtEnemy(
     precision: "round-min-one",
     isCritical: crit,
     attackerStats,
-    defenderStats: getEnemyCombatStats(e),
+    defenderStats: getEnemyCombatStats(e, armorPen),
   });
   let settled = calc.settledDamage;
   let trueDamage = 0;
@@ -144,7 +150,7 @@ export function hurtEnemy(
       precision: "round-min-one",
       isCritical: crit,
       attackerStats,
-      defenderStats: getEnemyCombatStats(e),
+      defenderStats: getEnemyCombatStats(e, armorPen),
     });
     trueDamage = trueCalc.settledDamage;
     settled += trueDamage;
@@ -175,16 +181,20 @@ export function hurtEnemy(
     e.x,
     e.y - e.r - 2,
     mainDamage,
-    mainIsTrue
-      ? TRUE_DAMAGE_COLOR
-      : opts.specialHit || crit
-        ? "#ffd24a"
-        : "#ffffff",
+    // 居合斩优先用冰白主色（配专属双层描边，见 draw.ts）
+    opts.iaiHit
+      ? "#e8ffff"
+      : mainIsTrue
+        ? TRUE_DAMAGE_COLOR
+        : opts.specialHit || crit
+          ? "#ffd24a"
+          : "#ffffff",
     crit,
     mainIsTrue,
     false,
     mainSpecial,
     crit,
+    opts.iaiHit === true,
   );
   if (crit) {
     // 暴击火花：不推进随机数，按敌人 seed 给四向金色/白色短粒子。
@@ -536,6 +546,7 @@ export function addText(
   small = false,
   specialDmg = false,
   critDmg = false,
+  iaiDmg = false,
 ) {
   // 同位置叠字是玩家实机反馈的问题（伤害数字与机制标签互相盖住，两个都看不清）。
   // 生成时就按当前飘字错开：同一列（x 差 <18px）每撞到一条，新字上移 9px（最多 4 层）。
@@ -562,6 +573,7 @@ export function addText(
     ...(trueDmg ? { trueDmg: true } : {}),
     ...(specialDmg ? { specialDmg: true } : {}),
     ...(critDmg ? { critDmg: true } : {}),
+    ...(iaiDmg ? { iaiDmg: true } : {}),
     ...(small ? { small: true } : {}),
   };
   this.texts.push(text);
