@@ -2789,3 +2789,33 @@ ctx.stroke();      // → strokePath()
   - 无控制台报错，分区两列对齐，未与上下的「输出」「生存」重叠。
 - 测试影响：按 2026-10-29 标准未运行 Vitest / Playwright、未改基线。已核对 `tests/melee.test.ts` 与 `tests/s4d-d2a-acceptance.test.ts` 直接向 `meleeSwing` 传初速（`knock: 240 / 100`），不经过 WarriorSystem 换算，故不受影响；战士/法师/特殊弹目前无位移断言，暂无预期过期项。
 - 已知待讨论：「强」档阈值过宽（>10px 一律强），重斩 12 / 破围 12 / 剑气 14 / 跃击 12 全落在同一档，面板上无法区分强弱；若要拉开需重划阈值或调整数值分布。
+
+## D-112 战士 C 面板基准值与键位文案跟随（v108）
+
+- 用户反馈（2026-10-30，两条）：①战士 C 面板第一个应该是「近战伤害」，所有天赋伤害都基于此；
+  ②改了暂停键位后，右下角暂停按钮后面依然括号写着 P。
+- 分支：`feat/warrior-ui-panel`（自 v107 / `a2de6de` 起）。Closes #178 #182。
+- 改动：
+  1. `core/WarriorSystem.ts` 新增导出 `warriorSwingDamage(core)` = 攻击基线 × 流叠层倍率，
+     作为战士伤害的统一基准；`updateWarriorCombat` 的实战伤害改为
+     `warriorSwingDamage() × heavy × breakout × resolve`，**条件倍率外提**，
+     使「面板显示」与「实战结算」共用同一个基准函数，不再各写一份公式。
+  2. `ui/GameUI.ts` 输出区首行：战士改用「⚔️ 近战伤害」，流生效时追加层数标注
+     （`9.7（流 4 层）`）；射手 / 法师仍为「基础攻击 / 元素伤害」。
+  3. `ui/GameUI.ts` 新增 `syncKeyLabels()`：从 `core.keybinds` 回写
+     `#btn-pause` 与 `#btn-statclose` 的文案，格式化复用 `keyLabel()`
+     （空格 / Esc / 方向键 / 大写规则与键位设置面板一致）。调用点为构造末尾、
+     「恢复默认」、单个键位保存后。
+- 口径说明：`warriorSwingDamage` **不含** heavy / breakout / resolve 三个条件倍率——它们随
+  敌群状态逐帧跳动，放进面板会让数值无解释地变化；这些条件由各自的行标注
+  （大剑已有「重斩 每 3 下 · 250%」）。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓。受控实测（5303，已停止）：
+  - 太刀 `⚔️ 近战伤害 9.7（流 4 层）`；设 3 层时为 `9.5`
+  - 大剑 `⚔️ 近战伤害 17.0` + `🪓 重斩 每 3 下 · 250%`
+  - 改键：暂停按钮 `⏸ 暂停 (P)` → `⏸ 暂停 (E)`（真实走设置面板点选 + 按 E 保存），
+    `core.keybinds.pause === "e"`；`返回战斗 (C)` 不变
+  - 无控制台报错
+- 测试影响：按 2026-10-29 标准未运行 Vitest / Playwright、未改基线。`warriorSwingDamage`
+  的引入不改变实战数值（乘法结合律等价：`p.damage × flow × heavy × …` 与
+  `(p.damage × flow) × heavy × …` 相同），因此不应有过期断言；战士侧目前无 C 面板数值断言。
+- 未做（后续批次）：#180 太刀加强（伤害 12 + 射程 42）、#181 暴击倍率 2.0→1.5、#179 连斩反馈区分。

@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v108",
+    date: "2026-10-30",
+    title: "战士 C 面板基准值与键位文案跟随",
+    items: [
+      "战士 C 面板首行由「基础攻击」改为「⚔️ 近战伤害」＝攻击基线 × 流叠层倍率，与实战挥砍同源；流生效时标注层数（如「9.7（流 4 层）」）。",
+      "面板基准与实战伤害共用 warriorSwingDamage()，条件倍率（重斩 / 破围 / 气势）在外层相乘，避免「显示值」与「实际值」两处公式各自漂移。",
+      "修复改键后右侧「暂停」「返回战斗」按钮的键位文案不更新：新增 syncKeyLabels()，在构造、恢复默认、保存键位后各同步一次，格式化复用 keyLabel()。",
+    ],
+  },
+  {
     version: "v107",
     date: "2026-10-30",
     title: "击退数值统一口径与 C 面板击退分区",
