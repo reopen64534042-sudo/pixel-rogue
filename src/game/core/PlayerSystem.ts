@@ -77,11 +77,16 @@ export function updatePlayer(this: GameCore, dt: number) {
     if ((p.upCounts["双段疾冲"] || 0) > 0) this.shotCounter++;
     // 战士疾冲：在冲刺结束帧结算路径伤害；残心开启下一刀窗口。
     if (this.prof === "warrior") {
-      if (this.warriorDashFromX !== null && this.warriorDashFromY !== null)
+      if (this.warriorDashFromX !== null && this.warriorDashFromY !== null) {
         this.warriorDashDamage(
           this.warriorDashFromX,
           this.warriorDashFromY,
         );
+        this.warriorLianShanDash(
+          this.warriorDashFromX,
+          this.warriorDashFromY,
+        );
+      }
       this.warriorDashFromX = null;
       this.warriorDashFromY = null;
       // 残心窗口改为读配置（原来写死 1 秒，warriorBalance.resolveWindow 是死字段）
@@ -123,7 +128,10 @@ export function updatePlayer(this: GameCore, dt: number) {
       if (this.tutorialMode) this.tutorialDashed = true;
       this.warriorDashFromX = null;
       this.warriorDashFromY = null;
-      if (this.prof === "warrior" && (p.upCounts["疾冲"] || 0) > 0) {
+      if (
+        this.prof === "warrior" &&
+        ((p.upCounts["疾冲"] || 0) > 0 || (p.upCounts["连闪"] || 0) > 0)
+      ) {
         this.warriorDashFromX = p.x;
         this.warriorDashFromY = p.y;
       }

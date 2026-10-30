@@ -61,6 +61,20 @@ export const WARRIOR_BALANCE = {
   /** 冲刺冷却（秒）：战士 1.6（原 2.4），近战靠短 CD 反复接近。 */
   dashMax: 1.6,
   /**
+   * 「连闪」共享机动天赋（t1）：
+   * 充能 +1、冷却 -0.4s；冲刺穿过敌人减速并返还冷却；
+   * 冲刺后 2 秒暴击率/暴击伤害 +30%。
+   */
+  lianShan: {
+    cdReduction: 0.4,
+    slowT: 1.5,
+    slowF: 0.3,
+    refundPerHit: 0.1,
+    refundCap: 0.3,
+    critWindow: 2,
+    critBonus: 0.3,
+  },
+  /**
    * 冲刺后移速爆发（战士基础机制，不占卡位）。
    * 冲刺结束瞬间 +45%，在 dashBoostWindow 秒内线性衰减到 0。
    * 目的：让「冲刺」在位移之外还提供一小段追击/脱离窗口，

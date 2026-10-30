@@ -1,4 +1,5 @@
 import type { Talent } from "../../core/types";
+import { WARRIOR_BALANCE as WB } from "../warriorBalance";
 
 /**
  * 战士池（S3b，基础可玩批次）。
@@ -250,11 +251,13 @@ export const WARRIOR_TALENTS: Talent[] = [
     layer: 1,
     prof: "warrior",
     mech: 1,
-    d: "冲刺充能 +1 次（上限 2 次）；当前充能按正常回复补充。",
+    d: "冲刺充能 +1 次（上限 2 次），冷却 1.6→1.2 秒；冲刺穿过敌人时每个返还 10% 冷却（每次最多 30%）并减速 30%/1.5 秒；冲刺后 2 秒暴击率与暴击伤害 +30%。",
     max: 1,
-    pv: (p) => `冲刺充能 ${1 + p.dashChargeLv} → ${2 + p.dashChargeLv} 次`,
+    pv: (p) =>
+      `冲刺 ${1 + p.dashChargeLv}→${2 + p.dashChargeLv} 次 · 冷却 ${p.dashMax.toFixed(1)}→${(p.dashMax - WB.lianShan.cdReduction).toFixed(1)}s · 破空/锐势`,
     f: () => {},
-    cur: (p) => `冲刺充能上限 ${1 + p.dashChargeLv} 次`,
+    cur: (p) =>
+      `冲刺 ${1 + p.dashChargeLv} 次 · 冷却 ${p.dashMax.toFixed(1)}s · 破空/锐势`,
   },
 
   // ================= 共享 =================
