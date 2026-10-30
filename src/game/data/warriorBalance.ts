@@ -49,10 +49,22 @@ export const WARRIOR_BALANCE = {
    * 一次冲刺能跨进环带内，与「疾冲」卡的 1.3 独立相乘。
    */
   baseDashMul: 1.5,
-  dashDamageMul: 0.8,
+  /** 冲刺冷却（秒）：战士 1.6（原 2.4），近战靠短 CD 反复接近。 */
+  dashMax: 1.6,
+  /**
+   * 冲刺后移速爆发（战士基础机制，不占卡位）。
+   * 冲刺结束瞬间 +45%，在 dashBoostWindow 秒内线性衰减到 0。
+   * 目的：让「冲刺」在位移之外还提供一小段追击/脱离窗口，
+   * 与短 CD 配合形成「贴—打—拉开—再贴」的节奏。
+   */
+  dashBoostWindow: 2,
+  dashBoostMul: 0.45,
+  // 疾冲路径伤害 80% → 100%（机动链全面升级）。
+  dashDamageMul: 1.0,
   leapRange: 80,
   leapRangeMul: 1.3,
-  leapDamageMul: 1.2,
+  // 跃击落地 120% → 140%（机动链全面升级）。
+  leapDamageMul: 1.4,
   leapRechargeExtra: 0.8,
   // 残心（太刀入场 L2）：冲刺后窗口内下一刀增伤。
   // 原 1 秒 +40% ≈ 仅 +8% DPS（冲刺冷却 2.4s、太刀 2 刀/秒 → 每周期 4.8 刀只吃到 0.4 刀）。
@@ -73,8 +85,10 @@ export const WARRIOR_BALANCE = {
    */
   lianZhanMaxChain: 3,
   breakoutCount: 3,
-  breakoutDamageMul: 1.15,
-  breakoutKnockMul: 2,
+  // 破围（共享·补救）：被围时的强化。原 +15% / 击退 ×2 太轻，
+  // 「3 敌以上」本身就是危险处境，收益应更明显。改为 +35% / ×3。
+  breakoutDamageMul: 1.35,
+  breakoutKnockMul: 3,
   heavyArmorBreakT: 4,
   swordQiRange: 200,
   swordQiWidth: 10,
@@ -107,10 +121,11 @@ export const WARRIOR_BALANCE = {
       // 加上护甲对低基数伤害的相对削减更狠（9 经 25 护甲只剩 6），
       // 前期清场明显跟不上。提伤害把「贴身」的代价换回来。
       damage: 12,
-      fireRate: 2.0,
-      // #180：34 → 42。只补伤害解决不了「贴不住就白给」，
-      // 射程 +8px 让玩家更容易黏住目标。刀光素材中心同步 22 → 26（见 draw.ts）。
-      range: 42,
+      // #180：攻速 2.0 → 2.5、射程 42 → 52（用户要求「增加攻击距离与基础攻速」）。
+      // 太刀是三方里唯一必须贴身的近战，射程与攻速同时补，才追得上射手 24.2 的基线 DPS。
+      fireRate: 2.5,
+      // 射程 34 → 42（#180）→ 52（本次）。刀光素材中心同步 22 → 26（见 draw.ts）。
+      range: 52,
       spread: (100 * Math.PI) / 180,
       knock: 4,
       color: "#5ef2c8",
@@ -121,8 +136,9 @@ export const WARRIOR_BALANCE = {
       label: "大剑流",
       short: "大 剑",
       damage: 17,
-      fireRate: 1.2,
-      range: 36,
+      // 攻速 1.2 → 1.55、射程 36 → 45（与太刀同批加强）。
+      fireRate: 1.55,
+      range: 45,
       spread: (130 * Math.PI) / 180,
       knock: 10,
       color: "#ffd24a",

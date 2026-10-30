@@ -3029,3 +3029,54 @@ dmg = dmg > 0 ? Math.max(1, Math.round(scaled)) : 0;
 - 传入 0 伤害时 HP 不变（未被抬成 1）
 
 `npm run typecheck` ✓、`npm run build` ✓。
+
+## D-118 战士机动批：冲刺 CD / 射程 / 攻速 / 冲刺后移速爆发（v114）
+
+- 用户需求（2026-10-30，一次性五条）：减少冲刺 CD、增加攻击距离、增加基础攻速、
+  增强破围与裂甲、给「机动」链全面升级并让**每次冲刺后获得衰减的爆发移速**。
+  档位选定「激进」（预估总输出 +50%）。
+- 分支：`feat/warrior-mobility-v114`（自 v113 / `bc40092` 起）。
+
+### 改动
+
+| 项 | 改前 | 改后 | 位置 |
+|---|---|---|---|
+| 战士冲刺冷却 | 2.4s | **1.6s** | `warriorBalance.dashMax` + `stats.ts` 按 prof 分支 |
+| 太刀 射程 / 攻速 | 42 / 2.0 | **52 / 2.5** | `warriorBalance.styles.katana` |
+| 大剑 射程 / 攻速 | 36 / 1.2 | **45 / 1.55** | `warriorBalance.styles.greatsword` |
+| 疾冲 路径伤害 | 80% | **100%** | `dashDamageMul` |
+| 跃击 落地伤害 | 120% | **140%** | `leapDamageMul` |
+| 裂甲 每层易伤 | 2% | **4%**（满 10 层 +40%） | `CombatSystem` 的 `MELEE_VULN_PER_STACK` |
+| 破围 伤害 / 击退 | +15% / ×2 | **+35% / ×3** | `breakoutDamageMul` / `breakoutKnockMul` |
+
+### 新增机制：冲刺后移速爆发（不占卡位）
+
+用户原话「给每次冲刺后都要获得衰减的爆发性移速」，做成**战士基础机制**而非卡：
+
+- `GameCore.warriorDashBoostT`（放 GameCore，`recompute` 不会抹掉）
+- 冲刺结束帧设 `= WB.dashBoostWindow`（2 秒）
+- `PlayerSystem` 移动时叠进已有的 `boost` 乘区：
+  `1 + 0.45 × (剩余 / 窗口)`，随剩余时间**线性衰减**到 0
+- 该乘区原本只有「滞空」的闪避加成，两者相乘而非覆盖
+
+### 顺带的实现整理
+
+- `stats.ts` 的 `dashMax` 从硬编码 2.4 改为按职业分支（`warrior ? WB.dashMax : 2.4`），
+  避免为了战士改冷却而影响射手/法师。
+- 裂甲的 2%/层 与 10 层上限原来以字面量散落在两处（加成与叠层），
+  现抽为 `MELEE_VULN_PER_STACK` / `MELEE_VULN_MAX_STACKS` 常量，避免再出现
+  「改了加成、忘了上限」。
+- 卡面 8 处文案同步（裂甲、破围、疾冲、跃击的 `d` 与 `pv`）。
+
+### 验证
+
+- `npm run typecheck` ✓、`npm run build` ✓
+- 临时用例（跑完已删）：`dashMax === 1.6`、`attackRange === 52`、`fireRate === 2.5`；
+  按住冲刺触发后 `warriorDashBoostT` 剩余 1.98 秒；2 秒后归零
+- 按 2026-10-29 标准未运行 Vitest / Playwright、未改基线
+
+### 风险
+
+激进档把太刀 DPS 从约 24（12 × 2.0）提到 30（12 × 2.5），叠加射程 +10px、
+冲刺 CD −33%、破围 +20%、裂甲 +20%，**总输出预估 +50%**，太刀可能从最弱直接跳到最强。
+若试玩后偏强，优先回调攻速（2.5 → 2.2）与破围（+35% → +25%）。
