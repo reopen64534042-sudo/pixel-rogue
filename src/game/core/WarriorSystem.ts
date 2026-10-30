@@ -34,17 +34,23 @@ export function iaiOwned(core: GameCore): boolean {
   return (core.player.upCounts["居合"] || 0) > 0;
 }
 
-/** 势上限：L2 > L1 > 未开通。 */
+/** 势上限：核心 8；「居合·迅」作为可选增幅再 +4。 */
 export function warriorIaiCap(core: GameCore): number {
   if (!iaiOwned(core)) return 0;
-  return (core.player.upCounts["居合·迅"] || 0) > 0 ? WB.iai.cap2 : WB.iai.cap1;
+  return (
+    WB.iai.cap +
+    ((core.player.upCounts["居合·迅"] || 0) > 0 ? WB.iai.capBonus : 0)
+  );
 }
 
-/** 每层势所需的移动距离（px）：L2 更短，攒得更快。 */
+/** 每层势所需的移动距离（px）：核心 50；「居合·迅」再减 10。 */
 export function warriorIaiStep(core: GameCore): number {
-  return (core.player.upCounts["居合·迅"] || 0) > 0
-    ? WB.iai.distPerStack2
-    : WB.iai.distPerStack1;
+  return (
+    WB.iai.distPerStack -
+    ((core.player.upCounts["居合·迅"] || 0) > 0
+      ? WB.iai.stepReduction
+      : 0)
+  );
 }
 
 /** 势满 → 下一刀变居合斩。返回 null 表示本次是普通挥砍。 */
@@ -54,22 +60,23 @@ function iaiReady(core: GameCore): { cap: number } | null {
   return core.warriorIaiStacks >= cap ? { cap } : null;
 }
 
-function flowDamageMul(core: GameCore): number {
+/** 「流」只增幅居合斩伤害（不再给普通挥砍/冲刺路径通用增伤）。 */
+function flowIaiMul(core: GameCore): number {
   return flowOwned(core)
     ? 1 + WB.flow.dmgPerStack * core.warriorFlowStacks
     : 1;
 }
 
 /**
- * 基准挥砍伤害（#178）：攻击基线 × 流叠层倍率。
+ * 基准挥砍伤害（#178）：攻击基线。
  *
- * 这是战士所有伤害的共同基准，C 面板首行显示它。
+ * 这是战士普通挥砍的共同基准；流只增幅居合斩，因此不再乘进这里。
  * **不含** heavy（大剑第 3 下）、breakout（被围）、resolve 这些条件倍率——
  * 它们随敌群状态逐帧跳动，放进面板会让数字无解释地变化；
  * 这些条件倍率由各自的行单独标注（如「重斩 每 3 下 · 250%」）。
  */
 export function warriorSwingDamage(core: GameCore): number {
-  return core.player.damage * flowDamageMul(core);
+  return core.player.damage;
 }
 
 function pointSegmentDistance(
@@ -165,16 +172,16 @@ export function warriorLeap(this: GameCore): boolean {
   return true;
 }
 
-/** 疾冲：冲刺路径上每个敌人各吃一次 80% 伤害，不叠流、不触发重斩。 */
+/** 斩浪：冲刺路径上每个敌人各吃一次 100% 伤害，不叠流、不触发重斩。 */
 export function warriorDashDamage(
   this: GameCore,
   fromX: number,
   fromY: number,
 ): void {
   const p = this.player;
-  if (this.prof !== "warrior" || (p.upCounts["疾冲"] || 0) === 0) return;
+  if (this.prof !== "warrior" || (p.upCounts["斩浪"] || 0) === 0) return;
   const style = WB.styles[this.warriorStyle];
-  const dmg = p.damage * flowDamageMul(this) * WB.dashDamageMul;
+  const dmg = p.damage * WB.dashDamageMul;
   for (const e of this.enemies) {
     if (e.dead) continue;
     if (pointSegmentDistance(e.x, e.y, fromX, fromY, p.x, p.y) > 12 + e.r)
@@ -218,7 +225,7 @@ export function warriorDashDamage(
 
 /**
  * 连闪·破空：冲刺穿过敌人时减速并返还冷却；无论是否命中都开启 2 秒锐势窗口。
- * 不造成伤害——路径伤害仍归「疾冲」，两者可以同时持有。
+ * 不造成伤害——路径伤害仍归「斩浪」，两者可以同时持有。
  */
 export function warriorLianShanDash(
   this: GameCore,
@@ -270,11 +277,8 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
   if (this.warriorLianShanT > 0)
     this.warriorLianShanT = Math.max(0, this.warriorLianShanT - dt);
 
-  // 流计时：爆发期冻结层数与倒计时
-  if (this.warriorFlowBurstT > 0) {
-    this.warriorFlowBurstT = Math.max(0, this.warriorFlowBurstT - dt);
-    if (this.warriorFlowBurstT === 0) this.warriorFlowT = flowDuration(this);
-  } else if (this.warriorFlowT > 0) {
+  // 流计时：断档清空
+  if (this.warriorFlowT > 0) {
     this.warriorFlowT = Math.max(0, this.warriorFlowT - dt);
     if (this.warriorFlowT === 0) this.warriorFlowStacks = 0;
   }
@@ -308,11 +312,21 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
 
   const resolveMul =
     this.warriorResolveT > 0 ? 1 + WB.resolveDamageMul : 1;
-  // 居合：势满时这一刀变居合斩（L3「居合·极」再转为 360° 旋斩）
+  // 居合核心：势满时这一刀必为 360° 旋斩；迅/极只做可选增幅。
   const iai = iaiReady(this);
-  const iaiSpin = iai !== null && (p.upCounts["居合·极"] || 0) > 0;
+  const greatIai = iai !== null && (p.upCounts["居合·极"] || 0) > 0;
   const iaiMul = iai ? 1 + WB.iai.perStack * iai.cap : 1;
-  const iaiKnock = iai ? (iaiSpin ? WB.iai.spinKnockMul : WB.iai.knockMul) : 1;
+  const iaiKnock = iai
+    ? greatIai
+      ? WB.iai.upgradeKnockMul
+      : WB.iai.spinKnockMul
+    : 1;
+  const flowConsume =
+    iai !== null &&
+    (p.upCounts["流·极"] || 0) > 0 &&
+    this.warriorFlowStacks >= WB.flow.cap3;
+  const flowIai = iai ? flowIaiMul(this) : 1;
+  const consumeMul = flowConsume ? 1 + WB.flow.iaiConsumeBonus : 1;
   // #178：基准伤害统一走 warriorSwingDamage（面板显示同一个函数），
   // 条件倍率在外层相乘，避免「面板值」与「实战值」两处公式各自漂移。
   const dmg =
@@ -320,21 +334,20 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     (heavy ? WB.heavyDamageMul : 1) *
     (breakout ? WB.breakoutDamageMul : 1) *
     resolveMul *
-    iaiMul;
-  const radius = p.attackRange * (heavy ? WB.heavyRangeMul : 1);
-  const burst = this.warriorFlowBurstT > 0;
-  const lifestealMul = burst ? 2 : 1;
+    iaiMul *
+    flowIai *
+    consumeMul;
+  const radius =
+    p.attackRange *
+    (heavy ? WB.heavyRangeMul : 1) *
+    (greatIai ? WB.iai.upgradeRangeMul : 1);
   const knock =
     style.knock *
     (heavy ? WB.heavyKnockMul : 1) *
     (breakout ? WB.breakoutKnockMul : 1) *
     iaiKnock;
-  // 居合斩的扇形：L1/L2 把太刀扇形拉宽，L3 直接全向（背后也能打）
-  const spread = iai
-    ? iaiSpin
-      ? Math.PI * 2
-      : style.spread * WB.iai.spreadMul
-    : style.spread;
+  // 居合核心是全向旋斩；普通挥砍仍是前方扇形。
+  const spread = iai ? Math.PI * 2 : style.spread;
 
   const hits = this.meleeSwing({
     angle,
@@ -348,22 +361,33 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     preciseSector: this.warriorStyle === "katana",
     ...(heavy ? { heavy: true } : {}),
     ...(this.warriorStyle === "katana" ? { life: 0.167 } : {}),
-    // 流·极 爆发期攻速 ×2（5 刀/秒），若每刀照常震屏 2，叠加起来会变成
-    // 持续抖动 + 满屏数字，用户实机反馈「屏幕全花、看不清怪物」。爆发期降为 1。
-    shake: iai ? 5 : heavy ? 3 : burst ? 1 : 2,
-    lifestealMul,
+    shake: iai ? 5 : heavy ? 3 : 2,
     ...(iai ? { iaiHit: true } : {}),
-    ...(iaiSpin ? { spin: true } : {}),
+    ...(iai ? { spin: true } : {}),
   });
   if (this.warriorResolveT > 0) this.warriorResolveT = 0;
 
-  // 居合斩结算：势清零、补流层、L2 给攻速窗口。
+  // 居合斩结算：势清零、补流层、可选增幅与锐势窗口。
   // 空挥也清零——势只会在「真的挥出一刀」时消耗，玩家不能靠空挥存着。
   if (iai) {
     this.warriorIaiStacks = 0;
     this.warriorIaiDist = 0;
     if (hits.length) {
-      if (flowOwned(this) && this.warriorFlowBurstT <= 0) {
+      if (greatIai) {
+        for (const e of hits) {
+          e.armorBreakT = WB.iai.upgradeArmorBreakT;
+          e.armorBreakPct = WB.iai.upgradeArmorBreakPct;
+        }
+      }
+      if (flowConsume) {
+        this.warriorFlowStacks = Math.max(
+          0,
+          this.warriorFlowStacks - WB.flow.iaiConsumeStacks,
+        );
+        p.hp = Math.min(p.maxhp, p.hp + p.maxhp * WB.flow.iaiConsumeHeal);
+        this.warriorFlowT = flowDuration(this);
+      }
+      if (flowOwned(this)) {
         const cap = warriorFlowCap(this);
         this.warriorFlowStacks = Math.min(
           cap,
@@ -371,8 +395,7 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
         );
         this.warriorFlowT = flowDuration(this);
       }
-      if ((p.upCounts["居合·迅"] || 0) > 0)
-        this.warriorIaiHasteT = WB.iai.hasteWindow;
+      this.warriorIaiHasteT = WB.iai.hasteWindow;
     }
   }
 
@@ -407,7 +430,6 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
             src: "melee",
             type: "physical",
             form: "melee",
-            lifestealMul,
           },
         );
       }
@@ -424,16 +446,11 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     }
   }
 
-  // 流：每次挥砍命中叠 1 层；L3 满层后下一次命中引爆
-  if (flowOwned(this) && hits.length && this.warriorFlowBurstT <= 0) {
+  // 流：命中叠层；只增幅居合，不再触发独立 3 秒爆发。
+  if (flowOwned(this) && hits.length) {
     const cap = warriorFlowCap(this);
-    if ((p.upCounts["流·极"] || 0) > 0 && this.warriorFlowStacks >= cap) {
-      this.warriorFlowBurstT = WB.flow.burstT;
-      this.warriorFlowStacks = WB.flow.burstKeep;
-    } else {
-      this.warriorFlowStacks = Math.min(cap, this.warriorFlowStacks + 1);
-      this.warriorFlowT = flowDuration(this);
-    }
+    this.warriorFlowStacks = Math.min(cap, this.warriorFlowStacks + 1);
+    this.warriorFlowT = flowDuration(this);
   }
 
   // 连斩：每次挥砍只要至少命中 1 个敌人，30% 重置间隔并回 3% 生命。
@@ -467,12 +484,12 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     (p.upCounts["流·续"] || 0) > 0
       ? 1 + WB.flow.atkSpeedPerStack * this.warriorFlowStacks
       : 1;
-  // 攻速加成：强袭（跃击落地）与居合·迅（居合斩命中）各自独立相乘
+  // 攻速加成：强袭（跃击落地）与居合命中后的攻速窗口各自独立相乘
   const haste =
     (this.warriorLeapHasteT > 0 ? 1 + WB.leapHasteMul : 1) *
     (this.warriorIaiHasteT > 0 ? 1 + WB.iai.hasteMul : 1);
   p.fireCd = resetCd
     ? 0
-    : (1 / (p.fireRate * flowSpeed * haste * (burst ? 2 : 1))) *
+    : (1 / (p.fireRate * flowSpeed * haste)) *
       (heavy ? WB.heavyIntervalMul : 1);
 }

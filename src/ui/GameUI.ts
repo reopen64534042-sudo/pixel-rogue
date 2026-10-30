@@ -483,17 +483,12 @@ export class GameUI {
     const iaiStacks = this.core.warriorIaiStacks;
     const outputRows: [string, string | number][] = [
       // 文案更名（S3-C）：p.damage 是攻击基线（技能系数/raw），非 globalDamageBonus
-      // #178：战士首行改为「实际挥砍伤害」= 攻击基线 × 流层倍率，
-      // 让面板数值与手感对齐；条件倍率（重斩/破围/气势）由各自的行标注。
+      // #178：战士首行显示实际普通挥砍伤害（攻击基线）；流只增幅居合，
+      // 由下方「流层数」行单独标注；条件倍率（重斩/破围/气势）也各自成行。
       isMage
         ? ["🔮 元素伤害", p.damage.toFixed(1)]
         : isWarrior
-          ? [
-              "⚔️ 近战伤害",
-              this.core.warriorFlowStacks > 0
-                ? `${warriorSwingDamage(this.core).toFixed(1)}（流 ${this.core.warriorFlowStacks} 层）`
-                : warriorSwingDamage(this.core).toFixed(1),
-            ]
+          ? ["⚔️ 近战伤害", warriorSwingDamage(this.core).toFixed(1)]
           : ["⚔️ 基础攻击", p.damage.toFixed(1)],
       // 战士职业底座：近战无视护甲，面板显式展示，避免伤害变化无解释。
       ...(isWarrior
@@ -590,7 +585,18 @@ export class GameUI {
                 [
                   "🌊 流层数",
                   `${this.core.warriorFlowStacks} / ${flowCap}${
-                    this.core.warriorFlowBurstT > 0 ? " · 爆发" : ""
+                    this.core.warriorFlowStacks > 0
+                      ? ` · 居合 +${Math.round(
+                          WARRIOR_BALANCE.flow.dmgPerStack *
+                            this.core.warriorFlowStacks *
+                            100,
+                        )}%`
+                      : ""
+                  }${
+                    (p.upCounts["流·极"] || 0) > 0 &&
+                    this.core.warriorFlowStacks >= flowCap
+                      ? " · 下一刀居合强化"
+                      : ""
                   }`,
                 ],
               ] as [string, string | number][])
@@ -642,8 +648,8 @@ export class GameUI {
         knockRows.push(["🗡️ 剑气", knockLevel(KNOCK.warrior.qi)]);
       if ((p.upCounts["跃击"] || 0) > 0)
         knockRows.push(["🦘 跃击", knockLevel(KNOCK.warrior.leap)]);
-      if ((p.upCounts["疾冲"] || 0) > 0)
-        knockRows.push(["💨 疾冲", knockLevel(KNOCK.warrior.dash)]);
+      if ((p.upCounts["斩浪"] || 0) > 0)
+        knockRows.push(["💨 斩浪", knockLevel(KNOCK.warrior.dash)]);
     } else {
       knockRows.push(["🏹 普通魔弹", knockLevel(KNOCK.shooter.bolt)]);
       knockRows.push(["✨ 强化弹", knockLevel(KNOCK.shooter.charged)]);
@@ -1475,7 +1481,7 @@ export class GameUI {
       return this.core.warriorStyle === "katana"
         ? {
             title: "流",
-            body: "你的核心是「流」：连续命中叠层，满 15 层后爆发；练习场先给 L1，试着叠满 5 层。",
+            body: "你的核心是「流」：连续命中叠层，提升居合伤害；练习场先给 L1，试着叠满 5 层。",
           }
         : {
             title: "重斩",

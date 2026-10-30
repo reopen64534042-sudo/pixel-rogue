@@ -224,7 +224,6 @@ export class GameCore {
   /** 流层数与计时（战士核心链；放 GameCore，避免 recompute 抹掉）。 */
   warriorFlowStacks = 0;
   warriorFlowT = 0;
-  warriorFlowBurstT = 0;
   /** 每 3 次挥砍中的第 3 次为重斩。 */
   warriorSwingCount = 0;
   /**
@@ -243,7 +242,7 @@ export class GameCore {
   warriorIaiStacks = 0;
   warriorIaiDist = 0;
   warriorIaiHasteT = 0;
-  /** 剑气 / 疾冲表现层（直线，寿命很短）。 */
+  /** 剑气 / 斩浪表现层（直线，寿命很短）。 */
   warriorQi: {
     x1: number;
     y1: number;
@@ -254,7 +253,7 @@ export class GameCore {
     c: string;
     kind: "dash" | "qi";
   }[] = [];
-  /** 疾冲的起跳点（冲刺结束时结算路径伤害）。 */
+  /** 斩浪的起跳点（冲刺结束时结算路径伤害）。 */
   warriorDashFromX: number | null = null;
   warriorDashFromY: number | null = null;
   /** 残心：冲刺后的下一刀增伤窗口。 */
@@ -625,7 +624,6 @@ export class GameCore {
     this.mageElementPickPending = null;
     this.warriorFlowStacks = 0;
     this.warriorFlowT = 0;
-    this.warriorFlowBurstT = 0;
     this.warriorSwingCount = 0;
     this.warriorChainCount = 0;
     this.warriorIaiStacks = 0;
@@ -876,7 +874,6 @@ export class GameCore {
     this.mageElementPickPending = null;
     this.warriorFlowStacks = 0;
     this.warriorFlowT = 0;
-    this.warriorFlowBurstT = 0;
     this.warriorSwingCount = 0;
     this.warriorChainCount = 0;
     this.warriorIaiStacks = 0;
