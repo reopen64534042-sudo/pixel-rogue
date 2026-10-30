@@ -540,7 +540,7 @@ export class GameUI {
         : isWarrior
           ? this.core.warriorStyle === "greatsword"
             ? ([
-                ["🪓 重斩", "每 3 下坠击 · 0.24s 起手 · 250% · 360°"],
+                ["🪓 重斩", "每 3 下 · 250% · 范围 +50%"],
                 ...((p.upCounts["三段斩"] || 0) > 0
                   ? ([
                       ["🌀 冲刺段", `${triStage + 1}/3 · ${triLabel}`],
@@ -1558,7 +1558,7 @@ export class GameUI {
           }
         : {
             title: "重斩",
-            body: "大剑自带重斩：每第 3 次挥砍锁定近战目标，起手后跃起坠击。破甲→剑气→裂地会依次强化它；试着打出一次重斩。",
+            body: "大剑自带重斩：每第 3 次挥砍重击，范围 +50%。破甲→剑气→裂地会依次强化它；试着打出一次重斩。",
           };
     }
     if (step === tutorialGemStep(prof))

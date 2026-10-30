@@ -18,9 +18,7 @@ interface WarriorSwingSnapshot {
   flowConsume: boolean;
 }
 
-type WarriorLeapAttack =
-  | { kind: "leap"; impact: MeleeSwingOptions }
-  | { kind: "combo"; swing: WarriorSwingSnapshot };
+type WarriorLeapAttack = { kind: "leap"; impact: MeleeSwingOptions };
 
 /** One locked destination and attack snapshot for windup -> fall -> impact. */
 export type WarriorLeapState = WarriorLeapAttack & {
@@ -50,7 +48,7 @@ function beginWarriorLeap(
     fromY: core.player.y,
     x: clamp(target.x, 24, WORLD.w - 24),
     y: clamp(target.y, 24, WORLD.h - 24),
-    radius: attack.kind === "leap" ? attack.impact.radius : attack.swing.radius,
+    radius: attack.impact.radius,
   };
 }
 
@@ -73,10 +71,6 @@ function landWarriorLeap(core: GameCore, leap: WarriorLeapState) {
   core.player.y = leap.y;
   // Clear before settling damage: impact is grounded and cannot resolve twice.
   core.warriorLeapState = null;
-  if (leap.kind === "combo") {
-    resolveWarriorSwing.call(core, leap.swing, leap.elapsed, true);
-    return;
-  }
   const hits = core.meleeSwing(leap.impact);
   if (leap.triStage3) {
     for (const e of hits)
@@ -601,8 +595,6 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
   const dashHeavy =
     this.warriorStyle === "greatsword" && this.warriorHeavyReadyT > 0;
   const heavy = naturalHeavy || dashHeavy;
-  // Finish an existing ordinary dash before starting a locked combo leap.
-  if (heavy && p.dashT > 0) return;
   if (!dashHeavy)
     this.warriorSwingCount = (this.warriorSwingCount + 1) % WB.heavyEvery;
   if (dashHeavy) this.warriorHeavyReadyT = 0;
@@ -653,17 +645,13 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     (heavy ? WB.heavyKnockMul : 1) *
     (breakout ? WB.breakoutKnockMul : 1) *
     iaiKnock;
-  // 居合与第三段坠击为全向；前两段普通挥砍仍是前方扇形。
-  const spread = iai || heavy ? Math.PI * 2 : style.spread;
+  // 居合为全向；重斩保留前方扇形 + 范围 +50%。
+  const spread = iai ? Math.PI * 2 : style.spread;
 
   const swing: WarriorSwingSnapshot = {
     angle, spread, radius, dmg, knock: knock * KNOCK_DAMP,
     heavy, resolveReady, iai, greatIai, flowConsume,
   };
-  if (heavy) {
-    beginWarriorLeap(this, target, { kind: "combo", swing });
-    return;
-  }
   resolveWarriorSwing.call(this, swing);
 }
 
