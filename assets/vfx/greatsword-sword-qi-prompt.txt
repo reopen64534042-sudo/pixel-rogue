@@ -1,0 +1,29 @@
+Use case: stylized-concept
+Asset type: production pixel-art VFX sprite sheet for a detached, forward-moving GREATSWORD SWORD-QI projectile in the top-down 2D action game Pixel Rogue.
+Reference style: the shipped gold-white greatsword sweep/heavy sheets of this project. Preserve their crisp pixel clusters, five-color hierarchy and one-sided blade readability. No character, no weapon, no UI.
+
+DELIVERABLE: one transparent PNG containing EXACTLY TEN chronological frames arranged in FIVE COLUMNS x TWO ROWS, left-to-right then top-to-bottom. Exact 5:2 canvas aspect. Every slot is an equal square cell with no gutters, borders, labels or text. Target 64x64 logical pixels per cell (total 320x128 at target scale); if the output resolution is larger, preserve the exact 5x2 layout and 5:2 aspect. Keep ALL opaque pixels at least 4 logical pixels away from the cell edges.
+
+CRITICAL: this sheet animates THE WAVE ITSELF IN PLACE. It must NOT travel across the cell, leave the frame, or be drawn as a streak across the sheet. The game engine moves the sprite across the battlefield. All ten frames share the same fixed wave anchor at the exact center of the cell (32,32 at target scale) and the same silhouette scale/position; only the internal flicker, gaps, tail wisps and sparks may change. No per-frame recentering.
+
+SHAPE: a thin, tall, detached wall of sword air, not a horizontal slash, not a crescent lying on the ground, not a beam/line. It faces RIGHT: the white-hot leading edge is a narrow vertical arc on the right side; the body is a slim golden vertical wedge/crescent with an open, see-through center; 2-3 narrow wind wisps trail to the LEFT. Nominal height about 38-42 logical px and leading-edge thickness about 18-22 logical px. Keep it clearly lighter/thinner than the broad greatsword sweep. Top-bottom symmetric enough that the engine can mirror it left and rotate it toward diagonal travel directions without reading upside down. The empty space inside the golden arc must remain transparent.
+
+COLOR: only five flat opaque colors plus transparency: #9b4b16 dark rust, #f4a940 amber, #ffd24a gold, #ffe8a3 pale gold, #ffffff white-hot. White/pale-gold only on the narrow leading edge and a few chips; gold/amber for the body and tail; dark rust only for tiny trailing specks. No large dark mass, no thick outline, no filled gold body.
+
+FRAME CHOREOGRAPHY (ten DISTINCT steps, not ten copies of the same wave):
+0: a thin white leading scratch ignites on the right; open center; 2 tiny gold tail wisps.
+1: the gold vertical body forms around the open center; the white edge sharpens; a few amber chips.
+2: peak brightness: narrow white leading edge, slim gold body, 3 thin wind wisps trailing left, 2 tiny sparks.
+3: the body narrows slightly, the tail starts breaking into 2-3 separate wisps; white edge intact.
+4: mid-life: small transparent gaps appear in the gold body; wisps drift and shorten; still clearly a vertical blade-wall.
+5: leading edge remains white but the body breaks into 2-3 vertical gold shards; open center grows; sparse specks.
+6: more fragmentation; the top and bottom tips of the arc separate; thin pale-gold remnants; 2 sparks.
+7: only a few vertical shards and a broken white edge fragment; tail nearly gone.
+8: a thin pale-gold rim remnant and 2-3 tiny amber/rust specks; no continuous body.
+9: almost transparent; 1-2 tiny gold/rust flecks only. Preserve the full last square slot.
+
+MOTION: a compressed vertical blade of air that flows from the white leading edge into the gold body and out through the tail. Speed and push come from the thin leading edge and the broken tail, NOT from thickness, a huge glow or a long horizontal trail.
+
+Avoid: character, weapon, hands, UI, letters, numbers, arrows, crosshair, background, ground tiles, checkerboard, labels, watermark, horizontal slash crescent, long light beam, laser, filled rectangle, filled gold disc, thick symmetrical ring, thick white outline, huge flash, realistic fire/smoke, gradients, soft glow, motion blur, antialiasing, semitransparent pixels, more than five colors. Crisp production pixel art that reads at 1:1 in a 480x270 game.
+
+Second pass if needed: if the first sheet reads too dark or too weak, strengthen the narrow #ffffff/#ffe8a3 leading edge and add a few #ffd24a gold clusters inside the body; keep the silhouette thin and the open center transparent. Do not enlarge or thicken the wave.

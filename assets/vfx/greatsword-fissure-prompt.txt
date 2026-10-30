@@ -1,0 +1,29 @@
+Use case: stylized-concept
+Asset type: production pixel-art VFX sprite sheet for an ENHANCED GREATSWORD SWORD-QI projectile used by the "fissure" heavy-strike capstone in the top-down 2D action game Pixel Rogue.
+Reference style: the shipped gold-white greatsword sweep/heavy sheets and the leap-impact palette of this project. Preserve crisp pixel clusters, the five-color hierarchy and one-sided blade readability. No character, no weapon, no UI.
+
+DELIVERABLE: one transparent PNG containing EXACTLY TEN chronological frames in FIVE COLUMNS x TWO ROWS, left-to-right then top-to-bottom. Exact 5:2 canvas aspect. Equal square cells, no gutters, borders, labels or text. Target 96x96 logical pixels per cell (total 480x192 at target scale); if resolution differs, preserve the exact 5x2 layout and 5:2 aspect. Keep ALL opaque pixels at least 4 logical pixels from the cell edges.
+
+CRITICAL: this sheet animates ONE WAVE IN PLACE. It must NOT travel across the cell or be drawn as a streak across the sheet. The game engine spawns FOUR copies from the player center and moves them toward upper-left, upper-right, lower-left and lower-right. All ten frames use the same fixed wave anchor at the exact cell center (48,48 at target scale) and the same silhouette scale/position; only internal flicker, crack fragments, dust and sparks change. No per-frame recentering.
+
+SHAPE AND ROLE: a heavier, ground-skimming sword-qi wall than the normal sword-qi projectile, but still a moving blade wave, not a ground explosion. It faces RIGHT: a white-hot vertical leading edge on the right, a broad gold vertical blade body with an open center, and a short dark-rust ground-crack/dust tail trailing to the LEFT. Nominal height about 58-64 logical px; leading-edge thickness about 26-30 logical px. The lower edge should suggest ground contact through a flattened dust/crack fan, while the upper edge remains a clean vertical blade. Do NOT simply thicken a normal crescent; the extra weight must come from the ground-hugging dust, crack fragments and a denser core, not from a thicker white outline. Top-bottom symmetric and rotation-friendly: the engine rotates the same asset to the four diagonal directions, so avoid details that only make sense when facing exactly right.
+
+COLOR: only five flat opaque colors plus transparency: #9b4b16 dark rust, #f4a940 amber, #ffd24a gold, #ffe8a3 pale gold, #ffffff white-hot. White/pale-gold only on the leading edge and a few core chips; gold/amber for the body; dark rust for the ground cracks and trailing dust. Keep sparse negative space; no filled gold disc, no large solid dark mass.
+
+FRAME CHOREOGRAPHY (ten DISTINCT steps):
+0: the right-hand white leading edge ignites, a few gold core chips, 2 short dark-rust ground scratches behind; open center.
+1: gold vertical body forms; the white edge is sharp; 2 short forked ground cracks and 2-3 tiny dust pixels.
+2: peak core: narrow white-hot leading edge, dense gold body with transparent gaps, 3 thin wind wisps and a low dust fan behind.
+3: body broadens slightly at the middle, ground cracks fork outward, small amber chips; still a vertical blade wall.
+4: mid-life: the gold body develops 2-3 vertical gaps; dust/crack tail lengthens behind; sparks sparse.
+5: the leading edge stays white but the body breaks into vertical gold shards; open center grows; 3-4 crack fragments.
+6: heavy fragmentation: top/bottom tips separate, amber debris and rust dust trail; no continuous thick body.
+7: only a few vertical gold shards, a broken white edge and a short rust crack; sparse sparks.
+8: thin pale-gold rim remnant, 2-3 rust dust pixels, no continuous body.
+9: near transparent; 1-2 tiny gold/rust flecks only. Preserve the full last square slot.
+
+MOTION: a compressed, ground-skimming blade wall that pushes outward; energy flows from the white leading edge through the gold body and breaks into a short ground-crack/dust tail. Speed and weight come from the sharp leading edge, low dust fan and branching cracks, not from a larger flash or thicker outline.
+
+Avoid: character, weapon, four separate waves baked into one cell, an X-shaped burst, UI, letters, numbers, arrows, crosshair, background, ground tiles, checkerboard, labels, watermark, horizontal slash crescent, long beam/laser, filled rectangle, filled gold disc, thick symmetric ring, thick white outline, huge flash, realistic fire/smoke, gradients, soft glow, motion blur, antialiasing, semitransparent pixels, more than five colors. Crisp production pixel art that reads at 1:1 in a 480x270 game.
+
+Second pass if needed: if the first sheet reads too dark, add #f4a940/#ffd24a amber clusters on the upper/facing edges of the dust and body, but keep all ground cracks #9b4b16 dark rust and keep at least half of the trailing dust dark. Do not enlarge the wave or thicken the white outline.
