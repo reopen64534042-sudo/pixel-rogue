@@ -1,5 +1,6 @@
 import { UPGRADES } from "../data/talents";
 import { waveTheme } from "../data/enemies";
+import { resolveDifficulty } from "../data/difficulty";
 import { attrPicksPerWave } from "./AttributeSystem";
 import type { GameCore } from "./GameCore";
 export function waveQuota(this: GameCore, n: number) {
@@ -40,10 +41,19 @@ export function startNextWave(this: GameCore) {
   this.player.tempShield = this.player.barrierLv; // 壁垒: 每波临时护盾
   this.player.ndUsed = false; // 不屈: 每波重置
   this.swapUsedThisRest = false;
+  const difficulty = resolveDifficulty(
+    this.prof,
+    this.waveN,
+    this.qualityScore,
+  );
+  const difficultyText =
+    difficulty.totalDr > 0.001
+      ? ` · 难度减伤 ${Math.round(difficulty.totalDr * 100)}%`
+      : "";
   this.addText(
     this.player.x,
     this.player.y - 18,
-    `WAVE ${this.waveN} · ${theme.name}`,
+    `WAVE ${this.waveN} · ${theme.name}${difficultyText}`,
     "#ff5b5b",
     true,
   );

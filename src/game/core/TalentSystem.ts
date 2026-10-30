@@ -363,8 +363,9 @@ export function rollPicks(this: GameCore) {
       break;
     }
   }
-  // 射手首抽保底：基础强化弹每 4 发，核心 L1 才能回到 3 发；
-  // 第一次三选一必含「快速装填」。只替换最后一个槽位、不额外消耗随机数。
+  // 射手首抽保底：第一次三选一必含「快速装填」（核心穿透/衰减起点）；
+  // 特殊弹节奏固定每 4 发，快速/超载不再改变计数。
+  // 只替换最后一个槽位、不额外消耗随机数。
   if (this.prof === "shooter" && this.player.picks.length === 0) {
     const core = UPGRADES.find((u) => u.n === "快速装填");
     if (core && this.canOffer(core) && !picks.some((u) => u.n === core.n)) {

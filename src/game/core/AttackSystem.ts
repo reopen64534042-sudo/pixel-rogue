@@ -2,6 +2,10 @@ import type { GameCore } from "./GameCore";
 import { SPECIAL_SHOT_EVERY } from "../data/constants";
 import {
   DOUBLE_SHOT_DAMAGE_MUL,
+  ENHANCED_NORMAL_DAMAGE_FRACTION,
+  OVERLOAD_DAMAGE_MUL,
+  OVERLOAD_EVERY,
+  PIERCE_FLOOR_OVERLOAD,
   getSpecialLevelStats,
 } from "../data/specialShot";
 import { getPlayerCombatStats } from "./CombatStats";
@@ -60,13 +64,8 @@ export function updateAttacks(this: GameCore, dt: number) {
       // 强化弹专属触发，普通弹不再留轨迹。
       const hasTrail =
         (p.upCounts["贯穿轨迹"] || 0) > 0;
-      // 核心链：基础每 4 发，L1/L2 各 −1；最低 1（当前卡面不会到 1）。
-      const specialEvery = Math.max(
-        1,
-        SPECIAL_SHOT_EVERY -
-          ((p.upCounts["快速装填"] || 0) > 0 ? 1 : 0) -
-          ((p.upCounts["超载装填"] || 0) > 0 ? 1 : 0),
-      );
+      // 核心链：基础固定每 4 发；快速/超载只改穿透与衰减，不再减少计数。
+      const specialEvery = SPECIAL_SHOT_EVERY;
       this.shotCounter++;
       const naturalSpecial = this.shotCounter >= specialEvery;
       if (naturalSpecial) this.shotCounter = 0;
@@ -76,13 +75,25 @@ export function updateAttacks(this: GameCore, dt: number) {
       if (this.specialLoaded) this.specialLoaded = false;
       const specialStats = getSpecialLevelStats(this.specialLevel);
       const baseDmg = boltDamage(p) * distMul;
+      const specialBaseDmg = chargedShotDamage(baseDmg, specialStats.mul);
+      const enhancedNormal =
+        !special && this.specialUpgrades.includes("enhancedNormal");
+      // 「过载」按强化弹触发次数计，不按弹丸数；齐射/连发只算一次。
+      let overloaded = false;
+      if (special && this.specialUpgrades.includes("overload")) {
+        this.specialShotCount++;
+        overloaded = this.specialShotCount % OVERLOAD_EVERY === 0;
+      }
       // 「齐射」：只让强化弹一次 3 发，普通射击仍按原弹道数。
       const volley =
         special && (p.upCounts["齐射"] || 0) > 0 ? 3 : 1;
       const volleyMul = volley > 1 ? 0.5 : 1;
-      const shotDmg = special
-        ? chargedShotDamage(baseDmg, specialStats.mul)
-        : baseDmg;
+      let shotDmg = special ? specialBaseDmg : baseDmg;
+      if (enhancedNormal) {
+        shotDmg =
+          baseDmg + specialBaseDmg * ENHANCED_NORMAL_DAMAGE_FRACTION;
+      }
+      if (overloaded) shotDmg *= OVERLOAD_DAMAGE_MUL;
       const copies =
         special && this.specialUpgrades.includes("doubleShot") ? 2 : 1;
       const copyDamageMul = copies > 1 ? DOUBLE_SHOT_DAMAGE_MUL : 1;
@@ -103,19 +114,22 @@ export function updateAttacks(this: GameCore, dt: number) {
             (i - (shots - 1) / 2) * 3;
           const sx = p.x + Math.cos(a + Math.PI / 2) * lateral;
           const sy = p.y - 3 + Math.sin(a + Math.PI / 2) * lateral;
+          const launchDmg = shotDmg * copyDamageMul * volleyMul;
+          const inheritsSpecial = special || enhancedNormal;
+          const hasPierceFloor =
+            inheritsSpecial && (p.upCounts["超载装填"] || 0) > 0;
           this.bullets.push({
             x: sx,
             y: sy,
             vx: Math.cos(a) * p.projSpeed,
             vy: Math.sin(a) * p.projSpeed,
-            dmg: shotDmg * copyDamageMul * volleyMul,
+            dmg: launchDmg,
             // S2：穿透次数 = 天赋写入值 + 职业基础（射手 +1）。
-            // 职业基础不进 Player 字段：旧表同名卡靠 f 写同一字段，
-            // 写进去会互相覆盖（见 core/AttributeSources.ts 的说明）。
+            // 强化普通弹继承强化弹的穿透；普通弹不继承。
             pierce:
               p.pierce +
               professionPierce(this.prof) +
-              (special
+              (inheritsSpecial
                 ? specialStats.pierceBonus + specialRangePierce
                 : 0),
             falloff: p.pierceFalloff,
@@ -129,6 +143,18 @@ export function updateAttacks(this: GameCore, dt: number) {
             trail: hasTrail && special ? 0.6 : 0,
             critBonus,
             ...(special ? { special: true } : {}),
+            ...(hasPierceFloor
+              ? {
+                  launchDmg,
+                  pierceFloor: PIERCE_FLOOR_OVERLOAD,
+                }
+              : {}),
+            ...(enhancedNormal
+              ? {
+                  inheritTrue: this.specialUpgrades.includes("trueDamage"),
+                  inheritHoming: this.specialUpgrades.includes("homing"),
+                }
+              : {}),
             // S3-B 定稿接口：攻击方属性发射时固化，与敌方弹丸快照对称
             stats: getPlayerCombatStats(p),
           });

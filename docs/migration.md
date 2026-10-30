@@ -3366,3 +3366,48 @@ L2 最初写 `distPerStack2 = 70px`（8 层 = 560px），比 L1 的 500px 更慢
 - 冲刺贴图：`draw.ts` 的斩浪素材绘制块追加 `upCounts["斩浪"] > 0` 条件；连闪仍保留冲刺充能/破空/锐势，但不再绘制月牙/残影/刃痕。`warriorDashFromX/Y` 仍为连闪结算提供起终点，不影响机制。
 - 验证：e2e 连续 30 次开局 3 选 1 刷新，`unchanged=0`；`npm run typecheck` ✓、`npm run build` ✓。
 - 按 2026-10-29 标准未运行 Vitest / Playwright。
+
+## D-123 射手动态难度（v128）
+
+- 用户决策（2026-10-31）：选 B——射手 20 波后给敌人全局 DR，HP / 护甲 / 攻击辅助；只对射手生效，法师 / 战士 neutral；品质威胁永久、低品质不返利。
+- 模型（`output/difficulty-model.mjs`，临时）：满配射手 L12 + 9 升级、8 张天赋、每波最多 3 次属性、期望品质；24 只小怪场校准。HP +50% 时当前/最大生命伤害使单体 DPS 也约 +49%，清场基本不变；DR 是主杠杆。攻击 +50% 后普通约 5.1～6.3 下、精英 2.1～2.6 下。
+- 实现：
+  1. `data/difficulty.ts`：射手 B 档案；W21-25 DR 0→32%，W20-30 HP +35% / 护甲 +14 / 攻击 +50%，XP +15%，品质 DR 上限 5%；非射手 neutral。
+  2. `core/AttributeSystem.ts`：`chooseAttr` 记录品质偏离（稀有度倍率 − 同级期望）；功能属性权重 0；`GameCore.qualityScore` 永久累计（可为负，最终只取正偏离）。
+  3. `core/EnemyStatSources.ts`：生成时接受 `hpMul` / `attackMul` / `extraDefense`；`EnemySystem` 按职业、波次、品质写入；`Enemy` 新增可选 `damageTakenMul` / `xpMul`。
+  4. `core/CombatSystem.ts` / `core/ElementSystem.ts`：在所有伤害修正之后、`lethalCap` 前应用 `damageTakenMul`，主伤害与 +真实伤害分别取整；覆盖弹丸、近战、爆炸等 `hurtEnemy` 路径，以及灼烧 / 元素残域等直扣 DoT 路径。
+  5. `ui/GameUI.ts` + `WaveSystem`：C 面板「动态难度」行与波次提示显示减伤 / HP / 护甲 / 攻击。
+- 验证：`npm run typecheck`、`npm run build` 通过；e2e 受控：
+  - mage20 与 shooter20 生成属性完全一致（neutral）。
+  - shooter25：HP ×1.175、护甲 +7、攻击 ×1.25、DR 32%；shooter30：HP ×1.35、护甲 +14、攻击 ×1.5、DR 32%、XP ×1.15。
+  - `qualityScore=7` 时 shooter30 总 DR 35.4%（`damageTakenMul=0.646`）；true 100 伤害实际 65，无品质时 68，法师 100。
+  - `chooseAttr` 在 Lv30 选一张金色攻击，`qualityScore` 从 0 变 0.768（=2.9−同级期望）。
+  - W30 波次提示：射手「WAVE 30 · 狂潮 · 难度减伤 32%」，法师无后缀。
+  - C 面板行：射手 W30 显示「减伤 32% · 生命 ×1.35 · 护甲 +14 · 攻击 ×1.50」。
+  - DoT：同样 100 点火焰 DPS，射手实扣 68，法师 100。
+- 后续压力诊断（v129 升级池 + 本 B）：期望品质 W25/W30 清场约 43.6/38.8s，全金品质约 26.4/23.7s；金品质 DPS 是期望的 1.45～1.85 倍，而品质 DR 只有 5%；防御吸血+回复仍是 3 下/秒敌方输出的 1.3～4.1 倍。说明 B 对幸运满配 build 仍偏轻；用户暂决定保留 v128，不整套加压，后续按单杠杆试。
+- 测试影响：新增可选 `Enemy` 字段与高波次生成数值，可能影响 parity / 高波次伤害断言；按 2026-10-29 标准未运行 Vitest、未改基线。
+
+## D-124 射手强化弹平衡与补位升级（v129）
+
+- 用户实测（2026-10-31）：第一把在强化弹 L9 拿到完全真伤 + 完全追踪，配合核心流派后 7 波起无压力；快速/超载同时选后（再叠双段疾冲的冲刺 +1）计数过快。决定先削武器本身：
+  1. 快速/超载不再减少计数，基础固定每 4 发；它们只保留穿透 +1、快速 80% 衰减、超载 30% 穿透地板。
+  2. 射手吸血上限单独 10%，法师/战士维持 30%。
+  3. 完全真实伤害直伤 ×0.8；分裂/穿透继续衰减；超载不再回到 100%，改为 30% 地板；真伤/追踪只从 L11/L12 出现，允许同时拿。
+  4. 移除激光/导弹升级，补「强化普通弹」「过载」，保持 9 条升级 / 12 级。
+- 实现：
+  1. `data/attributeBalance.ts`：新增 `shooterLifesteal=0.1` 与 `lifestealCap(prof)`；射手 10%，其他 30%。`AttributeSystem` 候选过滤与 `TalentStatSources` 投影都按职业夹紧。
+  2. `core/AttackSystem.ts`：`specialEvery` 固定为 `SPECIAL_SHOT_EVERY=4`；快速/超载不再参与计数。
+  3. `data/specialShot.ts`：`TRUE_DAMAGE_MUL=0.8`、`PIERCE_FLOOR_OVERLOAD=0.3`、`ENHANCED_NORMAL_DAMAGE_FRACTION=0.05`、`OVERLOAD_EVERY=4`、`OVERLOAD_DAMAGE_MUL=1.8`；真伤/追踪 `minPick=8`；池改为双发/强化普通弹/附带真伤、过载/两系生命/裂变、真伤/追踪。
+  4. `core/AttackSystem.ts`：普通弹在 `enhancedNormal` 下伤害 = 普通伤害 + 强化弹直伤 ×5%，继承强化弹穿透；发射时固化 `inheritTrue/inheritHoming`；不计入 `gainSpecialXp`，但仍照常 `shotCounter++`（4 发节奏）。过载按强化弹触发次数累计，第 4 次整发 ×1.8。
+  5. `core/ProjectileSystem.ts`：`isTrue` 包含 `b.inheritTrue`；真伤直伤 ×0.8；homing 条件包含 `b.inheritHoming`；穿透时按 `launchDmg × pierceFloor` 夹紧。
+  6. `data/talents/shooter.ts` / `TalentStatSources`：快速/超载卡面改为穿透/衰减/30% 地板，不再写节奏；教程文案同步。
+- 验证：`npm run typecheck`、`npm run build` 通过；e2e 受控：
+  - 快速+超载：普通/强化弹序列 `N,N,N,S`，不再每 2 发；双段疾冲只推进计数，不会每发强化弹。
+  - 吸血注入 50%：射手 0.1、法师/战士 0.3。
+  - 真伤打靶：普通 26 → 真伤 21（≈80%）。
+  - 强化普通弹：普通 13 → 强化普通 14.69（+5%×强化弹 33.8）；继承真伤后 15→12（×0.8）；`specialXp` 不增加。
+  - 过载：连续 4 发强化弹 33.8/33.8/33.8/60.84（第 4 发 ×1.8）。
+  - 升级池 9 条；强化普通弹/过载进入 L4/L5 池，真伤/追踪 minPick=8。
+- 测试影响：旧测试中 4→3→2 节奏、激光/导弹、9 条旧名称、真伤全额、超载 100% falloff 的断言会过期；按 2026-10-29 标准未运行 Vitest、未改基线。
+- 未验证/风险：强化普通弹 5% 与继承真伤/追踪的实际手感；过载第 4 发在齐射/双发下的爆发；固定 4 发节奏是否让核心 build 过弱；自然试玩待确认。激光/导弹代码保留但不在升级池，后续独立武器复用。

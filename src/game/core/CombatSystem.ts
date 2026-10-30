@@ -185,6 +185,18 @@ export function hurtEnemy(
     settled += trueDamage;
   }
   dmg = settled;
+  // 动态难度：最终伤害层，连 true / 百分比生命伤害一起压。
+  // 放在所有伤害修正之后、lethalCap 之前；主伤害与 +真实伤害分别按同一乘区取整。
+  const damageTakenMul = e.damageTakenMul ?? 1;
+  if (damageTakenMul !== 1) {
+    const mainPart = trueDamage > 0 ? Math.max(0, dmg - trueDamage) : dmg;
+    const taken = (v: number) =>
+      v > 0 ? Math.max(1, Math.round(v * damageTakenMul)) : 0;
+    const scaledMain = taken(mainPart);
+    const scaledTrue = taken(trueDamage);
+    dmg = scaledMain + scaledTrue;
+    trueDamage = scaledTrue;
+  }
   // v76 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多留
   // 1 HP，让随后结算的反应完成击杀。只压低实际应用值；反应基数由调用方
   // 另行传入，不受本处影响（反应/连锁不得使用 lethalCap）。
@@ -424,7 +436,9 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
       // 精英波的前一波结束时就发，让玩家带着新天赋去打精英。
       // 精英本身仍照常掉宝箱（下面的经验/掉落逻辑不变）。
       // #17：精英经验随波次成长，避免后期相对升级阈值贬值
-      const eliteXp = 25 + (this.waveN - 1) * ELITE_XP_STEP;
+      const eliteXp = Math.round(
+        (25 + (this.waveN - 1) * ELITE_XP_STEP) * (e.xpMul ?? 1),
+      );
       this.gems.push({ x: e.x, y: e.y, vx: 0, vy: 0, v: eliteXp, e: true });
       this.potions.push({ x: e.x + 8, y: e.y });
       this.shake = Math.min(this.shake + 5, 8);
@@ -433,7 +447,8 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
       if (hash01(e.seed, this.waveN + 0.5) < ELITE_BOX_DROP_RATE)
         this.boxes.push({ x: e.x - 8, y: e.y, special: true });
     } else {
-      const v = e.xp * (Math.random() < p.luck * 0.07 ? 2 : 1);
+      const v =
+        e.xp * (e.xpMul ?? 1) * (Math.random() < p.luck * 0.07 ? 2 : 1);
       this.gems.push({
         x: e.x,
         y: e.y,
@@ -791,12 +806,14 @@ function applyFireDot(
     attackerStats: getPlayerCombatStats(core.player),
     defenderStats: getEnemyCombatStats(e),
   });
+  const taken = calc.settledDamage * (e.damageTakenMul ?? 1);
   const hpBefore = e.hp;
-  e.hp -= calc.settledDamage;
-  core.dmgBy.burn += calc.settledDamage;
+  e.hp -= taken;
+  core.dmgBy.burn += taken;
   return {
     ...calc,
-    effectiveHpLoss: Math.min(hpBefore, calc.settledDamage),
+    settledDamage: taken,
+    effectiveHpLoss: Math.min(hpBefore, taken),
     dodged: false,
     shieldUsed: "none",
     lethal: e.hp <= 0,

@@ -1,4 +1,4 @@
-import { ATTRIBUTE_CAPS } from "../data/attributeBalance";
+import { ATTRIBUTE_CAPS, lifestealCap } from "../data/attributeBalance";
 import { statBase } from "../data/stats";
 import { TIERS } from "../data/talents";
 import type { Player, Profession, WarriorStyle } from "./types";
@@ -144,7 +144,7 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     stage: "flat",
     base: 0.04,
     kind: "pct",
-    capped: (p) => p.lifesteal >= ATTRIBUTE_CAPS.lifesteal,
+    capped: (p, prof) => p.lifesteal >= lifestealCap(prof),
   },
   // 续航之二（#135）：每秒固定回复。0.6/秒 取自旧卡「修复微光」，
   // 避免出现第二套量级。
@@ -190,6 +190,13 @@ export const RARITY_CHANCE: readonly (readonly number[])[] = [
 export function rarityChances(lvl: number): readonly number[] {
   const i = Math.min(RARITY_CHANCE.length - 1, Math.max(0, Math.floor(lvl / 5)));
   return RARITY_CHANCE[i];
+}
+
+/** 当前等级下白/绿/紫/金的期望倍率；用于品质威胁的基准线。 */
+export function expectedRarity(lvl: number): number {
+  const row = rarityChances(lvl);
+  const total = row.reduce((a, b) => a + b, 0);
+  return row.reduce((sum, p, idx) => sum + (p / total) * RARITY_MUL[idx], 0);
 }
 
 /** 每波给几次属性选择：1-10 波各 1 次，11-20 波 2 次，21 波起 3 次（一局 60 次） */
@@ -366,6 +373,11 @@ export function chooseAttr(this: GameCore, index: number) {
   if (this.state !== "play" || this.bpMode !== "attr") return false;
   const choice = this.attrChoices[index];
   if (!choice) return false;
+  // 动态难度：只把战斗属性计入品质偏离；功能属性不提高难度。
+  const qualityWeight = choice.def.group === "utility" ? 0 : 1;
+  this.qualityScore +=
+    qualityWeight *
+    (RARITY_MUL[choice.rarity] - expectedRarity(this.player.lvl));
   // 选「生命」时保持选择前的血量百分比：只加上限会让非满血玩家越选越虚。
   const hpBefore = this.player.hp;
   const maxBefore = this.player.maxhp;

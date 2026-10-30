@@ -211,6 +211,11 @@ export class GameCore {
    */
   attributePicks: AttributePoint[] = [];
   /**
+   * 射手动态难度：本局属性选择相对同级期望品质的累计偏离。
+   * 永久累计，可为负；难度档案只把正偏离转成 DR，低于期望不返利。
+   */
+  qualityScore = 0;
+  /**
    * S3：当前职业池。
    *
    * S2 只有射手，职业被硬编码；S3 起开局可选「射手 / 法师」，
@@ -379,6 +384,8 @@ export class GameCore {
   chainCd = 0;
   /** 射手职业被动：普通射击计数，每第 3 次触发强化弹 */
   shotCounter = 0;
+  /** 「过载」：已触发的强化弹次数（只计强化弹触发，不计弹丸数）。 */
+  specialShotCount = 0;
   /** 强化弹等级/经验/已获得升级（一局内成长，resetGame 重置） */
   specialLevel = 1;
   specialXp = 0;
@@ -649,6 +656,7 @@ export class GameCore {
     this.tutorialHeavyDone = false;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
+    this.qualityScore = 0;
     // #134：走统一入口，让「第 1 波基础额度」也受单波上限约束
     this.attrPicks = 0;
     this.attrGrantedThisWave = 0;
@@ -657,6 +665,7 @@ export class GameCore {
     this.attrRefreshUsed = false;
     this.chainCd = 0;
     this.shotCounter = 0;
+    this.specialShotCount = 0;
     this.specialLevel = 1;
     this.specialXp = 0;
     this.specialUpgrades = [];
