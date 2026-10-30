@@ -27,6 +27,7 @@ import {
   type KeyAction,
 } from "../game/data/keybindings";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
+import { statBase } from "../game/data/stats";
 import { WARRIOR_BALANCE } from "../game/data/warriorBalance";
 import {
   markTutorialSeen,
@@ -103,6 +104,7 @@ export class GameUI {
           "ov-stats",
           "ov-settings",
           "ov-keybinds",
+          "ov-prof-pick",
           "ov-tutorial-pick",
           "ov-warrior-style",
         ].forEach(hide);
@@ -159,19 +161,22 @@ export class GameUI {
         }
       },
     };
-    // S3 法师池：开局职业选择。
-    // #btn-start 保留在「射手」按钮上（id 与位置都不动，e2e 仍可直接点它）；
-    // 法师走 #btn-prof-mage。职业必须在 startGame 里先定，
-    // 否则 openLevelPanel 会按上一个职业抽第一批卡。
-    element("btn-start").onclick = () => this.startProfession("shooter");
-    element("btn-prof-mage").onclick = () => this.startProfession("mage");
-    element("btn-prof-warrior").onclick = () =>
+    // v99：主界面只保留「开始游戏」，职业在二级界面选择。
+    // 职业必须在 startGame 里先定，否则 openLevelPanel 会按上一个职业抽第一批卡。
+    element("btn-start").onclick = () => this.openProfessionPick();
+    element("btn-pick-shooter").onclick = () =>
+      this.startProfession("shooter");
+    element("btn-pick-mage").onclick = () => this.startProfession("mage");
+    element("btn-pick-warrior").onclick = () =>
       this.openWarriorStyle("start");
+    element("btn-prof-pick-back").onclick = () => this.closeProfessionPick();
+    this.renderProfessionStats();
     element("btn-warrior-katana").onclick = () =>
       this.chooseWarriorStyle("katana");
     element("btn-warrior-greatsword").onclick = () =>
       this.chooseWarriorStyle("greatsword");
-    element("btn-warrior-style-back").onclick = () => this.closeWarriorStyle();
+    element("btn-warrior-style-back").onclick = () =>
+      this.backFromWarriorStyle();
     // Issue #55：开始界面版本号 + 更新日志面板
     element("start-version").textContent =
       `Pixel Rogue · ${CURRENT_VERSION} · 试玩版`;
@@ -277,12 +282,15 @@ export class GameUI {
       element("bp-rest").classList.add("hidden");
       element("bp-swap").classList.add("hidden");
     };
-    (element("btn-start") as HTMLButtonElement).disabled = false;
-    element("btn-start").removeAttribute("aria-busy");
-    (element("btn-prof-mage") as HTMLButtonElement).disabled = false;
-    element("btn-prof-mage").removeAttribute("aria-busy");
-    (element("btn-prof-warrior") as HTMLButtonElement).disabled = false;
-    element("btn-prof-warrior").removeAttribute("aria-busy");
+    for (const id of [
+      "btn-start",
+      "btn-pick-shooter",
+      "btn-pick-mage",
+      "btn-pick-warrior",
+    ]) {
+      (element(id) as HTMLButtonElement).disabled = false;
+      element(id).removeAttribute("aria-busy");
+    }
   }
   reset() {
     [
@@ -293,6 +301,7 @@ export class GameUI {
       "bp-swap",
       "ov-settings",
       "ov-keybinds",
+      "ov-prof-pick",
       "ov-tutorial-pick",
       "ov-warrior-style",
     ].forEach(hide);
@@ -445,18 +454,26 @@ export class GameUI {
       isMage
         ? ["🔮 元素伤害", p.damage.toFixed(1)]
         : ["⚔️ 基础攻击", p.damage.toFixed(1)],
-      isMage
-        ? [
-            "☄️ 法阵伤害",
-            (p.damage * MAGE_BALANCE.castDamageMul).toFixed(1),
-          ]
-        : isWarrior
-          ? ["🪓 重斩", "每 3 下 · 250%"]
-          : [
-              "🔥 魔弹伤害",
-              boltDamage(p).toFixed(1) +
-                (p.boltDmgMul > 1 ? ` ×${p.boltDmgMul.toFixed(2)}` : ""),
+      ...(isMage
+        ? ([
+            [
+              "☄️ 法阵伤害",
+              (p.damage * MAGE_BALANCE.castDamageMul).toFixed(1),
             ],
+          ] as [string, string | number][])
+        : isWarrior
+          ? this.core.warriorStyle === "greatsword"
+            ? ([
+                ["🪓 重斩", "每 3 下 · 250%"],
+              ] as [string, string | number][])
+            : []
+          : ([
+              [
+                "🔥 魔弹伤害",
+                boltDamage(p).toFixed(1) +
+                  (p.boltDmgMul > 1 ? ` ×${p.boltDmgMul.toFixed(2)}` : ""),
+              ],
+            ] as [string, string | number][])),
       isMage
         ? ["⚡ 施法速度", p.fireRate.toFixed(2) + " 次/秒"]
         : [
@@ -1082,6 +1099,45 @@ export class GameUI {
     mb.style.opacity = mb.disabled ? "0.4" : "1";
   }
 
+  /** v99：主界面「开始游戏」进入二级职业选择。 */
+  private openProfessionPick(): void {
+    if (this.core.state !== "start") return;
+    hide("ov-start");
+    show("ov-prof-pick");
+  }
+
+  private closeProfessionPick(): void {
+    hide("ov-prof-pick");
+    show("ov-start");
+  }
+
+  /** 职业卡属性与 statBase 同源，数值调整后不会与卡片说明漂移。 */
+  private renderProfessionStats(): void {
+    document
+      .querySelectorAll<HTMLElement>("[data-prof][data-stat]")
+      .forEach((el) => {
+        const prof = el.dataset.prof as "shooter" | "mage" | "warrior";
+        const stat = el.dataset.stat;
+        const base = statBase(prof, "katana");
+        if (prof === "warrior" && stat === "damage") {
+          el.textContent = `${base.damage} / ${statBase("warrior", "greatsword").damage}`;
+          return;
+        }
+        const value =
+          stat === "maxhp"
+            ? base.maxhp
+            : stat === "speed"
+              ? base.speed
+              : stat === "damage"
+                ? base.damage
+                : stat === "defense"
+                  ? ((base as { defense?: number }).defense ?? 0)
+                  : 0;
+        el.textContent =
+          stat === "defense" && !value ? "—" : String(value);
+      });
+  }
+
   /** 首次选职业自动进入教程；已看过的职业直接正式开局。 */
   private startProfession(
     prof: "shooter" | "mage" | "warrior",
@@ -1097,11 +1153,20 @@ export class GameUI {
 
   private openWarriorStyle(mode: "start" | "tutorial"): void {
     this.warriorPickMode = mode;
+    hide(mode === "start" ? "ov-prof-pick" : "ov-tutorial-pick");
     show("ov-warrior-style");
   }
 
   private closeWarriorStyle(): void {
     hide("ov-warrior-style");
+  }
+
+  /** 流派返回：回到打开它的上一层，而不是透出两层按钮。 */
+  private backFromWarriorStyle(): void {
+    this.closeWarriorStyle();
+    show(
+      this.warriorPickMode === "start" ? "ov-prof-pick" : "ov-tutorial-pick",
+    );
   }
 
   private chooseWarriorStyle(style: WarriorStyle): void {
@@ -1442,6 +1507,7 @@ export class GameUI {
       "ov-changelog",
       "ov-settings",
       "ov-keybinds",
+      "ov-prof-pick",
       "ov-tutorial-pick",
       "ov-warrior-style",
     ].forEach(hide);
@@ -1449,7 +1515,12 @@ export class GameUI {
     this.tutorialHudEl?.classList.add("hidden");
     this.tutorialSig = "";
     show("ov-start");
-    for (const id of ["btn-start", "btn-prof-mage"]) {
+    for (const id of [
+      "btn-start",
+      "btn-pick-shooter",
+      "btn-pick-mage",
+      "btn-pick-warrior",
+    ]) {
       const button = element(id) as HTMLButtonElement;
       button.disabled = false;
       button.removeAttribute("aria-busy");

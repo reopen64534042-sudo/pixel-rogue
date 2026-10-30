@@ -247,6 +247,10 @@ export class PixelPainter {
     this.active = null;
     this.floatLabels.draw(slot, value, x, y, this.textState());
   }
+  /** 素材类特效按帧绘制前先确认纹理已加载，避免首帧丢图。 */
+  hasTexture(key: string) {
+    return this.scene.textures.exists(key);
+  }
   get counts() {
     return {
       graphics: this.graphics.length,

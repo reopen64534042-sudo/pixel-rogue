@@ -5,6 +5,7 @@ import {
   POTION_GROW_CAP,
 } from "../data/constants";
 import type { GameCore } from "./GameCore";
+import { tutorialGemStep } from "./TutorialSystem";
 
 export function updateProgression(this: GameCore, dt: number) {
   const p = this.player;
@@ -28,7 +29,11 @@ export function updateProgression(this: GameCore, dt: number) {
       g.y += (dy / d) * s * dt;
     }
     if (d < 6) {
-      if (this.tutorialMode && this.tutorialStep === 4)
+      if (
+        this.tutorialMode &&
+        this.tutorialStep ===
+          tutorialGemStep(this.tutorialProf ?? this.prof)
+      )
         this.tutorialGemPicked = true;
       p.xp += g.v;
       this.gems.splice(i, 1);

@@ -129,6 +129,54 @@ p {
   letter-spacing: 0;
   opacity: 0.75;
 }
+/* v99：主界面单一开始按钮 / 二级职业选择卡。 */
+.btn.start-main {
+  font-size: 2.6vmin;
+  padding: 1.8vmin 8vmin;
+}
+.prof-card {
+  min-width: 26vmin;
+  align-items: stretch;
+  gap: 0.8vmin;
+  padding: 2vmin 2.2vmin;
+}
+.prof-stats {
+  display: grid;
+  gap: 0.5vmin;
+  margin-top: 0.6vmin;
+  font-size: 1.25vmin;
+  letter-spacing: 0;
+  color: #c7cff2;
+  text-align: left;
+}
+.prof-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.2vmin;
+  white-space: nowrap;
+}
+.prof-stat b {
+  color: #fff;
+  font-weight: 400;
+}
+.prof-stat i {
+  font-style: normal;
+  font-size: 1.05vmin;
+  opacity: 0.55;
+}
+/* 卡片悬停整块变青时，属性行改用深色，避免白字压青底。 */
+@media (hover: hover) {
+  .prof-card:hover .prof-stats,
+  .prof-card:hover .prof-stat b {
+    color: #0b0c14;
+  }
+  .prof-card:hover .prof-stat i {
+    opacity: 0.7;
+  }
+}
+#ov-prof-pick {
+  z-index: 94;
+}
 #cards {
   display: flex;
   gap: 2vmin;
@@ -1323,6 +1371,9 @@ p {
 }
 #ov-tutorial-pick {
   z-index: 95;
+}
+#ov-warrior-style {
+  z-index: 96;
 }
 #tutorial-hud {
   position: absolute;
