@@ -283,6 +283,27 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     if (this.warriorFlowT === 0) this.warriorFlowStacks = 0;
   }
 
+  // 残心·残影追击：延迟 0.25s 的第二刀；不叠流、不触发重斩/连斩。
+  for (let i = this.warriorEchoes.length - 1; i >= 0; i--) {
+    const echo = this.warriorEchoes[i];
+    echo.t -= dt;
+    if (echo.t > 0) continue;
+    this.warriorEchoes.splice(i, 1);
+    this.meleeSwing({
+      angle: echo.angle,
+      spread: echo.spread,
+      radius: echo.radius,
+      dmg: echo.dmg,
+      color: "#a8f0ff",
+      particleColor: "#e8ffff",
+      weapon: "katana",
+      preciseSector: true,
+      life: 0.12,
+      shake: 1,
+      ...(echo.spin ? { spin: true } : {}),
+    });
+  }
+
   if (p.fireCd > 0) return;
 
   const style = WB.styles[this.warriorStyle];
@@ -298,7 +319,7 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     (this.warriorSwingCount + 1) % WB.heavyEvery === 0;
   this.warriorSwingCount = (this.warriorSwingCount + 1) % WB.heavyEvery;
 
-  // 破围：近战范围内同时有 ≥3 个敌人时，击退 ×2、伤害 +15%
+  // 破围：以玩家为圆心、攻击距离+e.r 内同时有 ≥3 敌（不看朝向，不是身体接触）。
   let breakout = false;
   if ((p.upCounts["破围"] || 0) > 0) {
     let nearby = 0;
@@ -310,8 +331,7 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     breakout = nearby >= WB.breakoutCount;
   }
 
-  const resolveMul =
-    this.warriorResolveT > 0 ? 1 + WB.resolveDamageMul : 1;
+  const resolveReady = this.warriorResolveT > 0;
   // 居合核心：势满时这一刀必为 360° 旋斩；迅/极只做可选增幅。
   const iai = iaiReady(this);
   const greatIai = iai !== null && (p.upCounts["居合·极"] || 0) > 0;
@@ -333,7 +353,6 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     warriorSwingDamage(this) *
     (heavy ? WB.heavyDamageMul : 1) *
     (breakout ? WB.breakoutDamageMul : 1) *
-    resolveMul *
     iaiMul *
     flowIai *
     consumeMul;
@@ -365,7 +384,17 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     ...(iai ? { iaiHit: true } : {}),
     ...(iai ? { spin: true } : {}),
   });
-  if (this.warriorResolveT > 0) this.warriorResolveT = 0;
+  if (resolveReady && hits.length) {
+    this.warriorEchoes.push({
+      t: WB.resolveEchoDelay,
+      angle,
+      spread,
+      radius,
+      dmg: dmg * WB.resolveEchoMul,
+      spin: iai !== null,
+    });
+    this.warriorResolveT = 0;
+  }
 
   // 居合斩结算：势清零、补流层、可选增幅与锐势窗口。
   // 空挥也清零——势只会在「真的挥出一刀」时消耗，玩家不能靠空挥存着。

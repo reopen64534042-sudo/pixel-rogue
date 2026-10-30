@@ -12,9 +12,11 @@ import { DAMAGE_TYPES } from "../data/damageTypes";
 import { KNOCK } from "../data/knockback";
 import { WARRIOR_BALANCE } from "../data/warriorBalance";
 
-/** 战士「裂甲」：每层近战易伤与层数上限（共享卡，数值集中在此避免卡面与代码不一致）。 */
-const MELEE_VULN_PER_STACK = 0.04;
-const MELEE_VULN_MAX_STACKS = 10;
+/** 战士「裂甲」：近战命中叠层，第 3 层引爆；共享卡数值集中在此。 */
+const LIE_JIA_MAX_STACKS = 3;
+const LIE_JIA_BURST_MUL = 1.8;
+const LIE_JIA_ARMOR_BREAK_PCT = 0.2;
+const LIE_JIA_ARMOR_BREAK_T = 3;
 import { calculateDamage } from "./DamageSystem";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { elementDamageMultiplier } from "./ElementMath";
@@ -120,6 +122,17 @@ export function hurtEnemy(
     dmg *= this.dodgeNextDmg;
     this.dodgeNextDmg = 1;
   }
+  // 裂甲：本次命中是第 3 层时，本次伤害 +80%，随后破甲并清空层数。
+  const lieJiaOwned =
+    opts.form === "melee" &&
+    dmg > 0 &&
+    (p.upCounts["裂甲"] || 0) > 0;
+  const lieJiaNext = lieJiaOwned
+    ? Math.min(LIE_JIA_MAX_STACKS, (e.lieJiaStacks ?? 0) + 1)
+    : 0;
+  const lieJiaBurst =
+    lieJiaOwned && lieJiaNext >= LIE_JIA_MAX_STACKS;
+  if (lieJiaBurst) dmg *= LIE_JIA_BURST_MUL;
   // 处决的暴伤 +40% 走攻击方快照（与暴击率同源，避免第二次取属性）
   const baseStats = opts.attackerStats ?? getPlayerCombatStats(p);
   const attackerStats = executing
@@ -172,17 +185,6 @@ export function hurtEnemy(
     settled += trueDamage;
   }
   dmg = settled;
-  // 战士「裂甲」：本次命中吃**已有**层数；新层在伤害结算后添加。
-  //
-  // 注意：这里的乘法发生在 DamageSystem 取整**之后**，所以必须重新取整。
-  // 原先直接 `dmg *= 1 + 0.02n` 会把整数变成小数（12 → 12.24），而飘字直接吃
-  // 这个值，表现为「学了裂甲后伤害爆出小数点」。口径与 DamageSystem 的
-  // round-min-one 保持一致：正值至少 1，0 仍为 0（免疫/零伤不该被抬成 1）。
-  const vulnStacks = e.meleeVulnStacks ?? 0;
-  if (opts.form === "melee" && vulnStacks > 0) {
-    const scaled = dmg * (1 + MELEE_VULN_PER_STACK * vulnStacks);
-    dmg = dmg > 0 ? Math.max(1, Math.round(scaled)) : 0;
-  }
   // v76 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多留
   // 1 HP，让随后结算的反应完成击杀。只压低实际应用值；反应基数由调用方
   // 另行传入，不受本处影响（反应/连锁不得使用 lethalCap）。
@@ -252,12 +254,24 @@ export function hurtEnemy(
   const hpBefore = e.hp;
   e.hp -= dmg;
   e.flash = 0.08;
-  // 战士「裂甲」：每次近战命中叠 1 层，最多 10 层，无衰退计时。
-  if (opts.form === "melee" && (p.upCounts["裂甲"] || 0) > 0) {
-    e.meleeVulnStacks = Math.min(
-      MELEE_VULN_MAX_STACKS,
-      (e.meleeVulnStacks ?? 0) + 1,
-    );
+  // 裂甲：非引爆命中叠层；第 3 层命中已在上方加伤，这里清空并破甲。
+  if (lieJiaOwned) {
+    if (lieJiaBurst) {
+      e.lieJiaStacks = 0;
+      e.armorBreakT = LIE_JIA_ARMOR_BREAK_T;
+      e.armorBreakPct = LIE_JIA_ARMOR_BREAK_PCT;
+      this.addText(
+        e.x,
+        e.y - e.r - 12,
+        "裂甲",
+        "#ffb347",
+        false,
+        false,
+        true,
+      );
+    } else {
+      e.lieJiaStacks = lieJiaNext;
+    }
   }
   if (opts.src) this.dmgBy[opts.src] = (this.dmgBy[opts.src] || 0) + dmg;
   if (this.player.lifesteal && !opts.noLifesteal)

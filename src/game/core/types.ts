@@ -374,8 +374,8 @@ export interface Enemy extends Point {
   /** 战士重斩「破甲」：剩余护甲削减时间与比例。 */
   armorBreakT?: number;
   armorBreakPct?: number;
-  /** 战士「裂甲」：近战易伤层数（0-10，无衰退）。 */
-  meleeVulnStacks?: number;
+  /** 战士「裂甲」：近战命中叠层（0-2；第 3 层引爆后清空）。 */
+  lieJiaStacks?: number;
   dead?: boolean;
   /* —— Combat Foundation S3-A 可配置战斗属性（全部可选、默认不写入）——
    * EnemyConfig 同名字段存在时由 spawnEnemy 拷贝；防御/抗性作防守方，
