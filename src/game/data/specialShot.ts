@@ -2,7 +2,7 @@
  * 射手职业被动「强化弹」的等级与升级表。
  *
  * 设计口径（2026-10-29 用户确认，2026-10-30 扩展为 12 级）：
- * - L1-L6 穿透逐级累计 1→6，L7-L12 不再增加穿透；
+ * - L1-L2 无额外穿透，L3 起每 3 级 +1：L3=1、L6=2、L9=3，L9-L12 保持 3；
  * - L3 起强化弹无限飞行；穿透耗尽或飞出世界边界时消失；
  * - L4-L12 每级随机获得 1 条升级，最多 9 条，已获得的升级保留并共存；
  * - 获取顺序为「固定档位 + 档内加权随机」：第 1 抽只出基础形态（连发/导弹/附带真实伤害），
@@ -27,7 +27,7 @@ export interface SpecialLevelStats {
   readonly xpToNext: number | null;
   /** 强化弹伤害倍率（相对普通魔弹） */
   readonly mul: number;
-  /** 当前等级的额外穿透目标数（累计值，L6 起为 6） */
+  /** 当前等级的额外穿透目标数（L1-L2 为 0，L9 起为 3） */
   readonly pierceBonus: number;
   /** 本级起强化弹是否无限飞行（不因射程寿命消失） */
   readonly infiniteFlight: boolean;
@@ -36,18 +36,18 @@ export interface SpecialLevelStats {
 }
 
 export const SPECIAL_LEVELS: readonly SpecialLevelStats[] = [
-  { xpToNext: 8, mul: 1.5, pierceBonus: 1, infiniteFlight: false, grantsUpgrade: false },
-  { xpToNext: 20, mul: 1.7, pierceBonus: 2, infiniteFlight: false, grantsUpgrade: false },
-  { xpToNext: 36, mul: 1.9, pierceBonus: 3, infiniteFlight: true, grantsUpgrade: false },
-  { xpToNext: 56, mul: 2.0, pierceBonus: 4, infiniteFlight: true, grantsUpgrade: true },
-  { xpToNext: 80, mul: 2.1, pierceBonus: 5, infiniteFlight: true, grantsUpgrade: true },
-  { xpToNext: 100, mul: 2.25, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
-  { xpToNext: 125, mul: 2.3, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
-  { xpToNext: 155, mul: 2.35, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
-  { xpToNext: 190, mul: 2.4, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
-  { xpToNext: 230, mul: 2.45, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
-  { xpToNext: 275, mul: 2.5, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
-  { xpToNext: null, mul: 2.6, pierceBonus: 6, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 8, mul: 1.5, pierceBonus: 0, infiniteFlight: false, grantsUpgrade: false },
+  { xpToNext: 20, mul: 1.7, pierceBonus: 0, infiniteFlight: false, grantsUpgrade: false },
+  { xpToNext: 36, mul: 1.9, pierceBonus: 1, infiniteFlight: true, grantsUpgrade: false },
+  { xpToNext: 56, mul: 2.0, pierceBonus: 1, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 80, mul: 2.1, pierceBonus: 1, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 100, mul: 2.25, pierceBonus: 2, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 125, mul: 2.3, pierceBonus: 2, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 155, mul: 2.35, pierceBonus: 2, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 190, mul: 2.4, pierceBonus: 3, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 230, mul: 2.45, pierceBonus: 3, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: 275, mul: 2.5, pierceBonus: 3, infiniteFlight: true, grantsUpgrade: true },
+  { xpToNext: null, mul: 2.6, pierceBonus: 3, infiniteFlight: true, grantsUpgrade: true },
 ];
 
 export function getSpecialLevelStats(level: number): SpecialLevelStats {

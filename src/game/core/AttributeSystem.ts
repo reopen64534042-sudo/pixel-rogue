@@ -1,5 +1,7 @@
+import { ATTRIBUTE_CAPS } from "../data/attributeBalance";
+import { statBase } from "../data/stats";
 import { TIERS } from "../data/talents";
-import type { Player, Profession } from "./types";
+import type { Player, Profession, WarriorStyle } from "./types";
 import type { GameCore } from "./GameCore";
 import type { AttributePoint } from "./AttributeSources";
 import type { ModifierStage, StatId } from "./StatModel";
@@ -69,7 +71,11 @@ export interface AttrDef {
   /** 数值后缀（如「/秒」），拼在显示值后面 */
   readonly unit?: string;
   /** 返回 true 表示已到上限，不再进入候选 */
-  readonly capped?: (p: Player) => boolean;
+  readonly capped?: (
+    p: Player,
+    prof: Profession,
+    warriorStyle: WarriorStyle,
+  ) => boolean;
 }
 
 /**
@@ -83,7 +89,7 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   // 原值对基础攻击 11 是 **+45%/次**，配上每波 5-7 次，30 波能把攻击堆到数百，
   // 天赋的机制收益完全被淹没。+2 约等于 +18%/次，与「一次选择 = 一个小台阶」相称。
   { group: "offense", label: "攻击", labels: { mage: "元素伤害" }, stat: "attack", stage: "flat", base: 2, kind: "int" },
-  { group: "offense", label: "攻速", labels: { mage: "施法速度" }, stat: "fireRate", stage: "percent", base: 0.04, kind: "pct" },
+  { group: "offense", label: "攻速", labels: { mage: "施法速度" }, stat: "fireRate", stage: "percent", base: 0.04, kind: "pct", capped: (p, prof, style) => p.fireRate >= statBase(prof, style).fireRate * ATTRIBUTE_CAPS.fireRateMul },
   {
     group: "offense",
     label: "暴击",
@@ -138,6 +144,7 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     stage: "flat",
     base: 0.04,
     kind: "pct",
+    capped: (p) => p.lifesteal >= ATTRIBUTE_CAPS.lifesteal,
   },
   // 续航之二（#135）：每秒固定回复。0.6/秒 取自旧卡「修复微光」，
   // 避免出现第二套量级。
@@ -149,10 +156,11 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     base: 0.6,
     kind: "dec",
     unit: "/秒",
+    capped: (p) => p.regen >= ATTRIBUTE_CAPS.regen,
   },
 
   // ================= 功能 =================
-  { group: "utility", label: "移速", stat: "moveSpeed", stage: "percent", base: 0.04, kind: "pct" },
+  { group: "utility", label: "移速", stat: "moveSpeed", stage: "percent", base: 0.04, kind: "pct", capped: (p, prof, style) => p.speed >= statBase(prof, style).speed * ATTRIBUTE_CAPS.moveSpeedMul },
   // 「拾取范围」：magnet 决定经验球与血瓶的自动吸附半径（ProgressionSystem）。
   // 旧名「拾取」含义模糊（是范围？速度？自动？），直接写清范围，不加额外提示。
   { group: "utility", label: "拾取范围", stat: "magnet", stage: "flat", base: 8, kind: "int" },
@@ -269,13 +277,14 @@ function makeChoice(
 export function rollAttrChoices(
   p: Player,
   prof: Profession = "shooter",
+  warriorStyle: WarriorStyle = "katana",
 ): AttrChoice[] {
   const choices = ATTR_GROUPS.map((group) => {
     const pool = ATTR_DEFS.filter(
       (d) =>
         d.group === group.key &&
         (!d.prof || d.prof === prof) &&
-        !(d.capped?.(p) ?? false),
+        !(d.capped?.(p, prof, warriorStyle) ?? false),
     );
     const usable = pool.length ? pool : ATTR_DEFS.filter((d) => d.stat === "attack");
     const def = usable[Math.floor(Math.random() * usable.length)];
@@ -337,7 +346,7 @@ export function grantAttrPicks(this: GameCore, n: number): number {
 export function openAttrPanel(this: GameCore) {
   if (this.bpMode) return;
   this.bpMode = "attr";
-  this.attrChoices = rollAttrChoices(this.player, this.prof);
+  this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle);
   this.attrRefreshUsed = false;
   this.view.attr();
 }
@@ -346,7 +355,7 @@ export function refreshAttr(this: GameCore) {
   this.ensurePlay(); // Issue #34：与天赋刷新一致，先收掉属性覆盖层
   if (this.state !== "play" || this.bpMode !== "attr" || this.attrRefreshUsed)
     return false;
-  this.attrChoices = rollAttrChoices(this.player, this.prof);
+  this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle);
   this.attrRefreshUsed = true;
   this.view.attr();
   return true;
@@ -375,7 +384,7 @@ export function chooseAttr(this: GameCore, index: number) {
   }
   if (this.attrPicks > 0) {
     // 还有次数：就地换一组新的，刷新额度重置（每「次选择」各有一次刷新）
-    this.attrChoices = rollAttrChoices(this.player, this.prof);
+    this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle);
     this.attrRefreshUsed = false;
   } else {
     this.attrChoices = [];

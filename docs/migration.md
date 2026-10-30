@@ -3030,7 +3030,26 @@ dmg = dmg > 0 ? Math.max(1, Math.round(scaled)) : 0;
 
 `npm run typecheck` ✓、`npm run build` ✓。
 
-## D-118 战士机动批：冲刺 CD / 射程 / 攻速 / 冲刺后移速爆发（v114）
+## D-118 强化弹穿透曲线调整（v114）
+
+- 用户反馈（2026-10-30）：测试发现强化弹穿透过多，要求最高只能到 3，并按每 3 级提升：L1=0、L3=1、L6=2、L9=3。
+- 改动：`data/specialShot.ts` 的 `SPECIAL_LEVELS[].pierceBonus` 从 L1-L6 累计 1/2/3/4/5/6 改为 L1-L2=0、L3-L5=1、L6-L8=2、L9-L12=3；C 面板「强化穿透」读取同一字段自动同步；`AttackSystem` / `EnemySystem` 的弹丸穿透计算不变。
+- 说明：穿透仍由职业基础 +1、天赋「快速装填」+1、「超载装填」+1、「距离即收益」满档 +1 与强化弹自身叠加；本次只调整强化弹等级表，不改其他来源。
+- 验证：`npm run typecheck`、`npm run build` 通过；受控检查确认 L1/L2=0、L3=1、L6=2、L9/L12=3，L3 起无限飞行与伤害倍率未变。
+- 测试影响：未发现直接断言 `pierceBonus` 的测试；按 2026-10-29 标准未运行 Vitest / Playwright。
+
+## D-119 属性强化硬上限（v115）
+
+- 用户确认（2026-10-30）：采纳默认方案，给吸血、生命回复、攻速、移速加硬顶；暴击率与闪避维持现状。
+- 实现：
+  1. `data/attributeBalance.ts` 新增 `ATTRIBUTE_CAPS`：`lifesteal 0.3`、`regen 10`、`fireRateMul 2.5`、`moveSpeedMul 2`。
+  2. `core/AttributeSystem.ts`：`AttrDef.capped` 增加 `prof` / `warriorStyle` 参数；吸血、回复按绝对值判断，攻速、移速按 `statBase(prof, warriorStyle)` 的对应倍率判断；`rollAttrChoices` 及三个调用点传入当前职业与流派。
+  3. `core/TalentStatSources.ts`：属性投影写回后夹紧四项；旧表直接写 `f` 的吸血/回复也在投影末尾夹紧，避免绕过投影超限。
+- 说明：上限作用于最终角色属性（含天赋与属性来源），不是只限属性点；临时 Buff（狂热、战意、流、冲刺等）在消费点实时乘算，不进投影，因此不受硬顶限制。暴击率 100% / 闪避 60% 维持原行为，未新增夹紧。
+- 验证：`npm run typecheck`、`npm run build` 通过；e2e 受控注入超量属性点后 `recompute`，确认 `lifesteal=0.3`、`regen=10`、`fireRate=基础×2.5`、`speed=基础×2`；达到上限后四选一不再出现对应属性（续航两项都满时按既有兜底出攻击）。
+- 测试影响：`tests/s1-attribute-dispatch.test.ts` 中「吸血 +0.5 → 期望 0.5」会被夹紧到 0.3；`tests/s4c-multiplicative-talent-sources.test.ts` 中 8 级疾速扳机的 8.269 攻速会被 5.5 夹紧；按 2026-10-29 标准未运行 Vitest、未改基线，留待授权测试批次统一处理。
+
+## D-120 战士机动批：冲刺 CD / 射程 / 攻速 / 冲刺后移速爆发（v116）
 
 - 用户需求（2026-10-30，一次性五条）：减少冲刺 CD、增加攻击距离、增加基础攻速、
   增强破围与裂甲、给「机动」链全面升级并让**每次冲刺后获得衰减的爆发移速**。
