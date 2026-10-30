@@ -7,6 +7,7 @@ import {
   hash01,
 } from "../data/constants";
 import { DAMAGE_TYPES } from "../data/damageTypes";
+import { KNOCK } from "../data/knockback";
 import { calculateDamage } from "./DamageSystem";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { elementDamageMultiplier } from "./ElementMath";
@@ -510,8 +511,8 @@ export function damagePlayer(
       this.hurtEnemy(
         o,
         shieldShockDamage(p),
-        ((o.x - p.x) / d) * 6,
-        ((o.y - p.y) / d) * 6,
+        ((o.x - p.x) / d) * KNOCK.shock,
+        ((o.y - p.y) / d) * KNOCK.shock,
         { noCrit: true, src: "shock", type: "physical", form: "other" },
       );
     }
@@ -571,12 +572,18 @@ export function damagePlayer(
     const dx = p.x - opts.src.x,
       dy = p.y - opts.src.y,
       kd = Math.hypot(dx, dy) || 1;
-    this.hurtEnemy(opts.src, p.thorns, (-dx / kd) * 4, (-dy / kd) * 4, {
-      noCrit: true,
-      src: "thorns",
-      type: "physical",
-      form: "other",
-    });
+    this.hurtEnemy(
+      opts.src,
+      p.thorns,
+      (-dx / kd) * KNOCK.thorns,
+      (-dy / kd) * KNOCK.thorns,
+      {
+        noCrit: true,
+        src: "thorns",
+        type: "physical",
+        form: "other",
+      },
+    );
   }
   if (p.haste > 0) {
     const lost = Math.min(p.haste, 2);

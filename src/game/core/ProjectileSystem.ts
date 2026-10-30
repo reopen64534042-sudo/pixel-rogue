@@ -8,6 +8,7 @@ import {
   PARTIAL_TRUE_FRACTION,
   SPECIAL_LIFESTEAL_MUL,
 } from "../data/specialShot";
+import { KNOCK } from "../data/knockback";
 import type { GameCore } from "./GameCore";
 
 export function updateProjectiles(this: GameCore, dt: number) {
@@ -72,8 +73,11 @@ export function updateProjectiles(this: GameCore, dt: number) {
         dy = e.y - b.y;
       const rr = e.r + b.size;
       if (dx * dx + dy * dy < rr * rr) {
-        const kx = (b.vx / p.projSpeed) * 4,
-          ky = (b.vy / p.projSpeed) * 4;
+        const knockPx = b.special
+          ? KNOCK.shooter.charged
+          : KNOCK.shooter.bolt;
+        const kx = (b.vx / p.projSpeed) * knockPx,
+          ky = (b.vy / p.projSpeed) * knockPx;
         // S2「距离即收益」满档：发射时固化的暴击加成，在命中这一刻并入快照。
         // 用浅拷贝而不是改 b.stats（快照是只读的，且多发子弹可能共享同一对象）。
         const stats =
@@ -217,8 +221,8 @@ export function updateProjectiles(this: GameCore, dt: number) {
           edy = e.y - b.y;
         const err = e.r + b.r;
         if (edx * edx + edy * edy < err * err) {
-          const kx = (b.vx / 200) * 4,
-            ky = (b.vy / 200) * 4;
+          const kx = (b.vx / 200) * KNOCK.shooter.reflect,
+            ky = (b.vy / 200) * KNOCK.shooter.reflect;
           this.hurtEnemy(e, b.dmg, kx, ky, {
             src: "reflect",
             type: "physical",

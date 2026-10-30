@@ -13,6 +13,7 @@ import {
   SPECIAL_UPGRADES,
   getSpecialLevelStats,
 } from "../data/specialShot";
+import { KNOCK } from "../data/knockback";
 import type { GameCore } from "./GameCore";
 import type { Enemy } from "./types";
 
@@ -167,14 +168,21 @@ export function updateSpecialMissiles(this: GameCore, dt: number) {
     for (const e of this.enemies) {
       if (e.dead) continue;
       if (Math.hypot(e.x - m.x, e.y - m.y) <= MISSILE_RADIUS + e.r) {
-        this.hurtEnemy(e, m.damage, 0, 0, {
-          src: "explode",
-          type: "physical",
-          form: "other",
-          fromExplode: true,
-          noChain: true,
-          noLifesteal: true,
-        });
+        const d = Math.hypot(e.x - m.x, e.y - m.y) || 1;
+        this.hurtEnemy(
+          e,
+          m.damage,
+          ((e.x - m.x) / d) * KNOCK.shooter.missile,
+          ((e.y - m.y) / d) * KNOCK.shooter.missile,
+          {
+            src: "explode",
+            type: "physical",
+            form: "other",
+            fromExplode: true,
+            noChain: true,
+            noLifesteal: true,
+          },
+        );
       }
     }
     this.burnZones.push({

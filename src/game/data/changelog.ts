@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时在顶部追加条目并递增版本号（AGENTS.md「文档维护」）。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v105",
+    date: "2026-10-30",
+    title: "击退数值统一口径与 C 面板击退分区",
+    items: [
+      "击退改为集中登记在 data/knockback.ts，统一按「实际推开多少 px」记录，不再各处写死初速。",
+      "战士击退换算收口到 MeleeSystem（初速 = px × KNOCK_DAMP）：太刀 4px、大剑 10px、剑气 14px、跃击固定 12px。",
+      "护盾破碎反震（6px）与荆棘受击反伤（4px）此前硬编码在 CombatSystem，一并纳入集中表；剑气击退从 warriorBalance 迁入。",
+      "补上原先缺失的击退：法师陨星 4px、射手导弹 10px；射手强化弹 4→6px，普通魔弹维持 4px。",
+      "C 面板新增「击退」分区，按职业与已学天赋列出各招式的弱 / 中 / 强等级；护盾反震与荆棘反伤在有对应构筑时也会显示。",
+    ],
+  },
+  {
     version: "v104",
     date: "2026-10-30",
     title: "太刀素材刀光、战士手感与二级职业选择",

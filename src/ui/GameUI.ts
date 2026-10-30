@@ -29,6 +29,7 @@ import {
 import { MAGE_BALANCE } from "../game/data/mageBalance";
 import { statBase } from "../game/data/stats";
 import { WARRIOR_BALANCE } from "../game/data/warriorBalance";
+import { KNOCK, knockLevel } from "../game/data/knockback";
 import {
   markTutorialSeen,
   tutorialSeen,
@@ -533,6 +534,49 @@ export class GameUI {
           ] as [string, string | number][])
         : []),
     ];
+    const knockRows: [string, string | number][] = [];
+    if (isMage) {
+      const meteorRoute = (p.upCounts["星陨"] || 0) > 0;
+      knockRows.push([
+        meteorRoute ? "☄️ 陨星" : "🔮 法阵",
+        knockLevel(meteorRoute ? KNOCK.mage.meteor : KNOCK.mage.cast),
+      ]);
+    } else if (isWarrior) {
+      const style = WARRIOR_BALANCE.styles[this.core.warriorStyle];
+      knockRows.push(["⚔️ 挥砍", knockLevel(style.knock)]);
+      if (this.core.warriorStyle === "greatsword")
+        knockRows.push([
+          "🪓 重斩",
+          knockLevel(style.knock * WARRIOR_BALANCE.heavyKnockMul),
+        ]);
+      if ((p.upCounts["破围"] || 0) > 0)
+        knockRows.push([
+          "🪓 破围挥砍（3 敌+）",
+          knockLevel(style.knock * WARRIOR_BALANCE.breakoutKnockMul),
+        ]);
+      if ((p.upCounts["剑气"] || 0) > 0)
+        knockRows.push(["🗡️ 剑气", knockLevel(KNOCK.warrior.qi)]);
+      if ((p.upCounts["跃击"] || 0) > 0)
+        knockRows.push(["🦘 跃击", knockLevel(KNOCK.warrior.leap)]);
+      if ((p.upCounts["疾冲"] || 0) > 0)
+        knockRows.push(["💨 疾冲", knockLevel(KNOCK.warrior.dash)]);
+    } else {
+      knockRows.push(["🏹 普通魔弹", knockLevel(KNOCK.shooter.bolt)]);
+      knockRows.push(["✨ 强化弹", knockLevel(KNOCK.shooter.charged)]);
+      if (this.core.specialUpgrades.includes("missile"))
+        knockRows.push(["🚀 导弹", knockLevel(KNOCK.shooter.missile)]);
+      if (this.core.specialUpgrades.includes("laser"))
+        knockRows.push(["🔆 激光", knockLevel(KNOCK.shooter.laser)]);
+    }
+    if (p.orbit > 0)
+      knockRows.push(["🌀 环绕飞刃", knockLevel(KNOCK.orbit)]);
+    // 被动反击也占击退预算（护盾破碎反震 / 荆棘受击反伤），
+    // 有对应构筑时才列出来，避免空行干扰。
+    if (p.shield > 0)
+      knockRows.push(["🛡️ 护盾反震", knockLevel(KNOCK.shock)]);
+    if (p.thorns > 0)
+      knockRows.push(["🌵 荆棘反伤", knockLevel(KNOCK.thorns)]);
+
     const survivalRows: [string, string | number][] = [
       ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
       // S3-C：护甲/元素抗性与战斗计算同公式（K/(K+DEF)，与减伤乘算）
@@ -600,11 +644,13 @@ export class GameUI {
         .join("");
 
     const outputEl = document.getElementById("stat-combat");
+    const knockEl = document.getElementById("stat-knockback");
     const survivalEl = document.getElementById("stat-defense");
     const sustainEl = document.getElementById("stat-sustain");
     const utilityEl = document.getElementById("stat-utility");
     const infoEl = document.getElementById("stat-info");
     if (outputEl) outputEl.innerHTML = renderRows(outputRows);
+    if (knockEl) knockEl.innerHTML = renderRows(knockRows);
     if (survivalEl) survivalEl.innerHTML = renderRows(survivalRows);
     if (sustainEl) sustainEl.innerHTML = renderRows(sustainRows);
     if (utilityEl) utilityEl.innerHTML = renderRows(utilityRows);
