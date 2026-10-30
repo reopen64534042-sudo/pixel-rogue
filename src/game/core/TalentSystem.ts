@@ -360,6 +360,15 @@ export function rollPicks(this: GameCore) {
       break;
     }
   }
+  // 射手首抽保底：基础强化弹每 4 发，核心 L1 才能回到 3 发；
+  // 第一次三选一必含「快速装填」。只替换最后一个槽位、不额外消耗随机数。
+  if (this.prof === "shooter" && this.player.picks.length === 0) {
+    const core = UPGRADES.find((u) => u.n === "快速装填");
+    if (core && this.canOffer(core) && !picks.some((u) => u.n === core.n)) {
+      if (picks.length >= 3) picks[picks.length - 1] = core;
+      else picks.push(core);
+    }
+  }
   // S2：删除「三选一里保证至少一个伤害系天赋」的硬保底（DMG_POOL）。
   // 理由：新体系的天赋**不提供伤害**（伤害来自属性成长与职业基础形态），
   // 这条保底会把清场类机制卡强行塞进每一次三选一，破坏取舍；

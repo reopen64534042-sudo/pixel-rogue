@@ -588,8 +588,8 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       }
     }
   }
-  // 强化箭经验条（角色脚下；满级或满经验时整条金色）
-  // 强化箭是射手专属系统；法师不显示，否则空条会压在充能点（y+17）上。
+  // 强化弹经验条（角色脚下；满级或满经验时整条金色）
+  // 强化弹是射手专属系统；法师不显示，否则空条会压在充能点（y+17）上。
   if (this.prof === "shooter") {
     const stats = getSpecialLevelStats(this.specialLevel);
     const ratio = stats.xpToNext
@@ -652,22 +652,86 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
-  // 战士剑气（直线，短寿命；与电弧一样批量绘制）
+  // 战士剑气 / 疾冲路径（短寿命表现层）
   if (this.warriorQi.length) {
     for (const q of this.warriorQi) {
       const alpha = Math.max(0, Math.min(1, q.t / q.max));
-      ctx.polyline3(
-        [
-          Math.round(q.x1),
-          Math.round(q.y1),
-          Math.round((q.x1 + q.x2) / 2),
-          Math.round((q.y1 + q.y2) / 2),
-          Math.round(q.x2),
-          Math.round(q.y2),
-        ],
-        q.c,
-        alpha,
-      );
+      const x1 = Math.round(q.x1);
+      const y1 = Math.round(q.y1);
+      const x2 = Math.round(q.x2);
+      const y2 = Math.round(q.y2);
+      if (q.kind === "dash") {
+        const dx = q.x2 - q.x1;
+        const dy = q.y2 - q.y1;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len;
+        const ny = dx / len;
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        // 11px 外辉 + 5px 中层 + 白热芯，一次折线批量画完。
+        const glow: number[] = [];
+        const mid: number[] = [];
+        for (let off = -5; off <= 5; off++) {
+          glow.push(
+            Math.round(x1 + nx * off),
+            Math.round(y1 + ny * off),
+            Math.round(mx + nx * off),
+            Math.round(my + ny * off),
+            Math.round(x2 + nx * off),
+            Math.round(y2 + ny * off),
+          );
+        }
+        for (let off = -2; off <= 2; off++) {
+          mid.push(
+            Math.round(x1 + nx * off),
+            Math.round(y1 + ny * off),
+            Math.round(mx + nx * off),
+            Math.round(my + ny * off),
+            Math.round(x2 + nx * off),
+            Math.round(y2 + ny * off),
+          );
+        }
+        ctx.polyline3(glow, q.c, alpha * 0.18);
+        ctx.polyline3(mid, q.c, alpha * 0.45);
+        ctx.polyline3(
+          [x1, y1, Math.round(mx), Math.round(my), x2, y2],
+          "#ffffff",
+          alpha * 0.85,
+        );
+        // 末端斩击弧：前移到角色前方，收窄张角，读作一道向前劈出的刀光。
+        const tipX = Math.round(x2 + (dx / len) * 10);
+        const tipY = Math.round(y2 + (dy / len) * 10);
+        const angle = Math.atan2(dy, dx);
+        const span = 1.0;
+        ctx.globalAlpha = alpha * 0.35;
+        ctx.strokeStyle = q.c;
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 17, angle - span, angle + span);
+        ctx.stroke();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = q.c;
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 13, angle - span, angle + span);
+        ctx.stroke();
+        ctx.strokeStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 9, angle - span * 0.9, angle + span * 0.9);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.polyline3(
+          [
+            x1,
+            y1,
+            Math.round((x1 + x2) / 2),
+            Math.round((y1 + y2) / 2),
+            x2,
+            y2,
+          ],
+          q.c,
+          alpha,
+        );
+      }
     }
   }
 
@@ -694,7 +758,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.polyline3(pts, "#aef1ff", 0.9);
   }
 
-  // 强化箭激光（短寿命表现层；与电弧同为一次折线批量绘制）
+  // 强化弹激光（短寿命表现层；与电弧同为一次折线批量绘制）
   if (this.lasers.length) {
     for (const l of this.lasers) {
       const alpha = Math.max(0, Math.min(1, l.t / 0.12));
@@ -713,7 +777,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
 
-  // 导弹（独立追踪弹；弹体与尾迹和强化箭分开绘制）
+  // 导弹（独立追踪弹；弹体与尾迹和强化弹分开绘制）
   for (const m of this.missiles) {
     const x = Math.round(m.x);
     const y = Math.round(m.y);

@@ -130,8 +130,8 @@ export class GameCore {
   }[] = [];
   /** S2「疾行」：冲刺结束后的射速加成剩余时间（秒）。 */
   dashFireBoostT = 0;
-  /** 「冲刺强射」：冲刺结束后所有射击变为强化箭的剩余时间（秒）。 */
-  dashSpecialT = 0;
+  /** 「装填」：下一发必为强化弹（闪避/冲刺/接触装填）。 */
+  specialLoaded = false;
   /**
    * S2 射手「生存」槽的闪避窗口状态。
    *
@@ -215,7 +215,7 @@ export class GameCore {
   warriorFlowBurstT = 0;
   /** 每 3 次挥砍中的第 3 次为重斩。 */
   warriorSwingCount = 0;
-  /** 剑气表现层（直线，寿命很短）。 */
+  /** 剑气 / 疾冲表现层（直线，寿命很短）。 */
   warriorQi: {
     x1: number;
     y1: number;
@@ -224,6 +224,7 @@ export class GameCore {
     t: number;
     max: number;
     c: string;
+    kind: "dash" | "qi";
   }[] = [];
   /** 疾冲的起跳点（冲刺结束时结算路径伤害）。 */
   warriorDashFromX: number | null = null;
@@ -245,7 +246,7 @@ export class GameCore {
   tutorialDashed = false;
   tutorialHit = false;
   tutorialProfDone = false;
-  /** 射手教程第 3 步：已命中的强化箭次数 */
+  /** 射手教程第 3 步：已命中的强化弹次数 */
   tutorialSpecialHits = 0;
   /** 教程第 1 步：按过任意移动键（不再等走满距离） */
   tutorialMoved = false;
@@ -336,9 +337,9 @@ export class GameCore {
   /** 本「次选择」的刷新额度是否已用掉（每次选择各有一次，选完重置） */
   attrRefreshUsed = false;
   chainCd = 0;
-  /** 射手职业被动：普通射击计数，每第 3 次触发强化箭 */
+  /** 射手职业被动：普通射击计数，每第 3 次触发强化弹 */
   shotCounter = 0;
-  /** 强化箭等级/经验/已获得升级（一局内成长，resetGame 重置） */
+  /** 强化弹等级/经验/已获得升级（一局内成长，resetGame 重置） */
   specialLevel = 1;
   specialXp = 0;
   specialUpgrades: SpecialUpgradeId[] = [];
@@ -539,7 +540,7 @@ export class GameCore {
     this.burnZones = [];
     this.trailZones = [];
     this.dashFireBoostT = 0;
-    this.dashSpecialT = 0;
+    this.specialLoaded = false;
     this.dodgeNextCrit = false;
     this.dodgeNextDmg = 1;
     this.dodgeProcT = 0;
@@ -815,7 +816,7 @@ export class GameCore {
     p.rageT = 0;
     p.hasteT = 0;
     this.dashFireBoostT = 0;
-    this.dashSpecialT = 0;
+    this.specialLoaded = false;
     this.castPhase = "idle";
     this.castT = 0;
     this.castCd = 0;

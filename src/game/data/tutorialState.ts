@@ -9,7 +9,7 @@
  */
 const KEY = "pixelrogue_tutorial_v1";
 
-/** 教程按钮的默认快捷键；与自定义动作键冲突时，动作键优先。 */
+/** 教程按钮的默认快捷键：F 下一步 / 开始正式战斗，X 跳过；与自定义动作键冲突时动作键优先。 */
 export const TUTORIAL_NEXT_KEY = "f";
 export const TUTORIAL_SKIP_KEY = "x";
 

@@ -93,7 +93,7 @@ export class GameScene extends Phaser.Scene {
         event.preventDefault();
       this.core.keys[key] = true;
       if (event.repeat) return;
-      // 教程快捷键优先于普通输入；F 下一步 / X 跳过。
+      // 教程快捷键优先于普通输入；F 下一步 / 开始正式战斗，X 跳过。
       if (this.ui.handleTutorialKey(key)) {
         event.preventDefault();
         return;
@@ -194,10 +194,12 @@ export class GameScene extends Phaser.Scene {
       core.specialXp = 0;
       core.specialUpgrades =
         this.specialTest === "dash-special"
-          ? SPECIAL_UPGRADES.filter(
-              (upgrade) => upgrade.id === "dashSpecial",
-            ).map((upgrade) => upgrade.id)
+          ? []
           : SPECIAL_UPGRADES.map((upgrade) => upgrade.id);
+      if (this.specialTest === "dash-special") {
+        const dash = UPGRADES.find((u) => u.n === "疾行");
+        if (dash) core.learnTalent(dash);
+      }
       core.quota = 0;
       core.spawnedThisWave = 0;
       core.wavePhase = "fight";
@@ -216,7 +218,7 @@ export class GameScene extends Phaser.Scene {
         core.addText(
           core.player.x,
           core.player.y - 30,
-          `测试：满级强化箭 · ${this.swarmTarget} 只高血量沙包 · 伤害 0`,
+          `测试：满级强化弹 · ${this.swarmTarget} 只高血量沙包 · 伤害 0`,
           "#ffd24a",
           true,
         );
@@ -227,8 +229,8 @@ export class GameScene extends Phaser.Scene {
           core.player.x,
           core.player.y - 30,
           this.specialTest === "dash-special"
-            ? "测试：冲刺强射 · 冲刺后 0.8 秒全强化箭 · 10000 HP 精英"
-            : `测试：强化箭 Lv.${SPECIAL_LEVELS.length} · 全升级 · 10000 HP 精英`,
+            ? "测试：疾行 · 冲刺后下一发强化弹 · 10000 HP 精英"
+            : `测试：强化弹 Lv.${SPECIAL_LEVELS.length} · 全升级 · 10000 HP 精英`,
           "#ffd24a",
           true,
         );

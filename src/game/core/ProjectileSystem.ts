@@ -85,7 +85,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
           special && this.specialUpgrades.includes("trueDamage");
         let hitDmg = b.dmg;
         if (special && this.specialUpgrades.includes("currentHpDamage")) {
-          // %生命部分与强化箭同一结算：默认吃护甲，完全真实伤害升级后一起转为真伤。
+          // %生命部分与强化弹同一结算：默认吃护甲，完全真实伤害升级后一起转为真伤。
           hitDmg += Math.min(
             e.hp * CURRENT_HP_DAMAGE_FRACTION,
             b.dmg * HP_DAMAGE_CAP_MUL,
@@ -118,7 +118,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
         if (b.pierce > 0) {
           b.pierce--;
           // S2：衰减系数从硬编码 0.85 改为发射时固化的属性值
-          //（射手职业 0.5、破甲箭 0.8、弹道贯穿 1.0）
+          //（射手职业 0.5、快速装填 0.8、超载装填 1.0）
           b.dmg *= b.falloff;
         } else if (b.jumps > 0) {
           // 弹射: 转向最近的未命中敌人

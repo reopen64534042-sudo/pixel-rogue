@@ -152,7 +152,7 @@ export interface Player extends Point {
   /**
    * 穿透衰减系数（S2）：每穿一个目标后剩余伤害的倍率。
    * v40 硬编码 0.85；射手职业被动把它改为 0.5（"第二目标 50%"），
-   * 核心链 L1「破甲箭」提升到 0.8、L2「弹道贯穿」提升到 1.0。
+   * 核心链 L1「快速装填」提升到 0.8、L2「超载装填」提升到 1.0。
    */
   pierceFalloff: number;
   /** 「距离即收益」开关（0/1）：发射时按目标距离占射程的比例追加伤害。 */
@@ -294,11 +294,11 @@ export interface Enemy extends Point {
   burnT: number;
   burnDps: number;
   burnStacks: number;
-  /** S2「猎杀标记」：同一目标累计命中次数（满 3 次转为标记层数）。 */
+  /** 旧标记累计字段；「贯穿标记」按强化弹命中直接叠层，不再使用。 */
   markHits: number;
   /** 标记层数（0/1/2，上限由「深痕」决定）。 */
   markStacks: number;
-  /** 标记维持计时：归零时清空累计与层数（换目标 5 秒未再命中）。 */
+  /** 旧标记维持计时；「贯穿标记」常驻，不再使用。 */
   markT: number;
   frostStacks: number;
   frozenT: number;
@@ -400,7 +400,7 @@ export interface Bullet extends Point {
   trailT?: number;
   /** 「距离即收益」满档的暴击加成，发射时固化到暴击判定上。 */
   critBonus?: number;
-  /** 射手强化箭标记；普通弹不写该键，保持旧对象形状。 */
+  /** 射手强化弹标记；普通弹不写该键，保持旧对象形状。 */
   special?: boolean;
   /**
    * 发射时攻击者快照（Combat Foundation S3-B 定稿接口）：
@@ -409,7 +409,7 @@ export interface Bullet extends Point {
    */
   stats?: Readonly<CombatStatsSnapshot>;
 }
-/** 导弹升级：独立于强化箭飞行的追踪弹，命中或寿命结束时爆炸 */
+/** 导弹升级：独立于强化弹飞行的追踪弹，命中或寿命结束时爆炸 */
 export interface Missile extends Point {
   vx: number;
   vy: number;
@@ -546,11 +546,11 @@ export interface HitOptions {
   noChain?: boolean;
   /** 导弹/激光/爆炸等附加效果不参与生命汲取 */
   noLifesteal?: boolean;
-  /** 吸血效率倍率；缺省 1，强化箭直击/轨迹为 0.3 */
+  /** 吸血效率倍率；缺省 1，强化弹直击/轨迹为 0.3 */
   lifestealMul?: number;
   /** 「附带真实伤害」：按原始伤害的该比例额外结算真实伤害 */
   trueFraction?: number;
-  /** 强化箭直击：伤害数字用金色，便于和导弹/爆炸区分 */
+  /** 强化弹直击：伤害数字用金色，便于和导弹/爆炸区分 */
   specialHit?: boolean;
   src?: DamageSource;
   fromExplode?: boolean;
