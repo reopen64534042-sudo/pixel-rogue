@@ -2990,3 +2990,42 @@ ctx.stroke();      // → strokePath()
 - 按用户要求**未跑模拟实测**（「直接改，靠试玩」），数值依据为理论折算：
   冲刺冷却 2.4 秒、太刀 2 刀/秒、大剑 1.2 刀/秒。
 - 验证：`npm run typecheck` ✓、`npm run build` ✓。
+
+## D-117 修复「裂甲」导致伤害爆小数点（v113）
+
+- 用户反馈（2026-10-30）：「发现一个 bug，在学习了裂甲天赋的时候，对敌人造成的伤害会爆出小数点」
+- 分支：`fix/melee-vuln-decimal`（自 v111 / main）。
+
+### 根因
+
+`core/CombatSystem.ts` 的裂甲易伤加成**发生在 DamageSystem 取整之后**：
+
+```ts
+dmg = settled;                                    // 已按 round-min-one 取整（整数）
+if (opts.form === "melee" && e.meleeVulnStacks > 0) {
+  dmg *= 1 + 0.02 * e.meleeVulnStacks;            // ← 又乘一次，12 → 12.24
+}
+```
+
+飘字 `addText(..., mainDamage, ...)` 直接吃 `dmg`，所以学习了裂甲之后，
+只要目标身上有易伤层数，伤害数字就会带小数（12.24、14.4…）。
+
+### 修复
+
+乘法后重新取整，口径与 `DamageSystem` 的 `round-min-one` 一致：
+
+```ts
+const scaled = dmg * (1 + 0.02 * vulnStacks);
+dmg = dmg > 0 ? Math.max(1, Math.round(scaled)) : 0;
+```
+
+注意 **0 伤害必须保持 0**：不能用无条件 `Math.max(1, ...)`，否则免疫/零伤目标会被抬成 1。
+
+### 验证
+
+临时用例（跑完已删）：
+- 学裂甲后连续命中 14 刀，每刀结算后 `e.hp` 均为整数
+- 满 10 层时 12 × 1.2 = 14.4 → 实际扣血 **14**（取整正确）
+- 传入 0 伤害时 HP 不变（未被抬成 1）
+
+`npm run typecheck` ✓、`npm run build` ✓。
