@@ -80,10 +80,17 @@ export const WARRIOR_BALANCE = {
     cap1: 5,
     cap2: 10,
     cap3: 15,
-    dmgPerStack: 0.02,
-    atkSpeedPerStack: 0.015,
-    duration1: 3,
-    duration2: 4,
+    // 用户反馈（2026-10-30）：「流」的数值给得太保守。
+    // 诊断出两层原因，本批同时处理：
+    // ①数值低：原 2%/层 → L1 满层只有 +10% 伤害，而射手 L1「破甲箭」把
+    //   穿透提到 2 目标、衰减 0.8，对双目标就是 +80%，量级差一档；
+    // ②容错差：原来 3 秒未命中直接清空，实战躲弹/追风筝很容易断流归零，
+    //   叠加 v109 把「连斩」限制成 3 连之后更难维持。
+    dmgPerStack: 0.03,
+    atkSpeedPerStack: 0.025,
+    // 维持窗口 3/4 → 4/6 秒（流·极 也用 duration2）。
+    duration1: 4,
+    duration2: 6,
     burstT: 3,
     burstKeep: 5,
   },
