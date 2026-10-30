@@ -634,6 +634,9 @@ export function damagePlayer(
 ): DamageResult {
   const p = this.player;
   const rawDmg = dmg;
+  // 大剑仅坠落段离地免伤；0.24 秒起手仍按正常规则受击。
+  if (this.warriorLeapState?.phase === "fall")
+    return blockedHit(dmg, { dodged: true, shieldUsed: "none" });
   // 开发者无敌（仅 DEV）：作弊面板的开关，生产构建下 `import.meta.env.DEV`
   // 恒为 false，整段被 tree-shake，玩家侧没有任何影响。
   if (import.meta.env.DEV && this.devInvincible)

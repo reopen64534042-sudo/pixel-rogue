@@ -1,7 +1,7 @@
 import { WORLD, clamp } from "../data/constants";
 import { WEB_ZONE } from "../data/enemies";
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
-import { warriorIaiCap, warriorIaiStep } from "./WarriorSystem";
+import { updateWarriorLeapMotion, warriorIaiCap, warriorIaiStep } from "./WarriorSystem";
 import type { GameCore } from "./GameCore";
 
 /**
@@ -41,6 +41,7 @@ function addIaiDistance(core: GameCore, moved: number) {
 
 export function updatePlayer(this: GameCore, dt: number) {
   const p = this.player;
+  updateWarriorLeapMotion.call(this, dt);
   // ---- 玩家移动 ----
   // ---- 移动 & 冲刺 ----
   // Issue #95：触控八向向量优先；无触控输入时退回键盘分支，两种来源互不覆盖。
@@ -111,6 +112,7 @@ export function updatePlayer(this: GameCore, dt: number) {
   }
   if (
     p.dashLv &&
+    !this.warriorLeapState &&
     (this.keys[kb.dash] || this.dashHeld) &&
     p.dashCharges > 0 &&
     p.dashT <= -0.1
@@ -141,7 +143,8 @@ export function updatePlayer(this: GameCore, dt: number) {
     this.interruptMageCast();
     if (!leap) this.audio.beep(300, 0.1, "sine", 0.06, 500);
   }
-  if (p.dashT > 0) {
+  // Dedicated leap motion owns position until its landing hit settles.
+  if (!this.warriorLeapState && p.dashT > 0) {
     // S2：冲刺位移按 dashDistMul 缩放（疾行 +25%；斩浪再 +30%）
     // #180：战士额外吃职业基础倍率（baseDashMul 1.5），与「斩浪」卡的 1.3 独立相乘。
     const dashSpeed =
@@ -168,7 +171,7 @@ export function updatePlayer(this: GameCore, dt: number) {
           ? WB.styles[this.warriorStyle].trail
           : "#57e6ff",
     });
-  } else {
+  } else if (!this.warriorLeapState) {
     // S2「滞空」：闪避成功后 0.5 秒的移速加成
     // 机动链基础层：冲刺后 dashBoostWindow 秒内线性衰减的移速爆发
     const moveSpeed = playerMoveSpeed(this);

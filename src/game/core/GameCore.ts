@@ -38,6 +38,7 @@ import {
   warriorLeap,
   warriorLianShanDash,
 } from "./WarriorSystem";
+import type { WarriorLeapState } from "./WarriorSystem";
 import {
   advanceTutorial,
   finishTutorial,
@@ -231,6 +232,8 @@ export class GameCore {
   warriorFlowT = 0;
   /** 每 3 次挥砍中的第 3 次为重斩。 */
   warriorSwingCount = 0;
+  /** 大剑起手 / 坠落中的落点与攻击快照；空值表示可以自由行动。 */
+  warriorLeapState: WarriorLeapState | null = null;
   /**
    * 连斩链计数（#179）。用户裁决「最多连 3 次」：达到上限后必须走完一次
    * 正常攻击间隔才能重新掷概率。放 GameCore 而非 Player——recompute 会重建
@@ -641,6 +644,7 @@ export class GameCore {
     this.warriorFlowStacks = 0;
     this.warriorFlowT = 0;
     this.warriorSwingCount = 0;
+    this.warriorLeapState = null;
     this.warriorChainCount = 0;
     this.warriorIaiStacks = 0;
     this.warriorIaiDist = 0;
@@ -826,6 +830,7 @@ export class GameCore {
    * 只由 `gameOver` 在 `devRevive` 开启时调用；不写战绩。
    */
   private devReviveRun() {
+    this.warriorLeapState = null;
     const wave = Math.max(1, this.waveN);
     this.enemies = [];
     this.ebullets = [];
@@ -868,6 +873,7 @@ export class GameCore {
    * 清掉：picks/upCounts 与依赖天赋的运行态（护盾/充能/陨星/残域/法阵读条）。
    */
   devClearTalents() {
+    this.warriorLeapState = null;
     const p = this.player;
     // 原地清空，避免任何持有 upCounts/picks 引用的系统读到旧对象。
     for (const key of Object.keys(p.upCounts)) delete p.upCounts[key];
@@ -911,6 +917,7 @@ export class GameCore {
   }
 
   gameOver() {
+    this.warriorLeapState = null;
     if (this.state === "over") return;    // DEV-only：允许复活时拦截死亡，保留本局构筑并重开当前波。
     if (import.meta.env.DEV && this.devRevive) {
       this.devReviveRun();

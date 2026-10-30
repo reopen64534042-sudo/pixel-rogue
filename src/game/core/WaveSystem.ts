@@ -153,7 +153,7 @@ export function updateWave(this: GameCore, dt: number) {
           }
         }
       }
-    } else if (this.enemies.length === 0) {
+    } else if (this.enemies.length === 0 && !this.warriorLeapState) {
       // 本波怪清空 → 收尾: 先吸经验球、选完升级，再收宝箱，最后休整
       this.wavePhase = "collect";
       this.gems.forEach((g) => (g.auto = true));

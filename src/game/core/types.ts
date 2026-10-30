@@ -591,6 +591,8 @@ export interface Slash extends Point {
   spin?: boolean;
   /** 本次挥砍是否为重斩，仅供表现选择；不参与命中与伤害。 */
   heavy?: boolean;
+  /** 大剑跃击落地：使用全向地面冲击素材，绘制在角色下层。 */
+  impact?: boolean;
 }
 export interface HitOptions {
   noCrit?: boolean;
