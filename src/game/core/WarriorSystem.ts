@@ -320,6 +320,7 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     shake: iai ? 5 : heavy ? 3 : burst ? 1 : 2,
     lifestealMul,
     ...(iai ? { iaiHit: true } : {}),
+    ...(iaiSpin ? { spin: true } : {}),
   });
   if (this.warriorResolveT > 0) this.warriorResolveT = 0;
 

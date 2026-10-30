@@ -1,4 +1,5 @@
 import type { GameCore } from "../core/GameCore";
+import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
 import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
@@ -899,6 +900,9 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       // 中心固定在角色前方 26px（#180：太刀射程 34 → 42，中心同步 22 → 26，
       // 让素材外缘跟得上判定半径），出现/消失与透明度已烘焙进帧。
       const prog = 1 - Math.max(0, Math.min(1, s.life / s.max));
+      // 居合·极：全向回旋斩素材以玩家为中心，不吃普通刀光的前方 26px 偏移。
+      // 2× 整数放大让环外缘对齐 52px 命中半径（素材原环半径约 29px）。
+      if (s.spin && drawIaiSpinSlash(ctx, s.x, s.y, prog, 2)) continue;
       const frame = Math.min(9, Math.floor(prog * 10));
       const angle = Math.atan2(Math.sin(s.a), Math.cos(s.a));
       const rightHalf = angle >= -Math.PI / 2 && angle < Math.PI / 2;

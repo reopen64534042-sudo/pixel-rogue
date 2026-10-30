@@ -3289,3 +3289,13 @@ L2 最初写 `distPerStack2 = 70px`（8 层 = 560px），比 L1 的 500px 更慢
 - 范围：已接入加载并提供绘制接口，未自动绑定技能触发，未替换普通太刀单向刀光、未改变伤害/命中/冷却；CHANGELOG.md 与 src/game/data/changelog.ts 同步追加 v119。
 - 验证：npm run typecheck 与 npm run build；PNG 与图集坐标/尺寸/色板/alpha/哈希检查。未新增测试，未运行 Vitest / Playwright，既有测试断言无本次行为变更；游戏内招式体验留待招式接入后确认。
 - PR 最终同步：上游新增居合链与反馈批（PR #192，b927f02，v117/v118），本分支更新记录顺延 v119。CHANGELOG.md、src/game/data/changelog.ts 与 migration 均保留双方新增记录，场景加载改动自动合并；未改上游居合规则。
+
+## 居合·极 360° 旋斩接入（v120，2026-10-30）
+
+- 用户要求：把 L3「居合·极」的 360° 旋斩接到 PR #193 的 `iai-spin-slash` 素材上；普通太刀与居合 L1/L2 保持原单向刀光。
+- 分支 `feat/iai-spin-wire`（自 main `bdf9a55` / v119）。
+- 实现：`WarriorSystem` 的 L3 旋斩给 `meleeSwing` 传 `spin`；`MeleeSwingOptions` / `Slash` 新增可选 `spin`；`draw.ts` 在太刀分支优先调用 `drawIaiSpinSlash(ctx, s.x, s.y, prog, 2)`，素材未就绪返回 false 时回退原单向刀光。
+- 表现：以玩家中心、2× 整数放大；素材原环外半径约 29px，2× 后约 58px，外缘对齐 52px 命中半径。寿命沿用 `meleeSwing` 的 0.167s；暂停/重开仍由模拟状态控制。
+- 范围：仅改变 L3 视觉；伤害、击退、命中范围、普通太刀与 L1/L2 表现均不变。`drawIaiSpinSlash` 新增可选 `scale`（默认 1），文档同步。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；e2e 受控截取前段/峰值/末段，环中心在玩家、2× 大小与命中半径对齐；5176 已同步 playtest 快照。
+- 按 2026-10-29 标准未运行 Vitest / Playwright、未新增/修改测试基线。
