@@ -357,8 +357,10 @@ export function talentStatModifiers(
       // 本表只承载容量属性，不声明 shield/shieldCd（RuntimeState，D-C3-02）。----
       case "能量护盾": // data/talents.ts：p.shieldMax++（max 3）；旧 f 的
         // p.shield++（赠层）分离至 OnAcquireEffects，仅 learnTalent 执行
+      case "铁壁": // 大剑护盾链 L1：+1 盾容量
+      case "重壁": // 大剑护盾链 L3：再 +1 盾容量（最多 2）
         scalars.push({
-          sourceId: "天赋:能量护盾",
+          sourceId: `天赋:${name}`,
           stat: "shieldMax",
           stage: "flat",
           value: 1,

@@ -12,7 +12,7 @@ import type { WarriorStyle } from "../core/types";
  * 战士的强度靠「贴住」换覆盖：挥砍本身是扇形、不依赖排线，
  * 代价是必须贴身吃伤害。太刀核心压缩为居合/斩浪/连闪 3 张；
  * 流链只增幅居合，居合·迅/极与其余卡作为可选点缀。
- * 当前共 18 张（单流派可见：太刀 12、大剑 10）。
+ * 当前共 21 张（单流派可见：太刀 12、大剑 13）。
  */
 export interface WarriorStyleStats {
   readonly label: string;
@@ -147,6 +147,16 @@ export const WARRIOR_BALANCE = {
   breakoutDamageMul: 1.35,
   breakoutKnockMul: 3,
   heavyArmorBreakT: 4,
+  /**
+   * 大剑护盾链（v133）：
+   * 铁壁提供每波 1 层护盾，破裂后 15 秒重建；碎盾反震在破盾时触发
+   * 80px 震波；重壁增加 1 层上限，并让护盾有 15% 概率受击不消耗层数
+   *（层数制护盾下，用「护盾保全」表达原设计的「15% 减伤」）。
+   */
+  shieldChain: {
+    rebuild: 15,
+    guardChance: 0.15,
+  },
   swordQiRange: 200,
   swordQiWidth: 10,
   swordQiDamageMul: 0.8,

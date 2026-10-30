@@ -3496,3 +3496,18 @@ dmg = Math.ceil(e.hp - 1);
   - 截图：`output/vfx-merged-tri-leap-windup.png`、`vfx-merged-tri-leap-landing.png`、`vfx-heavy-normal-fissure.png`；脚底三槽仍用 `output/vfx-foot-ui-slot-progress.png`。
 - 待办：剑气→平推移动剑气、裂地→四方强化剑气、冲刺斩专用刀光已列入 v132 提示词包（main PR #204）；当前版本仍为旧剑气直线、旧裂地延迟爆裂、冲刺斩残影，待素材生成后另开接入 PR。
 - 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件，仅做受控 e2e/无头截图自检；新卡 parity 基线留待授权测试批次统一处理。
+
+## 大剑护盾链：铁壁 / 碎盾反震 / 重壁（v133，2026-10-31）
+
+- 版本：main v132（PR #205）之后新增的大剑可选池批次；分支 feat/greatsword-shield-chain-v133。三份 VFX 素材仍在生成，本批不涉及。
+- 卡池：大剑可见 10 → 13（总 21 张）。护盾链 铁壁（t0 L1）→ 碎盾反震（t1 L2）→ 重壁（t2 L3），requires 依次串联；与未来的反击链保持互斥定位，本批尚未加入反击链。
+- 铁壁：`TalentStatSources` 给 shieldMax +1；`OnAcquireEffects` 获得时补 1 层当前护盾；`WaveSystem.startNextWave` 在持有铁壁时至少补到 1 层；`PlayerSystem` 与 `CombatSystem` 的护盾重建时间在铁壁下改为 15 秒（其他护盾仍为 10 秒）。
+- 碎盾反震：`CombatSystem` 破盾震波（80px、`shieldShockDamage` 200%、KNOCK.shock）改为该卡解锁；旧 `能量护盾` 仍保留兼容触发。无碎盾时护盾只挡伤，不反震。
+- 重壁：`TalentStatSources` 再给 shieldMax +1（最多 2 层），`OnAcquireEffects` 补 1 层；层数制护盾本身挡整伤，原设计「护盾存在期间 15% 减伤」按当前模型实现为「护盾存在时 15% 概率不消耗护盾层」，效果等同 15% 免伤；卡片文案已同步。
+- C 面板：大剑分支增加「护盾 x/2 · n s」行；其余 C 面板行不变。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；受控 e2e（5337）：
+  - 铁壁可抽取，碎盾/重壁在链前置前不可抽取；学习铁壁后 shieldMax=1、shield=1，碎盾变为可抽取，学习后重壁变为可抽取。
+  - 无碎盾破盾：shield 1→0、shieldCd=15、`dmgBy.shock=0`、HP 80 不变。
+  - 有碎盾破盾：shield 2→1、shieldCd=15、`dmgBy.shock=120`、80px 内三敌 9999→9959、HP 80。
+  - 重壁：shieldMax=2；强制 random 0 时护盾 2→2、无震波（保全）；random 0.99 时护盾 2→1、触发震波；每波开始 shield 0→1、max2、cd15。
+- 后续：v134 太刀反远程链（护刃/刃返/刃轮），v135 大剑反击链（荆棘重铠/血偿/不屈战魂）；本批未运行 Vitest / Playwright 测试套件，parity 留待授权批次。

@@ -562,6 +562,18 @@ export class GameUI {
                       ],
                     ] as [string, string][])
                   : []),
+                ...(p.shieldMax > 0
+                  ? ([
+                      [
+                        "🛡️ 护盾",
+                        `${p.shield}/${p.shieldMax}${
+                          p.shield < p.shieldMax
+                            ? ` · ${Math.ceil(p.shieldCd)}s`
+                            : ""
+                        }`,
+                      ],
+                    ] as [string, string][])
+                  : []),
               ] as [string, string | number][])
             : iaiCap > 0
               ? ([

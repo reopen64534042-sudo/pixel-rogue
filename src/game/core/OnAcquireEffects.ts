@@ -39,6 +39,10 @@ export function applyOnAcquireEffect(
       // lvBefore 不参与判定——每级获得都赠 1 层（B4：已消耗态升级仍 +1）。
       p.shield += 1;
       break;
+    case "铁壁": // v133 护盾链 L1：投影已加 1 容量；获得时补 1 层当前护盾。
+    case "重壁": // v133 护盾链 L3：投影再加 1 容量；获得时补 1 层。
+      p.shield = Math.min(p.shieldMax, p.shield + 1);
+      break;
     case "击杀狂热": // 旧 f：hasteLv++（属性，C3-C 起已迁移投影）+ 首级
       // 条件分支 `if (hasteLv === 1) { haste = 1; hasteT = 3; }`。获得前
       // 等级 lvBefore 在 upCounts 递增前捕获：lvBefore===0（首次获得）时

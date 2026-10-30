@@ -1,5 +1,6 @@
 import { UPGRADES } from "../data/talents";
 import { waveTheme } from "../data/enemies";
+import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import { resolveDifficulty } from "../data/difficulty";
 import { attrPicksPerWave } from "./AttributeSystem";
 import type { GameCore } from "./GameCore";
@@ -39,6 +40,11 @@ export function startNextWave(this: GameCore) {
   this.wavePhase = "fight";
   this.state = "play";
   this.player.tempShield = this.player.barrierLv; // 壁垒: 每波临时护盾
+  // 大剑护盾链 v133：铁壁每波至少给 1 层护盾，重壁的额外层数靠 15s 充能补。
+  if ((this.player.upCounts["铁壁"] || 0) > 0) {
+    this.player.shield = Math.max(1, this.player.shield);
+    this.player.shieldCd = WB.shieldChain.rebuild;
+  }
   this.player.ndUsed = false; // 不屈: 每波重置
   this.swapUsedThisRest = false;
   const difficulty = resolveDifficulty(

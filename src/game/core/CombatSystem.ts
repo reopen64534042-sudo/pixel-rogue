@@ -684,24 +684,42 @@ export function damagePlayer(
     return blockedHit(dmg, { dodged: false, shieldUsed: "temporary" });
   }
   if (p.shield > 0) {
-    p.shield--;
-    p.shieldCd = 10;
-    p.hurtCd = 0.5;
-    // Issue #43：护盾破碎反震（天然节拍 = 护盾 10s 充能）
-    const targets = this.enemies.filter(
-      (o) => !o.dead && Math.hypot(o.x - p.x, o.y - p.y) < 80,
-    );
-    for (const o of targets) {
-      const d = Math.hypot(o.x - p.x, o.y - p.y) || 1;
-      this.hurtEnemy(
-        o,
-        shieldShockDamage(p),
-        ((o.x - p.x) / d) * KNOCK.shock,
-        ((o.y - p.y) / d) * KNOCK.shock,
-        { noCrit: true, src: "shock", type: "physical", form: "other" },
-      );
+    // v133 重壁：层数制护盾下用「15% 概率保全一层」表达原设计的减伤。
+    if (
+      (p.upCounts["重壁"] || 0) > 0 &&
+      Math.random() < WARRIOR_BALANCE.shieldChain.guardChance
+    ) {
+      p.hurtCd = 0.5;
+      this.addText(p.x, p.y - 10, "重壁!", "#9fe1ff");
+      this.audio.beep(1040, 0.1, "sine", 0.05, 120);
+      return blockedHit(dmg, { dodged: false, shieldUsed: "normal" });
     }
-    if (targets.length) this.addText(p.x, p.y - 16, "反震!", "#ffd24a");
+    p.shield--;
+    p.shieldCd =
+      (p.upCounts["铁壁"] || 0) > 0
+        ? WARRIOR_BALANCE.shieldChain.rebuild
+        : 10;
+    p.hurtCd = 0.5;
+    // Issue #43：护盾破碎反震；v133 起由「碎盾反震」解锁（旧能量护盾保留兼容）。
+    if (
+      (p.upCounts["碎盾反震"] || 0) > 0 ||
+      (p.upCounts["能量护盾"] || 0) > 0
+    ) {
+      const targets = this.enemies.filter(
+        (o) => !o.dead && Math.hypot(o.x - p.x, o.y - p.y) < 80,
+      );
+      for (const o of targets) {
+        const d = Math.hypot(o.x - p.x, o.y - p.y) || 1;
+        this.hurtEnemy(
+          o,
+          shieldShockDamage(p),
+          ((o.x - p.x) / d) * KNOCK.shock,
+          ((o.y - p.y) / d) * KNOCK.shock,
+          { noCrit: true, src: "shock", type: "physical", form: "other" },
+        );
+      }
+      if (targets.length) this.addText(p.x, p.y - 16, "反震!", "#ffd24a");
+    }
     this.addText(p.x, p.y - 10, "护盾抵挡!", "#57e6ff");
     this.audio.beep(980, 0.12, "sine", 0.06, -200);
     return blockedHit(dmg, { dodged: false, shieldUsed: "normal" });
