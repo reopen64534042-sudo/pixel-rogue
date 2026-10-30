@@ -1,7 +1,11 @@
-import { WORLD, clamp } from "../data/constants";
+import { WORLD, clamp, hash01 } from "../data/constants";
 import {
+  BURROWER,
   CHARGER_CHARGE,
   DRUMMER_AURA,
+  ELITE_AFFIX_FROM,
+  ELITE_AFFIXES,
+  WEB_ZONE,
   enemyWeight,
   ETYPES,
 } from "../data/enemies";
@@ -118,6 +122,12 @@ export function spawnEnemy(
       : {}),
     ...resolveEnemyAttackBonuses(T),
   });
+  const spawned = this.enemies[this.enemies.length - 1];
+  if (elite && this.waveN >= ELITE_AFFIX_FROM) {
+    // 用生成 seed 做确定性抽取，避免多消耗一次 Math.random 打乱既有序列。
+    const roll = hash01(spawned.seed, this.waveN + 0.37);
+    spawned.affix = ELITE_AFFIXES[Math.floor(roll * ELITE_AFFIXES.length)];
+  }
 }
 
 export function nearestEnemy(
@@ -130,7 +140,7 @@ export function nearestEnemy(
   let best = null,
     bd = maxD * maxD;
   for (const e of this.enemies) {
-    if (e.dead || e === exclude) continue;
+    if (e.dead || e === exclude || e.burrowState !== undefined) continue;
     const dx = e.x - x,
       dy = e.y - y,
       d = dx * dx + dy * dy;
@@ -144,6 +154,13 @@ export function nearestEnemy(
 
 export function updateEnemies(this: GameCore, dt: number) {
   const p = this.player;
+  // 蛛网先走计时；即使场上没有织网蛛，已有网也按剩余时间自然消失。
+  for (let i = this.webZones.length - 1; i >= 0; i--) {
+    const z = this.webZones[i];
+    z.t -= dt;
+    if (z.arm > 0) z.arm = Math.max(0, z.arm - dt);
+    if (z.t <= 0) this.webZones.splice(i, 1);
+  }
   const drummers = this.enemies.filter(
     (d) =>
       d.type === "drummer" &&
@@ -252,6 +269,68 @@ export function updateEnemies(this: GameCore, dt: number) {
     let a = Math.atan2(targetY - e.y, targetX - e.x);
     if (e.type === "bat") a += Math.sin(this.time * 6 + e.seed) * 0.5;
     const aura = drummerAura(e, drummers);
+    // 精英词缀：召唤蝙蝠 / 冰霜新星；分裂在 killEnemy 结算。
+    if (e.elite && e.affix) {
+      if (e.affix === "summon") {
+        e.affixT = (e.affixT ?? 3.2) - dt;
+        if (e.affixT <= 0) {
+          const livingBats = this.enemies.filter(
+            (o) => !o.dead && o.type === "bat",
+          ).length;
+          if (livingBats < 12) {
+            for (let i = 0; i < 2 && this.enemies.length < 160; i++) {
+              this.spawnEnemy("bat");
+              const bat = this.enemies[this.enemies.length - 1];
+              bat.x = clamp(e.x + (i === 0 ? -12 : 12), 24, WORLD.w - 24);
+              bat.y = clamp(e.y + 8, 24, WORLD.h - 24);
+              bat.maxhp = Math.max(1, Math.round(bat.maxhp * 0.7));
+              bat.hp = bat.maxhp;
+              bat.noDrop = true;
+              bat.xp = 0;
+            }
+            this.addText(e.x, e.y - e.r - 12, "召唤", "#b05cff");
+            this.audio.beep(520, 0.12, "triangle", 0.05, 120);
+          }
+          e.affixT = 5;
+        }
+      } else if (e.affix === "nova") {
+        if ((e.novaT ?? 0) > 0) {
+          e.novaT = (e.novaT ?? 0) - dt;
+          if (e.novaT <= 0) {
+            const hit = Math.hypot(p.x - e.x, p.y - e.y) < 95;
+            if (hit)
+              this.damagePlayer(e.dmg * 1.2 * aura.dmg, {
+                type: "frost",
+                form: "other",
+                src: e,
+              });
+            for (let i = 0; i < 18; i++) {
+              const na = (i / 18) * Math.PI * 2;
+              this.parts.push({
+                x: e.x,
+                y: e.y,
+                vx: Math.cos(na) * 120,
+                vy: Math.sin(na) * 120,
+                life: 0.4,
+                c: "#57e6ff",
+              });
+            }
+            this.addText(e.x, e.y - e.r - 12, "冰霜新星", "#57e6ff");
+            this.audio.beep(220, 0.2, "sine", 0.06, -40);
+          }
+        } else {
+          e.affixT = (e.affixT ?? 3.5) - dt;
+          if (
+            e.affixT <= 0 &&
+            Math.hypot(p.x - e.x, p.y - e.y) < 140
+          ) {
+            e.novaT = 0.55;
+            e.affixT = 4.5;
+            this.audio.beep(320, 0.1, "square", 0.04, 40);
+          }
+        }
+      }
+    }
     // S3 法师元素：凝冰每层减速、麻痹降低移速。
     // 射手路径上两个因子恒为 1 → 乘 1 精确，数值逐位不变。
     const spd =
@@ -362,6 +441,113 @@ export function updateEnemies(this: GameCore, dt: number) {
           life: 0.3,
           c: "#ffd24a",
         });
+      }
+    } else if (e.type === "burrower") {
+      // 掘地虫：追近 → 下沉 → 地下突进 → 地面预警 → 钻出。钻地期间不参与自动索敌与接触伤害。
+      if (e.burrowCd === undefined) e.burrowCd = 1.2 + Math.random() * 1.2;
+      if (e.burrowState === "dive") {
+        e.burrowT = (e.burrowT ?? 0) - dt;
+        if (e.burrowT <= 0) {
+          e.burrowState = "under";
+          e.burrowT = BURROWER.under;
+        }
+        this.parts.push({
+          x: e.x + (Math.random() - 0.5) * 8,
+          y: e.y + 3,
+          vx: 0,
+          vy: -18,
+          life: 0.3,
+          c: "#5a3a20",
+        });
+      } else if (e.burrowState === "under") {
+        const d = Math.hypot(targetX - e.x, targetY - e.y);
+        if (d > 1) {
+          e.x += ((targetX - e.x) / d) * BURROWER.underSpeed * dt;
+          e.y += ((targetY - e.y) / d) * BURROWER.underSpeed * dt;
+        }
+        e.burrowT = (e.burrowT ?? 0) - dt;
+        if (Math.random() < dt * 12)
+          this.parts.push({
+            x: e.x + (Math.random() - 0.5) * 8,
+            y: e.y + 2,
+            vx: 0,
+            vy: -10,
+            life: 0.25,
+            c: "#5a3a20",
+          });
+        if (e.burrowT <= 0) {
+          e.burrowState = "surface";
+          e.burrowT = BURROWER.surface;
+          this.audio.beep(140, 0.08, "square", 0.03, -30);
+        }
+      } else if (e.burrowState === "surface") {
+        e.burrowT = (e.burrowT ?? 0) - dt;
+        if (e.burrowT <= 0) {
+          e.burrowState = undefined;
+          e.burrowT = 0;
+          e.burrowCd = BURROWER.cooldown;
+          this.audio.beep(90, 0.12, "sawtooth", 0.04, 20);
+          for (let i = 0; i < 8; i++) {
+            const dustA = (i / 8) * Math.PI * 2;
+            this.parts.push({
+              x: e.x,
+              y: e.y,
+              vx: Math.cos(dustA) * 55,
+              vy: Math.sin(dustA) * 55 - 8,
+              life: 0.35,
+              c: "#5a3a20",
+            });
+          }
+        }
+      } else {
+        e.burrowCd = Math.max(0, (e.burrowCd ?? 0) - dt);
+        const d = Math.hypot(targetX - e.x, targetY - e.y);
+        if (
+          e.burrowCd <= 0 &&
+          d > BURROWER.rangeMin &&
+          d < BURROWER.rangeMax
+        ) {
+          e.burrowState = "dive";
+          e.burrowT = BURROWER.dive;
+          this.audio.beep(180, 0.08, "sine", 0.03, -60);
+        } else {
+          e.x += Math.cos(a) * spd * dt;
+          e.y += Math.sin(a) * spd * dt;
+        }
+      }
+    } else if (e.type === "spinner") {
+      // 织网蛛：保持中距离，向当前目标脚下吐网；先预警，后生效。
+      if (e.webCd === undefined) e.webCd = 1.4 + Math.random() * 1.2;
+      e.webCd = Math.max(0, e.webCd - dt);
+      const d = Math.hypot(targetX - e.x, targetY - e.y);
+      let mvx = 0;
+      let mvy = 0;
+      if (d > 170) {
+        mvx = Math.cos(a);
+        mvy = Math.sin(a);
+      } else if (d < 100) {
+        mvx = -Math.cos(a);
+        mvy = -Math.sin(a);
+      } else {
+        mvx = -Math.sin(a) * Math.sin(this.time * 1.6 + e.seed) * 0.5;
+        mvy = Math.cos(a) * Math.sin(this.time * 1.6 + e.seed) * 0.5;
+      }
+      e.x += mvx * spd * dt;
+      e.y += mvy * spd * dt;
+      if (
+        e.webCd <= 0 &&
+        d < WEB_ZONE.range &&
+        this.webZones.length < WEB_ZONE.max
+      ) {
+        this.webZones.push({
+          x: targetX,
+          y: targetY,
+          R: WEB_ZONE.radius,
+          t: WEB_ZONE.arm + WEB_ZONE.duration,
+          arm: WEB_ZONE.arm,
+        });
+        e.webCd = WEB_ZONE.cooldown;
+        this.audio.beep(260, 0.08, "triangle", 0.03, -30);
       }
     } else if (e.type === "charger") {
       // 角兽：追近 → 0.6s 红线预警 → 0.5s 直线冲锋 → 撞墙/结束硬直 1.2s。
@@ -482,8 +668,11 @@ export function updateEnemies(this: GameCore, dt: number) {
       // 角兽撞墙硬直时不结算接触伤害，给玩家一个安全的惩罚窗口。
       const chargerStunned =
         e.type === "charger" && e.chargeState === "stun";
+      const burrowerHidden =
+        e.type === "burrower" && e.burrowState !== undefined;
       if (
         !chargerStunned &&
+        !burrowerHidden &&
         p.hurtCd <= 0 &&
         p.dashT <= 0 &&
         this.magePhaseT <= 0

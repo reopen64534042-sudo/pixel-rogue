@@ -30,6 +30,7 @@ export function startNextWave(this: GameCore) {
   this.beginWaveReport();
   this.quota = this.waveQuota(this.waveN);
   this.spawnedThisWave = 0;
+  this.webZones = [];
   this.potionGrow = 0; // 血包转化计数每波重置，已获得的生命上限永久保留
   this.boxDropsThisWave = 0; // 宝箱掉落名额每波重置
   this.eliteBoxPointsThisWave = 0; // Issue #87：精英宝箱点数上限每波重置

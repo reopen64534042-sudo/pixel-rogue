@@ -53,6 +53,7 @@ export class GameScene extends Phaser.Scene {
     | "dash-special"
     | "special-swarm"
     | "enemy-demo"
+    | "partial-true"
     | null = null;
   private testReady = false;
   private testAnchors: { x: number; y: number }[] = [];
@@ -88,6 +89,24 @@ export class GameScene extends Phaser.Scene {
       if (event.repeat) return;
       // 教程快捷键优先于普通输入；F 下一步 / 开始正式战斗，X 跳过。
       if (this.ui.handleTutorialKey(key)) {
+        event.preventDefault();
+        return;
+      }
+      // e2e 真伤对比：T 切换「完全真实伤害」，无需刷新页面。
+      if (this.specialTest === "partial-true" && key === "t") {
+        const fullTrue = this.core.specialUpgrades.includes("trueDamage");
+        this.core.specialUpgrades = fullTrue
+          ? ["partialTrue"]
+          : ["partialTrue", "trueDamage"];
+        this.core.specialLoaded = true;
+        this.core.addText(
+          this.core.player.x,
+          this.core.player.y - 20,
+          fullTrue ? "完全真实伤害：关" : "完全真实伤害：开",
+          "#57e6ff",
+          true,
+          true,
+        );
         event.preventDefault();
         return;
       }
@@ -175,7 +194,9 @@ export class GameScene extends Phaser.Scene {
               ? "special-max"
               : testName === "enemy-demo"
                 ? "enemy-demo"
-                : null
+                : testName === "partial-true"
+                  ? "partial-true"
+                  : null
         : null;
     if (this.specialTest) this.core.startGame();
   }
@@ -183,13 +204,23 @@ export class GameScene extends Phaser.Scene {
   private tickSpecialTest() {
     const core = this.core;
     if (!this.testReady) {
-      if (core.state !== "play" || core.phase !== "play") return;
+      if (
+        core.state !== "play" ||
+        (core.phase !== "play" &&
+          this.specialTest !== "enemy-demo" &&
+          this.specialTest !== "partial-true")
+      )
+        return;
       core.specialLevel = SPECIAL_LEVELS.length;
       core.specialXp = 0;
       core.specialUpgrades =
         this.specialTest === "dash-special"
           ? []
-          : SPECIAL_UPGRADES.map((upgrade) => upgrade.id);
+          : this.specialTest === "partial-true"
+            ? SPECIAL_UPGRADES.filter((u) => u.id === "partialTrue").map(
+                (u) => u.id,
+              )
+            : SPECIAL_UPGRADES.map((upgrade) => upgrade.id);
       if (this.specialTest === "dash-special") {
         const dash = UPGRADES.find((u) => u.n === "疾行");
         if (dash) core.learnTalent(dash);
@@ -204,6 +235,8 @@ export class GameScene extends Phaser.Scene {
       core.potions = [];
       core.boxes = [];
       core.burnZones = [];
+      core.trailZones = [];
+      core.webZones = [];
       core.missiles = [];
       core.lasers = [];
       core.texts = [];
@@ -218,6 +251,32 @@ export class GameScene extends Phaser.Scene {
         );
       } else if (this.specialTest === "enemy-demo") {
         this.setupEnemyDemo();
+      } else if (this.specialTest === "partial-true") {
+        core.player.maxhp = 9999;
+        core.player.hp = 9999;
+        core.player.crit = 0.5;
+        core.specialLoaded = true;
+        core.pendingLevels = 0;
+        core.startTalentPending = false;
+        core.bpMode = null;
+        core.slots = [];
+        for (const id of [
+          "bp-level",
+          "bp-attr",
+          "bp-rest",
+          "bottom-bar",
+          "start-screen",
+        ])
+          document.getElementById(id)?.classList.add("hidden");
+        this.testAnchors = [{ x: core.player.x + 110, y: core.player.y }];
+        for (const anchor of this.testAnchors) this.spawnTestElite(anchor);
+        core.addText(
+          core.player.x,
+          core.player.y - 30,
+          "测试：附带真实伤害 · 50% 暴击 · 按 T 切换完全真实伤害",
+          "#ffd24a",
+          true,
+        );
       } else {
         this.testAnchors = [{ x: core.player.x + 110, y: core.player.y }];
         for (const anchor of this.testAnchors) this.spawnTestElite(anchor);
@@ -280,7 +339,17 @@ export class GameScene extends Phaser.Scene {
     core.startTalentPending = false;
     core.bpMode = null;
     core.slots = [];
-    for (let i = 0; i < 6; i++) this.spawnDemoEnemy(i);
+    core.webZones = [];
+    for (let i = 0; i < 8; i++) this.spawnDemoEnemy(i);
+    // 一只带随机词缀的精英，方便直接看第 8 波后的新机制。
+    core.waveN = 8;
+    core.spawnEnemy("brute", true);
+    const elite = core.enemies[core.enemies.length - 1];
+    core.waveN = 1;
+    elite.x = core.player.x - 120;
+    elite.y = core.player.y - 80;
+    elite.maxhp = 12000;
+    elite.hp = elite.maxhp;
     for (const id of [
       "bp-level",
       "bp-attr",
@@ -303,13 +372,15 @@ export class GameScene extends Phaser.Scene {
     const core = this.core;
     const types = [
       "slime",
-      "bat",
-      "brute",
-      "shooter",
-      "bomber",
-      "splitter",
+      "spinner",
+      "burrower",
       "charger",
+      "splitter",
       "drummer",
+      "shooter",
+      "brute",
+      "bomber",
+      "bat",
     ];
     const type =
       index >= 0
@@ -317,8 +388,11 @@ export class GameScene extends Phaser.Scene {
         : types[Math.floor(Math.random() * types.length)];
     core.spawnEnemy(type);
     const enemy = core.enemies[core.enemies.length - 1];
-    const angle = Math.random() * Math.PI * 2;
-    const radius = 100 + Math.random() * 50;
+    const angle =
+      index >= 0
+        ? (index / 8) * Math.PI * 2
+        : Math.random() * Math.PI * 2;
+    const radius = index >= 0 ? 100 : 95 + Math.random() * 35;
     enemy.x = clamp(core.player.x + Math.cos(angle) * radius, 32, WORLD.w - 32);
     enemy.y = clamp(core.player.y + Math.sin(angle) * radius, 32, WORLD.h - 32);
     const hp: Record<string, number> = {
@@ -330,6 +404,8 @@ export class GameScene extends Phaser.Scene {
       splitter: 600,
       charger: 2500,
       drummer: 1200,
+      spinner: 900,
+      burrower: 1800,
     };
     enemy.maxhp = hp[type] ?? 1500;
     enemy.hp = enemy.maxhp;

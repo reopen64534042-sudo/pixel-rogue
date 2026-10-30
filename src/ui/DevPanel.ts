@@ -273,6 +273,7 @@ export class DevPanel {
     c.meteors = [];
     c.burnZones = [];
     c.trailZones = [];
+    c.webZones = [];
     c.mageMeteors = [];
     c.mageDomains = [];
     c.mageDecoys = [];

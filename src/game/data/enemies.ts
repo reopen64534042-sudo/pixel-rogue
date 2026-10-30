@@ -1,4 +1,4 @@
-import type { EnemyConfig } from "../core/types";
+import type { EliteAffix, EnemyConfig } from "../core/types";
 export const ETYPES: Record<string, EnemyConfig> = {
   slime: {
     hp: 19,
@@ -98,6 +98,30 @@ export const ETYPES: Record<string, EnemyConfig> = {
     defense: 10,
     resistances: { fire: 0.1, lightning: 0.2 },
   }, // 特殊: 120px 光环，给附近敌人加速和增伤
+  spinner: {
+    hp: 26,
+    speed: 34,
+    dmg: 8,
+    r: 4,
+    xp: 2,
+    spr: "spinner",
+    w0: 11,
+    wt: 8,
+    defense: 12,
+    resistances: { fire: 0.2, frost: -0.1 },
+  }, // 特殊: 保持距离吐网，落点预警后减速玩家
+  burrower: {
+    hp: 40,
+    speed: 46,
+    dmg: 16,
+    r: 5,
+    xp: 3,
+    spr: "burrower",
+    w0: 13,
+    wt: 9,
+    defense: 20,
+    resistances: { fire: 0.1, frost: 0.15 },
+  }, // 特殊: 钻地突进，地面预警后钻出
 };
 
 /** 角兽冲锋参数：判定与预警线共用，避免表现和实际距离漂移。 */
@@ -117,6 +141,43 @@ export const DRUMMER_AURA = {
   dmgMul: 1.15,
 } as const;
 
+/** 织网蛛的蛛网：落点预警后生效，玩家在网内移速 ×0.6；同屏最多 12 张。 */
+export const WEB_ZONE = {
+  radius: 40,
+  arm: 0.45,
+  duration: 2.8,
+  cooldown: 2.8,
+  range: 220,
+  slow: 0.6,
+  max: 12,
+} as const;
+
+/** 掘地虫钻地节奏：下沉 / 地下移动 / 地面预警；地下移动速度固定，不受减速影响。 */
+export const BURROWER = {
+  dive: 0.35,
+  under: 0.8,
+  surface: 0.5,
+  underSpeed: 150,
+  cooldown: 2.6,
+  rangeMin: 70,
+  rangeMax: 300,
+} as const;
+
+/** 精英词缀从第 8 波开始出现；每次生成用 seed 确定性抽取，不额外推进随机序列。 */
+export const ELITE_AFFIX_FROM = 8;
+export const ELITE_AFFIXES: readonly EliteAffix[] = [
+  "split",
+  "summon",
+  "nova",
+];
+export const ELITE_AFFIX_INFO: Readonly<
+  Record<EliteAffix, { name: string; color: string }>
+> = {
+  split: { name: "分裂", color: "#ff8a2b" },
+  summon: { name: "召唤", color: "#b05cff" },
+  nova: { name: "冰霜新星", color: "#57e6ff" },
+};
+
 // 波次主题：同一批怪按主题换权重，避免后期所有怪均匀稀释成同一锅。
 // from 为生效起始波（降序查找）；signature 是该主题首次出现时保证刷出的怪。
 export interface WaveTheme {
@@ -135,10 +196,12 @@ const WAVE_THEMES: readonly WaveTheme[] = [
       bat: 10,
       brute: 6,
       shooter: 6,
-      bomber: 8,
-      splitter: 10,
-      drummer: 6,
-      charger: 8,
+      bomber: 6,
+      splitter: 6,
+      drummer: 4,
+      charger: 6,
+      spinner: 6,
+      burrower: 6,
     },
   },
   {
@@ -147,38 +210,45 @@ const WAVE_THEMES: readonly WaveTheme[] = [
     weights: {
       slime: 12,
       bat: 12,
-      brute: 8,
-      shooter: 8,
+      brute: 6,
+      shooter: 6,
       bomber: 8,
-      splitter: 8,
-      drummer: 6,
-      charger: 8,
+      splitter: 6,
+      drummer: 4,
+      charger: 6,
+      spinner: 6,
+      burrower: 8,
     },
   },
   {
     from: 13,
-    name: "仪式",
+    name: "伏击",
+    signature: "burrower",
     weights: {
-      slime: 16,
+      slime: 14,
       bat: 12,
-      brute: 8,
-      shooter: 10,
+      brute: 6,
+      shooter: 8,
       bomber: 6,
-      splitter: 8,
-      drummer: 10,
-      charger: 8,
+      splitter: 6,
+      drummer: 6,
+      charger: 6,
+      spinner: 6,
+      burrower: 8,
     },
   },
   {
     from: 11,
-    name: "兽群",
+    name: "蛛巢",
+    signature: "spinner",
     weights: {
-      slime: 26,
-      bat: 30,
+      slime: 18,
+      bat: 24,
       brute: 8,
       shooter: 8,
-      bomber: 10,
+      bomber: 8,
       splitter: 8,
+      spinner: 16,
       charger: 6,
       drummer: 4,
     },

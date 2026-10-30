@@ -84,6 +84,34 @@ SPR.drummer = makeSprite(
   ],
   { p: "#b05cff", k: "#1a0a2a", g: "#ffd24a" },
 );
+/** 掘地虫：棕色甲壳 + 金色复眼，前肢骨白；钻地时由绘制层改为土丘。 */
+SPR.burrower = makeSprite(
+  [
+    "..bbbb....",
+    ".bbbbbb...",
+    "bbkbbkbb..",
+    "bbbbbbbb..",
+    ".bwwwwb...",
+    "bwb..bwb..",
+    "bb....bb..",
+    "..........",
+  ],
+  { b: "#5a3a20", k: "#ffd24a", w: "#e8e8f0" },
+);
+/** 织网蛛：紫色八足剪影 + 青色复眼，和蝙蝠/战鼓手的紫色区分在体型与足部。 */
+SPR.spinner = makeSprite(
+  [
+    "..s....s..",
+    ".ss.ss.ss.",
+    "..ssssss..",
+    ".skssskss.",
+    "..ssssss..",
+    ".ss.ss.ss.",
+    "..s....s..",
+    "..........",
+  ],
+  { s: "#5c4dff", k: "#57e6ff" },
+);
 /** 角兽：四足冲锋兽，金色独角是预警方向的第一视觉锚点。 */
 SPR.charger = makeSprite(
   [

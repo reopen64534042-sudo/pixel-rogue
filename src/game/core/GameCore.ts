@@ -128,6 +128,14 @@ export class GameCore {
     hit: Enemy[];
     lifestealMul?: number;
   }[] = [];
+  /** 织网蛛蛛网：arm 为落点预警剩余时间，t 为生效剩余时间。 */
+  webZones: {
+    x: number;
+    y: number;
+    R: number;
+    t: number;
+    arm: number;
+  }[] = [];
   /** S2「疾行」：冲刺结束后的射速加成剩余时间（秒）。 */
   dashFireBoostT = 0;
   /** 「装填」：下一发必为强化弹（闪避/冲刺/接触装填）。 */
@@ -541,6 +549,7 @@ export class GameCore {
     this.boxes = [];
     this.burnZones = [];
     this.trailZones = [];
+    this.webZones = [];
     this.dashFireBoostT = 0;
     this.specialLoaded = false;
     this.dodgeNextCrit = false;
@@ -779,6 +788,7 @@ export class GameCore {
     this.meteors = [];
     this.burnZones = [];
     this.trailZones = [];
+    this.webZones = [];
     this.mageMeteors = [];
     this.mageDomains = [];
     this.mageDecoys = [];

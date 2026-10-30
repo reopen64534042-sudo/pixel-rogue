@@ -2727,3 +2727,28 @@ ctx.stroke();      // → strokePath()
 - e2e 受控（5186，MODE=e2e）：同屏显示裂胶子体、战鼓手 120px 光环、角兽红色预警线；`WAVE 5 · 冲锋` 文字与 `themeGuarantee=charger` 已验证。另新增仅 DEV+E2E 的 `?test=enemy-demo`：自动开局、玩家 9999 HP、强化弹 L12 + 9 条升级、6 只移动混合怪并持续补充；敌人伤害暂置 0，便于手动操控观察玩家输出。5186 当前保持运行供试玩。
 - 测试基线：新增 ETYPES、图鉴条目和主题权重会影响 codex、parity、enemy-spawn、early-pace 等旧断言；按 2026-10-29 标准未运行 Vitest、未改基线，留待授权测试批次统一处理。
 - 未验证/风险：角兽 5 波冲锋接触约 22 伤害（14×1.22×1.3），叠加战鼓手约 25；0.6s 预警是否足够反应需自然试玩。裂胶在 9–10 波权重约 21%，清场时间可能上升。多只战鼓手的光环圈可能造成视觉噪音；主题 XP 为模型估算，真实等级节奏待试玩。
+
+## D-109 第二批怪物：蛛网、伏击与精英词缀（v105）
+
+- 用户需求（2026-10-30）：继续第二批怪物扩展，在 v104 提交 `9ff5355` 之后实现织网蛛、掘地虫和精英词缀，并保留可操控的 e2e 演示。
+- 实现：
+  1. `data/enemies.ts`：新增 spinner（26 HP / 34 速 / 8 攻 / r4 / 2 XP / 护甲 12 / 火抗 0.2 / 冰弱 0.1）与 burrower（40 / 46 / 16 / r5 / 3 XP / 护甲 20 / 火抗 0.1 / 冰抗 0.15）；新增 `WEB_ZONE`、`BURROWER`、`ELITE_AFFIX_FROM`、`ELITE_AFFIXES`、`ELITE_AFFIX_INFO`。
+  2. `core/GameCore.ts` / `core/PlayerSystem.ts` / `core/EnemySystem.ts`：新增 `webZones`；织网蛛每 2.8 秒在目标脚下放网，先 0.45 秒金圈预警，再持续 2.8 秒；玩家在网内普通移动 ×0.6，冲刺不受影响；同屏最多 12 张，网到期自动清理。
+  3. `core/EnemySystem.ts`：掘地虫状态机 dive 0.35s → under 0.8s（150px/s 朝目标突进）→ surface 0.5s 黄圈收缩预警 → 恢复追逐；钻地状态不进入 `nearestEnemy` 的自动索敌，也不结算接触伤害；地下只画土丘与扬尘。
+  4. `core/EnemySystem.ts` / `core/CombatSystem.ts`：精英从第 8 波起用生成 seed 确定性抽 1 条词缀——split（死亡生成 2 只 25% maxHP、45% 攻击、noDrop 的同类型非精英）、summon（每 5 秒召唤 2 只 70% HP/noDrop 蝙蝠，存活蝙蝠上限 12）、nova（0.55 秒预警后 95px 冰霜伤害 ×1.2，冷却 4.5 秒）。
+  5. `rendering/sprites.ts` / `rendering/draw.ts`：织网蛛八足紫青贴图、掘地虫棕甲金眼贴图；蛛网预警/网纹、掘地土丘/收缩圈、精英词缀彩色标记与冰霜新星预警圈。
+  6. `codex/codexData.ts`：新增织网蛛、掘地虫；精英说明补上「生命 ×5」与三种词缀。
+  7. `scenes/GameScene.ts`：`?test=enemy-demo` 增加 spinner/burrower 与一只随机词缀精英；同时允许 levelup 阶段启动 demo 初始化。
+  8. 强化弹飘字：`CombatSystem.hurtEnemy` 把主伤害与 `trueFraction` 真伤层分开显示；主数字保持原样式，真伤层用 9/8px 银白 `+N` 紧跟右侧（`FloatingText.small`），完全真实伤害的主数字仍走原真实样式；`addText` 返回创建项并允许补充数字跳过纵向叠字，保证紧跟主数字。
+  9. 强化弹主伤害飘字独立样式：`FloatingText.specialDmg` + `addText` 第 8 参数；金色主体 + 青色外圈，普通命中 8px 主体 + 9px 青圈；普通暴击保持 8px 金色，真实伤害样式优先于强化弹样式。
+  10. 暴击独立样式：`FloatingText.critDmg` + `addText` 第 9 参数；普通暴击为 8px 金色主体 + 9px 橙红外圈，强化弹暴击为 9px 金色主体 + 10px 青色内圈 + 11px 橙红外圈，并新增四向金色/白色短火花（按敌人 seed，不消耗随机数）。普通大字提示不设置 `critDmg`，不受影响。
+- 主题与经验预算：11–12「蛛巢」权重 18/24/8/8/8/8/16/6/4（spinner 16，首刷保底），期望 XP/刷怪 1.66；13–16「伏击」权重 14/12/6/8/6/6/6/6/6/8（burrower 8，首刷保底），期望 1.846；17–20 期望 1.865；21+ 期望 1.879。旧主题名「兽群/仪式」在 v105 分别改为「蛛巢/伏击」。
+- 受控验证（临时 Vitest，跑完删除）：
+  - spinner：吐网落在玩家位置，R=40、arm>0；网内 10 帧位移 < 无网位移 ×0.7；已有 12 张网时不再新增。
+  - burrower：130 帧内出现 dive→under→surface；钻地时 `nearestEnemy` 返回 null、30 帧接触 0 伤害；清除状态后重新可索敌。
+  - 精英词缀：第 7 波无 affix、第 8 波有；split 死亡生成 2 只非精英 noDrop 子体；summon 一帧后生成 2 只 noDrop 蝙蝠；nova 先进入 warning，45 帧内对 9999 HP 玩家造成伤害。
+  - 飘字：100 原始伤害 + 30% 附带真伤生成两条 text——主条 `100` 保持普通样式，补充条 `+30`、`trueDmg=true`、`small=true` 且 x 在主条右侧；主伤害为完全真实类型时主条仍为 `trueDmg=true`，补充条依旧为小号。强化弹物理直击主条带 `specialDmg=true`；普通暴击不带该标记；完全真实主条优先 true 样式、不带 special 标记。
+- 构建：`npm run typecheck`、`npm run build` 通过。
+- e2e：5186 MODE=e2e 运行中（`?test=enemy-demo`），场上包含 8 只常规移动怪 + 1 只随机词缀精英 + 持续补充；玩家 9999 HP、强化弹 L12/9 升级。另提供 `?test=partial-true`：只保留「附带真实伤害」、玩家 9999 HP、单只 10000 HP 精英、50% 暴击，用于明确验证主伤害与小号 `+N` 的分离显示和强化弹暴击样式；按 T 可在战斗中切换「完全真实伤害」对比主数字样式。注意浏览器标签失焦会触发游戏自动暂停，点击画面或按 P 恢复；此环境后台标签不保证持续渲染，实际操控请在可见浏览器中打开。
+- 测试基线：新增类型/图鉴/主题/精英字段会进一步使 codex、parity、enemy-spawn、early-pace 等基线过期；按 2026-10-29 标准未运行 Vitest、未改基线，留待授权测试批次统一处理。
+- 未验证/风险：蛛网与掘地虫的实际手感、蛛网在 480×270 下的视觉密度、精英三词缀的随机强度都待自然试玩；掘地期间只跳过自动索敌与接触，飞行中的弹丸和范围伤害仍可能命中（刻意保留的可反制空间）；精英词缀仅在精英生成时确定，不随波次变化。
