@@ -1,3 +1,4 @@
+import { BOSS, isBossWave } from "../game/data/boss";
 import { LASER, LASER_UPGRADES, LASER_XP } from "../game/data/laser";
 import { MISSILE, MISSILE_UPGRADES, MISSILE_XP } from "../game/data/missile";
 import { missileDamage, missileRadius, missileRange, missileReload } from "../game/core/MissileSystem";
@@ -26,7 +27,7 @@ import {
   chainDisplayLayer,
   displayTalentTier,
 } from "../game/data/talents";
-import { fmtTime } from "../game/data/constants";
+import { fmtHp, fmtTime } from "../game/data/constants";
 import { levelGrowthSteps, levelGrowthSummary } from "../game/data/levelGrowth";
 import { waveTheme } from "../game/data/enemies";
 import { boltDamage, critMultiplier } from "../game/core/DamageMath";
@@ -145,7 +146,7 @@ function damageCauseLabel(event: NonNullable<RunSummary["death"]>): string {
     case "projectile":
       return "被远程弹幕击杀";
     case "explosion":
-      return `被 ${prefix}${enemy} 的爆炸击杀`;
+      return event.sourceType === "boss_three" ? `被 ${enemy} 的招式击杀` : `被 ${prefix}${enemy} 的爆炸击杀`;
     case "dot":
       return "被持续伤害耗尽";
     default:
@@ -1075,7 +1076,7 @@ export class GameUI {
       knockRows.push(["🌵 荆棘反伤", knockLevel(KNOCK.thorns)]);
 
     const survivalRows: [string, string | number][] = [
-      ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
+      ["❤️ 生命", fmtHp(p.hp, p.maxhp)],
       // S3-C：护甲/元素抗性与战斗计算同公式（K/(K+DEF)，与减伤乘算）
       [
         "🪨 护甲",
@@ -1147,7 +1148,7 @@ export class GameUI {
       ],
       [
         "🌊 当前波次",
-        `${this.core.waveN} · ${waveTheme(this.core.waveN).name}（配额 ${this.core.quota}）`,
+        `${this.core.waveN} · ${isBossWave(this.core.waveN) ? `首领 · ${BOSS.name}` : waveTheme(this.core.waveN).name}（配额 ${this.core.quota}）`,
       ],
       ...(dynamicDifficulty.hpMul === 1 &&
       dynamicDifficulty.attackMul === 1 &&
@@ -2340,6 +2341,7 @@ export class GameUI {
     this.codex.close();
     this.core.clearTouchInput();
     this.core.resetMissileWeapon();
+    this.core.clearBossEncounter();
     this.core.state = "start";
     this.core.view.reset();
     if (this.settingsOpen) this.closeSettings();

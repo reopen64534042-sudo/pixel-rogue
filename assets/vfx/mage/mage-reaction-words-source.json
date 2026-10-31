@@ -1,0 +1,72 @@
+{
+  "source": "mage-reaction-words-green_1793484522718_4ba54541.png",
+  "output": "mage-reaction-words-source.png",
+  "width": 1536,
+  "height": 1024,
+  "transparent": 1145985,
+  "opaque": 426879,
+  "partial": 0,
+  "colors": 165235,
+  "slices": [
+    {
+      "name": "quench",
+      "file": "wordmarks/reaction-quench.png",
+      "width": 452,
+      "height": 295,
+      "transparent": 64358,
+      "opaque": 68982,
+      "partial": 0,
+      "colors": 31504
+    },
+    {
+      "name": "melt",
+      "file": "wordmarks/reaction-melt.png",
+      "width": 450,
+      "height": 307,
+      "transparent": 74553,
+      "opaque": 63597,
+      "partial": 0,
+      "colors": 23475
+    },
+    {
+      "name": "overload",
+      "file": "wordmarks/reaction-overload.png",
+      "width": 440,
+      "height": 273,
+      "transparent": 53346,
+      "opaque": 66774,
+      "partial": 0,
+      "colors": 30891
+    },
+    {
+      "name": "blaze",
+      "file": "wordmarks/reaction-blaze.png",
+      "width": 465,
+      "height": 291,
+      "transparent": 57771,
+      "opaque": 77544,
+      "partial": 0,
+      "colors": 41513
+    },
+    {
+      "name": "superconduct",
+      "file": "wordmarks/reaction-superconduct.png",
+      "width": 455,
+      "height": 336,
+      "transparent": 81520,
+      "opaque": 71360,
+      "partial": 0,
+      "colors": 38824
+    },
+    {
+      "name": "frostbind",
+      "file": "wordmarks/reaction-frostbind.png",
+      "width": 454,
+      "height": 319,
+      "transparent": 66204,
+      "opaque": 78622,
+      "partial": 0,
+      "colors": 37017
+    }
+  ]
+}

@@ -149,6 +149,7 @@ export function spawnEnemy(
     const roll = hash01(spawned.seed, this.waveN + 0.37);
     spawned.affix = ELITE_AFFIXES[Math.floor(roll * ELITE_AFFIXES.length)];
   }
+  return spawned;
 }
 
 export function nearestEnemy(
@@ -197,6 +198,8 @@ export function updateEnemies(this: GameCore, dt: number) {
       this.enemies.splice(i, 1);
       continue;
     }
+    // Boss 的移动、持续状态与攻击由独立固定步系统推进。
+    if (e.boss) continue;
     e.flash -= dt;
     e.orbCd -= dt;
     e.slowT -= dt;
@@ -753,6 +756,7 @@ export function updateEnemies(this: GameCore, dt: number) {
     for (let j = i + 1; j < this.enemies.length; j++) {
       const a = this.enemies[i],
         b = this.enemies[j];
+      if (a.boss || b.boss) continue;
       const dx = b.x - a.x,
         dy = b.y - a.y;
       const rr = a.r + b.r,

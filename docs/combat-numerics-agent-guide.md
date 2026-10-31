@@ -51,6 +51,7 @@ flowchart TD
 | src/game/core/AttackSystem.ts | updateAttacks | 玩家弹丸、攻速、陨星、环绕、焦土；形成 rawAmount 和快照 |
 | src/game/core/ProjectileSystem.ts | updateProjectiles | 双方弹丸/碰撞/反弹，命中时委托 CombatSystem |
 | src/game/core/PlayerSystem.ts | updatePlayer | 移动/冲刺/回血/护盾充能/临时计时 |
+| src/game/data/boss.ts / core/BossSystem.ts | isBossWave / spawnBoss / updateBosses / syncBossPhase | 首领生成、阶段无敌、招式和地面危险区；直伤与各 DoT 扣血后必须同步阶段，伤害系数仍在 combatBalance / DamageMath |
 | src/game/core/WaveSystem.ts | waveQuota / updateWave / startNextWave | 波次配额与休整，修改波次行为 |
 | src/game/core/StatSheets.ts | playerShadowFromEntity、playerShadowFromPicks、enemyShadow* | **影子对照工具，不是运行时权威来源** |
 

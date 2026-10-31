@@ -8,6 +8,7 @@ interface AtlasSpritePose {
   readonly scaleY: number;
   readonly originX: number;
   readonly originY: number;
+  readonly silhouette?: number;
   readonly crop?: { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
 }
 
@@ -225,6 +226,7 @@ export class PixelPainter {
     this.images[this.ii++] = img;
     img
       .setTexture(key)
+      .clearTint()
       .setCrop()
       .setPosition(x, y)
       .setVisible(true)
@@ -253,6 +255,7 @@ export class PixelPainter {
     this.images[this.ii++] = img;
     img
       .setTexture(key)
+      .clearTint()
       .setCrop()
       .setVisible(true)
       .setAlpha(this.globalAlpha)
@@ -268,11 +271,12 @@ export class PixelPainter {
     this.active = null;
     const img = this.images[this.ii] ?? this.scene.add.image(0, 0, key, frame);
     this.images[this.ii++] = img;
-    img.setTexture(key, frame).setCrop().setVisible(true)
+    img.setTexture(key, frame).clearTint().setCrop().setVisible(true)
       .setOrigin(pose.originX, pose.originY).setPosition(pose.x, pose.y)
       .setRotation(pose.angle).setScale(pose.scaleX, pose.scaleY)
       .setAlpha(this.globalAlpha).setDepth(this.depth++)
       .setScrollFactor(this.hud ? 0 : 1);
+    if (pose.silhouette !== undefined) img.setTint(pose.silhouette).setTintMode(Phaser.TintModes.FILL);
     if (pose.crop) img.setCrop(pose.crop.x, pose.crop.y, pose.crop.width, pose.crop.height);
   }
   private textState(): TextDrawState {

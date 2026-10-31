@@ -1,3 +1,4 @@
+import { preloadBossArt, registerBossPortrait } from "../rendering/BossArt";
 import { preloadLaserVfx } from "../rendering/vfx/laser/LaserVfxPhaser";
 import { preloadMissileVfx } from "../rendering/vfx/missile/MissileVfxPhaser";
 import { clearMissileTransient } from "../core/MissileSystem";
@@ -22,6 +23,8 @@ import {
 } from "../rendering/vfx/greatswordSlash";
 import { KATANA_DASH, registerKatanaDash } from "../rendering/vfx/katanaDash";
 import { KatanaCharacter, KATANA_CHARACTER, registerKatanaCharacter } from "../rendering/characters/KatanaCharacter";
+import { GreatswordCharacter, GREATSWORD_CHARACTER, registerGreatswordCharacter } from "../rendering/characters/GreatswordCharacter";
+import { ShooterCharacter, SHOOTER_CHARACTER, registerShooterCharacter } from "../rendering/characters/ShooterCharacter";
 import { W, H, WORLD, SHAKE_MAX, clamp } from "../data/constants";
 import { UPGRADES } from "../data/talents";
 import { LEVEL_GROWTH } from "../data/levelGrowth";
@@ -75,7 +78,13 @@ export class GameScene extends Phaser.Scene {
   private readonly laserBridge = new LaserV137Bridge();
   private readonly laserPlayer = new LaserVfxPlayer();
   private readonly katanaCharacter = new KatanaCharacter();
-  private readonly drawCharacter = (x: number, y: number) => this.katanaCharacter.draw(this.painter, x, y);
+  private readonly greatswordCharacter = new GreatswordCharacter();
+  private readonly shooterCharacter = new ShooterCharacter();
+  private readonly drawCharacter = (x: number, y: number) =>
+    this.katanaCharacter.draw(this.painter, x, y) || this.greatswordCharacter.draw(this.painter, x, y) || this.shooterCharacter.drawBody(this.painter, x, y);
+  private readonly drawShooterWeapon = () => this.shooterCharacter.drawWeapon(this.painter);
+  private readonly drawShooterEcho = (x: number, y: number, angle: number, alpha: number) =>
+    this.shooterCharacter.drawEcho(this.painter, x, y, angle, alpha);
   private laserCommands: readonly LaserVfxCommand[] = [];
   private readonly drawLaserAnimation = () => drawLaserVfxPainter(this.painter, this.laserCommands);
   private specialTest:
@@ -99,12 +108,14 @@ export class GameScene extends Phaser.Scene {
     super("Game");
   }
   preload() {
+    preloadBossArt(this);
     preloadLaserVfx(this);
     preloadMissileVfx(this);
   }
   create() {
     for (const [key, canvas] of Object.entries(SPR))
       this.textures.addCanvas(key, canvas);
+    registerBossPortrait(this);
     this.painter = new PixelPainter(this);    this.ui = new GameUI(this.core);
     if (import.meta.env.DEV) this.dev = new DevPanel(this.core);
     this.touch = new TouchControls(this.core, this.game.canvas);
@@ -225,6 +236,8 @@ export class GameScene extends Phaser.Scene {
       this.laserPlayer.reset();
       this.laserCommands = [];
       this.katanaCharacter.reset();
+      this.greatswordCharacter.reset();
+      this.shooterCharacter.reset();
       if (import.meta.env.DEV) delete window.__PIXEL_ROGUE__;
     });
     // Explicit test mode only; production bundles contain no control bridge.
@@ -242,6 +255,8 @@ export class GameScene extends Phaser.Scene {
     void this.loadGreatswordSlashes();
     void this.loadKatanaDash();
     void this.loadKatanaCharacter();
+    void this.loadGreatswordCharacter();
+    void this.loadShooterCharacter();
     const testName = new URLSearchParams(window.location.search).get("test");
     this.specialTest =
       import.meta.env.DEV && import.meta.env.MODE === "e2e"
@@ -632,6 +647,29 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private async loadGreatswordCharacter() {
+    try {
+      const image = await loadImageElement(GREATSWORD_CHARACTER.image);
+      if (!this.sys.isActive()) return;
+      registerGreatswordCharacter(this.textures, image);
+    } catch (error) {
+      if (import.meta.env.DEV)
+        console.warn("[assets] Greatsword character loading failed; using original sprite", error);
+    }
+  }
+
+  private async loadShooterCharacter() {
+    try {
+      const [body, weapons] = await Promise.all([
+        loadImageElement(SHOOTER_CHARACTER.bodyImage), loadImageElement(SHOOTER_CHARACTER.weaponImage),
+      ]);
+      if (!this.sys.isActive()) return;
+      registerShooterCharacter(this.textures, body, weapons);
+    } catch (error) {
+      if (import.meta.env.DEV) console.warn("[assets] Shooter character loading failed; using original sprite", error);
+    }
+  }
+
   update(_now: number, delta: number) {
     if (!this.painter) return;
     // Issue #95：输入在模拟推进前落盘，否则摇杆方向会晚一帧生效
@@ -640,6 +678,8 @@ export class GameScene extends Phaser.Scene {
       this.clock.advance(delta / 1000, (dt) => {
         this.core.step(dt);
         this.katanaCharacter.capture(this.core);
+        this.greatswordCharacter.capture(this.core);
+        this.shooterCharacter.capture(this.core);
         this.captureLaserAnimation();
       });
     else this.clock.reset();
@@ -647,6 +687,8 @@ export class GameScene extends Phaser.Scene {
     // Also observe UI/DEV resets and paused states on frames without a fixed step.
     this.captureLaserAnimation();
     this.katanaCharacter.capture(this.core);
+    this.greatswordCharacter.capture(this.core);
+    this.shooterCharacter.capture(this.core);
     this.painter.begin();
     if (this.core.state === "start") {
       this.cameras.main.setScroll(0, 0);
@@ -669,7 +711,7 @@ export class GameScene extends Phaser.Scene {
         Math.round(this.core.cam.x + (shake ? (Math.random() - 0.5) * shake : 0)),
         Math.round(this.core.cam.y + (shake ? (Math.random() - 0.5) * shake : 0)),
       );
-      draw.call(this.core, this.painter, this.drawLaserAnimation, this.drawCharacter);
+      draw.call(this.core, this.painter, this.drawLaserAnimation, this.drawCharacter, this.drawShooterWeapon, this.drawShooterEcho);
     }
     // v77：低血量屏幕边缘提示（DOM 覆盖层；只改 opacity，不碰画布）
     this.ui.syncLowHp();

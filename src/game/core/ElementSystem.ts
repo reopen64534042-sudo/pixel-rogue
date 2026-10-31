@@ -1,11 +1,11 @@
+import { bossDamageTakenMultiplier, bossInvulnerable, syncBossPhase } from "./BossSystem";
 import {
   ELEMENTAL_MAGE,
   MAGE_REACTIONS,
   reactionForPair,
 } from "../data/elementalMage";
 import type { MageElement, MageReactionId } from "../data/elementalMage";
-import { MAGE_BALANCE as MB } from "../data/mageBalance";
-import { DAMAGE_TYPES } from "../data/damageTypes";
+import { MAGE_BALANCE as MB } from "../data/mageBalance";import { DAMAGE_TYPES } from "../data/damageTypes";
 import type { DamageTypeId } from "../data/damageTypes";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { calculateDamage } from "./DamageSystem";
@@ -272,7 +272,8 @@ function applyFrost(
         arr[j] = (ELEMENTAL_MAGE.frost.duration2 + bonus) * durationMul;
     }
     if (arr.length >= cap) {
-      if (!suppressFreeze) freeze(e, durationMul);
+      // Boss 免疫冻结；保留满层凝冰，由减速承担冰系收益。
+      if (!suppressFreeze && !e.boss) freeze(e, durationMul);
       break;
     }
   }
@@ -285,14 +286,16 @@ function applyLightningStatus(
   durationMul = 1,
 ): void {
   e.elemShockT = ELEMENTAL_MAGE.shock.duration * durationMul;
-  if (!isParalyzed(e))
+  // Boss 免疫麻痹；雷印仍可挂上，供裂焰/超载判定。
+  if (!isParalyzed(e) && !e.boss)
     e.elemParaT =
       (ELEMENTAL_MAGE.paralyze.duration + mageStatusDurationBonus(core)) *
       durationMul;
 }
 
-/** 施加霜牢：初始 2 秒；已在霜牢中则至少刷新到 2 秒。 */
+/** 施加霜牢：初始 2 秒；已在霜牢中则至少刷新到 2 秒。Boss 免疫控制。 */
 function applyFrostLock(e: Enemy): void {
+  if (e.boss) return;
   const base = ELEMENTAL_MAGE.frostLock.duration;
   if (isFrostLocked(e)) {
     e.elemFrostLockT = Math.max(e.elemFrostLockT ?? 0, base);
@@ -690,8 +693,9 @@ export function applyDotDamage(
     attackerStats: getPlayerCombatStats(core.player),
     defenderStats: getEnemyCombatStats(e),
   });
-  const taken = calc.settledDamage * (e.damageTakenMul ?? 1);
+  const taken = bossInvulnerable(core, e) ? 0 : calc.settledDamage * (e.damageTakenMul ?? 1) * bossDamageTakenMultiplier(core, e);
   e.hp -= taken;
+  syncBossPhase(core, e);
   core.dmgBy.element += taken;
 }
 

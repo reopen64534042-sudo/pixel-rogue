@@ -1,0 +1,10 @@
+Redraw this full SKILL ACTION sheet as the LEFT-facing view of the SAME greatsword mercenary C. Preserve the exact same character identity, coarse pixel style, scale and all sixteen corresponding poses: brown short hair and dark beard, visible very dark eye, asymmetric steel armor, short dark-red mantle, BOTH brown gloves on the same greatsword hilt, brown boots/soles with steel toe caps. Keep anatomical hand/armor sides with appropriate occlusion; do not simply mirror the outfit.
+Output EXACTLY 4 equal columns x 4 equal rows on a genuinely transparent square canvas. All figures face LEFT and slightly toward viewer. Same body height and cell scale as input, no per-pose resizing.
+Rows remain:
+1 HEAVY: shoulder ready, overhead lift, powerful LEFTward diagonal heavy cut, compact controlled recovery.
+2 TAKEOFF: initial crouch, deeper compression, upward push, leaving-ground compact pose.
+3 AIR: tucked knees/blade raised, tighter tuck, preparing descent, pre-landing down-cut pose.
+4 LAND: low bracing crouch, settle, rise, return to shoulder carry.
+All brown soles remain visible; vertical displacement is supplied by the game, so keep the lowest boot near a shared local baseline. The greatsword tip must stay at or above the boot baseline, at most two logical pixels below it.
+CRITICAL: every blade tip, boot and glove fits INSIDE ITS OWN CELL, with at least 12 source pixels of transparent space. Especially ROW 4 COLUMN 1 must NOT send a blade out of the LEFT canvas edge: use a compact across-body down-RIGHT recovery/brace angle there if necessary. Keep the full blade and tip visible, adjust arm/weapon angle rather than shrinking the character, shortening the sword or cropping. No blade crosses neighboring characters.
+Palette matches input: #1a0a2a #22223a dark outline, #5a3a20 brown, #ffd9a0 skin, #c5c7cf #8b8f9a #4a5062 steel, #c05050 #3a0d0d red mantle, sparse #f4a940 gold and #e8e8f0 blade highlights. No glow, shockwave, dust, particles, ground shadow, scenery, gradients, soft edges, decorative noise, text, cell lines, borders, logos or watermark.

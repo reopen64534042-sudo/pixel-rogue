@@ -1,3 +1,4 @@
+import { makeBossSprite } from "./bossSprite";
 function makeSprite(map: string[], palette: Record<string, string>) {
   const h = map.length,
     w = map[0].length;
@@ -16,6 +17,7 @@ function makeSprite(map: string[], palette: Record<string, string>) {
   return c;
 }
 export const SPR: Record<string, HTMLCanvasElement> = {};
+SPR.boss_three = makeBossSprite();
 SPR.blade = makeSprite(
   [
     "...s....",
