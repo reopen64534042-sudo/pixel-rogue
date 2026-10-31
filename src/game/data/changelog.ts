@@ -8,6 +8,14 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时递增版本号，且每条按【加强】【削弱】【调整】【新增】【清理】【修复】【说明】分类开头。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v144",
+    date: "2026-10-31",
+    title: "导弹资源条间距修复",
+    items: [
+      "【修复】导弹装填条、三轮刻度、经验条和弹药标记整体下移 3px，与冲刺充能格保留两行空隙，修正相互遮挡。",
+    ],
+  },
+  {
     version: "v143",
     date: "2026-10-31",
     title: "激光回充效率与武器属性界面优化",
