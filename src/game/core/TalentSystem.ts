@@ -67,6 +67,7 @@ export function canOffer(this: GameCore, u: Talent) {
     (this.prof !== "warrior" || this.warriorStyle !== u.warriorStyle)
   )
     return false;
+  if (u.prof === "shooter" && (u.shooterWeapon ?? "charged") !== this.shooterWeapon) return false;
   const picks = this.player.picks;
   // S2 链式依赖（混合式抽取）：未持有前置时 L2/L3 不进池。
   if (u.requires && !picks.includes(u.requires)) return false;
@@ -367,7 +368,7 @@ export function rollPicks(this: GameCore) {
   // 特殊弹节奏固定每 4 发，快速/超载不再改变计数。
   // 只替换最后一个槽位、不额外消耗随机数。
   if (this.prof === "shooter" && this.player.picks.length === 0) {
-    const core = UPGRADES.find((u) => u.n === "快速装填");
+    const core = UPGRADES.find((u) => u.n === (this.shooterWeapon === "laser" ? "锁相" : "快速装填"));
     if (core && this.canOffer(core) && !picks.some((u) => u.n === core.n)) {
       if (picks.length >= 3) picks[picks.length - 1] = core;
       else picks.push(core);

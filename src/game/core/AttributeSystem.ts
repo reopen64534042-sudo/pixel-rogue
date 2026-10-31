@@ -1,7 +1,7 @@
 import { ATTRIBUTE_CAPS, lifestealCap } from "../data/attributeBalance";
 import { statBase } from "../data/stats";
 import { TIERS } from "../data/talents";
-import type { Player, Profession, WarriorStyle } from "./types";
+import type { Player, Profession, ShooterWeapon, WarriorStyle } from "./types";
 import type { GameCore } from "./GameCore";
 import type { AttributePoint } from "./AttributeSources";
 import type { ModifierStage, StatId } from "./StatModel";
@@ -51,12 +51,16 @@ export interface AttrDef {
   readonly label: string;
   /** 职业专属候选（省略 = 所有职业通用） */
   readonly prof?: Profession;
+  /** 射手武器专属候选；省略表示不按主武器过滤。 */
+  readonly shooterWeapon?: ShooterWeapon;
   /**
    * 职业专属显示名。底层的 stat 不变，只换玩家看到的名字——
    * 法师的「攻击/攻速/射程」实际驱动的是元素伤害、施法速度、施法距离，
    * 沿用射手口径会让玩家以为自己在加物理攻击。
    */
-  readonly labels?: Partial<Record<Profession, string>>;
+  readonly labels?: Partial<Record<Profession | ShooterWeapon, string>>;
+  /** 用于说明职业 / 武器口径下的实际收益。 */
+  readonly hints?: Partial<Record<Profession | ShooterWeapon, string>>;
   readonly stat: StatId;
   readonly stage: ModifierStage;
   /** 白档数值：flat 为绝对值，percent 为小数（0.04 = +4%） */
@@ -89,7 +93,7 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   // 原值对基础攻击 11 是 **+45%/次**，配上每波 5-7 次，30 波能把攻击堆到数百，
   // 天赋的机制收益完全被淹没。+2 约等于 +18%/次，与「一次选择 = 一个小台阶」相称。
   { group: "offense", label: "攻击", labels: { mage: "元素伤害" }, stat: "attack", stage: "flat", base: 2, kind: "int" },
-  { group: "offense", label: "攻速", labels: { mage: "施法速度" }, stat: "fireRate", stage: "percent", base: 0.04, kind: "pct", capped: (p, prof, style) => p.fireRate >= statBase(prof, style).fireRate * ATTRIBUTE_CAPS.fireRateMul },
+  { group: "offense", label: "攻速", labels: { mage: "施法速度", laser: "光束输出" }, hints: { laser: "提高光束每秒伤害" }, stat: "fireRate", stage: "percent", base: 0.04, kind: "pct", capped: (p, prof, style) => p.fireRate >= statBase(prof, style).fireRate * ATTRIBUTE_CAPS.fireRateMul },
   {
     group: "offense",
     label: "暴击",
@@ -111,7 +115,8 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     group: "offense",
     label: "全局增伤",
     stat: "globalDamageBonus",
-    stage: "percent",
+    // 增伤比例从 0 起算：+5% 是 flat +0.05，再由伤害管线乘 (1 + bonus)。
+    stage: "flat",
     base: 0.05,
     kind: "pct",
   },
@@ -167,6 +172,8 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   // 法阵范围：S2（#135）因射手零感知被移出面板，S3 法师的法阵半径直接读
   // `p.area`（mageCircleRadius），因此只对法师投放。
   { group: "utility", label: "法阵范围", prof: "mage", stat: "area", stage: "percent", base: 0.05, kind: "pct" },
+  // 复用已接通的 area 来源，激光的碰撞 / 绘制都由 laserWidth 消费。
+  { group: "utility", label: "光束宽度", prof: "shooter", shooterWeapon: "laser", hints: { laser: "加宽光束，扩大扫中敌人的范围" }, stat: "area", stage: "percent", base: 0.1, kind: "pct" },
 ];
 
 /** 稀有度倍率：白 / 绿 / 紫 / 金 */
@@ -228,6 +235,7 @@ export interface AttrChoice {
   readonly text: string;
   /** 面板显示名（已按职业解析，如法师的「元素伤害」） */
   readonly label: string;
+  readonly hint?: string;
 }
 
 function pickRarity(lvl: number): number {
@@ -259,15 +267,19 @@ function makeChoice(
   def: AttrDef,
   p: Player,
   prof: Profession = "shooter",
+  shooterWeapon: ShooterWeapon = "charged",
 ): AttrChoice {
   const rarity = pickRarity(p.lvl);
   const value = quantize(def, def.base * RARITY_MUL[rarity]);
+  const presentation = prof === "shooter" ? shooterWeapon : prof;
+  const hint = def.hints?.[presentation] ?? def.hints?.[prof];
   return {
     def,
     rarity,
     value,
     text: textOf(def, value),
-    label: def.labels?.[prof] ?? def.label,
+    label: def.labels?.[presentation] ?? def.labels?.[prof] ?? def.label,
+    ...(hint ? { hint } : {}),
   };
 }
 
@@ -284,17 +296,19 @@ export function rollAttrChoices(
   p: Player,
   prof: Profession = "shooter",
   warriorStyle: WarriorStyle = "katana",
+  shooterWeapon: ShooterWeapon = "charged",
 ): AttrChoice[] {
   const choices = ATTR_GROUPS.map((group) => {
     const pool = ATTR_DEFS.filter(
       (d) =>
         d.group === group.key &&
         (!d.prof || d.prof === prof) &&
+        (!d.shooterWeapon || (prof === "shooter" && d.shooterWeapon === shooterWeapon)) &&
         !(d.capped?.(p, prof, warriorStyle) ?? false),
     );
     const usable = pool.length ? pool : ATTR_DEFS.filter((d) => d.stat === "attack");
     const def = usable[Math.floor(Math.random() * usable.length)];
-    return makeChoice(def, p, prof);
+    return makeChoice(def, p, prof, shooterWeapon);
   });
   // v79：四格顺序随机，避免输出类永远在第一张。键盘 1-4 跟随显示顺序。
   for (let i = choices.length - 1; i > 0; i--) {
@@ -352,7 +366,7 @@ export function grantAttrPicks(this: GameCore, n: number): number {
 export function openAttrPanel(this: GameCore) {
   if (this.bpMode) return;
   this.bpMode = "attr";
-  this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle);
+  this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle, this.shooterWeapon);
   this.attrRefreshUsed = false;
   this.view.attr();
 }
@@ -361,7 +375,7 @@ export function refreshAttr(this: GameCore) {
   this.ensurePlay(); // Issue #34：与天赋刷新一致，先收掉属性覆盖层
   if (this.state !== "play" || this.bpMode !== "attr" || this.attrRefreshUsed)
     return false;
-  this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle);
+  this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle, this.shooterWeapon);
   this.attrRefreshUsed = true;
   this.view.attr();
   return true;
@@ -395,7 +409,7 @@ export function chooseAttr(this: GameCore, index: number) {
   }
   if (this.attrPicks > 0) {
     // 还有次数：就地换一组新的，刷新额度重置（每「次选择」各有一次刷新）
-    this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle);
+    this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle, this.shooterWeapon);
     this.attrRefreshUsed = false;
   } else {
     this.attrChoices = [];

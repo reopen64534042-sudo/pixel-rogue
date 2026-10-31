@@ -1,4 +1,4 @@
-import type { Profession, WarriorStyle } from "./types";
+import type { Profession, ShooterWeapon, WarriorStyle } from "./types";
 import type { GameCore } from "./GameCore";
 import { WORLD, clamp } from "../data/constants";
 import { WARRIOR_BALANCE } from "../data/warriorBalance";
@@ -29,8 +29,9 @@ export function startTutorial(
   this: GameCore,
   prof: Profession,
   warriorStyle: WarriorStyle = "katana",
+  shooterWeapon: ShooterWeapon = "charged",
 ) {
-  this.resetGame(prof, warriorStyle);
+  this.resetGame(prof, warriorStyle, shooterWeapon);
   this.tutorialMode = true;
   this.tutorialStep = 0;
   this.tutorialStepReady = false;
@@ -130,7 +131,7 @@ export function updateTutorial(this: GameCore, _dt: number) {
           !e.dead &&
           Math.hypot(e.x - p.x, e.y - p.y) >= p.attackRange * 0.6,
       );
-      done = atRange && this.tutorialSpecialHits >= 3;
+      done = atRange && (this.shooterWeapon === "laser" ? this.tutorialProfDone : this.tutorialSpecialHits >= 3);
     } else {
       done = this.tutorialProfDone;
     }
@@ -186,5 +187,5 @@ export function advanceTutorial(this: GameCore) {
 export function finishTutorial(this: GameCore) {
   if (!this.tutorialMode) return;
   const prof = this.tutorialProf ?? this.prof;
-  this.startGame(prof, this.warriorStyle);
+  this.startGame(prof, this.warriorStyle, this.shooterWeapon);
 }

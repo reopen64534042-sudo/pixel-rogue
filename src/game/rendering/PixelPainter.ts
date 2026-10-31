@@ -185,6 +185,19 @@ export class PixelPainter {
     }
     g.strokePath();
   }
+  /** 固定宽度束线，复用现有 Graphics 批次；不创建额外动画或纹理。 */
+  beam(x1: number, y1: number, x2: number, y2: number, width: number, color: string, alpha: number) {
+    this.batch().lineStyle(width, this.color(color), alpha).beginPath()
+      .moveTo(x1, y1).lineTo(x2, y2).strokePath();
+  }
+  /** 细束收尖与折射节点共用的实心多边形，沿用 Graphics 对象池。 */
+  polygon(points: readonly number[], color: string, alpha: number) {
+    if (points.length < 6) return;
+    const g = this.batch().fillStyle(this.color(color), alpha).beginPath();
+    g.moveTo(points[0], points[1]);
+    for (let i = 2; i + 1 < points.length; i += 2) g.lineTo(points[i], points[i + 1]);
+    g.closePath().fillPath();
+  }
   sprite(key: string, x: number, y: number, w?: number, h?: number) {
     this.active = null;
     const img =

@@ -43,6 +43,9 @@ flowchart TD
 | src/game/core/DamageSystem.ts | calculateDamage、typeMitigationFactor、generalMitigationFactor | 纯计算：四乘区、暴击、减伤和精度；不直接操作 HP/RNG |
 | src/game/core/CombatSystem.ts | hurtEnemy、damagePlayer、applyBurnDot、applyBurnGroundDot、killEnemy | 闪避/护盾/暴击掷骰/应用伤害/死亡副作用 |
 | src/game/core/DamageMath.ts | boltDamage、critMultiplier、meteorDamage、burnStackDps 等 | 纯技能公式；系数从 combatBalance 取 |
+| src/game/core/AttributeSystem.ts | AttrDef.shooterWeapon / rollAttrChoices | 激光专属光束宽度只在 laser 武器入池；开面板、刷新、连选都传第四参 shooterWeapon，area 经既有 StatModel 投影 |
+| src/game/data/laser.ts / data/talents/laser.ts | LASER / LASER_XP / LASER_UPGRADES / LASER_TALENTS | 激光节奏、几何、成长与专属卡表；伤害系数仍在 combatBalance.LASER_DAMAGE，公式在 DamageMath |
+| src/game/core/LaserSystem.ts | updateLaser / laserDash | 射手独立主武器：三联各自持有目标 / 方向 / 焦点；同目标伤害合并，XP 每帧只累计一次，吸血与命中特效共用时间预算 |
 | src/game/core/AttackSystem.ts | updateAttacks | 玩家弹丸、攻速、陨星、环绕、焦土；形成 rawAmount 和快照 |
 | src/game/core/ProjectileSystem.ts | updateProjectiles | 双方弹丸/碰撞/反弹，命中时委托 CombatSystem |
 | src/game/core/PlayerSystem.ts | updatePlayer | 移动/冲刺/回血/护盾充能/临时计时 |

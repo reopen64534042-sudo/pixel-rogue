@@ -85,3 +85,26 @@ export const COMBAT_BALANCE: CombatBalance = {
   spreadDetectRadius: 110,
   scorchVulnPerLevel: 0.1,
 };
+
+/** v132 激光首版系数，集中留待自然试玩校准。 */
+export const LASER_DAMAGE = {
+  // v137：先提升单束基本盘，三联与聚焦在此基础上成长。
+  dpsPerAttack: 1.8,
+  dpsPerLevel: 0.08,
+  focusBonus: 0.5,
+  pierce: 0.8,
+  lensPierce: 0.9,
+  polarBonus: 0.05,
+  maxPierce: 0.95,
+  // v134 三联激光：两侧均为完整主束，与中央同伤害。
+  tripleSideMul: 1,
+  afterglowDps: 0.2,
+  echoDps: 0.35,
+  meltdown: 1.8,
+  collapse: 0.8,
+  escape: 0.8,
+  rechargeDefense: 0.85,
+  focusRelay: 0.6,
+  farFocusSpeed: 1.4,
+  highFocus: 0.75,
+} as const;

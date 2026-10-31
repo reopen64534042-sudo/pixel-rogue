@@ -1,3 +1,4 @@
+import { updateLaser } from "./LaserSystem";
 import type { GameCore } from "./GameCore";
 import { SPECIAL_SHOT_EVERY } from "../data/constants";
 import {
@@ -33,7 +34,8 @@ export function updateAttacks(this: GameCore, dt: number) {
   // 射手路径条件恒真，逐位不变。
   p.fireCd -= dt;
   if (this.prof === "warrior") updateWarriorCombat.call(this, dt);
-  if (this.prof === "shooter" && p.fireCd <= 0) {
+  if (this.prof === "shooter" && this.shooterWeapon === "laser") updateLaser.call(this, dt);
+  if (this.prof === "shooter" && this.shooterWeapon === "charged" && p.fireCd <= 0) {
     // S1：射程改为玩家属性（base 130）；索敌半径与弹道 life 共用同一值
     const tgt = this.nearestEnemy(p.x, p.y, p.attackRange);
     if (tgt) {

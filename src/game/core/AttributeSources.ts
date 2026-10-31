@@ -40,7 +40,10 @@ export function attributeModifiers(
   return points.map((point, index) => ({
     sourceId: `attr:${index}:${point.stat}`,
     stat: point.stat,
-    stage: point.stage,
+    // 兼容本局已选的旧全局增伤记录：旧卡错误标成 percent，数值仍是增伤百分点。
+    stage: point.stat === "globalDamageBonus" && point.stage === "percent"
+      ? "flat"
+      : point.stage,
     value: point.value,
   }));
 }

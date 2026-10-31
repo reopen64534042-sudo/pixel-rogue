@@ -1,3 +1,4 @@
+import { LASER_TALENTS } from "./laser";
 import type { Talent } from "../../core/types";
 import { LEGACY_UPGRADES } from "./legacy";
 import { MAGE_TALENTS } from "./mage";
@@ -47,4 +48,5 @@ export const UPGRADES: Talent[] = [
   ...SHOOTER_TALENTS,
   ...MAGE_TALENTS,
   ...WARRIOR_TALENTS,
+  ...LASER_TALENTS,
 ];

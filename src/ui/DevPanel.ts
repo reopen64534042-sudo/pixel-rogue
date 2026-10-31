@@ -1,3 +1,4 @@
+import { createLaserState } from "../game/data/laser";
 import type { GameCore } from "../game/core/GameCore";
 import { UPGRADES } from "../game/data/talents";
 import type { Talent } from "../game/core/types";
@@ -111,7 +112,7 @@ export class DevPanel {
       if (this.core.state === "play") this.core.openAttrPanel();
     });
     mk("重开本局", () => {
-      this.core.startGame(this.core.prof, this.core.warriorStyle);
+      this.core.startGame(this.core.prof, this.core.warriorStyle, this.core.shooterWeapon);
     });
     // 无敌：只影响 damagePlayer（DEV 门控），跨重开保留
     const god = el(
@@ -213,7 +214,7 @@ export class DevPanel {
       "div",
       "display:flex;gap:4px;margin-bottom:6px;align-items:center",
     ) as HTMLDivElement;
-    specialRow.appendChild(el("span", "color:#7d8ec4", "强化箭"));
+    specialRow.appendChild(el("span", "color:#7d8ec4", this.core.shooterWeapon === "laser" ? "激光" : "强化箭"));
     const specialSel = document.createElement("select");
     specialSel.style.cssText =
       "flex:1;background:#0e1430;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 4px;font:11px ui-monospace,Consolas,monospace";
@@ -223,7 +224,7 @@ export class DevPanel {
       option.textContent = `Lv.${i}`;
       specialSel.appendChild(option);
     }
-    specialSel.value = String(this.core.specialLevel);
+    specialSel.value = String(this.core.shooterWeapon === "laser" ? this.core.laserLevel : this.core.specialLevel);
     specialSel.addEventListener("keydown", (e) => e.stopPropagation());
     specialSel.addEventListener("keyup", (e) => e.stopPropagation());
     specialRow.appendChild(specialSel);
@@ -234,7 +235,8 @@ export class DevPanel {
     );
     specialGo.title = "按阶段重建升级（L4 起每级 1 条）";
     specialGo.addEventListener("click", () => {
-      this.core.devSetSpecialLevel(Number(specialSel.value));
+      if (this.core.shooterWeapon === "laser") this.core.devSetLaserLevel(Number(specialSel.value));
+      else this.core.devSetSpecialLevel(Number(specialSel.value));
       this.render();
     });
     specialRow.appendChild(specialGo);
@@ -262,7 +264,7 @@ export class DevPanel {
     // 只有「开始 / 结算」界面没有可保留的局，先正常开局；
     // 游玩中跳波**保留当前构筑**（天赋/属性/等级），只清场并把波次拨到 n。
     if (c.state !== "play" && c.state !== "pause" && c.state !== "stats")
-      c.startGame(c.prof, c.warriorStyle);
+      c.startGame(c.prof, c.warriorStyle, c.shooterWeapon);
     c.enemies = [];
     c.ebullets = [];
     c.bullets = [];
@@ -280,6 +282,7 @@ export class DevPanel {
     // 否则旧目标/旧弹道会带进新波；specialLevel/Upgrades 属于构筑，保留。
     c.missiles = [];
     c.lasers = [];
+    c.laser = createLaserState();
     c.shotCounter = 0;
     c.dashFireBoostT = 0;
     c.parts = [];
@@ -331,6 +334,8 @@ export class DevPanel {
         this.core.warriorStyle !== u.warriorStyle)
     )
       return { ok: false, hint: "流派不符" };
+    if (u.prof === "shooter" && (u.shooterWeapon ?? "charged") !== this.core.shooterWeapon)
+      return { ok: false, hint: "主武器不符" };
     const picks = this.core.player.picks;
     if (u.requires && !picks.includes(u.requires))
       return { ok: false, hint: `需 ${u.requires}` };

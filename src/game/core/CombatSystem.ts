@@ -38,6 +38,7 @@ import {
   FISSION_SPEED,
 } from "../data/specialShot";
 import {
+  laserIncomingDamage,
   burnStackDps,
   scorchVulnMultiplier,
   frostFreezeDuration,
@@ -105,7 +106,7 @@ export function hurtEnemy(
             (ruiShi ? WARRIOR_BALANCE.lianShan.critBonus : 0),
         );
   let crit = false;
-  if (!opts.noCrit && Math.random() < critChance) {
+  if (!opts.noCrit && (opts.critical ?? (Math.random() < critChance))) {
     crit = true;
   }
   // 冷读是「下一次命中」，命中即消费；赌命是窗口，不消费
@@ -166,7 +167,7 @@ export function hurtEnemy(
     form: opts.form ?? "other",
     origin: opts.src ?? "hit",
     kind: "hit",
-    precision: "round-min-one",
+    precision: opts.continuous ? "preserve-float" : "round-min-one",
     isCritical: crit,
     attackerStats: effectiveAttackerStats,
     defenderStats: getEnemyCombatStats(e, armorPen),
@@ -181,7 +182,7 @@ export function hurtEnemy(
       form: opts.form ?? "other",
       origin: opts.src ?? "hit",
       kind: "hit",
-      precision: "round-min-one",
+      precision: opts.continuous ? "preserve-float" : "round-min-one",
       isCritical: crit,
       attackerStats: effectiveAttackerStats,
       defenderStats: getEnemyCombatStats(e, armorPen),
@@ -196,7 +197,9 @@ export function hurtEnemy(
   if (damageTakenMul !== 1) {
     const mainPart = trueDamage > 0 ? Math.max(0, dmg - trueDamage) : dmg;
     const taken = (v: number) =>
-      v > 0 ? Math.max(1, Math.round(v * damageTakenMul)) : 0;
+      v <= 0 ? 0 : opts.continuous
+        ? v * damageTakenMul
+        : Math.max(1, Math.round(v * damageTakenMul));
     const scaledMain = taken(mainPart);
     const scaledTrue = taken(trueDamage);
     dmg = scaledMain + scaledTrue;
@@ -214,54 +217,56 @@ export function hurtEnemy(
   const mainIsTrue = opts.type === "true";
   const mainSpecial = opts.specialHit === true && !mainIsTrue;
   const mainDamage = trueDamage > 0 ? Math.max(0, dmg - trueDamage) : dmg;
-  const mainText = this.addText(
-    e.x,
-    e.y - e.r - 2,
-    mainDamage,
-    // 居合斩优先用冰白主色（配专属双层描边，见 draw.ts）
-    opts.iaiHit
-      ? "#e8ffff"
-      : mainIsTrue
-        ? TRUE_DAMAGE_COLOR
-        : opts.specialHit || crit
-          ? "#ffd24a"
-          : "#ffffff",
-    crit,
-    mainIsTrue,
-    false,
-    mainSpecial,
-    crit,
-    opts.iaiHit === true,
-  );
-  if (crit) {
-    // 暴击火花：不推进随机数，按敌人 seed 给四向金色/白色短粒子。
-    for (let i = 0; i < 4; i++) {
-      const a = e.seed + (i * Math.PI) / 2;
-      this.parts.push({
-        x: e.x,
-        y: e.y,
-        vx: Math.cos(a) * 70,
-        vy: Math.sin(a) * 70,
-        life: 0.25,
-        c: i % 2 === 0 ? "#ffd24a" : "#ffffff",
-      });
-    }
-  }
-  if (trueDamage > 0) {
-    const subLabel = `+${trueDamage}`;
-    // Press Start 2P 近似等宽：按字号估宽，给主数字和 +N 之间留 3px 空隙。
-    const mainCharW = mainIsTrue ? (crit ? 16 : 12) : mainSpecial ? 9 : 8;
-    const mainW = Math.max(8, String(mainDamage).length * mainCharW);
-    const subW = subLabel.length * 8;
-    this.addText(
-      mainText.x + mainW / 2 + 3 + subW / 2,
-      mainText.y,
-      subLabel,
-      TRUE_DAMAGE_COLOR,
+  if (!opts.silent) {
+    const mainText = this.addText(
+      e.x,
+      e.y - e.r - 2,
+      mainDamage,
+      // 居合斩优先用冰白主色（配专属双层描边，见 draw.ts）
+      opts.iaiHit
+        ? "#e8ffff"
+        : mainIsTrue
+          ? TRUE_DAMAGE_COLOR
+          : opts.specialHit || crit
+            ? "#ffd24a"
+            : "#ffffff",
+      crit,
+      mainIsTrue,
       false,
-      true,
-      true,
+      mainSpecial,
+      crit,
+      opts.iaiHit === true,
     );
+    if (crit) {
+      // 暴击火花：不推进随机数，按敌人 seed 给四向金色/白色短粒子。
+      for (let i = 0; i < 4; i++) {
+        const a = e.seed + (i * Math.PI) / 2;
+        this.parts.push({
+          x: e.x,
+          y: e.y,
+          vx: Math.cos(a) * 70,
+          vy: Math.sin(a) * 70,
+          life: 0.25,
+          c: i % 2 === 0 ? "#ffd24a" : "#ffffff",
+        });
+      }
+    }
+    if (trueDamage > 0) {
+      const subLabel = `+${trueDamage}`;
+      // Press Start 2P 近似等宽：按字号估宽，给主数字和 +N 之间留 3px 空隙。
+      const mainCharW = mainIsTrue ? (crit ? 16 : 12) : mainSpecial ? 9 : 8;
+      const mainW = Math.max(8, String(mainDamage).length * mainCharW);
+      const subW = subLabel.length * 8;
+      this.addText(
+        mainText.x + mainW / 2 + 3 + subW / 2,
+        mainText.y,
+        subLabel,
+        TRUE_DAMAGE_COLOR,
+        false,
+        true,
+        true,
+      );
+    }
   }
   // 「贯穿标记」：只有强化弹直接命中才叠层，普通命中不叠。
   // 上限由「深痕」决定；标记常驻，不因换目标清空。
@@ -302,12 +307,12 @@ export function hurtEnemy(
     e.x += kx;
     e.y += ky;
   }
-  if (this.player.slow) {
+  if (!opts.noOnHit && this.player.slow) {
     e.slowT = 1.2;
     e.slowF = this.player.slow;
   }
   // Issue #38：冰霜叠层 → 冰冻
-  if (this.player.frostLv > 0 && (e.frostImmuneT || 0) <= 0) {
+  if (!opts.noOnHit && this.player.frostLv > 0 && (e.frostImmuneT || 0) <= 0) {
     e.frostStacks = (e.frostStacks || 0) + 1;
     if (e.frostStacks >= 3) {
       e.frozenT = frostFreezeDuration(this.player);
@@ -318,12 +323,12 @@ export function hurtEnemy(
     }
   }
   // Issue #42：灼烧叠层（每层 10% 伤害/秒）
-  if (this.player.burn) {
+  if (!opts.noOnHit && this.player.burn) {
     e.burnStacks = Math.min(4, (e.burnStacks || 0) + 1);
     e.burnT = 2;
     e.burnDps = burnStackDps(this.player, e.burnStacks);
   }
-  if (this.player.chain > 0 && this.chainCd <= 0 && !opts.noChain) {
+  if (this.player.chain > 0 && this.chainCd <= 0 && !opts.noChain && !opts.noOnHit) {
     this.chainCd = 0.6;
     const near = this.enemies
       .filter(
@@ -346,7 +351,7 @@ export function hurtEnemy(
     }
     if (near.length) this.audio.beep(1200, 0.08, "sawtooth", 0.04, -600);
   }
-  this.audio.beep(200 + Math.random() * 80, 0.04, "square", 0.025, -80);
+  if (!opts.silent) this.audio.beep(200 + Math.random() * 80, 0.04, "square", 0.025, -80);
   if (e.hp <= 0) {
     // 「裂变」：强化弹击杀时向附近敌人发射碎片；碎片是普通弹，不再触发裂变。
     if (opts.specialHit && this.specialUpgrades.includes("fission")) {
@@ -638,6 +643,10 @@ export function damagePlayer(
   opts: PlayerHitOptions = {},
 ): DamageResult {
   const p = this.player;
+  if (
+    this.prof === "shooter" && this.shooterWeapon === "laser" &&
+    this.laser.phase === "recharge" && p.upCounts["冷凝护甲"]
+  ) dmg = laserIncomingDamage(dmg);
   const rawDmg = dmg;
   // 大剑仅坠落段离地免伤；0.24 秒起手仍按正常规则受击。
   if (this.warriorLeapState?.phase === "fall")
