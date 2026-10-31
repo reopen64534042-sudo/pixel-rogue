@@ -5,6 +5,7 @@ import {
   DRUMMER_AURA,
   ELITE_AFFIX_FROM,
   ELITE_AFFIXES,
+  ELITE_NOVA,
   WEB_ZONE,
   enemyWeight,
   ETYPES,
@@ -322,9 +323,10 @@ export function updateEnemies(this: GameCore, dt: number) {
         if ((e.novaT ?? 0) > 0) {
           e.novaT = (e.novaT ?? 0) - dt;
           if (e.novaT <= 0) {
-            const hit = Math.hypot(p.x - e.x, p.y - e.y) < 95;
+            const hit =
+              Math.hypot(p.x - e.x, p.y - e.y) < ELITE_NOVA.radius;
             if (hit)
-              this.damagePlayer(e.dmg * 1.2 * aura.dmg, {
+              this.damagePlayer(e.dmg * ELITE_NOVA.damageMul * aura.dmg, {
                 type: "frost",
                 form: "other",
                 src: e,
@@ -347,10 +349,10 @@ export function updateEnemies(this: GameCore, dt: number) {
           e.affixT = (e.affixT ?? 3.5) - dt;
           if (
             e.affixT <= 0 &&
-            Math.hypot(p.x - e.x, p.y - e.y) < 140
+            Math.hypot(p.x - e.x, p.y - e.y) < ELITE_NOVA.triggerRange
           ) {
-            e.novaT = 0.55;
-            e.affixT = 4.5;
+            e.novaT = ELITE_NOVA.windup;
+            e.affixT = ELITE_NOVA.cooldown;
             this.audio.beep(320, 0.1, "square", 0.04, 40);
           }
         }

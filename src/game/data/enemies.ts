@@ -178,6 +178,19 @@ export const ELITE_AFFIX_INFO: Readonly<
   nova: { name: "冰霜新星", color: "#57e6ff" },
 };
 
+/**
+ * 精英「冰霜新星」：进入 140px 后预警 0.55 秒，命中半径 95。
+ * 预警圈必须按命中半径绘制——画出 90 却按 95 结算时，
+ * 站在圈边的玩家会以为安全却被打中。
+ */
+export const ELITE_NOVA = {
+  triggerRange: 140,
+  windup: 0.55,
+  radius: 95,
+  cooldown: 4.5,
+  damageMul: 1.2,
+} as const;
+
 // 波次主题：同一批怪按主题换权重，避免后期所有怪均匀稀释成同一锅。
 // from 为生效起始波（降序查找）；signature 是该主题首次出现时保证刷出的怪。
 export interface WaveTheme {
