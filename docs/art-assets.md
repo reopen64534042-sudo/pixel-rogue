@@ -90,7 +90,7 @@
 
 ### 5.1 战斗单位（10）
 
-**命名规则（硬约束）**：key 必须等于 `sprites.ts` 的 `SPR` 键，因为 `draw.ts` 用 `e.spr` 直接索引贴图表；精英键由 `elite_<spr>` 推导。键名对不上时覆盖贴图不会生效，且不会报错——这是最容易踩的坑。
+**命名规则（硬约束）**：key 必须等于 `sprites.ts` 的 `SPR` 键，因为 `draw.ts` 用 `e.spr` 直接索引贴图表；精英键由 `` `${spr}_elite` `` 推导（如 `brute_elite`、`shooter_elite`）。键名对不上时覆盖贴图不会生效，且不会报错——这是最容易踩的坑。
 
 | key | SPR 键 | 尺寸 | 依据 |
 | --- | --- | --- | --- |
@@ -100,8 +100,8 @@
 | `shooter` | `shooter` | 16×16 | 紫体荧光眼，远程 |
 | `bomber` | `bomber` | 16×16 | 橙色虫体带引信 |
 | `brute` | `brute` | 16×16 | 红色壮硕近战，金纹 |
-| `elite_brute` | `elite_brute` | 24×24 | 岩石巨兽（已认可造型 16×14 → 重制） |
-| `elite_shooter` | `elite_shooter` | 24×24 | 飞行眼魔（已认可造型 16×14 → 重制） |
+| `brute_elite` | `brute_elite` | 24×24 | 岩石巨兽（已认可造型 16×14 → 重制） |
+| `shooter_elite` | `shooter_elite` | 24×24 | 飞行眼魔（已认可造型 16×14 → 重制） |
 | `boss_three` | 暂无 | 48×32 | 三头巨兽；当前 ETYPES 无 BOSS，键名待定 |
 | `boss_reaper` / `boss_tyrant` | 暂无 | TBD | **造型未定，暂不生成** |
 

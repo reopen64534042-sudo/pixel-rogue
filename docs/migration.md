@@ -3846,3 +3846,11 @@ dmg = Math.ceil(e.hp - 1);
 - 提交前同步：创建 PR 前最新 origin/main 已到 v146（精英冰霜新星预警），本批通过普通 merge 同步，死亡总结版本由原 v142 顺延为 v147；冲突仅涉及双端更新日志与迁移记录，main 的 v142–v146 条目全部保留。
 - 验证：`npm run typecheck` ✓、`npm run build` ✓；受控 e2e 构造暂停→点击继续→倒数期间 `state=pause` 且显示 3→3 秒后 `state=play`，再构造精英角兽接触 + 剑气命中 + 火爆炸致死，确认死因为 explosion、类型显示「火焰」、总结中无 DPS/BOSS/保命资源/physical/fire/HP，截图 `output/v147-resume-countdown.png` 与 `output/v147-death-summary.png`。
 - 未运行 Vitest / Playwright 测试套件；新增 DamageSource 键会使旧 `dmgBy` 严格快照与部分报告断言过期，留待授权测试批次处理。
+
+## D-128 怪物基线审计与图鉴/文档修正（v149）
+
+- 审计范围：v147 的 12 条敌人图鉴、`EnemySystem` / `WaveSystem` / `CombatSystem` / `EnemyStatSources`、绘制与图鉴 UI；本批不改任何战斗数值。
+- 修复：`CodexUI` 精英生命倍率 ×3.5 → ×5（与 `EnemyStatSources` 一致）；`codexData` 精英描述「特殊宝箱」→「普通宝箱（品质祝福）50%」；`assets/plan.json` 与 `docs/art-assets.md` 的 `elite_brute` / `elite_shooter` → `brute_elite` / `shooter_elite`，与 `draw.ts` 的 `` `${spr}_elite` `` 约定一致。manifest 当前为空，属出图前的潜伏问题。
+- 文档：重写 `docs/monster-numerics.md` 到当前实现（10 种普通/特殊 + 子体 + 精英、主题权重、精英规则、掉落、行为、修改入口、已知缺口）；README / AGENTS 同步敌人数量、解锁波次与精英规则。
+- 验证：`npm run typecheck` / `npm run build`。按 2026-10-29 标准未运行 Vitest / Playwright；`tests/codex.test.ts` 的 `ENEMY_TOTAL=6` 旧断言仍过期（当前 12），留待授权测试批次。
+- 审计中记录的 P2/P3（批次可将同屏上限顶到 161、`ETYPES.wt` 无消费点、掘地虫 surface 索敌、自爆计击杀、分离包含死敌、每射手 alive 过滤）本批未修，留待后续批次。
