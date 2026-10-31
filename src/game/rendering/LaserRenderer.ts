@@ -7,6 +7,9 @@ import type { PixelPainter } from "./PixelPainter";
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 const life = (line: LaserLine) => line.max > 0 ? clamp01(line.t / line.max) : 1;
+// 折光残像显示与伤害共用寿命，短暂低亮保持后再淡出。
+const DASH_ECHO_VISIBLE_SECONDS = LASER.echoLife;
+const DASH_ECHO_CLEAR_SECONDS = 0.1;
 
 function axis(line: LaserLine) {
   const length = Math.hypot(line.x2 - line.x, line.y2 - line.y);
@@ -81,28 +84,33 @@ function drawMain(core: GameCore, ctx: PixelPainter, line: LaserLine) {
 }
 
 function drawResidual(ctx: PixelPainter, line: LaserLine) {
-  const k = life(line);
   if (line.kind === "afterglow") {
+    const k = life(line);
     // 余辉为逐渐变细的旧光路，不再复制主束的白色亮芯。
     ribbon(ctx, line, line.width * (0.25 + k * 0.45), C.iceDeep, k * 0.28);
     return;
   }
-  ribbon(ctx, line, line.width, C.iceDeep, k * 0.1);
-  ribbon(ctx, line, Math.max(1, line.width * 0.4), C.iceCyan, k * 0.44);
+  const elapsed = Math.max(0, line.max - line.t);
+  // 短暂保持清晰，再平缓淡出；冲刺结束后仍可辨认旧位置。
+  const k = clamp01((DASH_ECHO_VISIBLE_SECONDS - elapsed) /
+    (DASH_ECHO_VISIBLE_SECONDS - DASH_ECHO_CLEAR_SECONDS));
+  if (k <= 0) return;
+  ribbon(ctx, line, line.width, C.iceDeep, k * 0.06);
+  ribbon(ctx, line, Math.max(1, line.width * 0.4), C.iceCyan, k * 0.28);
   // 一次冲刺只留一道人物轮廓；三条残留光束各自照常绘制。
   if ((line.lane ?? 0) !== 0) return;
   const a = axis(line);
   const oldX = Math.round(line.x - a.ux * 7), oldY = Math.round(line.y - a.uy * 7 + 3);
-  ctx.fillStyle = C.iceDeep;
-  ctx.globalAlpha = k * 0.3;
+  ctx.fillStyle = C.iceCyan;
+  ctx.globalAlpha = k * 0.22;
   ctx.fillRect(oldX - 2, oldY - 5, 4, 3);
   ctx.fillRect(oldX - 3, oldY - 1, 6, 4);
   ctx.fillRect(oldX - 2, oldY + 3, 1, 2);
   ctx.fillRect(oldX + 1, oldY + 3, 1, 2);
   ctx.globalAlpha = 1;
-  // 冲刺残像的旧发射口留在世界坐标，末端随寿命衰减。
-  ctx.beam(line.x - a.ux * 4, line.y - a.uy * 4, line.x, line.y, 2, C.iceDeep, k * 0.5);
-  diamond(ctx, line.x, line.y, 2, C.iceCyan, k * 0.5);
+  // 旧发射口与人物、残留束共用同一快速淡出，避免留下闪眼的孤立亮点。
+  ctx.beam(line.x - a.ux * 4, line.y - a.uy * 4, line.x, line.y, 2, C.iceDeep, k * 0.25);
+  diamond(ctx, line.x, line.y, 2, C.iceCyan, k * 0.25);
 }
 
 function drawPulse(ctx: PixelPainter, line: LaserLine) {
@@ -244,17 +252,6 @@ export function drawLaserResources(core: GameCore, ctx: PixelPainter) {
     ctx.fillRect(x, y + dy, Math.round(18 * clamp01(value)), height);
   };
   bar(16, ratio, l.phase === "recharge" ? C.iceDeep : C.iceCyan, 2);
-  if (core.player.upCounts["锁相"]) {
-    if (core.laserUpgrades.includes("triple")) {
-      ([0, -1, 1] as const).forEach((lane, index) => {
-        const aim = getLaserAim(l, lane);
-        ctx.fillStyle = C.ink1;
-        ctx.fillRect(x + index * 7, y + 20, 4, 1);
-        ctx.fillStyle = aim.focus >= 1 ? C.gold : C.bone;
-        ctx.fillRect(x + index * 7, y + 20, Math.round(4 * clamp01(aim.focus)), 1);
-      });
-    } else bar(20, l.focus, l.focus >= 1 ? C.gold : C.bone, 1);
-  }
   const xp = LASER_XP[core.laserLevel - 1];
   bar(23, xp === null ? 1 : core.laserXp / xp, C.gold, 1);
 }

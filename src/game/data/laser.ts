@@ -17,7 +17,7 @@ export const LASER = {
   lifeStealHpPerSecond: 0.02,
   afterglowLife: 0.25,
   afterglowInterval: 0.15,
-  echoLife: 0.3,
+  echoLife: 1,
   // 三束余辉 / 残像 / 脉冲各自保留原寿命，避免挤掉另一束的对象。
   auxCap: 24,
   escapeRange: 25,

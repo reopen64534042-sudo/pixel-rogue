@@ -1,4 +1,5 @@
 import type { Talent } from "../../core/types";
+import { LASER } from "../laser";
 
 /** 激光独立池：14 张、单次获得；核心三层，其余为可选机制增幅。 */
 const LASER_CARDS: Omit<Talent, "t" | "max" | "f">[] = [
@@ -24,8 +25,8 @@ const LASER_CARDS: Omit<Talent, "t" | "max" | "f">[] = [
   },
   {
     n: "折光步", ico: "💠", cat: "机动", slot: "机动", layer: 1,
-    d: "照射中冲刺，在原位置留下维持旧方向 0.3 秒的 35% DPS 光束残像；不提供武器经验或命中特效",
-    pv: () => "冲刺 → 原地留下 0.3 秒切割残像",
+    d: `照射中冲刺，在原位置留下维持旧方向 ${LASER.echoLife} 秒的 35% DPS 光束残像；不提供武器经验或命中特效`,
+    pv: () => `冲刺 → 原地留下 ${LASER.echoLife} 秒切割残像`,
   },
   {
     n: "冷却滑行", ico: "💨", cat: "机动", slot: "机动", layer: 1,
