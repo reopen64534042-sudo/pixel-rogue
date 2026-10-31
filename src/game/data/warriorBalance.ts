@@ -96,7 +96,8 @@ export const WARRIOR_BALANCE = {
   leapImpactLife: 0.32,
   // 跃击落地 120% → 140%（机动链全面升级）。
   leapDamageMul: 1.4,
-  leapRechargeExtra: 0.8,
+  /** 跃击占用冲刺充能时，在基础冲刺冷却上额外增加的时间。 */
+  leapRechargeExtra: 1.2,
   /**
    * v128「三段斩」：大剑冲刺核心，类似太刀「斩浪」的入场专精。
    *
