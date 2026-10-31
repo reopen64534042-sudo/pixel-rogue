@@ -18,6 +18,14 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
   {
+    version: "v145",
+    date: "2026-10-31",
+    title: "导弹余烬伤害数字修复",
+    items: [
+      "【修复】导弹余烬伤害数字不再出现小数，实际伤害与统计累计保持原有精度。",
+    ],
+  },
+  {
     version: "v144",
     date: "2026-10-31",
     title: "导弹资源条间距修复",
