@@ -23,6 +23,7 @@ import {
 } from "../rendering/vfx/greatswordSlash";
 import { KATANA_DASH, registerKatanaDash } from "../rendering/vfx/katanaDash";
 import { KatanaCharacter, KATANA_CHARACTER, registerKatanaCharacter } from "../rendering/characters/KatanaCharacter";
+import { GreatswordCharacter, GREATSWORD_CHARACTER, registerGreatswordCharacter } from "../rendering/characters/GreatswordCharacter";
 import { W, H, WORLD, SHAKE_MAX, clamp } from "../data/constants";
 import { UPGRADES } from "../data/talents";
 import { LEVEL_GROWTH } from "../data/levelGrowth";
@@ -76,7 +77,9 @@ export class GameScene extends Phaser.Scene {
   private readonly laserBridge = new LaserV137Bridge();
   private readonly laserPlayer = new LaserVfxPlayer();
   private readonly katanaCharacter = new KatanaCharacter();
-  private readonly drawCharacter = (x: number, y: number) => this.katanaCharacter.draw(this.painter, x, y);
+  private readonly greatswordCharacter = new GreatswordCharacter();
+  private readonly drawCharacter = (x: number, y: number) =>
+    this.katanaCharacter.draw(this.painter, x, y) || this.greatswordCharacter.draw(this.painter, x, y);
   private laserCommands: readonly LaserVfxCommand[] = [];
   private readonly drawLaserAnimation = () => drawLaserVfxPainter(this.painter, this.laserCommands);
   private specialTest:
@@ -228,6 +231,7 @@ export class GameScene extends Phaser.Scene {
       this.laserPlayer.reset();
       this.laserCommands = [];
       this.katanaCharacter.reset();
+      this.greatswordCharacter.reset();
       if (import.meta.env.DEV) delete window.__PIXEL_ROGUE__;
     });
     // Explicit test mode only; production bundles contain no control bridge.
@@ -245,6 +249,7 @@ export class GameScene extends Phaser.Scene {
     void this.loadGreatswordSlashes();
     void this.loadKatanaDash();
     void this.loadKatanaCharacter();
+    void this.loadGreatswordCharacter();
     const testName = new URLSearchParams(window.location.search).get("test");
     this.specialTest =
       import.meta.env.DEV && import.meta.env.MODE === "e2e"
@@ -635,6 +640,17 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private async loadGreatswordCharacter() {
+    try {
+      const image = await loadImageElement(GREATSWORD_CHARACTER.image);
+      if (!this.sys.isActive()) return;
+      registerGreatswordCharacter(this.textures, image);
+    } catch (error) {
+      if (import.meta.env.DEV)
+        console.warn("[assets] Greatsword character loading failed; using original sprite", error);
+    }
+  }
+
   update(_now: number, delta: number) {
     if (!this.painter) return;
     // Issue #95：输入在模拟推进前落盘，否则摇杆方向会晚一帧生效
@@ -643,6 +659,7 @@ export class GameScene extends Phaser.Scene {
       this.clock.advance(delta / 1000, (dt) => {
         this.core.step(dt);
         this.katanaCharacter.capture(this.core);
+        this.greatswordCharacter.capture(this.core);
         this.captureLaserAnimation();
       });
     else this.clock.reset();
@@ -650,6 +667,7 @@ export class GameScene extends Phaser.Scene {
     // Also observe UI/DEV resets and paused states on frames without a fixed step.
     this.captureLaserAnimation();
     this.katanaCharacter.capture(this.core);
+    this.greatswordCharacter.capture(this.core);
     this.painter.begin();
     if (this.core.state === "start") {
       this.cameras.main.setScroll(0, 0);

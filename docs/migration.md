@@ -3973,3 +3973,28 @@ dmg = Math.ceil(e.hp - 1);
 - 根因：v153 等级自动成长每级 +0.5 生命上限；HUD 只对当前 HP 向上取整，C 面板同样处理，上限却保留原始小数。
 - 修复：`src/game/data/constants.ts` 新增 `fmtHp()`：上限为整数时保持旧的 `Math.ceil(hp)/maxhp`；上限含小数时两侧统一 `toFixed(1)`。`draw.ts` HUD 与 `ui/GameUI.ts` C 面板共用，实际 HP、上限、伤害、治疗与等级成长逻辑不变。
 - 验证：`npm run typecheck` / `npm run build`；e2e Lv4 满血 HUD 与 C 面板均显示 `21.5/21.5`，截图 `output/v155-hp-hud.png`、`output/v155-hp-panel.png`。按 2026-10-29 标准未运行 Vitest / Playwright；无测试断言依赖该显示字符串。
+
+## 大剑人物造型候选（2026-11-01）
+
+- 用户认可下一批先制作大剑，并要求创建新分支开始。从最新 upstream/main 7305711（PR #221 已合并，v153）创建 codex/greatsword-character-art，独立工作树 E:\AllProjects\pixel-rogue-greatsword-character；保留其他工作树和分支，node_modules 以 Junction 复用，不安装依赖。
+- 以内置 imagegen 分别生成 A 露面铁卫、B 覆面重甲骑士、C 肩扛大剑佣兵。共用钢灰护甲、暗红短披风与宽刃大剑，参考已认可太刀的像素块、体型高度和镜头；造型尚未选定。
+- 源图与完整提示词存于 assets/characters/greatsword/concepts，generation.json 记录 1254×1254 尺寸、alpha 统计与 SHA-256。工具未返回模型版本 / seed，不宣称可逐像素复现。原图包含半透明像素，属于高分辨率造型参考，不作为正式游戏帧。
+- 新增 docs/greatsword-character-art.md，记录三版取舍、正式种子帧要求、待机 / 移动 / 普攻 / 重斩 / 冲刺 / 跃击的后续制作要求，以及握持、脚底锚点、统一尺度、现有时刻与表现分离的约束；美术规格增加专项入口。
+- 本轮没有修改人物运行时、太刀素材、大剑刀光、游戏规则或版本号，未合入其他功能 / 文档分支。尚未提交、推送或创建 PR。
+- 已目视检查三张完整造型，并用现有 PNG 解码器检查尺寸、透明背景与非空内容；npm run typecheck、npm run build 与 git diff --check 均通过，仅保留既有的大 chunk 提示。不新增 / 修改测试，不运行 Vitest / Playwright，未进行实机人物动画或完整玩法验收。
+
+## 大剑 C 佣兵人物与动作接入（v156，2026-11-01）
+
+- 用户明确选择 C。保留短发胡茬、非对称钢甲、暗红短披风和双手肩扛宽刃大剑；从 C 重制小尺寸参考并加强眼睛，左右分别整表生成基础 / 技能动作：待机、跑动、普攻、冲刺、重斩、起跳、空中、落地，每组 4 帧，共 64 帧。
+- scripts/build-greatsword-character-assets.mjs 复用既有 PNG / 色板库和人物后处理方案。原表有横向范围重叠，单纯列投影会把两个姿态连为一组；改用行间隔 + 每行 8 邻域独立轮廓隔离，按同一尺度采样、Lab 最近色、二值 alpha 与包含钢靴尖 / 描边的靴底定位。曾被源画布截断的右向收刀帧通过内置 imagegen 修正；拒绝空帧、裁断和大块断开的肢体，不用逐帧缩放或剑尖包围盒居中。
+- 正式图 public/assets/characters/greatsword-mercenary-96x96.png 为 384×1536、4 列 × 16 行，96×96 为透明留白，可见主体约 24px 高。统一锚点 (48,83) 对应逻辑 (x,y+5)，记录中 64 帧的靴底基线均为 83；正式 alpha 仅 0 / 255、10 色、SHA-256 与记录一致。原图 / 中间修正 / 完整提示词 / 接触表均保留，工具未返回模型版本 / seed。
+- 新增 GreatswordCharacter，由 Scene 固定步后只读实际位移、模拟时间、大剑 Slash 的 heavy / impact 标记、冲刺和跃击状态。沿用太刀回调与 PixelPainter 对象池；失败回退原图，无新增 Core 字段、RAF、计时器、RNG。保持现有跃击高度、透明度、刀光和落地特效；普通 / 重斩从切斩帧起播，不改命中时刻。
+- 修正只读表现事件顺序：新普攻结束后不能重新播放仍存活的旧落地恢复帧。按从 life/max 推导的事件开始时间单调取最新事件，不影响旧事件寿命、伤害或后续攻击。
+- 脚本导出 64 帧动作 GIF 与 54 帧跃击 GIF；跃击预览读取 WB 的 0.24 秒起跳、0.12 秒下落和 0.32 秒落地窗口。离线 GIF 不是实战证据。
+- 聚焦 CUA 检查通过正常职业入口进入大剑；纹理 384×1536，64 帧加 Phaser base 帧共 65，实际绘制 scaleX/scaleY=1。左右移动、重斩画面和人物加载正常。经现有 DEV 面板学习跃击，再通过已有 core.warriorLeap 命令受控触发，记录 takeoff(20/22/23) → air(26) → land(28/30/31) → idle(0)，未新增控制接口或改模拟状态字段；相关截图及 output/greatsword-character-leap-check.json 留档。这不代表自然按键链、整局战斗或全部天赋组合验收。
+- npm run typecheck、npm run build、git diff --check 均通过；最后的事件顺序修正后重新构建成功，仅保留既有大 chunk 提示。热重载后通过正常职业入口重新进入并暂停，前后读到 state=pause、time=0、frame=0 一致，记录 output/greatsword-character-pause-check.json；页面 error / warn 日志为空。临时浏览器已关闭并恢复原显示状态，5187 服务已关闭、确认无监听。DEV 仍出现既有激光 preview-template 占位符的依赖预扫描提示，游戏实际加载正常，未修改旧模板。没有新增 / 修改测试或基线，没有运行 Vitest / Playwright。
+- 开发基线为 7305711（v153），制作期间 upstream/main 另合入 78e0f50（v154 首领）；本批双端日志预留 v155，正式提交 PR 前需同步当时主分支。本轮没有自动合并、提交、推送或创建 PR。
+
+- 用户认可本轮成果并明确授权提交、推送和创建 PR。提交前 fetch 确认上游最新为 6a46305，包含 v154 首领与 v155 生命值小数显示修正；本批最终顺延为 v156，先保存大剑功能里程碑，再同步最新 main，保留上游内容后重新编译检查。该授权不包含合并 PR 到 main。
+
+- 已常规合并 upstream/main 6a46305，冲突仅在 AGENTS / CHANGELOG / TS 更新日志 / migration 四处；完整保留 Boss / 生命值显示修正以及本批人物说明，版本顺序为 v156 → v155 → v154 → v153。Scene 自动合并保留 Boss 预载 / 图鉴注册及太刀 / 大剑人物生命周期；相对最新主分支仅本任务 44 文件，没有额外修改上游 Core、Boss、HP、依赖或测试。同步后 npm run typecheck、npm run build、git diff --cached --check 均通过（122 模块，保留既有大 chunk 提示）；正式 64 帧、10 色、二值 alpha、靴底基线 83 与哈希检查通过。未追加新的合并后实机 / 整局战斗验收，未运行 Vitest / Playwright。
