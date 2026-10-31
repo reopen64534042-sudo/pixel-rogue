@@ -3,7 +3,7 @@ import { LASER_ATLAS_KEY, LASER_CLIPS, laserSpriteCrop } from "./laserAssets";
 import { LaserVfxPlayer, type LaserVfxCommand } from "./LaserVfxPlayer";
 import { LaserV137Bridge, type LaserV137CoreSnapshot } from "./LaserV137Bridge";
 
-/** Optional preload example. No gameplay scene imports this module yet. */
+/** GameScene uses this preload; the standalone Phaser view below remains optional. */
 export function preloadLaserVfx(scene: Phaser.Scene, baseUrl = import.meta.env.BASE_URL) {
   const base = `${baseUrl.replace(/\/$/, "")}/assets/vfx/laser/`;
   scene.load.atlas(LASER_ATLAS_KEY, `${base}laser.atlas.png`, `${base}laser.atlas.json`);

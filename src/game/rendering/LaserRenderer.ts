@@ -203,7 +203,7 @@ function drawEmitter(core: GameCore, ctx: PixelPainter) {
 }
 
 /** 纯表现：所有线段/命中点来自模拟，动画只读模拟时间，零 RNG 与额外计时器。 */
-export function drawLaser(core: GameCore, ctx: PixelPainter) {
+export function drawLaser(core: GameCore, ctx: PixelPainter, animation?: () => boolean) {
   if (core.prof !== "shooter" || core.shooterWeapon !== "laser" || core.state === "over") return;
   const l = core.laser;
   const mains = l.lines.filter(line => line.kind === "main");
@@ -216,6 +216,13 @@ export function drawLaser(core: GameCore, ctx: PixelPainter) {
       Math.hypot(line.x - current.x, line.y - current.y) < 2 &&
       Math.hypot(line.x2 - current.x2, line.y2 - current.y2) < 2) continue;
     drawResidual(ctx, line);
+  }
+  // The PNG player owns the main beams, focus rings and release transitions.
+  // Keep the existing afterglow/echo/scatter mechanics visible in either path.
+  if (animation?.()) {
+    drawScatter(ctx, l.aux.filter(line => line.pulse === "scatter"));
+    ctx.globalAlpha = 1;
+    return;
   }
   for (const beam of mains) drawMain(core, ctx, beam);
   for (const line of l.aux) if (line.kind === "pulse" && line.pulse !== "scatter") drawPulse(ctx, line);

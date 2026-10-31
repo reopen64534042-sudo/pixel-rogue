@@ -165,7 +165,7 @@ function drawChargeBar(
   }
 }
 
-export function draw(this: GameCore, ctx: PixelPainter) {
+export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean) {
   const TS = 16,
     tw = WORLD.w / TS,
     th = WORLD.h / TS;
@@ -1262,7 +1262,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     ctx.polyline3(pts, "#aef1ff", 0.9);
   }
 
-  drawLaser(this, ctx);
+  drawLaser(this, ctx, laserAnimation);
 
   // 强化弹激光（短寿命表现层；与电弧同为一次折线批量绘制）
   if (this.lasers.length) {

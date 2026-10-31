@@ -1,5 +1,16 @@
 import Phaser from "phaser";
 
+interface AtlasSpritePose {
+  readonly x: number;
+  readonly y: number;
+  readonly angle: number;
+  readonly scaleX: number;
+  readonly scaleY: number;
+  readonly originX: number;
+  readonly originY: number;
+  readonly crop?: { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
+}
+
 interface TextDrawState {
   fontSize: number;
   fillStyle: string;
@@ -205,6 +216,7 @@ export class PixelPainter {
     this.images[this.ii++] = img;
     img
       .setTexture(key)
+      .setCrop()
       .setPosition(x, y)
       .setVisible(true)
       .setAlpha(this.globalAlpha)
@@ -232,6 +244,7 @@ export class PixelPainter {
     this.images[this.ii++] = img;
     img
       .setTexture(key)
+      .setCrop()
       .setVisible(true)
       .setAlpha(this.globalAlpha)
       .setOrigin(0.5)
@@ -240,6 +253,18 @@ export class PixelPainter {
       .setScale(scale)
       .setDepth(this.depth++)
       .setScrollFactor(this.hud ? 0 : 1);
+  }
+  /** Atlas frame drawing shares the world sprite pool and existing draw order. */
+  spriteFrame(key: string, frame: string, pose: AtlasSpritePose) {
+    this.active = null;
+    const img = this.images[this.ii] ?? this.scene.add.image(0, 0, key, frame);
+    this.images[this.ii++] = img;
+    img.setTexture(key, frame).setCrop().setVisible(true)
+      .setOrigin(pose.originX, pose.originY).setPosition(pose.x, pose.y)
+      .setRotation(pose.angle).setScale(pose.scaleX, pose.scaleY)
+      .setAlpha(this.globalAlpha).setDepth(this.depth++)
+      .setScrollFactor(this.hud ? 0 : 1);
+    if (pose.crop) img.setCrop(pose.crop.x, pose.crop.y, pose.crop.width, pose.crop.height);
   }
   private textState(): TextDrawState {
     return {

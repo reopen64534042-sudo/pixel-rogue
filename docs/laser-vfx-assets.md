@@ -1,12 +1,14 @@
 # 激光动画素材包与播放适配器
 
-本包基于 2026-10-31 原目录 `codex/shooter-laser-draft` 的未提交 v137 实现制作，工作区为 `E:\AllProjects\pixel-rogue-laser-animation`，分支 `codex/laser-animation-remake`。素材包单独提交；继承的 v137 草案继续保留为未提交修改，没有推送、stash 或修改原目录。素材目录、表现适配器、新文档和本次 migration 记录才属于本任务。
+本包由独立工作树 E:/AllProjects/pixel-rogue-laser-animation 制作并提交为 a12f9b6。v138 已将用户认可的最终第三稿完整接入射手激光；正式资源和源图保持原提交内容，游戏无需重新生成素材即可使用。
 
-2026-10-31 第二稿局部修正：持续增强读取每束真实 `focus`，周期阶段仍读取 `u`；束身改为细连续轮廓和低对比滚动细节。原始生成表及八组其他派生条带保持原样，只有 `beam-flow` 派生像素与包含它的图集更新。正式战斗仍未接入。
+制作时基于本聊天未提交的 v137 激光草案；交付分支 codex/shooter-laser 以最新上游 60703fb 为基线，保留上游大剑等改动，将此前草案版号统一为正式 v138。
+
+2026-10-31 第二稿局部修正：持续增强读取每束真实 `focus`，周期阶段仍读取 `u`；束身改为细连续轮廓和低对比滚动细节。原始生成表及八组其他派生条带保持原样，只有 `beam-flow` 派生像素与包含它的图集更新。最终素材已在 v138 接入正式战斗。
 
 第三稿补充：熔断与坍缩释放期间也沿用普通照射的细束宽度，去掉整条光路的额外增粗。主青色 / 金色带仍为实际宽度的 44%—48%，白芯仍为 `max(1,width×0.12)`；保留低亮实际宽度包络、青白 / 金白区别、局部释放头、45ms 过渡、0.24 秒余波和短回充重叠。原始 PNG 和图集不再修改。
 
-交付包括正式透明 PNG、标准 Phaser 图集、72 帧元数据、原始生成结果和提示词、原速 GIF、慢放、逐帧检查图、自带资源的离线 HTML，以及可复用的表现播放器。**正式游戏尚未加载本包**，现有 `LaserRenderer.ts` 和战斗系统保持草案原样。圆环已经在新适配器与独立演示中恢复，正式游戏的四角框需后续接线替换。
+交付包括正式透明 PNG、标准 Phaser 图集、72 帧元数据、原始生成结果和提示词、原速 GIF、慢放、逐帧检查图、自带资源的离线 HTML，以及可复用的表现播放器。**正式游戏默认加载本包**，主束、聚焦圆环、命中热点与脉冲由新播放器负责；旧 LaserRenderer 继续绘制余辉 / 残像 / 紧急散射，并在图集未就绪时提供回退。
 
 ## 打开完整周期预览
 
@@ -117,47 +119,25 @@ v137 桥接器在熔断后读取真实脉冲几何、种类和时刻，同时保
 
 圆环按 `target.id` 去重，采用所有当前束的最高 `focus`，半径为 `target.radius+3`。从上方开始按 0—1 连续画弧，未满为青色，满值为当前色板金色；每目标只保留两颗沿圆周运动的 1px 微光点。它不写目标、不产生伤害、不更改索敌。
 
-## 当前 v137 的加载与接线示例
+## v138 正式游戏接入
 
-下面是后续任务的接线位置说明，本次没有修改 `GameScene`、`draw.ts` 或 `LaserSystem`：
+开始游戏 → 射手 → 激光即可使用。图集在 GameScene.preload 中通过现有 Phaser Loader 加载，使用 BASE_URL 兼容静态子路径部署；加载失败时保留程序化回退。
 
-```ts
-import { preloadLaserVfx, PhaserLaserVfxView } from "../rendering/vfx/laser/LaserVfxPhaser";
+| 接线位置 | 当前职责 |
+| --- | --- |
+| GameScene.preload | 加载正式 laser.atlas.png / JSON |
+| GameScene.captureLaserAnimation | 每个固定模拟步之后采集真实光束、焦点与释放；绘制前再观察一次 UI / DEV 重置和暂停状态 |
+| LaserV137Bridge | 只读采集，保留逐束释放前 focus / 目标 / contacts；真实熔断确认满焦点，真实脉冲几何和时间保持 |
+| LaserVfxPlayer | 按模拟时间产生用户认可的连续细束、圆环和 0.24 秒释放指令 |
+| LaserVfxPainter | 在原 drawLaser 位置消费指令，复用 PixelPainter 的世界图像 / Graphics 池、相机和绘制深度 |
+| PixelPainter.spriteFrame | 图集帧、非等比缩放和裁切；普通 sprite / spriteRot 复用前也清除 crop，避免裁切状态污染其他精灵 |
+| LaserRenderer | 新动画就绪时只补原余辉 / 折光残像 / 紧急散射；跳过旧主束、旧脉冲、四角框和发射口，资源条照常保留 |
 
-// Scene.preload(): 使用现有加载生命周期，不单独启动 Loader / RAF。
-preloadLaserVfx(this);
+本项目不使用固定 baseDepth 的独立 PhaserLaserVfxView，以免穿过现有动态世界 / HUD 层级；该类保留为其他场景的标准 Phaser 接入参考。实际游戏所有激光图像使用既有 PixelPainter 对象池，随现有顺序绘制于伤害飘字与 HUD 之前。
 
-// Scene.create(): 选择本场景实际的世界特效深度；每个 Scene / run 一份实例。
-const laserVfx = new PhaserLaserVfxView(this, worldEffectDepth);
-this.events.once("shutdown", () => laserVfx.destroy());
+capture 必须保留在每次固定步之后，不能只在一帧末尾采集。绘制前的额外采集使用相同模拟时间，不推进动画，只观察无固定步的暂停 / 返回开始界面 / 重开 / DEV 清理等状态变化。Scene shutdown 会清空桥接器、播放器和待绘指令；图像由既有 Scene / PixelPainter 生命周期管理。
 
-// GameScene.update 的现有 clock.advance 回调内部；不能只在外部 render 后采一次。
-core.step(dt);
-laserVfx.capture(core);
-
-// 现有绘制阶段：三束与旧余波都从刚捕获的快照渲染。
-// 加载未完成时保留旧 renderer；就绪后应跳过旧 drawLaser，避免重复束和四角框。
-const ready = laserVfx.draw();
-// 原 drawLaserResources 可继续单独使用，资源条不属于此包。
-```
-
-实际 Scene 当前使用 `clock.advance(delta / 1000, dt => core.step(dt))`，后续应扩展这个回调，在 `step` 返回之后采集；不要在 render 再多执行一次模拟。暂停 / C 属性面板不推进模拟时间，播放器和圆环随之冻结；死亡 / 返回开始界面等发生在步进之外的入口也要调用 `reset()`。若资源异步加载方式沿用现有 Image 解码链，应在正式图集就绪后再切换渲染器；不要把 `PixelPainter.spriteRot()` 当成已支持末块裁切的接口。
-
-`LaserV137Bridge.capture(core)` 必须在**每个实际模拟步结束后**调用，即使这一帧不渲染。它逐束读取 `laser.lines`，用对象身份只采集一次 `aux` 中的真实坍缩 / 熔断；使用 `core.time-(max-t)` 还原脉冲创建时刻，并将表现寿命扩展到 240ms，而不改原来的 120ms 伤害对象。无真实脉冲的照射结束只创建普通消散。GameCore 实例变化、激光状态对象替换、时间回退、死亡和返回开始界面都会重置适配状态。
-
-兼容桥通过 `LaserV137CoreSnapshot` 声明实际需要的最小只读结构，不导入未提交的 `data/laser.ts` 或要求主分支 GameCore 先增加激光字段。已有 v137 GameCore 可直接满足该结构；当前 HEAD 上也可单独编译、保留素材包，实际场景接线仍由后续任务处理。
-
-兼容桥接的边界：无脉冲普通结束使用上一个固定步的主束几何；脉冲的路径来自其真实发出快照，但接触点从上一步主束读回。捕获若只发生在 render，可能错过极短回充或整个 120ms 对象。后续正式接入推荐显式提供下面的**只读表现事件**，消除这些采集误差，不改变任何结算或攻击间隔：
-
-```ts
-// 由当前模拟在实际清除主束 / 创建脉冲的同一时刻发出。
-// 每束一条；kind 取该束真实结果；at 使用已有模拟时间。
-const release: LaserVfxRelease = { id: `${cycleId}:${lane}`, at: simulationTime,
-  kind: actualPulseKind, beam: frozenActualLineAndContacts };
-const commands = player.update(frame, [release]);
-```
-
-正式接线需明确五件事：稳定的每轮 ID / 起始时刻；清主束前的最终各束快照；真实的逐束脉冲事件与接触点；每固定步采集与暂停冻结；死亡 / 重开 / DEV 清理及 Scene shutdown。先移除旧 `drawLaser` 的重叠束和四角框，再按既有世界层顺序绘制新视图。现有余辉轨迹 / 折光步残像 / 紧急散射不在本包播放器输入中，正式接线需保留这些旧辅助绘制或另加表现事件；本次没有删除它们。
+正式接入仍采用只读兼容桥：普通结束使用最后一个固定步的主束几何，脉冲接触点从前一步读回，真实脉冲位置 / 方向 / 时刻来自实际 aux 快照。这是已有模拟接口的精度边界，未增加攻击等待、重复伤害、随机数或第二套时钟。
 
 ## 复现与来源
 
