@@ -14,7 +14,12 @@ const has = (core: GameCore, name: string) => (core.player.upCounts[name] ?? 0) 
 const upgraded = (core: GameCore, id: LaserUpgradeId) => core.laserUpgrades.includes(id);
 export const laserRange = (core: GameCore) => core.player.attackRange * (upgraded(core, "long") ? 1.25 : 1);
 export const laserDuration = (core: GameCore) => upgraded(core, "capacitor") ? 1.3 : LB.duration;
-export const laserRecharge = (core: GameCore) => upgraded(core, "cooling") ? 0.2 : LB.recharge;
+/** 击杀回收先扣时间，再按累加效率缩短回充；最短回充在此统一限制。 */
+export const laserRecharge = (core: GameCore, recovered = 0) => Math.max(
+  LB.minRecharge,
+  ((upgraded(core, "cooling") ? 0.2 : LB.recharge) - recovered) /
+    (1 + (core.player.laserRechargeEfficiency ?? 0)),
+);
 export const laserBeamCount = (core: GameCore) => upgraded(core, "triple") ? 3 : 1;
 export const laserWidth = (core: GameCore) => LB.width * core.player.area * (upgraded(core, "wide") ? 1.5 : 1);
 
@@ -373,7 +378,7 @@ export function updateLaser(this: GameCore, dt: number) {
       settleExposure(this);
       firePulse(this);
       l.phase = "recharge";
-      l.remaining = l.total = Math.max(0.05, laserRecharge(this) - l.recycle);
+      l.remaining = l.total = laserRecharge(this, l.recycle);
       l.lines = [];
       l.contacts = [];
     }
