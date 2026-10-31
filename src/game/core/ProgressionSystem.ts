@@ -1,4 +1,5 @@
 import { CHEST_HEAL, potionHealAmount } from "../data/constants";
+import { levelGrowthFor, levelGrowthSummary } from "../data/levelGrowth";
 import type { GameCore } from "./GameCore";
 import { tutorialGemStep } from "./TutorialSystem";
 
@@ -42,16 +43,33 @@ export function updateProgression(this: GameCore, dt: number) {
         // v139：等级是属性点来源，但只在休整期消费；升级不打断战斗。
         this.attributePoints += 2;
       }
-      if (gained > 0)
+      if (gained > 0) {
+        // v149：等级自动成长走权威属性投影；重算后把本次升级的生命成长
+        // 同步加到当前生命，保持「上限 +1、当前生命 +1」。
+        this.recompute();
+        p.hp = Math.min(
+          p.maxhp,
+          p.hp + (levelGrowthFor(this.prof)?.maxHp ?? 0) * gained,
+        );
         this.addText(
           p.x,
           p.y - 20,
           `升级 · 属性点 +${gained * 2}`,
           "#ffd24a",
         );
+        this.addText(
+          p.x,
+          p.y - 34,
+          `等级成长 · ${levelGrowthSummary(this.prof, gained)}`,
+          "#57e6ff",
+          false,
+          false,
+          true,
+        );
+      }
     }
   }
-  // 满血时不吸附、不拾取，血瓶留在原地；v138 起满血不再转生命上限。
+  // v148：满血时不吸附，但踩上去仍会拾取并消耗，回复 0 且不显示数字——随意走位会浪费血瓶。
   const pullR = p.magnet * 0.4; // 血瓶吸附范围 ≤ 经验球的一半
   for (let i = this.potions.length - 1; i >= 0; i--) {
     const o = this.potions[i];
@@ -63,22 +81,20 @@ export function updateProgression(this: GameCore, dt: number) {
       o.x += (dx / d) * s * dt;
       o.y += (dy / d) * s * dt;
     }
-    if (p.hp < p.maxhp && dx * dx + dy * dy < 36) {
+    if (dx * dx + dy * dy < 36) {
       const before = p.hp;
       p.hp = Math.min(p.maxhp, p.hp + potionHealAmount(this.waveN));
-      this.addText(
-        p.x,
-        p.y - 10,
-        "+" + Math.round(p.hp - before),
-        "#4dff88",
-      );
+      const healed = Math.round(p.hp - before);
+      if (healed > 0) {
+        this.addText(p.x, p.y - 10, "+" + healed, "#4dff88");
+        this.audio.beep(700, 0.12, "triangle", 0.06, 200);
+      }
       this.potions.splice(i, 1);
-      this.audio.beep(700, 0.12, "triangle", 0.06, 200);
     }
   }
   // 成长徽记 / 普通宝箱：平时留在原地等玩家踩上去；波次结束（auto）后像经验球一样飞过来。
   // 波末自动飞行**不看血量**：收球阶段要等 boxes 清空才开属性面板，
-  // 满血不飞会让面板一直卡住（v91 修复）。「满血不吸附」只保留给血瓶。
+  // 满血不飞会让面板一直卡住（v91 修复）。
   for (let i = this.boxes.length - 1; i >= 0; i--) {
     const b = this.boxes[i];
     const dx = p.x - b.x,

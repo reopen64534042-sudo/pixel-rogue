@@ -24,6 +24,7 @@ import { KATANA_DASH, registerKatanaDash } from "../rendering/vfx/katanaDash";
 import { KatanaCharacter, KATANA_CHARACTER, registerKatanaCharacter } from "../rendering/characters/KatanaCharacter";
 import { W, H, WORLD, SHAKE_MAX, clamp } from "../data/constants";
 import { UPGRADES } from "../data/talents";
+import { LEVEL_GROWTH } from "../data/levelGrowth";
 import { SPECIAL_LEVELS, SPECIAL_UPGRADES } from "../data/specialShot";
 import type { Talent } from "../core/types";
 
@@ -33,6 +34,8 @@ declare global {
       core: GameCore;
       scene: GameScene;
       talents: readonly Talent[];
+      /** e2e：允许压测时把等级成长置零做 A/B，正式构建不暴露。 */
+      levelGrowth: typeof LEVEL_GROWTH;
       counts: () => { graphics: number; images: number; text: number };
     };
   }
@@ -230,6 +233,7 @@ export class GameScene extends Phaser.Scene {
         core: this.core,
         scene: this,
         talents: UPGRADES,
+        levelGrowth: LEVEL_GROWTH,
         counts: () => this.painter.counts,
       };
     void this.loadSpriteOverrides();

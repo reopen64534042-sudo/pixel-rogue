@@ -3912,3 +3912,11 @@ dmg = Math.ceil(e.hp - 1);
 - npm run typecheck、npm run build 与 git diff --check 均通过，保留既有的大 chunk 提示。正式 PNG 尺寸 256×512、32 帧、半透明像素 0，SHA-256 与生成记录一致。不新增或修改测试，不运行 Vitest / Playwright；依赖旧玩家像素 / 截图的断言留待授权测试批次核查，未补写基线。尚未提交 / 推送 / 创建 PR。
 
 - 用户随后要求启动构建预览试玩，主页 / 构建脚本 / 新人物 PNG 均返回 200，脚本包含 v151。用户反馈「可以」并授权关闭服务、推送和创建 PR；已关闭该 5186 服务并确认无监听。用户最后取消文档分支合并要求，因此本批仅提交人物升级及其素材 / 文档，不合入 docs/boss-three-headed-beast 或 feat/monster-design，也不处理原目录未提交的 Boss 实现。提交前 fetch 确认 upstream/main 仍为 5e34277（v150），无需同步其他提交。
+
+## 吸血、血瓶与等级自动成长（v152–v153，2026-10-31）
+
+- 吸血：`CombatSystem.hurtEnemy` 原先使用扣血前的结算伤害 `dmg` 吸血，目标只剩 10 HP 时打出 1,000 伤害会按 1,000 回血。现改为 `dealtHpLoss = max(0, min(hpBefore, dmg))`，吸血与返回的 `effectiveHpLoss` 都按实际损失生命；溢出伤害仍显示和计入伤害统计，但不再转化治疗。激光与导弹原本已按实际损失结算。
+- 血瓶：满血时不再自动吸附，但踩上去仍会拾取并消耗、回复 0 且不显示飘字；不满血拾取与回血不变。受控 e2e 确认真实 GameCore：玩家 14/28、10% 吸血，对 10 HP 敌人打出 1,000，`settledDamage=1000`、`effectiveHpLoss=10`、实际回复 1；满血踩瓶后 potions=0、HP 28/28、无飘字；满血血瓶在 10px 内 12 帧不被吸走；半血踩瓶回复 +5。
+- 等级成长：新增 `data/levelGrowth.ts`，每升 1 级自动成长：生命 +0.5（当前生命同步 +0.5）；射手攻击 +0.3、暴击 +0.2%；法师元素伤害 +0.3、施法速度 +0.2%；战士护甲 +0.3、吸血 +0.15%。成长按 `player.lvl - 1` 转为 `StatModifier`，与天赋、属性在同一次 `applyTalentStatProjection` 解析，recompute/学习天赋不会抹掉；升级飘字与 C 面板显示每级/累计成长。
+- 星陨：`mageMeteorInterval` 除以 `castRate`，施法速度 +50% 时间隔 2→1.333 秒；`mageMeteorFall` 保持 0.8 秒，速咏/连咏仍乘算。射手的旧星陨不变。
+- 标定与验证：用户要求「25 波强度约等于改动前 30 波」。旧 30 波为 Lv42/82 次选择，25 波约 Lv40/76 次，差 6 次选择。初版满值成长经受控基准明显超标（射手清波 -44.7%、DPS +79.7%；战士物理有效生命约 3 倍），最终下调到上述值。`npm run typecheck`/`npm run build` 和快速 e2e（三职业升级成长、当前生命同步、C 面板、星陨间隔/预警）通过；按交付时间要求未再跑完整 25 波长测，未运行 Vitest / Playwright。
