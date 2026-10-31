@@ -78,8 +78,16 @@ function enemyStatsHtml(entry: CodexEntry): string {
     ["经验", String(cfg.xp), "击杀获得的基础经验"],
     ["护甲", def > 0 ? String(def) : "—", armorNote],
     ["抗性", resText, "正值减伤、负值增伤（弱点）；减伤上限 75%、弱点下限 -50%；— 表示无抗性"],
-    ["解锁波次", String(cfg.w0), "首次出现的波次"],
-    ["初始权重", String(cfg.wt), "刷新池中的基础权重，后期会随波次变化"],
+    [
+      "解锁波次",
+      cfg.w0 < 999 ? String(cfg.w0) : "特殊生成",
+      cfg.w0 < 999 ? "首次出现的波次" : "由其他敌人的机制生成，不进入随机刷新池",
+    ],
+    [
+      "初始权重",
+      cfg.wt > 0 ? String(cfg.wt) : "—",
+      "刷新池中的基础权重，后期会随波次变化",
+    ],
   ];
   if (entry.elite)
     rows.push([
