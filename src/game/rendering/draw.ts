@@ -6,7 +6,11 @@ import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
-import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
+import {
+  WARRIOR_BALANCE as WB,
+  shieldRebuildSeconds,
+  warriorTriDashCd,
+} from "../data/warriorBalance";
 import { getSpecialLevelStats } from "../data/specialShot";
 import { TRUE_DAMAGE_OUTLINE } from "../core/CombatSystem";
 import {
@@ -823,19 +827,42 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       playerRect.h,
     );
   ctx.globalAlpha = 1;
-  // 护盾光环
-  if (this.player.shield > 0) {
-    ctx.globalAlpha = 0.4 + Math.sin(this.time * 6) * 0.2;
-    ctx.strokeStyle = "#57e6ff";
-    ctx.beginPath();
-    ctx.arc(
-      Math.round(this.player.x),
-      Math.round(this.player.y),
-      8,
+  // 护盾层数 + 充能环：每层一段圆弧，亮青=可用、暗蓝=空层。
+  // 下一层按恢复进度从段首填亮，恢复中的一段用更浅的青色。
+  if (this.player.shieldMax > 0) {
+    const sx = Math.round(this.player.x);
+    const sy = Math.round(this.player.y);
+    const max = Math.max(1, Math.round(this.player.shieldMax));
+    const filled = Math.max(
       0,
-      Math.PI * 2,
+      Math.min(max, Math.round(this.player.shield)),
     );
-    ctx.stroke();
+    const recharging = filled < max && this.player.shieldCd > 0;
+    const rebuild = shieldRebuildSeconds(this.player.upCounts);
+    const progress = recharging
+      ? Math.max(0, Math.min(1, 1 - this.player.shieldCd / rebuild))
+      : 0;
+    const gap = max > 1 ? 0.45 : 0;
+    const span = (Math.PI * 2) / max;
+    const radius = 9;
+    const pulse = 0.68 + Math.sin(this.time * 6) * 0.12;
+    for (let i = 0; i < max; i++) {
+      const start = -Math.PI / 2 + i * span + gap / 2;
+      const end = -Math.PI / 2 + (i + 1) * span - gap / 2;
+      ctx.strokeStyle = i < filled ? "#57e6ff" : "#3f6b93";
+      ctx.globalAlpha = i < filled ? pulse : 0.7;
+      ctx.beginPath();
+      ctx.arc(sx, sy, radius, start, end);
+      ctx.stroke();
+      if (i === filled && progress > 0) {
+        // 正在恢复的那一层用更浅的青色，和已就绪层区分。
+        ctx.strokeStyle = "#b9f7ff";
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        ctx.arc(sx, sy, radius, start, start + (end - start) * progress);
+        ctx.stroke();
+      }
+    }
     ctx.globalAlpha = 1;
   }
   // 壁垒临时护盾光环
@@ -896,6 +923,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       const px = Math.round(this.player.x) - Math.floor(pw / 2);
       const stage = this.warriorTriDashStage;
       const leapOwned = (this.player.upCounts["跃击"] || 0) > 0;
+      const triCd = warriorTriDashCd(this.player.dashMax, this.player.lvl);
       for (let i = 0; i < total; i++) {
         const x = px + i * (cw + gap);
         ctx.fillStyle = "#1d2440";
@@ -904,7 +932,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
         const progress =
           left <= 0
             ? 1
-            : Math.max(0, 1 - left / this.player.dashMax);
+            : Math.max(0, 1 - left / triCd);
         if (progress <= 0) continue;
         ctx.fillStyle = left <= 0 ? "#ffd24a" : "#7a5a20";
         ctx.fillRect(x, py, Math.max(1, Math.round(cw * progress)), chh);
@@ -1466,11 +1494,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   ctx.textAlign = "left";
   ctx.fillText("Lv" + this.player.lvl, 6, 34);
   ctx.fillText(Math.ceil(this.player.hp) + "/" + this.player.maxhp, 6, 56); // 血量数值 (与计时同规格)
-  // 护盾格 (Lv 右侧)
-  for (let i = 0; i < this.player.shield; i++) {
-    ctx.fillStyle = "#57e6ff";
-    ctx.fillRect(90 + i * 7, 24, 5, 5);
-  }
+  // 护盾层数改到角色护盾环（见玩家绘制段）；HUD 不再显示小格。
   // Issue #51：冲刺充能格已移至角色脚下（见玩家绘制段），不再占用 HUD
   // 时间 (带波次号, 16px 像素字体)
   ctx.textAlign = "center";
