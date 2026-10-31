@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "date": "2026-11-01",
+  "branch": "codex/greatsword-character-art",
+  "base": "7305711",
+  "baseVersion": "v153",
+  "status": "selected-concept",
+  "selectedCandidate": "C",
+  "tool": "built-in image_gen.imagegen",
+  "model": null,
+  "seed": null,
+  "reference": {
+    "path": "assets/characters/katana/katana-c-seed-16x.png",
+    "role": "pixel style, body-height family and camera reference; not the new character identity"
+  },
+  "runtimeReady": false,
+  "reproducibility": "Tool did not return model version or seed. Prompts and source hashes are preserved; exact regeneration is not guaranteed.",
+  "validation": "Dimensions, genuine transparent pixels and nonempty content checked using the existing PNG decoder. High-resolution partial-alpha images are design references, not runtime sprites.",
+  "candidates": [
+    {
+      "id": "A",
+      "name": "露面铁卫",
+      "image": "greatsword-a-iron-guard-source.png",
+      "prompt": "greatsword-a-iron-guard-prompt.txt",
+      "sourceFile": "exec-acd70ef0-cfbe-4ea4-8f97-afb3a4bb8a19.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "283d0bdbc88991c89ea91946731c761836e74f9421a24260eb3c88193e3c7f2c",
+      "alpha": {
+        "transparent": 1290089,
+        "partial": 280623,
+        "opaque": 1804
+      }
+    },
+    {
+      "id": "B",
+      "name": "覆面重甲骑士",
+      "image": "greatsword-b-visored-knight-source.png",
+      "prompt": "greatsword-b-visored-knight-prompt.txt",
+      "sourceFile": "exec-43528181-b184-4da8-b2d0-146b37751ab7.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "03660366b2bc0b72edc02a20049cb97a3b43a9520afd3cb75e68700ea694edce",
+      "alpha": {
+        "transparent": 1381910,
+        "partial": 189114,
+        "opaque": 1492
+      }
+    },
+    {
+      "id": "C",
+      "name": "肩扛大剑佣兵",
+      "image": "greatsword-c-heavy-mercenary-source.png",
+      "prompt": "greatsword-c-heavy-mercenary-prompt.txt",
+      "sourceFile": "exec-c0b0ec61-6c1d-4608-b190-6de0ea26b451.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "e5602a052a1954926cd5c63221b43942b900f0789ed19ff160902a0e5024c017",
+      "alpha": {
+        "transparent": 1274672,
+        "partial": 296279,
+        "opaque": 1565
+      }
+    }
+  ]
+}
