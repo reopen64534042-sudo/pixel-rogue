@@ -9,6 +9,7 @@ import { MAGE_BALANCE as MB } from "../data/mageBalance";import { DAMAGE_TYPES }
 import type { DamageTypeId } from "../data/damageTypes";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { calculateDamage } from "./DamageSystem";
+import { typeBonusMultiplier } from "./DamageMath";
 import {
   fireLayers,
   frostLayers,
@@ -23,6 +24,7 @@ import {
   magePreviousElement,
   mageStatusDurationBonus,
   mageReactionDamageMul,
+  mageReactionIcd,
 } from "./MageProgressionSystem";
 import type { GameCore } from "./GameCore";
 import type { Enemy } from "./types";
@@ -124,9 +126,14 @@ function reactionDamage(
   noLifesteal = false,
   finaleEcho = true,
   controlled = false,
+  secondary?: MageElement,
 ): number {
   let amount =
     base * mul * reactionDamageMultiplier(e) * mageReactionDamageMul(core);
+  // 双元素增伤：触发元素由 hurtEnemy 结算；配对的另一元素在此补上
+  // typeDamageBonus。抗性方向仍按触发元素（见 docs §19）。
+  if (secondary && secondary !== element)
+    amount *= typeBonusMultiplier(core.player.typeDamageBonus, secondary);
   if (
     hasMageUpgrade(core, "reactionFinale") &&
     core.mageSuit === "B" &&
@@ -399,6 +406,7 @@ function resolveReaction(
   };
   const id = learnedReaction(core, element);
   if (!id) return result;
+  const partner = MAGE_REACTIONS[id].from;
 
   switch (id) {
     case "quench": {
@@ -416,6 +424,7 @@ function resolveReaction(
         noLifesteal,
         true,
         false,
+        partner,
       );
       spawnReactionFx(core, e, id);
       if (!e.dead)
@@ -439,6 +448,7 @@ function resolveReaction(
         noLifesteal,
         true,
         snap.frozen || snap.frostLock,
+        partner,
       );
       spawnReactionFx(core, e, id);
       result.triggered = true;
@@ -459,6 +469,7 @@ function resolveReaction(
         noLifesteal,
         true,
         snap.frozen || snap.frostLock,
+        partner,
       );
       spawnReactionFx(core, e, id);
       result.triggered = true;
@@ -476,6 +487,7 @@ function resolveReaction(
         noLifesteal,
         true,
         snap.frozen || snap.frostLock,
+        partner,
       );
       const splash = core.enemies
         .filter(
@@ -505,6 +517,7 @@ function resolveReaction(
           noLifesteal,
           false,
           false,
+          partner,
         );
       }
       spawnReactionFx(core, e, id);
@@ -570,7 +583,9 @@ export function applyElementalBodyHit(
   if (e.dead) return false;
   const snap = snapshot(e);
   const inBudget = opts.reactionBudget?.has(e) ?? false;
-  const canReact = opts.allowReaction !== false && !inBudget;
+  const icdBlocked = (e.elemReactionCd ?? 0) > 0;
+  const canReact =
+    opts.allowReaction !== false && !inBudget && !icdBlocked;
   const result = canReact
     ? resolveReaction(core, e, element, base, snap, opts.noLifesteal ?? false)
     : {
@@ -579,7 +594,10 @@ export function applyElementalBodyHit(
         forceChain: false,
         chainJumps: ELEMENTAL_MAGE.chain.jumps,
       };
-  if (result.triggered) opts.reactionBudget?.add(e);
+  if (result.triggered) {
+    opts.reactionBudget?.add(e);
+    e.elemReactionCd = mageReactionIcd(core);
+  }
   if (e.dead) return result.triggered;
 
   if (!result.skipStatus) {
@@ -626,6 +644,7 @@ export function applyElementalBurst(
         true,
         false,
         false,
+        from,
       );
       return;
     case "melt":
@@ -638,6 +657,7 @@ export function applyElementalBurst(
         true,
         false,
         false,
+        from,
       );
       return;
     case "overload":
@@ -650,6 +670,7 @@ export function applyElementalBurst(
         true,
         false,
         false,
+        from,
       );
       return;
     case "blaze":
@@ -662,6 +683,7 @@ export function applyElementalBurst(
         true,
         false,
         false,
+        from,
       );
       return;
     default:
@@ -767,6 +789,10 @@ export function updateMageElements(this: GameCore, dt: number): void {
     if (e.elemBrittleT !== undefined) {
       e.elemBrittleT = Math.max(0, e.elemBrittleT - dt);
       if (e.elemBrittleT === 0) delete e.elemBrittleT;
+    }
+    if (e.elemReactionCd !== undefined) {
+      e.elemReactionCd = Math.max(0, e.elemReactionCd - dt);
+      if (e.elemReactionCd === 0) delete e.elemReactionCd;
     }
   }
 }

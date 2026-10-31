@@ -431,6 +431,11 @@ export interface Enemy extends Point {
   elemFrostLockTotal?: number;
   /** 上一次霜牢延长的时间点：0.2 秒内最多延长一次。 */
   elemFrostLockExtendAt?: number;
+  /**
+   * 元素反应内置冷却：每只敌人两次普通反应之间的剩余秒数。
+   * 基础 0.8 秒，反应精通降为 0.7 秒；元素震爆不受此限制。
+   */
+  elemReactionCd?: number;
   seed: number;
   shootCd: number;
   fuse: number;
