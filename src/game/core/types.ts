@@ -490,7 +490,9 @@ export interface BurnZone extends Point {
 export interface Box extends Point {
   /** 波次结束后自动飞向玩家 */
   auto?: boolean;
-  /** Issue #48：BOSS 掉落的特殊宝箱（+2 宝箱点数，不占普通掉落上限） */
+  /** token=普通怪成长徽记；chest=精英普通宝箱；缺省按 chest 兼容。 */
+  kind?: "token" | "chest";
+  /** 历史特殊宝箱标记；强化宝箱留给后续 Boss，当前不再投放。 */
   special?: boolean;
 }
 export interface Particle extends Point {
@@ -518,6 +520,8 @@ export interface FloatingText extends Point {
    * 居合是周期性爆发（每波 2–6 次），数字需要一眼能从满屏白字里认出来。
    */
   iaiDmg?: boolean;
+  /** 大剑三段斩专属样式：与居合同级的四层大字，但改为暗金/暖白。 */
+  triDmg?: boolean;
 }
 export interface Meteor extends Point {
   t: number;
@@ -615,6 +619,8 @@ export interface HitOptions {
   specialHit?: boolean;
   /** 太刀「居合斩」：伤害数字用专属大字样式（见 FloatingText.iaiDmg） */
   iaiHit?: boolean;
+  /** 大剑三段斩：伤害数字用暗金大字样式（见 FloatingText.triDmg） */
+  triHit?: boolean;
   src?: DamageSource;
   fromExplode?: boolean;
   /** Combat Foundation S2（§5）：伤害属性，缺省 physical；所有既有调用点均已显式声明 */

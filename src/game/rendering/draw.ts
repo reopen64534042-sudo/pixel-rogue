@@ -5,6 +5,7 @@ import type { PixelPainter } from "./PixelPainter";
 import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
+import { warriorIaiStep } from "../core/WarriorSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import {
   WARRIOR_BALANCE as WB,
@@ -231,20 +232,12 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     const rect = spriteRect("potion", o.x, o.y);
     if (rect) ctx.sprite(rect.tex, rect.x, rect.y, rect.w, rect.h);
   }
-  // 宝箱（波次结束后会自动飞向玩家）
+  // 成长徽记 / 普通宝箱（波次结束后会自动飞向玩家）
   for (const b of this.boxes) {
     const bob = Math.sin(this.time * 4 + b.x) * 1.2;
-    const rect = spriteRect("box", b.x, b.y + bob);
+    const token = b.kind === "token";
+    const rect = spriteRect(token ? "sigil" : "box", b.x, b.y + bob);
     if (rect) ctx.sprite(rect.tex, rect.x, rect.y, rect.w, rect.h);
-    // Issue #48：特殊宝箱金色皇冠标记
-    if (b.special) {
-      const gx = Math.round(b.x - 5);
-      const gy = Math.round(b.y - 12 + bob);
-      ctx.fillStyle = "#ffd24a";
-      ctx.fillRect(gx, gy, 10, 2);
-      ctx.fillRect(gx + 1, gy + 2, 2, 2);
-      ctx.fillRect(gx + 7, gy + 2, 2, 2);
-    }
   }
 
   // Issue #45：焦土燃烧地带
@@ -1004,7 +997,30 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   if (this.prof === "warrior") {
     const cx = Math.round(this.player.x);
     const py = Math.round(this.player.y);
-    // 上：流（只增幅居合，不再有爆发态）
+    // 上：势。value 带未满一层的移动余量，因此是**平滑**增长而非跳格；
+    // 满层时整条亮白＝下一刀必是居合斩。
+    // 势核心 8 层，居合·迅作为可选增幅 +4；三条按 cap/3 均分，满层全亮。
+    if (this.player.upCounts["居合"]) {
+      const lv2 = (this.player.upCounts["居合·迅"] || 0) > 0;
+      const cap = WB.iai.cap + (lv2 ? WB.iai.capBonus : 0);
+      const step = warriorIaiStep(this);
+      const value = Math.min(
+        cap,
+        this.warriorIaiStacks + this.warriorIaiDist / step,
+      );
+      drawChargeBar(
+        ctx,
+        cx,
+        py + 16,
+        cap,
+        value,
+        "#5ea8c8",
+        "#e8ffff",
+        cap / CHARGE_SEG_COUNT,
+        false,
+      );
+    }
+    // 下：流（只增幅居合，不再有爆发态）
     if (this.player.upCounts["流·初"]) {
       const cap = this.player.upCounts["流·极"]
         ? WB.flow.cap3
@@ -1014,35 +1030,11 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       drawChargeBar(
         ctx,
         cx,
-        py + 16,
+        py + 20,
         cap,
         this.warriorFlowStacks,
         "#36e0c0",
         "#7cf5dd",
-      );
-    }
-    // 下：势。value 带未满一层的移动余量，因此是**平滑**增长而非跳格；
-    // 满层时整条亮白＝下一刀必是居合斩。
-    // 势核心 8 层，居合·迅作为可选增幅 +4；三条按 cap/3 均分，满层全亮。
-    if (this.player.upCounts["居合"]) {
-      const lv2 = (this.player.upCounts["居合·迅"] || 0) > 0;
-      const cap = WB.iai.cap + (lv2 ? WB.iai.capBonus : 0);
-      const step =
-        WB.iai.distPerStack - (lv2 ? WB.iai.stepReduction : 0);
-      const value = Math.min(
-        cap,
-        this.warriorIaiStacks + this.warriorIaiDist / step,
-      );
-      drawChargeBar(
-        ctx,
-        cx,
-        py + 20,
-        cap,
-        value,
-        "#5ea8c8",
-        "#e8ffff",
-        cap / CHARGE_SEG_COUNT,
-        false,
       );
     }
   }
@@ -1129,11 +1121,19 @@ export function draw(this: GameCore, ctx: PixelPainter) {
 
   // 环绕飞刃（Issue #3：刀形精灵，刃尖朝外）
   if (this.player.orbit > 0) {
+    const warriorBlades =
+      this.prof === "warrior" &&
+      (this.player.upCounts["护刃"] || 0) > 0;
+    const orbitR = warriorBlades ? WB.antiRanged.orbitRadius : 26;
+    const bladeScale =
+      warriorBlades && (this.player.upCounts["刃轮"] || 0) > 0
+        ? 1.25
+        : 1;
     for (let i = 0; i < this.player.orbit; i++) {
       const a = this.player.orbA + (i * Math.PI * 2) / this.player.orbit;
-      const bx = this.player.x + Math.cos(a) * 26;
-      const by = this.player.y + Math.sin(a) * 26;
-      ctx.spriteRot("blade", bx, by, a + Math.PI / 2);
+      const bx = this.player.x + Math.cos(a) * orbitR;
+      const by = this.player.y + Math.sin(a) * orbitR;
+      ctx.spriteRot("blade", bx, by, a + Math.PI / 2, bladeScale);
     }
   }
 
@@ -1346,7 +1346,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     }
   }
   for (const t of this.texts) {
-    const layers = t.iaiDmg
+    const layers = t.iaiDmg || t.triDmg
       ? 4
       : t.trueDmg
         ? t.big
@@ -1380,6 +1380,20 @@ export function draw(this: GameCore, ctx: PixelPainter) {
       ctx.fillTextSlot(slots[0], t.s, x, y);
       ctx.font = '14px "Press Start 2P", monospace';
       ctx.fillStyle = "#57e6ff";
+      ctx.fillTextSlot(slots[1], t.s, x, y);
+      ctx.font = '12px "Press Start 2P", monospace';
+      ctx.fillStyle = "#10131f";
+      ctx.fillTextSlot(slots[2], t.s, x + 1, y + 1);
+      ctx.fillStyle = t.c;
+      ctx.fillTextSlot(slots[3], t.s, x, y);
+    } else if (t.triDmg) {
+      // 三段斩：与居合同级四层，但换成大剑的暗金/暖白。
+      // 16px 深褐外圈 → 14px 熔金边 → 12px 落影 → 12px 暖白主体。
+      ctx.font = '16px "Press Start 2P", monospace';
+      ctx.fillStyle = "#3a2108";
+      ctx.fillTextSlot(slots[0], t.s, x, y);
+      ctx.font = '14px "Press Start 2P", monospace';
+      ctx.fillStyle = "#ffb02e";
       ctx.fillTextSlot(slots[1], t.s, x, y);
       ctx.font = '12px "Press Start 2P", monospace';
       ctx.fillStyle = "#10131f";
@@ -1482,7 +1496,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   ctx.fillStyle = "#3a0d0d";
   ctx.fillRect(7, 9, 82, 5);
   ctx.fillStyle =
-    this.player.hp / this.player.maxhp < 0.3 ? "#ff5b5b" : "#ff4d6d";
+    this.player.hp / this.player.maxhp < 0.45 ? "#ff5b5b" : "#ff4d6d";
   ctx.fillRect(
     7,
     9,

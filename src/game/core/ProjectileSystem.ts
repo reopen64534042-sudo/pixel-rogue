@@ -10,6 +10,7 @@ import {
   TRUE_DAMAGE_MUL,
 } from "../data/specialShot";
 import { KNOCK } from "../data/knockback";
+import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import type { GameCore } from "./GameCore";
 
 export function updateProjectiles(this: GameCore, dt: number) {
@@ -205,16 +206,25 @@ export function updateProjectiles(this: GameCore, dt: number) {
     }
     // Issue #49：环绕飞刃反弹敌方弹幕（碰到即反弹，伤害不衰减，无冷却）
     if (p.bladeReflect && !b.reflected && p.orbit > 0) {
-      const hitR = b.r + 5;
+      const warriorReflect =
+        this.prof === "warrior" && (p.upCounts["刃返"] || 0) > 0;
+      const orbitR = warriorReflect ? WB.antiRanged.orbitRadius : 26;
+      const longerBlade =
+        warriorReflect && (p.upCounts["刃轮"] || 0) > 0
+          ? WB.antiRanged.hitRadiusBonus
+          : 0;
+      const hitR = b.r + 5 + longerBlade;
       for (let i = 0; i < p.orbit; i++) {
         const ba = p.orbA + (i * Math.PI * 2) / p.orbit;
-        const bx = p.x + Math.cos(ba) * 26;
-        const by = p.y + Math.sin(ba) * 26;
+        const bx = p.x + Math.cos(ba) * orbitR;
+        const by = p.y + Math.sin(ba) * orbitR;
         const rdx = b.x - bx,
           rdy = b.y - by;
         if (rdx * rdx + rdy * rdy < hitR * hitR) {
           b.vx = -b.vx;
           b.vy = -b.vy;
+          if (warriorReflect)
+            b.dmg += p.damage * WB.antiRanged.reflectMeleeMul;
           b.reflected = true;
           b.life = Math.max(b.life, 3);
           this.addText(b.x, b.y - 6, "反弹", "#9fe1ff");

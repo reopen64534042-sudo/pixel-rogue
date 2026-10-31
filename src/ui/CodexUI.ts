@@ -85,7 +85,7 @@ function enemyStatsHtml(entry: CodexEntry): string {
     rows.push([
       "精英强化",
       "生命 ×3.5 · 攻击 ×1.6 · 移速 ×0.8 · 半径 ×1.8",
-      "特殊宝箱 50% 概率；经验 25+(波次-1)×4",
+      "普通宝箱 50% 概率（品质祝福）；经验 25+(波次-1)×4",
     ]);
   return `<div class="cx-d-stats">
     <div class="cx-d-stats-title">怪物属性</div>

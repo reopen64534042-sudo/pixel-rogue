@@ -1,4 +1,5 @@
 import { COMBAT_BALANCE } from "../combatBalance";
+import type { Talent } from "../../core/types";
 
 /**
  * 天赋池的公共常量与无副作用的派生函数。
@@ -22,6 +23,45 @@ export function physMitPct(def: number) {
 export const TIERS = ["普通", "稀有", "史诗", "传奇"];
 export const TIER_VAL = [1, 2, 4, 8];
 export const TIER_COLOR = ["#e8e8f0", "#4dff88", "#c07bff", "#ffd24a"];
+
+/** 链卡是否真有后续：L1 被同槽 L2 的 req 承接，或 requires 连线。 */
+function chainLinked(u: Talent, all: readonly Talent[]): boolean {
+  if (!u.layer) return false;
+  const group = all.filter(
+    (x) =>
+      x.slot === u.slot &&
+      x.prof === u.prof &&
+      x.warriorStyle === u.warriorStyle,
+  );
+  return (
+    !!u.requires ||
+    all.some((x) => x.requires === u.n) ||
+    (u.layer === 1 &&
+      group.some((x) => (x.layer ?? 0) > 1 && !x.requires && !!x.req))
+  );
+}
+
+/** 只返回需要显示的链层级；L1 不再显式标出。 */
+export function chainDisplayLayer(
+  u: Talent,
+  all: readonly Talent[],
+): 2 | 3 | null {
+  if ((u.layer !== 2 && u.layer !== 3) || !chainLinked(u, all)) return null;
+  return u.layer;
+}
+
+/**
+ * 卡面视觉稀有度：链 L2=稀有、L3=史诗；无后续的 L1 保持普通。
+ * 不改真实 `u.t`（抽取权重仍用原稀有度），只供 UI 框与标签使用。
+ */
+export function displayTalentTier(
+  u: Talent,
+  all: readonly Talent[],
+): number {
+  if (!u.layer) return u.t;
+  if (!chainLinked(u, all)) return 0;
+  return u.layer - 1;
+}
 
 /**
  * 稀有度权重曲线。`min` 是**波次**阈值（S2 起）。

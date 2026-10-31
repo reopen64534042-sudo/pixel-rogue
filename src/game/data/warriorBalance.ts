@@ -3,8 +3,9 @@ import type { WarriorStyle } from "../core/types";
 /**
  * 战士基础形态与核心链系数。
  *
- * 数值口径（2026-10-31 v137 调整）：
- * - 60 HP / 移速 太刀 68、大剑 62 / 10 护甲 / 4% 吸血；
+ * 数值口径（2026-10-31 v138 调整）：
+ * - 太刀 25 HP / 大剑 28 HP / 10 护甲 / 1% 吸血；
+ * - 移速 太刀 68、大剑 60；冲刺冷却 太刀 1.6s、大剑 1.8s；
  * - 太刀 15 伤害 ×2.5/s、52px、100° 扇形、击退 4px；
  * - 大剑 20 伤害 ×1.5/s、45px、130° 扇形、击退 10px；
  * - 职业底座：近战无视 30% 护甲（与大剑「破甲」叠乘，不改怪物数值）。
@@ -12,7 +13,7 @@ import type { WarriorStyle } from "../core/types";
  * 战士的强度靠「贴住」换覆盖：挥砍本身是扇形、不依赖排线，
  * 代价是必须贴身吃伤害。太刀核心压缩为居合/斩浪/连闪 3 张；
  * 流链只增幅居合，居合·迅/极与其余卡作为可选点缀。
- * 当前共 21 张（单流派可见：太刀 13、大剑 12；连斩归太刀）。
+ * 当前共 27 张（单流派可见：太刀 16、大剑 15；连斩归太刀）。
  */
 export interface WarriorStyleStats {
   readonly label: string;
@@ -20,6 +21,7 @@ export interface WarriorStyleStats {
   readonly damage: number;
   readonly fireRate: number;
   readonly speed: number;
+  readonly maxhp: number;
   /** 基础冲刺冷却（秒）；大剑比太刀更慢。 */
   readonly dashMax: number;
   readonly range: number;
@@ -35,9 +37,8 @@ export interface WarriorStyleStats {
 }
 
 export const WARRIOR_BALANCE = {
-  maxhp: 60,
   defense: 10,
-  lifesteal: 0.04,
+  lifesteal: 0.01,
   /**
    * 战士职业底座：近战无视 30% 护甲。
    * 精英固定为 60 防蛮牛；射手强化弹有无视护甲升级、法师元素绕开护甲，
@@ -95,7 +96,8 @@ export const WARRIOR_BALANCE = {
   leapImpactLife: 0.32,
   // 跃击落地 120% → 140%（机动链全面升级）。
   leapDamageMul: 1.4,
-  leapRechargeExtra: 0.8,
+  /** 跃击占用冲刺充能时，在基础冲刺冷却上额外增加的时间。 */
+  leapRechargeExtra: 1.2,
   /**
    * v128「三段斩」：大剑冲刺核心，类似太刀「斩浪」的入场专精。
    *
@@ -132,8 +134,8 @@ export const WARRIOR_BALANCE = {
   resolveEchoDelay: 0.25,
   resolveEchoMul: 0.5,
   // 强袭（大剑入场 L2）：跃击落地后短时攻速。
-  // 原 1 秒 +25% ≈ +10% DPS（大剑 1.2 刀/秒），L2 同样偏弱。改为 2 秒 +40% ≈ +33%。
-  leapHasteWindow: 2,
+  // 原 1 秒 +25% → 2 秒 +40%；v138 按用户要求延长到 4 秒。
+  leapHasteWindow: 4,
   leapHasteMul: 0.4,
   lianZhanChance: 0.3,
   lianZhanHeal: 0.03,
@@ -163,6 +165,22 @@ export const WARRIOR_BALANCE = {
     guardChance: 0.2,
     shockDmgMul: 2.5,
     shockStunT: 1,
+  },
+  /** 太刀反远程链：环绕飞刃与弹幕反弹。 */
+  antiRanged: {
+    orbitSpeed: 4.8,
+    orbitRadius: 30,
+    hitRadiusBonus: 4,
+    dmgMul: 0.6,
+    reflectMeleeMul: 0.5,
+    healPct: 0.008,
+  },
+  /** 大剑反击链：反伤与受伤后的挥砍强化。 */
+  counterChain: {
+    thornsMeleeMul: 0.75,
+    bloodDebtPerStack: 0.15,
+    bloodDebtMaxStacks: 2,
+    bloodDebtT: 3,
   },
   /**
    * 重斩链剑气（v135）：
@@ -213,6 +231,7 @@ export const WARRIOR_BALANCE = {
   },
   /**
    * 「居合」链（太刀专属）：走路积势、满层自动爆发。
+   * 每层距离随等级从 90px 线性降到 50px（20 级封顶）。
    *
    * 为什么资源是「移动距离」而不是「停手时长」：实测（自动贴脸 + 锁血）
    * 战士每波移动 1322–2852px、平均 2243px，但两次挥砍之间只隔 0.4 秒、
@@ -223,9 +242,10 @@ export const WARRIOR_BALANCE = {
    * 贴脸连打时流在涨、势不动；走位追怪时势在涨、流会掉。两者不会互相抵消。
    */
   iai: {
-    /** 核心居合：势上限 8、每层 50px；迅只作为可选增幅。 */
+    /** 核心居合：势上限 8；每层距离 1 级 90px → 20 级 50px 线性，迅再 -10px。 */
     cap: 8,
-    distPerStack: 50,
+    stepLv1: 90,
+    stepLv20: 50,
     capBonus: 4,
     stepReduction: 10,
     /** 每层增伤：满 8 层 = ×4.2。 */
@@ -254,6 +274,7 @@ export const WARRIOR_BALANCE = {
       // 太刀是三方里唯一必须贴身的近战，射程与攻速同时补，才追得上射手 24.2 的基线 DPS。
       fireRate: 2.5,
       speed: 68,
+      maxhp: 25,
       dashMax: 1.6,
       // 射程 34 → 42（#180）→ 52（本次）。刀光素材中心同步 22 → 26（见 draw.ts）。
       range: 52,
@@ -269,7 +290,8 @@ export const WARRIOR_BALANCE = {
       // 17 → 20（用户 2026-10-30 裁定）；攻速 1.2 → 1.55（#180）→ 1.5（v137 略削）。
       damage: 20,
       fireRate: 1.5,
-      speed: 62,
+      speed: 60,
+      maxhp: 28,
       dashMax: 1.8,
       range: 45,
       spread: (130 * Math.PI) / 180,

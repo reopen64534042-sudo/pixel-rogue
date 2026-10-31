@@ -1343,11 +1343,12 @@ p {
   opacity: 0;
   background: radial-gradient(
     ellipse at center,
-    rgba(120, 0, 0, 0) 40%,
-    rgba(255, 32, 32, 0.22) 70%,
-    rgba(150, 0, 0, 0.62) 100%
+    rgba(120, 0, 0, 0) 32%,
+    rgba(255, 32, 32, 0.3) 65%,
+    rgba(170, 0, 0, 0.8) 100%
   );
-  transition: opacity 0.2s linear;
+  box-shadow: inset 0 0 5vmin rgba(255, 24, 24, 0.35);
+  transition: opacity 0.18s linear;
 }
 .overlay {
   max-height: 100%;
