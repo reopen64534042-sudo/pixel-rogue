@@ -1,6 +1,6 @@
 # 导弹动画素材包
 
-2026-10-31，用户认可第二稿厚重灰色装甲、短尾翼与短促尾焰，要求据此制作完整动画；完成后再次认可本批素材并授权提交。本包完成重型导弹的出舱、点火、巡航、物理爆破与消散，以及蜂群微型弹、离子爆破与电弧的素材和播放接口。新导弹武器规则、成长、天赋与正式 GameScene 尚未接入，离线示范的弹道和数量不代表游戏平衡。
+2026-10-31，用户认可完整素材并授权提交为 `8104856`，随后认可规则并要求正式接入。v141 已将本包用于真实导弹武器：出舱、点火、巡航、物理／离子爆破、蜂群与电弧读取实际模拟事件。离线预览保留为独立素材编排，其弹道和数量不代表游戏平衡。
 
 分支为 `codex/shooter-missile-remake`，工作树为 `E:/AllProjects/pixel-rogue-missile-remake`，基于主线 v140 的 `c3dee30`。没有移植旧 `feat/shooter-weapons` 的武器系统。
 
@@ -58,11 +58,12 @@
 
 - `MissileVfxPlayer.ts`：纯采样与绘制指令；输入实际飞行姿态、历史轨迹、出舱、引爆和电弧的年龄与端点，不修改玩法状态，不消费战斗 RNG，不建立 RAF 或计时器。
 - `MissileVfxCanvas.ts`：离线 HTML 的 Canvas 后端，使用同一帧表与图集。
-- `MissileVfxPhaser.ts`：`preloadMissileVfx()` 与池化 `PhaserMissileVfxView`，后续由 Scene 提供只读快照。未导入正式 GameScene。
+- `MissileVfxPhaser.ts`：正式 GameScene 调用 `preloadMissileVfx()`；独立使用时仍可选择池化 `PhaserMissileVfxView`。
+- `MissileVfxBridge.ts` 与 `MissileVfxPainter.ts`：从 GameCore 只读采集真实姿态／事件，由 PixelPainter 复用正式世界的深度、相机与对象池，不额外建立 Phaser 动画计时器。
 - `MissileVfxDemo.ts`：六种确定性素材编排，供离线预览；不含碰撞、索敌、伤害或真实天赋。
 - `missileAssets.ts`：由素材脚本生成的类型、帧表与喷口几何，不能手工维护。
 
-后续接线示例：Scene preload 调用 `preloadMissileVfx(scene)`；固定步后向 view.capture 传入实际快照，再在对应世界深度调用 view.draw。暂停时快照年龄不推进；重开和销毁时调用 reset／destroy。当前 adapter 不持有战斗对象，也不会自动接管旧 `SpecialSystem` 导弹。
+正式接线为 Scene preload → Core 固定步推进 → `MissileRenderer` 采集快照 → `missileVfxCommands` → PixelPainter。动画读取模拟年龄，暂停与属性冻结时静止；普通波末清除玩法对象后，保留已触发短余波播完。原 `SpecialSystem` 的历史预留导弹仍独立，新系统没有同时推进旧对象。生成脚本额外从固定可见包围盒导出 `data/missileGeometry.ts` 的弹头偏移，Core 使用纯数据，不依赖 Phaser 或渲染器。
 
 ## 重建与验证
 
@@ -80,4 +81,4 @@ Node 与依赖复用主目录；本工作树 `node_modules` 为目录联接，�
 
 内置浏览器不允许打开本地 `file://`，因此 HTML 播放、暂停、时间轴与下拉场景的交互尚未在浏览器中验收；没有使用其他浏览器表面或临时服务器绕过限制。用户可在本机正常双击 HTML 查看。本轮不运行 Vitest／Playwright、不新增测试、不改 parity 基线；素材脚本同时检查内嵌模块语法和模板占位符，静态检查不能代替浏览器交互验收。
 
-构建与素材检查不代表 Phaser 实机播放、自然战斗强度、后期遮挡或性能验收。当前交付为可接入的动画素材包，武器、升级与专属天赋的玩法提案见 [导弹武器重制方案](shooter-missile-remake.md)。
+构建与素材检查不代表 Phaser 实机播放、自然战斗强度、后期遮挡或性能验收。当前已正式接入，武器、升级、专属天赋与受控 Core 运行记录见 [导弹武器规则](shooter-missile-remake.md)。

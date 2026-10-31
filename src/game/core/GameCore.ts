@@ -1,4 +1,6 @@
 import { createLaserState, type LaserUpgradeId } from "../data/laser";
+import { createMissileState } from "../data/missile";
+import { clearMissileTransient, devSetMissileLevel, missileDash } from "./MissileSystem";
 import { devSetLaserLevel, laserDash } from "./LaserSystem";
 import { AudioService } from "../../services/AudioService";
 import { StorageService } from "../../services/StorageService";
@@ -231,6 +233,7 @@ export class GameCore {
   /** 战士开局流派；非战士恒为 katana。 */
   warriorStyle: WarriorStyle = "katana";
   shooterWeapon: ShooterWeapon = "charged";
+  missile = createMissileState();
   laser = createLaserState();
   laserLevel = 1;
   laserXp = 0;
@@ -482,6 +485,7 @@ export class GameCore {
     element: 0,
     reaction: 0,
     laser: 0,
+    missileMain: 0, missileSwarm: 0, missileArc: 0, missileBurn: 0,
   };
   private waveStartDamage: DamageTotals = {
     bullet: 0,
@@ -498,6 +502,7 @@ export class GameCore {
     element: 0,
     reaction: 0,
     laser: 0,
+    missileMain: 0, missileSwarm: 0, missileArc: 0, missileBurn: 0,
   };
   beginWaveReport() {
     this.waveStartDamage = { ...this.dmgBy };
@@ -596,6 +601,10 @@ export class GameCore {
   gainSpecialXp = gainSpecialXp.bind(this);
   devSetSpecialLevel = devSetSpecialLevel.bind(this);
   devSetLaserLevel = devSetLaserLevel.bind(this);
+  devSetMissileLevel = devSetMissileLevel.bind(this);
+  missileDash = missileDash.bind(this);
+  clearMissileTransient(clearInventory = false) { clearMissileTransient(this, clearInventory); }
+  resetMissileWeapon() { this.missile = createMissileState(); }
   laserDash = laserDash.bind(this);
   update = update.bind(this);
   waveQuota = waveQuota.bind(this);
@@ -611,6 +620,7 @@ export class GameCore {
     // 法师的施法速度/施法距离与战士的武器形态来自职业 base。
     this.prof = prof;
     this.shooterWeapon = prof === "shooter" ? shooterWeapon : "charged";
+    this.missile = createMissileState();
     this.laser = createLaserState();
     this.laserLevel = 1;
     this.laserXp = 0;
@@ -769,6 +779,7 @@ export class GameCore {
       element: 0,
       reaction: 0,
       laser: 0,
+      missileMain: 0, missileSwarm: 0, missileArc: 0, missileBurn: 0,
     };
     this.beginWaveReport();
     this.bpMode = null;
@@ -905,6 +916,7 @@ export class GameCore {
    * 只由 `gameOver` 在 `devRevive` 开启时调用；不写战绩。
    */
   private devReviveRun() {
+    clearMissileTransient(this, true);
     this.laser = createLaserState();
     this.warriorLeapState = null;
     const wave = Math.max(1, this.waveN);
@@ -956,6 +968,7 @@ export class GameCore {
    * 清掉：picks/upCounts 与依赖天赋的运行态（护盾/充能/陨星/残域/法阵读条）。
    */
   devClearTalents() {
+    clearMissileTransient(this, true);
     this.laser = createLaserState();
     this.warriorLeapState = null;
     const p = this.player;
@@ -1009,6 +1022,7 @@ export class GameCore {
   }
 
   gameOver() {
+    clearMissileTransient(this, true);
     this.laser = createLaserState();
     this.warriorLeapState = null;
     if (this.state === "over") return;    // DEV-only：允许复活时拦截死亡，保留本局构筑并重开当前波。

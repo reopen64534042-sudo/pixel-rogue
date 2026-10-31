@@ -162,6 +162,7 @@ export function updatePlayer(this: GameCore, dt: number) {
       this.warriorLeap(triStage3 ? { triStage3: true } : undefined);
     if (!leap) {
       this.laserDash();
+      this.missileDash();
       p.dashT = 0.16;
       if (triOwned) {
         this.warriorTriSlotRe[this.warriorTriDashStage] =

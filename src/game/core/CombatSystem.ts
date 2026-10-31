@@ -39,6 +39,7 @@ import {
 } from "../data/specialShot";
 import {
   laserIncomingDamage,
+  missileIncomingDamage,
   burnStackDps,
   scorchVulnMultiplier,
   frostFreezeDuration,
@@ -176,7 +177,7 @@ export function hurtEnemy(
     type: opts.type ?? "physical",
     form: opts.form ?? "other",
     origin: opts.src ?? "hit",
-    kind: "hit",
+    kind: opts.kind ?? "hit",
     precision: opts.continuous ? "preserve-float" : "round-min-one",
     isCritical: crit,
     attackerStats: effectiveAttackerStats,
@@ -191,7 +192,7 @@ export function hurtEnemy(
       type: "true",
       form: opts.form ?? "other",
       origin: opts.src ?? "hit",
-      kind: "hit",
+      kind: opts.kind ?? "hit",
       precision: opts.continuous ? "preserve-float" : "round-min-one",
       isCritical: crit,
       attackerStats: effectiveAttackerStats,
@@ -662,6 +663,9 @@ export function damagePlayer(
     this.prof === "shooter" && this.shooterWeapon === "laser" &&
     this.laser.phase === "recharge" && p.upCounts["冷凝护甲"]
   ) dmg = laserIncomingDamage(dmg);
+  if (this.prof === "shooter" && this.shooterWeapon === "missile" && opts.kind !== "dot" &&
+    this.missile.reload > 0 && this.time < this.missile.armorUntil && p.upCounts["应急装甲"])
+    dmg = missileIncomingDamage(dmg);
   const rawDmg = dmg;
   // 大剑仅坠落段离地免伤；0.24 秒起手仍按正常规则受击。
   if (this.warriorLeapState?.phase === "fall")
@@ -776,7 +780,7 @@ export function damagePlayer(
     type: opts.type ?? "physical",
     form: opts.form ?? "other",
     origin: opts.src ? "contact" : "enemy",
-    kind: "hit",
+    kind: opts.kind ?? "hit",
     precision: "preserve-float",
     isCritical: false,
     attackerStats: opts.attackerStats ?? getEnemyCombatStats(opts.src),

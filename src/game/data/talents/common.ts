@@ -81,6 +81,7 @@ export const RAMP = [
 ];
 
 export const CAT_COLOR: Record<string, string> = {
+  猎杀: "#ffd24a", 蜂群: "#ff9a3d", 离子: "#57e6ff", 区域: "#ff9a3d", 防守: "#8b8f9a",
   攻击: "#ff6b9d",
   增幅: "#4dff88",
   技能: "#57e6ff",
@@ -103,6 +104,7 @@ export const CAT_COLOR: Record<string, string> = {
   循环: "#ff6b9d",
 };
 export const CAT_ICO: Record<string, string> = {
+  猎杀: "◎", 蜂群: "➤", 离子: "⚡", 区域: "◉", 防守: "◇",
   攻击: "⚔",
   增幅: "📈",
   技能: "✨",

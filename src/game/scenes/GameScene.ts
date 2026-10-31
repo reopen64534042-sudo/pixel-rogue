@@ -1,4 +1,6 @@
 import { preloadLaserVfx } from "../rendering/vfx/laser/LaserVfxPhaser";
+import { preloadMissileVfx } from "../rendering/vfx/missile/MissileVfxPhaser";
+import { clearMissileTransient } from "../core/MissileSystem";
 import { LaserV137Bridge } from "../rendering/vfx/laser/LaserV137Bridge";
 import { LaserVfxPlayer, type LaserVfxCommand } from "../rendering/vfx/laser/LaserVfxPlayer";
 import { drawLaserVfxPainter } from "../rendering/vfx/laser/LaserVfxPainter";
@@ -92,6 +94,7 @@ export class GameScene extends Phaser.Scene {
   }
   preload() {
     preloadLaserVfx(this);
+    preloadMissileVfx(this);
   }
   create() {
     for (const [key, canvas] of Object.entries(SPR))
@@ -280,6 +283,7 @@ export class GameScene extends Phaser.Scene {
       core.webZones = [];
       core.missiles = [];
       core.lasers = [];
+      clearMissileTransient(core, true);
       core.texts = [];
       if (this.specialTest === "special-swarm") {
         for (let i = 0; i < this.swarmTarget; i++) this.spawnSwarmEnemy(i);

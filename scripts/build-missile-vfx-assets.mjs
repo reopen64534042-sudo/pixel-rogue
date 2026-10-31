@@ -133,6 +133,11 @@ const sourceRecords = sources.map((s, i) => ({ path: s.path, width: s.width, hei
 const geometry = { referenceBlastRadius: 28, referenceMicroRadius: 12,
   nozzleOffset: frameStats.find(f => f.name === "body-0").visibleBounds.x - clips.body.anchor[0] + 1,
   microNozzleOffset: frameStats.find(f => f.name === "micro-body-0").visibleBounds.x - clips["micro-body"].anchor[0] + 1 };
+const nose = key => { const bounds = frameStats.find(f => f.name === key + "-0").visibleBounds;
+  return bounds.x + bounds.w - clips[key].anchor[0] - 0.5; };
+writeFileSync(new URL("src/game/data/missileGeometry.ts", root),
+  "// Generated from the approved atlas visible bounds by build-missile-vfx-assets.mjs.\n" +
+  `export const MISSILE_NOSE = ${JSON.stringify({ main: nose("body"), micro: nose("micro-body") }, null, 2)} as const;\n`);
 json(out + "missile.metadata.json", { version: 1, axis: "+X; jet trails -X", pixelsPerWorldUnit: 1,
   ...geometry,
   alphaValues: [0, 255], clips, frames, sources: sourceRecords, processing,

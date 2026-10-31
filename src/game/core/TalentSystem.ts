@@ -334,6 +334,12 @@ export function chooseSlot(this: GameCore, index: number) {
 }
 
 export function rollPicks(this: GameCore) {
+  if (this.prof === "shooter" && this.shooterWeapon === "missile" && this.player.picks.length === 0) {
+    return ["猎杀信标", "蜂巢弹舱", "离子战斗部"].flatMap(name => {
+      const card = UPGRADES.find(u => u.n === name);
+      return card && this.canOffer(card) ? [card] : [];
+    });
+  }
   const avail = UPGRADES.filter(this.canOffer);
   const w = this.tierWeights();
   const picks: Talent[] = [];

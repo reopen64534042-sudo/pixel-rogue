@@ -1,4 +1,7 @@
 import { LASER, LASER_UPGRADES, LASER_XP } from "../game/data/laser";
+import { MISSILE, MISSILE_UPGRADES, MISSILE_XP } from "../game/data/missile";
+import { missileDamage, missileRadius, missileRange, missileReload } from "../game/core/MissileSystem";
+import { MISSILE_DAMAGE } from "../game/data/combatBalance";
 import { laserDps, laserOutputRate, laserPierceRetention } from "../game/core/DamageMath";
 import { laserBeamCount, laserRange, laserWidth, laserDuration, laserRecharge } from "../game/core/LaserSystem";
 import type { GameCore } from "../game/core/GameCore";
@@ -61,6 +64,10 @@ import { CodexUI } from "./CodexUI";
 const DMG_NAMES: Record<string, string> = {
   bullet: "🏹魔弹",
   laser: "🔆激光",
+  missileMain: "🚀主导弹与追击",
+  missileSwarm: "🛰️蜂群",
+  missileArc: "⚡电弧与共振",
+  missileBurn: "🔥导弹余烬",
   orbit: "🗡️飞刃",
   chain: "🌩️闪电",
   meteor: "☄️陨星",
@@ -200,6 +207,7 @@ export class GameUI {
       this.startProfession("shooter");
     element("btn-shooter-charged").onclick = () => this.chooseShooterWeapon("charged");
     element("btn-shooter-laser").onclick = () => this.chooseShooterWeapon("laser");
+    element("btn-shooter-missile").onclick = () => this.chooseShooterWeapon("missile");
     element("btn-shooter-weapon-back").onclick = () => {
       hide("ov-shooter-weapon");
       show(this.shooterPickMode === "start" ? "ov-prof-pick" : "ov-tutorial-pick");
@@ -520,6 +528,7 @@ export class GameUI {
     // 会让玩家以为自己在加物理攻击（属性面板已同步改口径）。
     const isMage = this.core.prof === "mage";
     const isLaser = this.core.prof === "shooter" && this.core.shooterWeapon === "laser";
+    const isMissile = this.core.prof === "shooter" && this.core.shooterWeapon === "missile";
     const isWarrior = this.core.prof === "warrior";
     const flowCap = isWarrior
       ? (p.upCounts["流·极"] || 0) > 0
@@ -639,6 +648,9 @@ export class GameUI {
               : []
           : isLaser
             ? ([["🔆 单束基础 DPS", laserDps(p, this.core.laserLevel).toFixed(1)]] as [string, string | number][])
+          : isMissile
+            ? ([["🚀 主弹参考伤害 D", missileDamage(this.core).toFixed(1)],
+                ["⏱ 下一轮装填间隔", missileReload(this.core).toFixed(2) + " 秒"]] as [string, string | number][])
           : ([
               [
                 "🏹 普通魔弹",
@@ -657,6 +669,8 @@ export class GameUI {
         ? ["⚡ 施法速度", p.fireRate.toFixed(2) + " 次/秒"]
         : isLaser
           ? ["⚡ 光束输出速率", "×" + (laserOutputRate(p) / statBase("shooter").fireRate).toFixed(2)]
+        : isMissile
+          ? ["⚡ 装填速率", "×" + (laserOutputRate(p) / statBase("shooter").fireRate).toFixed(2)]
         : [
             "⚡ 攻速",
             (p.fireRate * (1 + p.haste * 0.1)).toFixed(2) +
@@ -775,6 +789,9 @@ export class GameUI {
     } else if (isLaser) {
       knockRows.push(["🔆 激光", p.upCounts["光压退敌"] ? "弱（每 0.4 秒）" : "无"]);
       if (p.upCounts["紧急散射"]) knockRows.push(["🔆 紧急散射", knockLevel(LASER.escapeKnock)]);
+    } else if (isMissile) {
+      knockRows.push(["🚀 主导弹", knockLevel(MISSILE.mainKnock)], ["🛰️ 微型弹", knockLevel(MISSILE.microKnock)]);
+      if (p.upCounts["近炸保险"]) knockRows.push(["🔆 近炸保险", knockLevel(MISSILE.escapeKnock)]);
     } else {
       knockRows.push(["🏹 普通魔弹", knockLevel(KNOCK.shooter.bolt)]);
       knockRows.push(["✨ 强化弹", knockLevel(KNOCK.shooter.charged)]);
@@ -836,7 +853,7 @@ export class GameUI {
       ["👟 移动速度", Math.round(playerMoveSpeed(this.core))],
       [
         isMage ? "🎯 施法距离" : isWarrior ? "🎯 近战范围" : "🎯 射程",
-        Math.round(isLaser ? laserRange(this.core) : p.attackRange),
+        Math.round(isLaser ? laserRange(this.core) : isMissile ? missileRange(this.core) : p.attackRange),
       ],
       ...(isMage
         ? ([
@@ -844,6 +861,8 @@ export class GameUI {
           ] as [string, string | number][])
         : isLaser
           ? ([["🌐 光束宽度", laserWidth(this.core).toFixed(1) + " px"]] as [string, string | number][])
+        : isMissile
+          ? ([["💥 主弹爆炸半径", missileRadius(this.core).toFixed(1) + " px"]] as [string, string | number][])
           : []),
     ];
     const dynamicDifficulty = resolveDifficulty(
@@ -907,7 +926,7 @@ export class GameUI {
     const isShooter = this.core.prof === "shooter";
     if (specialTitle) {
       specialTitle.style.display = isShooter ? "" : "none";
-      specialTitle.textContent = isLaser ? "激光武器" : "强化弹";
+      specialTitle.textContent = isLaser ? "激光武器" : isMissile ? "导弹武器" : "强化弹";
     }
     if (specialUpgradesEl)
       specialUpgradesEl.style.display = isShooter ? "" : "none";
@@ -934,6 +953,31 @@ export class GameUI {
         ]);
         const upgrades = LASER_UPGRADES.filter(u => this.core.laserUpgrades.includes(u.id));
         if (specialUpgradesTitle) specialUpgradesTitle.textContent = "当前升级 (" + upgrades.length + "/" + LASER_UPGRADES.length + ")";
+        if (specialUpgradesList) specialUpgradesList.innerHTML = upgrades.length
+          ? upgrades.map(u => '<div class="special-upgrade"><span class="su-name">' + u.name + '</span><span class="su-desc">' + u.desc + '</span></div>').join("")
+          : '<div class="special-upgrade-empty">Lv.4 起，每级获得一条武器升级</div>';
+      } else if (isShooter && isMissile) {
+        const m = this.core.missile, need = MISSILE_XP[m.level - 1];
+        const twin = m.upgrades.includes("twin"), next = m.rounds % MISSILE.cycle + 1;
+        const size = (multiplier: number) => (missileRadius(this.core) * multiplier).toFixed(1) + " px";
+        specialEl.innerHTML = renderRows([
+          ["🚀 武器等级", need === null ? "MAX" : "Lv." + m.level + " / " + MISSILE_XP.length],
+          ["🎯 主弹参考伤害 D", missileDamage(this.core).toFixed(1)],
+          ["🚀 每轮主弹", twin ? "2 枚，各 " + (MISSILE_DAMAGE.twin * 100).toFixed(0) + "% D" : "1 枚，100% D"],
+          ["⏱ 本轮装填 / 剩余", (m.reload > 0 ? m.reloadTotal : missileReload(this.core)).toFixed(2) + " / " + m.reload.toFixed(2) + " 秒"],
+          ["📏 索敌射程 / 常规半径", missileRange(this.core).toFixed(1) + " / " + size(1)],
+          ["🔁 下一轮", next + " / 3" + (next === 3 ? " · 强化轮" : "")],
+          ["📘 下一级", need === null ? "MAX" : m.xp + " / " + need + " 次有效齐射"],
+          ["🔋 最近一轮", m.lastVolley ? m.lastVolley.xpGiven ? (this.core.tutorialMode ? "有效命中（教程不授经验）" : "已记账，每轮只计一次") : "尚未有效命中" : "待发"],
+          ["🎯 信标 / 破译", m.beacon && !m.beacon.dead ? "已锁定 / " + m.decode + " 次" : "无"],
+          ["♻️ 回收弹药", m.ammo + " / " + MISSILE.ammoCap + (m.reservedAmmo ? "（已预约 " + m.reservedAmmo + "）" : "")],
+          ["🔰 装甲窗口", p.upCounts["应急装甲"] ? (this.core.time < m.armorUntil && m.reload > 0 ? "生效中" : "未生效") + " · 装填前 35% 时长" : "未获得"],
+          ["💧 吸血", "主爆炸 30% 效率，全武器最多 2% 最大生命/秒"],
+          ["🔋 成长与派生", "主爆炸每轮最多 1 经验，小弹 / 电弧 / 余烬不计"],
+          ["💥 暴击与触发", "主弹每轮共用暴击；通用命中特效每轮首次直击一次"],
+        ]);
+        const upgrades = MISSILE_UPGRADES.filter(u => m.upgrades.includes(u.id));
+        if (specialUpgradesTitle) specialUpgradesTitle.textContent = "当前升级 (" + upgrades.length + "/" + MISSILE_UPGRADES.length + ")";
         if (specialUpgradesList) specialUpgradesList.innerHTML = upgrades.length
           ? upgrades.map(u => '<div class="special-upgrade"><span class="su-name">' + u.name + '</span><span class="su-desc">' + u.desc + '</span></div>').join("")
           : '<div class="special-upgrade-empty">Lv.4 起，每级获得一条武器升级</div>';
@@ -1695,6 +1739,10 @@ export class GameUI {
           title: "贴身挥砍",
           body: "贴近敌人自动挥砍，扇形内所有敌人一起受伤；离得越近越容易打满。试着一次命中至少 2 个木桩。",
         };
+      if (this.core.shooterWeapon === "missile") return {
+        title: "重型制导导弹",
+        body: "导弹自动制导并范围爆破，可以边移动边发射。每第 3 轮按已学天赋加入蜂群与离子；成长按主弹有效命中计算。试着保持远距，完成 3 轮主弹有效命中；教程不获得武器经验。",
+      };
       if (this.core.shooterWeapon === "laser") return {
         title: "连续切割束",
         body: "激光自动锁定目标，可以边移动边照射；横向走位把敌人串成一线。每轮照射后短暂回充，主光束有效照射让武器成长。试着保持远距，照射木桩累计 2 秒。",
@@ -1896,6 +1944,7 @@ export class GameUI {
     this.disarmRestart();
     this.codex.close();
     this.core.clearTouchInput();
+    this.core.resetMissileWeapon();
     this.core.state = "start";
     this.core.view.reset();
     if (this.settingsOpen) this.closeSettings();
