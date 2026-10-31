@@ -4,6 +4,7 @@ import type { LaserLane, LaserLine } from "../data/laser";
 import { LASER, LASER_XP, getLaserAim } from "../data/laser";
 import { PALETTE_HEX as C } from "../data/palette";
 import type { PixelPainter } from "./PixelPainter";
+import type { ShooterEchoDrawing } from "./characters/ShooterCharacter";
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 const life = (line: LaserLine) => line.max > 0 ? clamp01(line.t / line.max) : 1;
@@ -83,7 +84,7 @@ function drawMain(core: GameCore, ctx: PixelPainter, line: LaserLine) {
   fleck(ctx, line.x, line.y, C.white, envelope);
 }
 
-function drawResidual(ctx: PixelPainter, line: LaserLine) {
+function drawResidual(ctx: PixelPainter, line: LaserLine, echoCharacter?: ShooterEchoDrawing) {
   if (line.kind === "afterglow") {
     const k = life(line);
     // 余辉为逐渐变细的旧光路，不再复制主束的白色亮芯。
@@ -101,12 +102,14 @@ function drawResidual(ctx: PixelPainter, line: LaserLine) {
   if ((line.lane ?? 0) !== 0) return;
   const a = axis(line);
   const oldX = Math.round(line.x - a.ux * 7), oldY = Math.round(line.y - a.uy * 7 + 3);
-  ctx.fillStyle = C.iceCyan;
-  ctx.globalAlpha = k * 0.22;
-  ctx.fillRect(oldX - 2, oldY - 5, 4, 3);
-  ctx.fillRect(oldX - 3, oldY - 1, 6, 4);
-  ctx.fillRect(oldX - 2, oldY + 3, 1, 2);
-  ctx.fillRect(oldX + 1, oldY + 3, 1, 2);
+  if (!echoCharacter?.(oldX, oldY, Math.atan2(a.uy, a.ux), k * 0.22)) {
+    ctx.fillStyle = C.iceCyan;
+    ctx.globalAlpha = k * 0.22;
+    ctx.fillRect(oldX - 2, oldY - 5, 4, 3);
+    ctx.fillRect(oldX - 3, oldY - 1, 6, 4);
+    ctx.fillRect(oldX - 2, oldY + 3, 1, 2);
+    ctx.fillRect(oldX + 1, oldY + 3, 1, 2);
+  }
   ctx.globalAlpha = 1;
   // 旧发射口与人物、残留束共用同一快速淡出，避免留下闪眼的孤立亮点。
   ctx.beam(line.x - a.ux * 4, line.y - a.uy * 4, line.x, line.y, 2, C.iceDeep, k * 0.25);
@@ -211,7 +214,7 @@ function drawEmitter(core: GameCore, ctx: PixelPainter) {
 }
 
 /** 纯表现：所有线段/命中点来自模拟，动画只读模拟时间，零 RNG 与额外计时器。 */
-export function drawLaser(core: GameCore, ctx: PixelPainter, animation?: () => boolean) {
+export function drawLaser(core: GameCore, ctx: PixelPainter, animation?: () => boolean, echoCharacter?: ShooterEchoDrawing) {
   if (core.prof !== "shooter" || core.shooterWeapon !== "laser" || core.state === "over") return;
   const l = core.laser;
   const mains = l.lines.filter(line => line.kind === "main");
@@ -223,7 +226,7 @@ export function drawLaser(core: GameCore, ctx: PixelPainter, animation?: () => b
     if (line.kind === "afterglow" && current &&
       Math.hypot(line.x - current.x, line.y - current.y) < 2 &&
       Math.hypot(line.x2 - current.x2, line.y2 - current.y2) < 2) continue;
-    drawResidual(ctx, line);
+    drawResidual(ctx, line, echoCharacter);
   }
   // The PNG player owns the main beams, focus rings and release transitions.
   // Keep the existing afterglow/echo/scatter mechanics visible in either path.

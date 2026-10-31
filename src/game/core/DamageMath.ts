@@ -1,3 +1,6 @@
+import { BOSS } from "../data/boss";
+import { BOSS_DAMAGE } from "../data/combatBalance";
+import { ELITE_XP_STEP } from "../data/constants";
 import type { LaserLane } from "../data/laser";
 import type { Player } from "./types";
 import { LASER_DAMAGE as LD, MISSILE_DAMAGE as MD } from "../data/combatBalance";
@@ -144,4 +147,17 @@ export function missileGroundPower(dps: number, stats: import("./types").CombatS
   const fire = Object.hasOwn(stats.typeDamageBonus, "fire") ? stats.typeDamageBonus.fire ?? 0 : 0;
   const ranged = Object.hasOwn(stats.formDamageBonus, "ranged") ? stats.formDamageBonus.ranged ?? 0 : 0;
   return dps * (1 + stats.globalDamageBonus) * (1 + fire) * (1 + ranged);
+}
+
+/** Boss 技能只在纯计算层形成 rawAmount；调用方仍走统一受击管线。 */
+export function bossAttackDamage(attack: number, move: keyof typeof BOSS_DAMAGE): number {
+  return attack * BOSS_DAMAGE[move];
+}
+export function bossRewardXp(wave: number, xpMul: number): number {
+  return Math.round((25 + (wave - 1) * ELITE_XP_STEP) * BOSS.reward.xpMul * xpMul);
+}
+
+/** 地面伤害按固定 tick 积分；冰面首版只减速。 */
+export function bossGroundTickDamage(attack: number, kind: "fire" | "frost"): number {
+  return bossAttackDamage(attack, kind === "fire" ? "fireGround" : "frostGround") * BOSS.hazard.tick;
 }

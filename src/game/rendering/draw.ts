@@ -1,10 +1,13 @@
+import { drawAnimatedBoss } from "./BossVfx";
+import { bossSpriteKey, drawBossGround, drawBossHead, drawBossHud } from "./BossRenderer";
 import { drawLaser, drawLaserResources } from "./LaserRenderer";
 import { drawMissile, drawMissileGround, drawMissileResources } from "./MissileRenderer";
 import type { GameCore } from "../core/GameCore";
 import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
-import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
+import type { ShooterEchoDrawing } from "./characters/ShooterCharacter";
+import { W, H, VIEW, WORLD, fmtTime, fmtHp } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
 import { warriorIaiStep } from "../core/WarriorSystem";
@@ -176,7 +179,8 @@ function drawChargeBar(
   }
 }
 
-export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean, character?: CharacterDrawing) {
+export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean, character?: CharacterDrawing,
+  shooterWeapon?: () => void, shooterEcho?: ShooterEchoDrawing) {
   const TS = 16,
     tw = WORLD.w / TS,
     th = WORLD.h / TS;
@@ -264,6 +268,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   }
 
   // 织网蛛蛛网：预警时金色圈收缩，生效后画白色网纹；网只减速，不造成伤害。
+  drawBossGround(this, ctx);
   for (const z of this.webZones) {
     if (z.arm > 0) {
       const k = 1 - z.arm / WEB_ZONE.arm;
@@ -500,6 +505,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
 
   // 敌人
   for (const e of this.enemies) {
+    if (e.boss && drawAnimatedBoss(this, ctx)) continue;
     // 精英优先用独立贴图；没有时退回「同系列贴图 ×1.8」。
     // 命名统一为 `${spr}_elite`，与 sprites.ts 的注册键一致（如 brute_elite）。
     const eliteKey = `${e.spr}_elite`;
@@ -508,7 +514,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const puff = e.type === "bomber" && e.fuse > 0 ? 1.35 : 1;
     const rect = eliteEntry
       ? spriteRect(eliteKey, e.x, e.y, puff)
-      : spriteRect(e.spr, e.x, e.y, (e.elite ? 1.8 : 1) * puff);
+      : spriteRect(e.boss ? bossSpriteKey(this) : e.spr, e.x, e.y, (e.elite ? 1.8 : 1) * puff);
     if (!rect) continue;
     const { x, y, w, h } = rect;
     const burrowHidden =
@@ -536,6 +542,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.globalAlpha = 1;
     } else {
       ctx.sprite(rect.tex, x, y, w, h);
+      if (e.boss) drawBossHead(this, ctx);
     }
     if (e.type === "burrower" && e.burrowState === "dive")
       ctx.globalAlpha = 1;
@@ -1266,7 +1273,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     ctx.polyline3(pts, "#aef1ff", 0.9);
   }
 
-  drawLaser(this, ctx, laserAnimation);
+  drawLaser(this, ctx, laserAnimation, shooterEcho);
   drawMissile(this, ctx);
 
   // 强化弹激光（短寿命表现层；与电弧同为一次折线批量绘制）
@@ -1343,6 +1350,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   }
   ctx.globalAlpha = 1;
 
+  shooterWeapon?.();
   // 飘字：每条文字在生命周期内绑定固定 label 槽位，只更新坐标/透明度，
   // 避免文字过期后槽位整体前移导致的每帧纹理重建。
   ctx.textAlign = "center";
@@ -1516,7 +1524,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   ctx.fillStyle = "#e8e8f0";
   ctx.textAlign = "left";
   ctx.fillText("Lv" + this.player.lvl, 6, 34);
-  ctx.fillText(Math.ceil(this.player.hp) + "/" + this.player.maxhp, 6, 56); // 血量数值 (与计时同规格)
+  ctx.fillText(fmtHp(this.player.hp, this.player.maxhp), 6, 56); // 血量数值 (与计时同规格)
   // 护盾层数改到角色护盾环（见玩家绘制段）；HUD 不再显示小格。
   // Issue #51：冲刺充能格已移至角色脚下（见玩家绘制段），不再占用 HUD
   // 时间 (带波次号, 16px 像素字体)
@@ -1531,6 +1539,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     W / 2,
     24,
   );
+  drawBossHud(this, ctx);
   // 击杀
   ctx.textAlign = "right";
   ctx.fillStyle = "#9aa3c7";

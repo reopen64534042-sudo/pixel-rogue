@@ -1,0 +1,15 @@
+Improve ONLY the RUN CYCLE for the approved SHOOTER C in the reference. Preserve EXACT identity, palette, head/body size, silver hair, cyan side goggle, dark eye, steel vest, navy/teal clothes, back power-pack, energy box and brown boots. Body only, no gun or effects. The reference contains the current 4x4 action sheet; use it as identity and scale, but output only the new running sequence.
+Output a WIDE 2:1 transparent canvas with EXACTLY FOUR COLUMNS and TWO ROWS, eight full-body frames in equal square cells. Read in row-major order 1..8 as ONE continuous running strip. All figures face RIGHT and slightly toward viewer from the same elevated three-quarter camera. No text, numbers or cell borders.
+Each conceptual cell is 32x32 logical pixels, body about 24-25 pixels high, same head size as the reference, foot baseline y=28, hips x=16. Leave 2 logical pixels of padding. Do not resize individual poses. Keep brown soles visible. Same common scale across all eight frames.
+Make the gait MUCH MORE READABLE at tiny native size through LEG SILHOUETTES:
+1 left-foot forward CONTACT, other leg extended backward; feet clearly separated front/back by about 8-10 logical pixels total.
+2 DOWN/weight absorption on left foot, knees visibly bent, rear heel rising.
+3 PASSING, right knee lifted 3-4 logical pixels, trailing boot tucked clearly backward; distinct gap between legs.
+4 PUSH/REACH, right lower leg reaching forward and left toe pushing off.
+5 right-foot forward CONTACT, opposite clear front/back leg silhouette to frame 1.
+6 DOWN/weight absorption on right foot, opposite bent-knee pose to frame 2.
+7 PASSING, left knee lifted clearly and opposite boot tucked back, opposite to frame 3.
+8 PUSH/REACH back toward frame 1, left leg extends forward.
+Avoid eight almost identical standing poses. The two contact extremes and the lifted-knee passing poses MUST look visibly different. Boots around 3x3 pixels, clear knee/ankle bends and empty space between legs; no merged dark leg blob.
+Upper torso remains controlled for shooting: hands close together at the same lower-chest/waist mount around x=16..18,y=20, modest one-pixel shoulder/head weight shift, small forward lean, backpack attached. More motion should come from legs and pelvis, not swinging empty arms or wobbling the goggle. No gun, long cloak, scarf, dust, motion streaks or afterimages.
+Use coarse hard square clusters and the same flat project palette family: #1a0a2a #22223a, #c5c7cf #8b8f9a #4a5062, #1e3a8a #3d6de0, #1a9fd4 #57e6ff, #ffd9a0, #5a3a20, sparse #f4a940 #e8e8f0. No gradients, soft edges, fine texture, scenery, floor, shadow, labels, logos or watermark.

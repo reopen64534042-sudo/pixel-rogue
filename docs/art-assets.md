@@ -15,6 +15,10 @@
 
 2026-10-31 人物美术专项已选定 C 布衣浪人，完成太刀左右两向、四种基础动作共 32 帧并接入。可见主体约 24 像素高，64×64 帧仅为刀尖 / 动作留透明空间；走独立职业渲染，不覆盖通用 `player` 清单。原始概念图不直接入游戏。详见 [人物美术升级：太刀样板](character-art-upgrade.md)，本文件其他早期资产规格仍按各节记录解读。
 
+2026-11-01 大剑人物专项已选定 C 肩扛大剑佣兵，完成左右两向、八组动作共 64 帧并接入；96×96 透明帧用于完整容纳剑刃，可见人物主体仍约 24px 高，统一靴底定位。源图、提示词、处理记录与动作 / 跃击预览见 [大剑人物美术](greatsword-character-art.md)。
+
+2026-11-01 射手已选定 C 轻装机械斥候，接入 40 帧共用身体（跑步每向 8 帧）、三套共 12 帧独立瞄准的武器部件，以及同造型折光剪影。身体 64×64、武器 32×24，保持既有发射几何与规则；源图、提示词、生成数据、跑步前后对比与合成预览见 [射手人物美术](shooter-character-art.md)。
+
 ## 2. 现状事实（代码实测，2026-10-24）
 
 | 项目 | 现状 | 位置 |
@@ -104,7 +108,7 @@
 | `brute` | `brute` | 16×16 | 红色壮硕近战，金纹 |
 | `brute_elite` | `brute_elite` | 24×24 | 岩石巨兽（已认可造型 16×14 → 重制） |
 | `shooter_elite` | `shooter_elite` | 24×24 | 飞行眼魔（已认可造型 16×14 → 重制） |
-| `boss_three` | 暂无 | 48×32 | 三头巨兽；当前 ETYPES 无 BOSS，键名待定 |
+| `boss_three` | `boss_three` | 72×56 | 三首巨兽；正式八姿态图集，图鉴 PNG 同源 |
 | `boss_reaper` / `boss_tyrant` | 暂无 | TBD | **造型未定，暂不生成** |
 
 ### 5.2 投射物与拾取物（6）
@@ -326,6 +330,18 @@
 | 34 个抽象概念压进 16×16 | 可识别性下降 | 保留 emoji 作 hover 文本与无障碍标签 |
 | 商用授权条款 | ~~法务风险~~ **已确认** | 官网 FAQ 明确：生成内容归使用者所有，可用于个人与商业项目。仍建议首次生成后截图存档条款页面 |
 | BOSS 造型未定 | 2 张无法启动 | 保持 TBD，不阻塞其余 48 张 |
+
+## 三首巨兽重绘（v151，2026-10-31）
+
+- 当前 Boss 采用 BossPixelArt.ts 的 36×28 手绘像素矩阵，固定 2× 输出 72×56 PNG，6 色大色块匹配现有角色。八姿态共享源结构与脚底锚点，回退贴图同源；用户否定的高细节图像源表与提示词保留在 assets/boss-three 历史记录中，不参与构建。assets/plan.json、sprites manifest 与 GameScene preload 已同步；此前章节的「不做动画」为早期全局规划，本次为用户明确授权的 Boss 动画重绘。
+- node scripts/build-boss-assets.mjs：生成 public/assets/boss-three/boss.atlas.png / json 与 public/assets/sprites/boss_three.png；保留现有调色板，不修改全局色板或新增依赖。
+- node scripts/build-boss-preview.mjs：导出 assets/boss-three/preview 的 PNG / GIF / HTML，并同步 public/boss-preview/index.html。预览共用正式 BossVfx，只证明素材编排与绘制，不代表伤害/强度实机验收。
+
+## 三首巨兽生图升级与太刀参照（2026-10-31）
+
+- 用户后续明确允许美术升级，选择精致像素 / 卡通奇幻，以已合并 PR #220 的 C 方案太刀人物为参照。当前正式素材由内置生图工具生成，覆盖前一节六色矩阵版的正常绘制；矩阵仅保留 fallback，历史源图不删除。
+- build-boss-assets.mjs 现为 build-boss-generated-assets.mjs 的稳定入口：Boss 8 姿态 72×56；6 技能各 6 帧 128×128，汇入 boss-fx.atlas。记录 SHA-256、色板、原点平移、alpha 策略与参考提交，未新增依赖 / 修改全局色板。
+- 生成源图和完整提示词在 assets/boss-three/upgrade，太刀参照在 reference；正常游戏通过 BossArt 预载，BossGeneratedVfx 播放。伤害、判定与预警几何不因美术素材改变。
 
 ## 11. 元素法师 VFX 概念源图（2026-11-01）
 

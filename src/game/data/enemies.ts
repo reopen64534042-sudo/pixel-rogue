@@ -1,5 +1,7 @@
 import type { EliteAffix, EnemyConfig } from "../core/types";
+import { THREE_HEADED_BEAST } from "./boss";
 export const ETYPES: Record<string, EnemyConfig> = {
+  boss_three: THREE_HEADED_BEAST,
   slime: {
     hp: 19,
     speed: 55,

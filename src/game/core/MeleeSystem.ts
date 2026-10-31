@@ -98,7 +98,7 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
     const dx = e.x - p.x,
       dy = e.y - p.y;
     const d = Math.hypot(dx, dy);
-    if (opts.knock) {
+    if (opts.knock && !e.boss && !e.noKnock) {
       e.kx = (d > 0.01 ? dx / d : Math.cos(angle)) * opts.knock;
       e.ky = (d > 0.01 ? dy / d : Math.sin(angle)) * opts.knock;
     }
@@ -161,7 +161,7 @@ export function updateMelee(this: GameCore, dt: number) {
 
 /** 击退位移与衰减；由 EnemySystem 在每个敌人每帧调用 */
 export function applyKnockback(e: Enemy, dt: number) {
-  if (e.noKnock) {
+  if (e.noKnock || e.boss) {
     e.kx = 0;
     e.ky = 0;
     return;

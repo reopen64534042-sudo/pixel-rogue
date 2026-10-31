@@ -1,3 +1,5 @@
+import { BOSS } from "../data/boss";
+import { bossDamageTakenMultiplier, bossInvulnerable, clearBossTransient, syncBossPhase } from "./BossSystem";
 import type { GameCore } from "./GameCore";
 import {
   BOX_DROP_CAP,
@@ -78,7 +80,7 @@ export function hurtEnemy(
   ky = 0,
   opts: HitOptions = {},
 ): DamageResult | undefined {
-  if (e.dead || this.state !== "play") return undefined;
+  if (e.dead || this.state !== "play" || bossInvulnerable(this, e)) return undefined;
   const p = this.player;
   if (this.tutorialMode) this.tutorialHit = true;
   // §3.4 步骤 3：暴击判定留在编排层，掷骰条件与次数与旧路径一致。
@@ -208,7 +210,7 @@ export function hurtEnemy(
     this.runHighestHit = { amount: dmg, source: opts.src ?? "melee" };
   // 动态难度：最终伤害层，连 true / 百分比生命伤害一起压。
   // 放在所有伤害修正之后、lethalCap 之前；主伤害与 +真实伤害分别按同一乘区取整。
-  const damageTakenMul = e.damageTakenMul ?? 1;
+  const damageTakenMul = (e.damageTakenMul ?? 1) * bossDamageTakenMultiplier(this, e);
   if (damageTakenMul !== 1) {
     const mainPart = trueDamage > 0 ? Math.max(0, dmg - trueDamage) : dmg;
     const taken = (v: number) =>
@@ -301,6 +303,7 @@ export function hurtEnemy(
   // v148：吸血按目标实际损失的生命结算，溢出伤害不回血。
   const dealtHpLoss = Math.max(0, Math.min(hpBefore, dmg));
   e.hp -= dmg;
+  syncBossPhase(this, e);
   e.flash = 0.08;
   // 裂甲：非引爆命中叠层；第 3 层命中已在上方加伤，这里清空并破甲。
   if (lieJiaOwned) {
@@ -327,7 +330,7 @@ export function hurtEnemy(
       this.player.maxhp,
       this.player.hp + dealtHpLoss * this.player.lifesteal * (opts.lifestealMul ?? 1),
     );
-  if ((kx || ky) && !e.noKnock) {
+  if ((kx || ky) && !e.noKnock && !e.boss) {
     e.x += kx;
     e.y += ky;
   }
@@ -336,7 +339,7 @@ export function hurtEnemy(
     e.slowF = this.player.slow;
   }
   // Issue #38：冰霜叠层 → 冰冻
-  if (!opts.noOnHit && this.player.frostLv > 0 && (e.frostImmuneT || 0) <= 0) {
+  if (!e.boss && !opts.noOnHit && this.player.frostLv > 0 && (e.frostImmuneT || 0) <= 0) {
     e.frostStacks = (e.frostStacks || 0) + 1;
     if (e.frostStacks >= 3) {
       e.frozenT = frostFreezeDuration(this.player);
@@ -438,14 +441,14 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   if (e.dead) return;
   e.dead = true;
   this.kills++;
-  if (e.elite) {
-    this.runEliteKills++;
-    if (e.type === "brute") this.runBossKills++;
-  }
+  if (e.boss) {
+    this.runBossKills++;
+    clearBossTransient(this);
+  } else if (e.elite) this.runEliteKills++;
   // Issue #82 图鉴：只登记类型与数量，不参与任何战斗计算。
   // 写普通字段 killLog（不依赖 CodexSystem），波末 / 局末由图鉴消费后清空。
   // 重构本函数时必须保留：删除后图鉴的敌人击杀数会静默归零（tests/codex.test.ts 会红）。
-  const codexKey = e.elite ? `${e.type}_elite` : e.type;
+  const codexKey = e.boss ? "boss_three" : e.elite ? `${e.type}_elite` : e.type;
   this.killLog[codexKey] = (this.killLog[codexKey] ?? 0) + 1;
   const p = this.player;
   // 击杀狂热
@@ -469,7 +472,13 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   }
   // 掉落 (自爆虫自毁不掉落)
   if (!e.noDrop) {
-    if (e.elite) {
+    if (e.boss) {
+      this.gems.push({ x: e.x, y: e.y, vx: 0, vy: 0, v: e.xp, e: true });
+      for (let i = 0; i < BOSS.reward.chests; i++)
+        this.boxes.push({ x: clamp(e.x + (i === 0 ? -12 : 12), 24, WORLD.w - 24), y: e.y, kind: "chest" });
+      for (let i = 0; i < BOSS.reward.potions; i++) this.potions.push({ x: e.x, y: e.y + 10 });
+      this.shake = Math.max(this.shake, 3);
+    } else if (e.elite) {
       // S2 修订（用户反馈）：天赋**不再由精英死亡触发**。
       // 原实现是「打死节点精英才给」，等于把奖励放在苦战之后——玩家打精英时
       // 没有任何新能力，观感就是「刮痧」。现在改到 WaveSystem.enterRest：
@@ -757,7 +766,7 @@ export function damagePlayer(
           type: "physical",
           form: "melee",
         });
-        o.stunT = Math.max(
+        if (!o.boss) o.stunT = Math.max(
           o.stunT ?? 0,
           WARRIOR_BALANCE.shieldChain.shockStunT,
         );
@@ -914,9 +923,10 @@ function applyFireDot(
     attackerStats: getPlayerCombatStats(core.player),
     defenderStats: getEnemyCombatStats(e),
   });
-  const taken = calc.settledDamage * (e.damageTakenMul ?? 1);
+  const taken = bossInvulnerable(core, e) ? 0 : calc.settledDamage * (e.damageTakenMul ?? 1) * bossDamageTakenMultiplier(core, e);
   const hpBefore = e.hp;
   e.hp -= taken;
+  syncBossPhase(core, e);
   core.dmgBy.burn += taken;
   return {
     ...calc,

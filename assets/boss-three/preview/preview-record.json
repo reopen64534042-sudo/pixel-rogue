@@ -1,0 +1,19 @@
+{
+  "renderer": "src/game/rendering/BossVfx.ts",
+  "atlas": "public/assets/boss-three/boss.atlas.png",
+  "effectAtlas": "public/assets/boss-three/boss-fx.atlas.png",
+  "effectFrames": 36,
+  "fps": 16,
+  "gifFrames": 240,
+  "cases": [
+    "intro",
+    "stomp",
+    "charge",
+    "breath",
+    "nova",
+    "spikes",
+    "marks",
+    "chain"
+  ],
+  "scope": "offline visual choreography; not GameCore, browser test or gameplay acceptance"
+}

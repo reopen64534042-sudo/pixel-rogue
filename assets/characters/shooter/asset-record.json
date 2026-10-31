@@ -1,0 +1,1529 @@
+{
+  "schema": 1,
+  "date": "2026-11-01",
+  "selectedConcept": "C",
+  "tool": "built-in image_gen.imagegen",
+  "model": null,
+  "seed": null,
+  "body": {
+    "image": "public/assets/characters/shooter-scout-body-64x64.png",
+    "width": 256,
+    "height": 640,
+    "frameSize": 64,
+    "anchor": {
+      "x": 32,
+      "y": 59
+    },
+    "frames": [
+      {
+        "name": "right-idle-0",
+        "index": 0,
+        "x": 0,
+        "y": 0,
+        "region": {
+          "componentId": 4,
+          "left": 113,
+          "right": 253,
+          "top": 65,
+          "bottom": 311,
+          "pixels": 24553
+        },
+        "opaque": 254,
+        "colors": 10,
+        "bounds": {
+          "minX": 26,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 1,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-idle-1",
+        "index": 1,
+        "x": 64,
+        "y": 0,
+        "region": {
+          "componentId": 2,
+          "left": 414,
+          "right": 553,
+          "top": 63,
+          "bottom": 311,
+          "pixels": 24673
+        },
+        "opaque": 256,
+        "colors": 9,
+        "bounds": {
+          "minX": 26,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 1,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-idle-2",
+        "index": 2,
+        "x": 128,
+        "y": 0,
+        "region": {
+          "componentId": 1,
+          "left": 707,
+          "right": 848,
+          "top": 62,
+          "bottom": 311,
+          "pixels": 25262
+        },
+        "opaque": 262,
+        "colors": 9,
+        "bounds": {
+          "minX": 26,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 1,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-idle-3",
+        "index": 3,
+        "x": 192,
+        "y": 0,
+        "region": {
+          "componentId": 3,
+          "left": 1005,
+          "right": 1144,
+          "top": 63,
+          "bottom": 311,
+          "pixels": 24947
+        },
+        "opaque": 260,
+        "colors": 10,
+        "bounds": {
+          "minX": 26,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 1,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-run-0",
+        "index": 4,
+        "x": 0,
+        "y": 64,
+        "region": {
+          "componentId": 2,
+          "left": 105,
+          "right": 385,
+          "top": 86,
+          "bottom": 449,
+          "pixels": 65019
+        },
+        "opaque": 334,
+        "colors": 10,
+        "bounds": {
+          "minX": 22,
+          "minY": 33,
+          "maxX": 41,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-run-1",
+        "index": 5,
+        "x": 64,
+        "y": 64,
+        "region": {
+          "componentId": 4,
+          "left": 542,
+          "right": 786,
+          "top": 87,
+          "bottom": 449,
+          "pixels": 62126
+        },
+        "opaque": 324,
+        "colors": 10,
+        "bounds": {
+          "minX": 24,
+          "minY": 33,
+          "maxX": 41,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 1,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-run-2",
+        "index": 6,
+        "x": 128,
+        "y": 64,
+        "region": {
+          "componentId": 1,
+          "left": 977,
+          "right": 1226,
+          "top": 81,
+          "bottom": 431,
+          "pixels": 61719
+        },
+        "opaque": 325,
+        "colors": 9,
+        "bounds": {
+          "minX": 24,
+          "minY": 33,
+          "maxX": 41,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 1,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-run-3",
+        "index": 7,
+        "x": 192,
+        "y": 64,
+        "region": {
+          "componentId": 3,
+          "left": 1391,
+          "right": 1673,
+          "top": 86,
+          "bottom": 452,
+          "pixels": 65414
+        },
+        "opaque": 337,
+        "colors": 10,
+        "bounds": {
+          "minX": 22,
+          "minY": 33,
+          "maxX": 41,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-run-4",
+        "index": 8,
+        "x": 0,
+        "y": 128,
+        "region": {
+          "componentId": 3,
+          "left": 106,
+          "right": 395,
+          "top": 489,
+          "bottom": 847,
+          "pixels": 64563
+        },
+        "opaque": 329,
+        "colors": 9,
+        "bounds": {
+          "minX": 22,
+          "minY": 33,
+          "maxX": 41,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-run-5",
+        "index": 9,
+        "x": 64,
+        "y": 128,
+        "region": {
+          "componentId": 4,
+          "left": 537,
+          "right": 797,
+          "top": 489,
+          "bottom": 847,
+          "pixels": 64075
+        },
+        "opaque": 332,
+        "colors": 9,
+        "bounds": {
+          "minX": 24,
+          "minY": 33,
+          "maxX": 41,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 1,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-run-6",
+        "index": 10,
+        "x": 128,
+        "y": 128,
+        "region": {
+          "componentId": 1,
+          "left": 977,
+          "right": 1222,
+          "top": 482,
+          "bottom": 835,
+          "pixels": 60420
+        },
+        "opaque": 315,
+        "colors": 9,
+        "bounds": {
+          "minX": 25,
+          "minY": 33,
+          "maxX": 42,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 2,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-run-7",
+        "index": 11,
+        "x": 192,
+        "y": 128,
+        "region": {
+          "componentId": 2,
+          "left": 1378,
+          "right": 1672,
+          "top": 484,
+          "bottom": 851,
+          "pixels": 67870
+        },
+        "opaque": 351,
+        "colors": 10,
+        "bounds": {
+          "minX": 22,
+          "minY": 33,
+          "maxX": 43,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 1,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-brace-0",
+        "index": 12,
+        "x": 0,
+        "y": 192,
+        "region": {
+          "componentId": 1,
+          "left": 104,
+          "right": 258,
+          "top": 674,
+          "bottom": 925,
+          "pixels": 26681
+        },
+        "opaque": 277,
+        "colors": 9,
+        "bounds": {
+          "minX": 24,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-brace-1",
+        "index": 13,
+        "x": 64,
+        "y": 192,
+        "region": {
+          "componentId": 2,
+          "left": 394,
+          "right": 569,
+          "top": 674,
+          "bottom": 925,
+          "pixels": 27336
+        },
+        "opaque": 281,
+        "colors": 10,
+        "bounds": {
+          "minX": 23,
+          "minY": 33,
+          "maxX": 40,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-brace-2",
+        "index": 14,
+        "x": 128,
+        "y": 192,
+        "region": {
+          "componentId": 4,
+          "left": 672,
+          "right": 873,
+          "top": 683,
+          "bottom": 925,
+          "pixels": 27025
+        },
+        "opaque": 273,
+        "colors": 9,
+        "bounds": {
+          "minX": 21,
+          "minY": 35,
+          "maxX": 40,
+          "maxY": 58
+        },
+        "shift": {
+          "x": -1,
+          "y": 15
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-brace-3",
+        "index": 15,
+        "x": 192,
+        "y": 192,
+        "region": {
+          "componentId": 3,
+          "left": 1004,
+          "right": 1154,
+          "top": 677,
+          "bottom": 925,
+          "pixels": 26605
+        },
+        "opaque": 275,
+        "colors": 10,
+        "bounds": {
+          "minX": 24,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-dash-0",
+        "index": 16,
+        "x": 0,
+        "y": 256,
+        "region": {
+          "componentId": 4,
+          "left": 112,
+          "right": 295,
+          "top": 998,
+          "bottom": 1215,
+          "pixels": 23737
+        },
+        "opaque": 239,
+        "colors": 9,
+        "bounds": {
+          "minX": 26,
+          "minY": 37,
+          "maxX": 43,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 3,
+          "y": 16
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-dash-1",
+        "index": 17,
+        "x": 64,
+        "y": 256,
+        "region": {
+          "componentId": 2,
+          "left": 412,
+          "right": 587,
+          "top": 997,
+          "bottom": 1213,
+          "pixels": 23821
+        },
+        "opaque": 244,
+        "colors": 9,
+        "bounds": {
+          "minX": 27,
+          "minY": 37,
+          "maxX": 44,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 4,
+          "y": 16
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-dash-2",
+        "index": 18,
+        "x": 128,
+        "y": 256,
+        "region": {
+          "componentId": 3,
+          "left": 686,
+          "right": 883,
+          "top": 997,
+          "bottom": 1210,
+          "pixels": 24297
+        },
+        "opaque": 252,
+        "colors": 9,
+        "bounds": {
+          "minX": 25,
+          "minY": 37,
+          "maxX": 44,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 3,
+          "y": 16
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "right-dash-3",
+        "index": 19,
+        "x": 192,
+        "y": 256,
+        "region": {
+          "componentId": 1,
+          "left": 991,
+          "right": 1176,
+          "top": 996,
+          "bottom": 1213,
+          "pixels": 24686
+        },
+        "opaque": 247,
+        "colors": 9,
+        "bounds": {
+          "minX": 26,
+          "minY": 37,
+          "maxX": 43,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 3,
+          "y": 16
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-idle-0",
+        "index": 20,
+        "x": 0,
+        "y": 320,
+        "region": {
+          "componentId": 1,
+          "left": 95,
+          "right": 246,
+          "top": 61,
+          "bottom": 313,
+          "pixels": 28714
+        },
+        "opaque": 306,
+        "colors": 10,
+        "bounds": {
+          "minX": 24,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-idle-1",
+        "index": 21,
+        "x": 64,
+        "y": 320,
+        "region": {
+          "componentId": 2,
+          "left": 409,
+          "right": 559,
+          "top": 61,
+          "bottom": 313,
+          "pixels": 28455
+        },
+        "opaque": 296,
+        "colors": 10,
+        "bounds": {
+          "minX": 24,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-idle-2",
+        "index": 22,
+        "x": 128,
+        "y": 320,
+        "region": {
+          "componentId": 3,
+          "left": 703,
+          "right": 853,
+          "top": 61,
+          "bottom": 313,
+          "pixels": 28373
+        },
+        "opaque": 296,
+        "colors": 10,
+        "bounds": {
+          "minX": 24,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-idle-3",
+        "index": 23,
+        "x": 192,
+        "y": 320,
+        "region": {
+          "componentId": 4,
+          "left": 1005,
+          "right": 1155,
+          "top": 61,
+          "bottom": 313,
+          "pixels": 28534
+        },
+        "opaque": 297,
+        "colors": 10,
+        "bounds": {
+          "minX": 24,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-run-0",
+        "index": 24,
+        "x": 0,
+        "y": 384,
+        "region": {
+          "componentId": 4,
+          "left": 110,
+          "right": 384,
+          "top": 88,
+          "bottom": 441,
+          "pixels": 59833
+        },
+        "opaque": 314,
+        "colors": 9,
+        "bounds": {
+          "minX": 22,
+          "minY": 33,
+          "maxX": 41,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-run-1",
+        "index": 25,
+        "x": 64,
+        "y": 384,
+        "region": {
+          "componentId": 3,
+          "left": 550,
+          "right": 792,
+          "top": 87,
+          "bottom": 441,
+          "pixels": 58056
+        },
+        "opaque": 299,
+        "colors": 9,
+        "bounds": {
+          "minX": 22,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": -1,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-run-2",
+        "index": 26,
+        "x": 128,
+        "y": 384,
+        "region": {
+          "componentId": 1,
+          "left": 984,
+          "right": 1225,
+          "top": 86,
+          "bottom": 441,
+          "pixels": 56171
+        },
+        "opaque": 292,
+        "colors": 9,
+        "bounds": {
+          "minX": 21,
+          "minY": 33,
+          "maxX": 38,
+          "maxY": 58
+        },
+        "shift": {
+          "x": -2,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-run-3",
+        "index": 27,
+        "x": 192,
+        "y": 384,
+        "region": {
+          "componentId": 2,
+          "left": 1414,
+          "right": 1692,
+          "top": 86,
+          "bottom": 441,
+          "pixels": 59894
+        },
+        "opaque": 311,
+        "colors": 9,
+        "bounds": {
+          "minX": 22,
+          "minY": 33,
+          "maxX": 41,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-run-4",
+        "index": 28,
+        "x": 0,
+        "y": 448,
+        "region": {
+          "componentId": 1,
+          "left": 110,
+          "right": 392,
+          "top": 491,
+          "bottom": 842,
+          "pixels": 60911
+        },
+        "opaque": 318,
+        "colors": 9,
+        "bounds": {
+          "minX": 22,
+          "minY": 33,
+          "maxX": 41,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-run-5",
+        "index": 29,
+        "x": 64,
+        "y": 448,
+        "region": {
+          "componentId": 2,
+          "left": 550,
+          "right": 802,
+          "top": 491,
+          "bottom": 842,
+          "pixels": 57939
+        },
+        "opaque": 307,
+        "colors": 9,
+        "bounds": {
+          "minX": 22,
+          "minY": 33,
+          "maxX": 39,
+          "maxY": 58
+        },
+        "shift": {
+          "x": -1,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-run-6",
+        "index": 30,
+        "x": 128,
+        "y": 448,
+        "region": {
+          "componentId": 3,
+          "left": 985,
+          "right": 1231,
+          "top": 491,
+          "bottom": 833,
+          "pixels": 55587
+        },
+        "opaque": 286,
+        "colors": 10,
+        "bounds": {
+          "minX": 21,
+          "minY": 35,
+          "maxX": 38,
+          "maxY": 58
+        },
+        "shift": {
+          "x": -2,
+          "y": 15
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-run-7",
+        "index": 31,
+        "x": 192,
+        "y": 448,
+        "region": {
+          "componentId": 4,
+          "left": 1424,
+          "right": 1708,
+          "top": 491,
+          "bottom": 841,
+          "pixels": 60742
+        },
+        "opaque": 319,
+        "colors": 9,
+        "bounds": {
+          "minX": 22,
+          "minY": 33,
+          "maxX": 41,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-brace-0",
+        "index": 32,
+        "x": 0,
+        "y": 512,
+        "region": {
+          "componentId": 2,
+          "left": 90,
+          "right": 264,
+          "top": 674,
+          "bottom": 926,
+          "pixels": 29998
+        },
+        "opaque": 309,
+        "colors": 9,
+        "bounds": {
+          "minX": 23,
+          "minY": 33,
+          "maxX": 40,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-brace-1",
+        "index": 33,
+        "x": 64,
+        "y": 512,
+        "region": {
+          "componentId": 1,
+          "left": 393,
+          "right": 570,
+          "top": 673,
+          "bottom": 925,
+          "pixels": 29659
+        },
+        "opaque": 309,
+        "colors": 9,
+        "bounds": {
+          "minX": 23,
+          "minY": 33,
+          "maxX": 40,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-brace-2",
+        "index": 34,
+        "x": 128,
+        "y": 512,
+        "region": {
+          "componentId": 4,
+          "left": 687,
+          "right": 867,
+          "top": 679,
+          "bottom": 926,
+          "pixels": 29782
+        },
+        "opaque": 313,
+        "colors": 9,
+        "bounds": {
+          "minX": 23,
+          "minY": 33,
+          "maxX": 40,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-brace-3",
+        "index": 35,
+        "x": 192,
+        "y": 512,
+        "region": {
+          "componentId": 3,
+          "left": 1000,
+          "right": 1173,
+          "top": 674,
+          "bottom": 926,
+          "pixels": 29766
+        },
+        "opaque": 311,
+        "colors": 9,
+        "bounds": {
+          "minX": 23,
+          "minY": 33,
+          "maxX": 40,
+          "maxY": 58
+        },
+        "shift": {
+          "x": 0,
+          "y": 14
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-dash-0",
+        "index": 36,
+        "x": 0,
+        "y": 576,
+        "region": {
+          "componentId": 4,
+          "left": 95,
+          "right": 295,
+          "top": 997,
+          "bottom": 1210,
+          "pixels": 26403
+        },
+        "opaque": 275,
+        "colors": 9,
+        "bounds": {
+          "minX": 19,
+          "minY": 37,
+          "maxX": 38,
+          "maxY": 58
+        },
+        "shift": {
+          "x": -3,
+          "y": 16
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-dash-1",
+        "index": 37,
+        "x": 64,
+        "y": 576,
+        "region": {
+          "componentId": 2,
+          "left": 403,
+          "right": 606,
+          "top": 994,
+          "bottom": 1210,
+          "pixels": 26311
+        },
+        "opaque": 269,
+        "colors": 9,
+        "bounds": {
+          "minX": 19,
+          "minY": 37,
+          "maxX": 38,
+          "maxY": 58
+        },
+        "shift": {
+          "x": -3,
+          "y": 16
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-dash-2",
+        "index": 38,
+        "x": 128,
+        "y": 576,
+        "region": {
+          "componentId": 1,
+          "left": 693,
+          "right": 887,
+          "top": 993,
+          "bottom": 1208,
+          "pixels": 26576
+        },
+        "opaque": 275,
+        "colors": 9,
+        "bounds": {
+          "minX": 19,
+          "minY": 37,
+          "maxX": 38,
+          "maxY": 58
+        },
+        "shift": {
+          "x": -3,
+          "y": 16
+        },
+        "bootBaseline": 59
+      },
+      {
+        "name": "left-dash-3",
+        "index": 39,
+        "x": 192,
+        "y": 576,
+        "region": {
+          "componentId": 3,
+          "left": 993,
+          "right": 1194,
+          "top": 996,
+          "bottom": 1210,
+          "pixels": 25908
+        },
+        "opaque": 265,
+        "colors": 9,
+        "bounds": {
+          "minX": 19,
+          "minY": 37,
+          "maxX": 38,
+          "maxY": 58
+        },
+        "shift": {
+          "x": -3,
+          "y": 16
+        },
+        "bootBaseline": 59
+      }
+    ],
+    "directionFrames": 20,
+    "actionStarts": {
+      "idle": 0,
+      "run": 4,
+      "brace": 12,
+      "dash": 16
+    },
+    "actionCounts": {
+      "idle": 4,
+      "run": 8,
+      "brace": 4,
+      "dash": 4
+    },
+    "run": {
+      "stride": 28,
+      "distancePerFrame": 3.5,
+      "lift": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        1,
+        1
+      ],
+      "previousImage": "assets/characters/shooter/shooter-c-body-before-run.png"
+    },
+    "sha256": "9d5f30329e1988fa49014dd717918493fe1310647429989c0c90f7aa75c2102c"
+  },
+  "weapons": {
+    "image": "public/assets/characters/shooter-scout-weapons-32x24.png",
+    "width": 128,
+    "height": 72,
+    "frameWidth": 32,
+    "frameHeight": 24,
+    "grip": {
+      "x": 17,
+      "y": 12
+    },
+    "muzzle": {
+      "x": 24,
+      "y": 12
+    },
+    "frames": [
+      {
+        "name": "charged-0",
+        "index": 0,
+        "x": 0,
+        "y": 0,
+        "region": {
+          "componentId": 4,
+          "left": 51,
+          "right": 398,
+          "top": 173,
+          "bottom": 321,
+          "pixels": 28735
+        },
+        "opaque": 61,
+        "shift": {
+          "x": 1,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "charged-1",
+        "index": 1,
+        "x": 32,
+        "y": 0,
+        "region": {
+          "componentId": 1,
+          "left": 458,
+          "right": 804,
+          "top": 172,
+          "bottom": 321,
+          "pixels": 28775
+        },
+        "opaque": 60,
+        "shift": {
+          "x": 1,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "charged-2",
+        "index": 2,
+        "x": 64,
+        "y": 0,
+        "region": {
+          "componentId": 2,
+          "left": 866,
+          "right": 1208,
+          "top": 172,
+          "bottom": 321,
+          "pixels": 28608
+        },
+        "opaque": 61,
+        "shift": {
+          "x": 1,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "charged-3",
+        "index": 3,
+        "x": 96,
+        "y": 0,
+        "region": {
+          "componentId": 3,
+          "left": 1276,
+          "right": 1621,
+          "top": 172,
+          "bottom": 321,
+          "pixels": 28720
+        },
+        "opaque": 61,
+        "shift": {
+          "x": 1,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "laser-0",
+        "index": 4,
+        "x": 0,
+        "y": 24,
+        "region": {
+          "componentId": 1,
+          "left": 51,
+          "right": 395,
+          "top": 403,
+          "bottom": 553,
+          "pixels": 33204
+        },
+        "opaque": 68,
+        "shift": {
+          "x": 1,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "laser-1",
+        "index": 5,
+        "x": 32,
+        "y": 24,
+        "region": {
+          "componentId": 2,
+          "left": 457,
+          "right": 803,
+          "top": 403,
+          "bottom": 553,
+          "pixels": 33396
+        },
+        "opaque": 69,
+        "shift": {
+          "x": 1,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "laser-2",
+        "index": 6,
+        "x": 64,
+        "y": 24,
+        "region": {
+          "componentId": 3,
+          "left": 868,
+          "right": 1213,
+          "top": 403,
+          "bottom": 553,
+          "pixels": 33378
+        },
+        "opaque": 69,
+        "shift": {
+          "x": 1,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "laser-3",
+        "index": 7,
+        "x": 96,
+        "y": 24,
+        "region": {
+          "componentId": 4,
+          "left": 1276,
+          "right": 1620,
+          "top": 403,
+          "bottom": 553,
+          "pixels": 33175
+        },
+        "opaque": 69,
+        "shift": {
+          "x": 1,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "missile-0",
+        "index": 8,
+        "x": 0,
+        "y": 48,
+        "region": {
+          "componentId": 3,
+          "left": 62,
+          "right": 379,
+          "top": 631,
+          "bottom": 783,
+          "pixels": 33722
+        },
+        "opaque": 68,
+        "shift": {
+          "x": 2,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "missile-1",
+        "index": 9,
+        "x": 32,
+        "y": 48,
+        "region": {
+          "componentId": 4,
+          "left": 467,
+          "right": 786,
+          "top": 631,
+          "bottom": 783,
+          "pixels": 33995
+        },
+        "opaque": 68,
+        "shift": {
+          "x": 2,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "missile-2",
+        "index": 10,
+        "x": 64,
+        "y": 48,
+        "region": {
+          "componentId": 1,
+          "left": 878,
+          "right": 1196,
+          "top": 630,
+          "bottom": 783,
+          "pixels": 33922
+        },
+        "opaque": 70,
+        "shift": {
+          "x": 2,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      },
+      {
+        "name": "missile-3",
+        "index": 11,
+        "x": 96,
+        "y": 48,
+        "region": {
+          "componentId": 2,
+          "left": 1288,
+          "right": 1608,
+          "top": 630,
+          "bottom": 783,
+          "pixels": 34049
+        },
+        "opaque": 70,
+        "shift": {
+          "x": 2,
+          "y": 1
+        },
+        "muzzle": {
+          "x": 24,
+          "y": 12
+        }
+      }
+    ],
+    "sha256": "442eff0ff8d6259173b0b79313971cf83fc5e170791ba700230546b0d250b6f9"
+  },
+  "palette": [
+    {
+      "key": "ink0",
+      "hex": "#1a0a2a"
+    },
+    {
+      "key": "ink1",
+      "hex": "#22223a"
+    },
+    {
+      "key": "bone",
+      "hex": "#e8e8f0"
+    },
+    {
+      "key": "sand",
+      "hex": "#ffd9a0"
+    },
+    {
+      "key": "steelLight",
+      "hex": "#c5c7cf"
+    },
+    {
+      "key": "steelMid",
+      "hex": "#8b8f9a"
+    },
+    {
+      "key": "steelDark",
+      "hex": "#4a5062"
+    },
+    {
+      "key": "pGold",
+      "hex": "#f4a940"
+    },
+    {
+      "key": "pBlue",
+      "hex": "#3d6de0"
+    },
+    {
+      "key": "pBlueDk",
+      "hex": "#1e3a8a"
+    },
+    {
+      "key": "pBrown",
+      "hex": "#5a3a20"
+    },
+    {
+      "key": "iceCyan",
+      "hex": "#57e6ff"
+    },
+    {
+      "key": "iceDeep",
+      "hex": "#1a9fd4"
+    }
+  ],
+  "alphaValues": [
+    0,
+    255
+  ],
+  "sources": [
+    {
+      "path": "assets/characters/shooter/shooter-c-seed-source.png",
+      "sha256": "5aa9649e3f0cb8bb55f0758668302150883ce397f41a766cf1f5320f7c7f17a1"
+    },
+    {
+      "path": "assets/characters/shooter/shooter-c-right-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "f71aa950c1588f23bc019962eac377c8ab601383de768178e595c338bd68d4a5"
+    },
+    {
+      "path": "assets/characters/shooter/shooter-c-run-right-source.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "163dab86e1823088bf084d9547d7d58f70e6ab7f831e9177ed67c78d3107ad70"
+    },
+    {
+      "path": "assets/characters/shooter/shooter-c-left-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "82c5e1494b83ada094722ae13932cb458d128cbe00cbd499a51c9bc4fe76312d"
+    },
+    {
+      "path": "assets/characters/shooter/shooter-c-run-left-source.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "c6e3a2e7adceb76d182153bd08736a3ca82bb935ce89aaa7eda8677f7778f321"
+    },
+    {
+      "path": "assets/characters/shooter/shooter-c-weapons-source.png",
+      "width": 1672,
+      "height": 941,
+      "sha256": "286688a11bd8fc906065e82c579d13fac8f4a719b5dd3b764f8af1429c22f6de"
+    }
+  ],
+  "processing": {
+    "script": "scripts/build-shooter-character-assets.mjs",
+    "sampling": "row-gap / connected silhouettes; shared scale; premultiplied-alpha area sampling",
+    "sourceTileSize": 32,
+    "contentScale": 1,
+    "runSourceScale": 1,
+    "weaponScale": 0.6,
+    "quantization": "nearest Lab palette color",
+    "alphaThreshold": 128,
+    "seedFrame": "right-idle-0",
+    "mirroredBodyFrames": false
+  }
+}
