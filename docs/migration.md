@@ -3547,4 +3547,40 @@ dmg = Math.ceil(e.hp - 1);
   - 裂地：`warriorWaves=4`，四道角度 -135/-45/45/135，`sharedHit=true`，无额外 qi；四斜向敌人各被命中一次，HP 9999→9975、眩晕 0.283s；中心近敌由重斩单独结算。
   - 冲刺斩截图使用 v133 专用薄刃表；素材未就绪时回退普通大剑刀光。
   - 截图：`output/vfx-energy-qi.png`、`vfx-energy-fissure.png`、`vfx-dash-slash.png`。
-- 当前分支 `feat/greatsword-shield-chain-v133` 同时包含 v134 护盾链与 v135 波面接入；尚未提交/推送/PR。后续按既定顺序进入 v136 太刀反远程链（护刃/刃返/刃轮）。按 2026-10-29 标准未运行 Vitest / Playwright 测试套件，parity 留待授权批次。
+- 当前分支 `feat/greatsword-shield-chain-v133` 同时包含 v134 护盾链与 v135 波面接入；v135 已提交 `5009533` 并推送。后续按既定顺序进入太刀反远程链（护刃/刃返/刃轮）。按 2026-10-29 标准未运行 Vitest / Playwright 测试套件，parity 留待授权批次。
+
+## 大剑反馈批：剑气索敌、护盾链与护盾 UI（v136，2026-10-31）
+
+- 版本：v135 `5009533` 之后的新反馈批次；当时计划太刀反远程链 v137、大剑反击链 v138；实际 v137 先插入平衡反馈批，后续顺延为 v138/v139。
+- 剑气索敌：`energyWaves.qi.targetRangeMul = 2`，`WarriorSystem.updateWarriorCombat` 只在自动索敌半径上乘此倍率；挥砍 `radius`、扇形、破围计数仍用 `attackRange`，近战命中范围不变。`resolveWarriorSwing` 的重斩波面改为不再要求 `hits.length`：第三段近战空挥也会朝锁定目标方向生成剑气/裂地，这是「远距离点杀」能成立的前提。
+- 碎盾反震：`TalentStatSources` 增加 shieldMax +1，`OnAcquireEffects` 获得时补 1 层；破盾震波由 `shieldShockDamage(p, 2.5)` 结算，命中 80px 内敌人 250% 近战伤害并写入 1s 眩晕；碎盾分支不再击退，旧的「能量护盾」仍保持 200% + 击退兼容。
+- 重壁：再 +1 盾上限（满链 3 层）；受击保全概率 15% → 25%；`shieldRebuildSeconds` 统一计算重建时间——铁壁 15s、重壁 12s、旧护盾 10s，`CombatSystem` / `PlayerSystem` / `WaveSystem` 共用，避免三处漂移。
+- 护盾 UI：移除左上角 Lv 右侧的护盾小格；改为角色护盾环分段显示层数（每层一段圆弧、暗蓝=空层），环右侧显示 `x/y` 层数，下一层按恢复进度从段首填亮，充能中在层数下方显示剩余秒数。C 面板同步改为「护盾 x/y · 下层 Ns」。
+- 强袭文案：图鉴「搜索距离 +30%」改为「可锁定敌人的距离从攻击距离 +80px 提高到 +104px」，并同步落地 2 秒 +40% 攻速；`docs/greatsword-leap-vfx.md` 的「搜索范围」一并改为「跃击可锁定范围」。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；受控 e2e（5339，port 临时）：
+  - 80px 外敌人：无剑气时不索敌（`slashes=0`、`fireCd=0.06`）；有剑气时普通挥砍半径 45（`radius=45`、无波面、敌人 HP 不变），第三段重斩半径 67.5 但空挥仍生成剑气（`waves=1`），剑气命中后敌人 HP 9999→9983（80% × 20）。
+  - 护盾链：三卡依次获得后 `shieldMax=3`、`shield=3`；强制 random 0 时 25% 保全触发（护盾 3→3、无震波）；random 0.99 时破盾 3→2、`shieldCd=12`、80px 内两敌各吃 50 伤害（250% × 20）且 `stunT=1`；无铁壁旧护盾仍为 10s。
+  - 截图：`output/v136-shield-ring-charging.png`、`v136-shield-ring-full.png`、`v136-shield-ring-charging-zoom.png`。
+  - 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件，未新增或修改测试/parity 基线。
+
+## 大剑平衡批：剑气 3 倍索敌、护盾 UI、三段斩成长与职业基础值（v137，2026-10-31）
+
+- 版本：v136 之后按试玩反馈插入的平衡批；原计划太刀反远程链顺延 v138、大剑反击链 v139。
+- 剑气：`energyWaves.qi.targetRangeMul` 2 → 3（基础 45px → 135px），仍只放大自动索敌；重斩 `radius` 继续用 `attackRange × 1.5`，近战命中范围不变。卡面同步为「索敌 ×3」。
+- 护盾表现：删除环旁 x/y 与恢复倒计时文字；恢复中的那一段改用 `#b9f7ff` 浅青填充。重壁受击保全时不再弹「重壁」文字，只保留音效与 `hurtCd`，概率 25% → 20%。
+- 冲刺与连闪：大剑新增流派字段 `dashMax = 1.8`（太刀 1.6）；`statBase` 改读 `wstyle.dashMax`。连闪不再用固定 −0.4，而是按流派把 `dashMax` 降到 1.6s 封顶（大剑 1.8→1.6、太刀 1.6→1.6）；`talentStatModifiers` 增加 warriorStyle 参数以声明该来源。连闪的卡面/C 面板说明按当前流派二选一，不再同时显示锐势与重斩就绪。
+- 三段斩冷却：`warriorTriDashCd(dashMax, level)` 改为 1 级固定 5s，20 级线性降到基础冲刺冷却（大剑 1.8s），30 级仍为 1.8s。普通冲刺段与跃击第三段消费槽、脚底三格进度、C 面板「冲刺段」CD 全部共用该函数。
+- 职业基础值：战士 HP 80 → 60；大剑移速 68 → 62（太刀 68）；大剑攻速 1.55 → 1.5。
+- 属性/卡池：从 `ATTR_DEFS` 移除「拾取范围」（magnet 字段与旧卡吸附逻辑保留），C 面板移除该行；连斩加 `warriorStyle: "katana"`，大剑池不再出现，单流派可见变为太刀 13 / 大剑 12。
+- C 面板：已学天赋里 `max > 1` 才显示 `Lv.x`，max 1 不再显示 Lv.1；`chainTagOf` 按 `requires` 连线或同槽 L1→L2 的 `req` 承接判断链，显示 L1/L2/L3（连闪、三段斩等孤立 L1 不标）；射手强化弹独立的 `Lv.x / 12` 行保留。
+- 删除旧天赋「能量护盾」：移除 `legacy.ts` 卡牌、`TalentStatSources` 的 shieldMax 来源、`OnAcquireEffects` 的赠层 case、`CombatSystem` 的 200% + 击退兼容分支；破盾反震现在只由「碎盾反震」提供。`legacy.ts`/`talents/index.ts` 的 41 张注释同步为 40 张。
+- 测试影响：`tests/parity.test.ts` 的 41 张基线、`tests/s4c-c3-baseline.test.ts` / `s4c-c3b-shield.test.ts` 的能量护盾用例、`tests/fixtures/balance-baseline.json` 中的条目，以及旧的战士 80 HP / 68 移速 / 1.6 冲刺断言会过期；按项目裁定未修改测试与基线，留待授权测试批次统一处理。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；受控 e2e（5339）：
+  - 基础值：大剑 60 HP / 62 移速 / 1.5 攻速 / 1.8 冲刺；太刀 60 HP / 68 移速 / 2.5 攻速 / 1.6 冲刺。
+  - 连闪：大剑学后 `dashMax=1.6`、太刀学后仍 1.6；大剑「连斩」不可抽取、太刀可抽取。
+  - 三段斩：`warriorTriDashCd(1.8, 1)=5`、`(1.8,10)=3.4842`、`(1.8,20)=1.8`；实际首槽 1 级 5s、20 级 1.8s。
+  - 剑气：120px 外自动锁定并生成波面（`slashes=1`、`waves=1`、半径 67.5、敌人 HP 9999→9983）；140px 外不索敌（`fireCd=0.06`、无挥砍/波面）。
+  - 护盾：三卡满 3 层；random 0.19 触发保全（护盾 3→3、无震波、无「重壁」文字）；random 0.21 破盾（3→2、CD 12s、80px 内两敌各 50 伤害、眩晕 1s）；`talents` 中已无「能量护盾」。
+  - C 面板：`破甲 L1 / 剑气 L2 / 铁壁 L1 / 碎盾反震 L2`，`三段斩` 无 Lv.1 也无 L1；连闪 tooltip 大剑局只含大剑描述、太刀局只含太刀描述；射手强化弹 `Lv.1 / 12` 保留。
+  - 截图：`output/v137-shield-ring.png`、`output/v137-cpanel-chain.png`、`output/v137-cpanel-shooter.png`。
+  - 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件。
