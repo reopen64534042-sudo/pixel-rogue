@@ -3828,3 +3828,9 @@ dmg = Math.ceil(e.hp - 1);
 - 修复：仅对 `missileBurn` 的可见主伤害标签四舍五入，正伤害沿用激光飘字至少显示 1 的约定，零伤害仍显示 0；文本宽度也使用可见标签。原始 dmg、敌人 HP、DamageResult 与伤害统计保持浮点，不更改 DoT 系数、结算频率或伤害管线。
 - 基线：PR #213 已合并，从最新 upstream/main c8a9592（v144）创建 codex/fix-missile-burn-damage-text；保留导弹 HUD 间距、激光回充和面板更新。
 - 验证按 typecheck／build／差异检查交付；不新增或修改测试、不运行 Vitest／Playwright，未做新的实机画面验收。
+## D-127 精英冰霜新星预警强化（v146）
+
+- 复现：精英岩石巨兽的「冰霜新星」只有 0.55 秒细青色双圈（alpha 0.45±0.2、1px 线），在混战与同类蓝色特效中辨识度低；外圈绘制 90px、实际命中判定 95px，站在圈边会误判为安全。
+- 修复：`data/enemies.ts` 新增 `ELITE_NOVA`（triggerRange 140 / windup 0.55 / radius 95 / cooldown 4.5 / damageMul 1.2），`EnemySystem` 与绘制共用同一常量；`draw.ts` 改为低饱和蓝灰双环（外圈 94/95px 双层、内圈随蓄力扩张），最后 0.18 秒轻微提亮，不填充、不使用白色高亮，避免过度抢眼。
+- 数值不变：触发范围、0.55 秒蓄力、95px 命中半径、1.2 倍伤害与 4.5 秒冷却全部保持；本批只修正预警绘制半径并增强可读性。
+- 验证：typecheck/build；e2e 受控截图为精英指定 nova 词缀与蓄力态。按 2026-10-29 标准未运行 Vitest / Playwright，没有测试断言依赖预警绘制半径；0.55 秒蓄力是否足够反应仍需自然试玩确认。
