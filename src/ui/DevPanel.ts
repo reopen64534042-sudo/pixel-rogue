@@ -220,7 +220,7 @@ export class DevPanel {
       "div",
       "display:flex;gap:4px;margin-bottom:6px;align-items:center",
     ) as HTMLDivElement;
-    specialRow.appendChild(el("span", "color:#7d8ec4", this.core.shooterWeapon === "laser" ? "激光" : "强化箭"));
+    specialRow.appendChild(el("span", "color:#7d8ec4", this.core.shooterWeapon === "laser" ? "激光" : this.core.shooterWeapon === "missile" ? "导弹" : "强化箭"));
     const specialSel = document.createElement("select");
     specialSel.style.cssText =
       "flex:1;background:#0e1430;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 4px;font:11px ui-monospace,Consolas,monospace";
@@ -230,7 +230,7 @@ export class DevPanel {
       option.textContent = `Lv.${i}`;
       specialSel.appendChild(option);
     }
-    specialSel.value = String(this.core.shooterWeapon === "laser" ? this.core.laserLevel : this.core.specialLevel);
+    specialSel.value = String(this.core.shooterWeapon === "laser" ? this.core.laserLevel : this.core.shooterWeapon === "missile" ? this.core.missile.level : this.core.specialLevel);
     specialSel.addEventListener("keydown", (e) => e.stopPropagation());
     specialSel.addEventListener("keyup", (e) => e.stopPropagation());
     specialRow.appendChild(specialSel);
@@ -242,6 +242,7 @@ export class DevPanel {
     specialGo.title = "按阶段重建升级（L4 起每级 1 条）";
     specialGo.addEventListener("click", () => {
       if (this.core.shooterWeapon === "laser") this.core.devSetLaserLevel(Number(specialSel.value));
+      else if (this.core.shooterWeapon === "missile") this.core.devSetMissileLevel(Number(specialSel.value));
       else this.core.devSetSpecialLevel(Number(specialSel.value));
       this.render();
     });
@@ -289,6 +290,7 @@ export class DevPanel {
     c.missiles = [];
     c.lasers = [];
     c.laser = createLaserState();
+    c.clearMissileTransient();
     c.shotCounter = 0;
     c.dashFireBoostT = 0;
     c.parts = [];
@@ -369,7 +371,7 @@ export class DevPanel {
     if (!body) return;
     // 只有数量/职业/流派变化才重建 DOM（避免无意义的 74 行重排，也保住滚动位置）
     const sig =
-      `${this.core.prof}|${this.core.warriorStyle}|` +
+      `${this.core.prof}|${this.core.warriorStyle}|${this.core.shooterWeapon}|` +
       UPGRADES.map((u) => this.core.player.upCounts[u.n] || 0).join(",");
     if (sig === this.sig) return;
     this.sig = sig;
@@ -393,7 +395,13 @@ export class DevPanel {
                 cards: cards.filter((u) => !u.warriorStyle),
               },
             ].filter((s) => s.cards.length > 0)
-          : [{ label: g.label, cards }];
+          : g.key === "shooter"
+            ? [
+                { label: "强化弹", cards: cards.filter(u => !u.shooterWeapon || u.shooterWeapon === "charged") },
+                { label: "激光", cards: cards.filter(u => u.shooterWeapon === "laser") },
+                { label: "导弹", cards: cards.filter(u => u.shooterWeapon === "missile") },
+              ].filter(section => section.cards.length > 0)
+            : [{ label: g.label, cards }];
       for (const section of sections) {
         body.appendChild(
           el(

@@ -93,7 +93,7 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   // 原值对基础攻击 11 是 **+45%/次**，配上每波 5-7 次，30 波能把攻击堆到数百，
   // 天赋的机制收益完全被淹没。+2 约等于 +18%/次，与「一次选择 = 一个小台阶」相称。
   { group: "offense", label: "攻击", labels: { mage: "元素伤害" }, stat: "attack", stage: "flat", base: 2, kind: "int" },
-  { group: "offense", label: "攻速", labels: { mage: "施法速度", laser: "光束输出" }, hints: { laser: "提高光束每秒伤害" }, stat: "fireRate", stage: "percent", base: 0.035, kind: "pct", capped: (p, prof, style) => p.fireRate >= statBase(prof, style).fireRate * ATTRIBUTE_CAPS.fireRateMul },
+  { group: "offense", label: "攻速", labels: { mage: "施法速度", laser: "光束输出", missile: "装填速率" }, hints: { laser: "提高光束每秒伤害", missile: "缩短导弹装填间隔，不加快爆炸动画" }, stat: "fireRate", stage: "percent", base: 0.035, kind: "pct", capped: (p, prof, style) => p.fireRate >= statBase(prof, style).fireRate * ATTRIBUTE_CAPS.fireRateMul },
   {
     group: "offense",
     label: "暴击",
@@ -165,12 +165,13 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   { group: "utility", label: "移速", stat: "moveSpeed", stage: "percent", base: 0.035, kind: "pct", capped: (p, prof, style) => p.speed >= statBase(prof, style).speed * ATTRIBUTE_CAPS.moveSpeedMul },
   // v137：移除「拾取范围」属性候选。magnet 仍保留给旧卡「磁力护符」
   // 与 ProgressionSystem 的吸附逻辑，但不再作为升级选项投放。
-  { group: "utility", label: "射程", labels: { mage: "施法距离", warrior: "近战范围" }, stat: "attackRange", stage: "percent", base: 0.045, kind: "pct" },
+  { group: "utility", label: "射程", labels: { mage: "施法距离", warrior: "近战范围" }, hints: { missile: "延长导弹索敌与可追踪距离" }, stat: "attackRange", stage: "percent", base: 0.045, kind: "pct" },
   // 法阵范围：S2（#135）因射手零感知被移出面板，S3 法师的法阵半径直接读
   // `p.area`（mageCircleRadius），因此只对法师投放。
   { group: "utility", label: "法阵范围", prof: "mage", stat: "area", stage: "percent", base: 0.045, kind: "pct" },
   // 复用已接通的 area 来源，激光的碰撞 / 绘制都由 laserWidth 消费。
   { group: "utility", label: "光束宽度", prof: "shooter", shooterWeapon: "laser", hints: { laser: "加宽光束，扩大扫中敌人的范围" }, stat: "area", stage: "percent", base: 0.1, kind: "pct" },
+  { group: "utility", label: "爆炸半径", prof: "shooter", shooterWeapon: "missile", hints: { missile: "扩大主弹、小弹与共振范围，不提高单目标伤害" }, stat: "area", stage: "percent", base: 0.045, kind: "pct" },
 ];
 
 /** 稀有度倍率：白 / 绿 / 紫 / 金 */

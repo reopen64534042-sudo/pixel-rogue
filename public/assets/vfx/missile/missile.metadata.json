@@ -1,0 +1,2341 @@
+{
+  "version": 1,
+  "axis": "+X; jet trails -X",
+  "pixelsPerWorldUnit": 1,
+  "referenceBlastRadius": 28,
+  "referenceMicroRadius": 12,
+  "nozzleOffset": -7,
+  "microNozzleOffset": -3,
+  "alphaValues": [
+    0,
+    255
+  ],
+  "clips": {
+    "body": {
+      "width": 32,
+      "height": 16,
+      "anchor": [
+        16,
+        8
+      ],
+      "frames": [
+        "body-0",
+        "body-1",
+        "body-2",
+        "body-3",
+        "body-4",
+        "body-5",
+        "body-6",
+        "body-7"
+      ],
+      "frameDurations": [
+        0.05,
+        0.05,
+        0.05,
+        0.05,
+        0.05,
+        0.05,
+        0.05,
+        0.05
+      ],
+      "duration": 0.39999999999999997,
+      "loop": true,
+      "image": "body.png",
+      "sha256": "a9403bda0125d45d22c5ab15dcfe29960af4197e9aa507f4e3d6dd5f40e5a655"
+    },
+    "eject": {
+      "width": 32,
+      "height": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "frames": [
+        "eject-0",
+        "eject-1",
+        "eject-2",
+        "eject-3",
+        "eject-4",
+        "eject-5",
+        "eject-6",
+        "eject-7"
+      ],
+      "frameDurations": [
+        0.02,
+        0.025,
+        0.03,
+        0.035,
+        0.04,
+        0.045,
+        0.05,
+        0.055
+      ],
+      "duration": 0.3,
+      "loop": false,
+      "image": "eject.png",
+      "sha256": "9c45097eee1aa47f437741c0eb2b1e699c464c396904ace214610b56662e09e2"
+    },
+    "ignite": {
+      "width": 32,
+      "height": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "frames": [
+        "ignite-0",
+        "ignite-1",
+        "ignite-2",
+        "ignite-3",
+        "ignite-4",
+        "ignite-5",
+        "ignite-6",
+        "ignite-7"
+      ],
+      "frameDurations": [
+        0.015,
+        0.015,
+        0.02,
+        0.02,
+        0.025,
+        0.025,
+        0.03,
+        0.03
+      ],
+      "duration": 0.18,
+      "loop": false,
+      "image": "ignite.png",
+      "sha256": "46867f8272bb03c184064e1bdd3097fb626f896987dbc7e7fc81ea63ba6648a7"
+    },
+    "exhaust": {
+      "width": 32,
+      "height": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "frames": [
+        "exhaust-0",
+        "exhaust-1",
+        "exhaust-2",
+        "exhaust-3",
+        "exhaust-4",
+        "exhaust-5",
+        "exhaust-6",
+        "exhaust-7"
+      ],
+      "frameDurations": [
+        0.04,
+        0.04,
+        0.04,
+        0.04,
+        0.04,
+        0.04,
+        0.04,
+        0.04
+      ],
+      "duration": 0.32,
+      "loop": true,
+      "image": "exhaust.png",
+      "sha256": "07035cca3c5c234eac34b73ce8b3c9db70d426a3b7e429eeee172f09f1f2ebf8"
+    },
+    "blast": {
+      "width": 64,
+      "height": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "frames": [
+        "blast-0",
+        "blast-1",
+        "blast-2",
+        "blast-3",
+        "blast-4",
+        "blast-5",
+        "blast-6",
+        "blast-7"
+      ],
+      "frameDurations": [
+        0.015,
+        0.025,
+        0.04,
+        0.055,
+        0.065,
+        0.075,
+        0.08,
+        0.09
+      ],
+      "duration": 0.44500000000000006,
+      "loop": false,
+      "image": "blast.png",
+      "sha256": "a918a2f1e8eef284bb641512c97eb72967a9f14d7643370950643e3fbbe0aaa9"
+    },
+    "smoke": {
+      "width": 64,
+      "height": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "frames": [
+        "smoke-0",
+        "smoke-1",
+        "smoke-2",
+        "smoke-3",
+        "smoke-4",
+        "smoke-5",
+        "smoke-6",
+        "smoke-7"
+      ],
+      "frameDurations": [
+        0.04,
+        0.05,
+        0.06,
+        0.07,
+        0.075,
+        0.08,
+        0.085,
+        0.09
+      ],
+      "duration": 0.55,
+      "loop": false,
+      "image": "smoke.png",
+      "sha256": "18198bc85e6607d817fb2b1c13a02024ba39a044c0d6804eb94ca6d0053fe3d2"
+    },
+    "debris": {
+      "width": 32,
+      "height": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "frames": [
+        "debris-0",
+        "debris-1",
+        "debris-2",
+        "debris-3",
+        "debris-4",
+        "debris-5",
+        "debris-6",
+        "debris-7"
+      ],
+      "frameDurations": [
+        0.025,
+        0.03,
+        0.035,
+        0.04,
+        0.05,
+        0.055,
+        0.065,
+        0.08
+      ],
+      "duration": 0.38,
+      "loop": false,
+      "image": "debris.png",
+      "sha256": "68bfe9e2257fe5af2de82a5d4b674fec1aa4d27a07eb7e65816a74c889058b57"
+    },
+    "ion-blast": {
+      "width": 64,
+      "height": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "frames": [
+        "ion-blast-0",
+        "ion-blast-1",
+        "ion-blast-2",
+        "ion-blast-3",
+        "ion-blast-4",
+        "ion-blast-5",
+        "ion-blast-6",
+        "ion-blast-7"
+      ],
+      "frameDurations": [
+        0.015,
+        0.025,
+        0.04,
+        0.055,
+        0.065,
+        0.075,
+        0.08,
+        0.09
+      ],
+      "duration": 0.44500000000000006,
+      "loop": false,
+      "image": "ion-blast.png",
+      "sha256": "1bbe3670cd3935e83e302ee38e0a0928a57246f865350ce98cf260a55526f64e"
+    },
+    "micro-body": {
+      "width": 16,
+      "height": 12,
+      "anchor": [
+        8,
+        6
+      ],
+      "frames": [
+        "micro-body-0",
+        "micro-body-1",
+        "micro-body-2",
+        "micro-body-3",
+        "micro-body-4",
+        "micro-body-5",
+        "micro-body-6",
+        "micro-body-7"
+      ],
+      "frameDurations": [
+        0.05,
+        0.05,
+        0.05,
+        0.05,
+        0.05,
+        0.05,
+        0.05,
+        0.05
+      ],
+      "duration": 0.39999999999999997,
+      "loop": true,
+      "image": "micro-body.png",
+      "sha256": "803123f04aa6aeb58b00fea8bd873ae753b4c0eeb7cac27b6314d070435da882"
+    },
+    "micro-blast": {
+      "width": 32,
+      "height": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "frames": [
+        "micro-blast-0",
+        "micro-blast-1",
+        "micro-blast-2",
+        "micro-blast-3",
+        "micro-blast-4",
+        "micro-blast-5",
+        "micro-blast-6",
+        "micro-blast-7"
+      ],
+      "frameDurations": [
+        0.015,
+        0.025,
+        0.03,
+        0.04,
+        0.045,
+        0.05,
+        0.06,
+        0.07
+      ],
+      "duration": 0.335,
+      "loop": false,
+      "image": "micro-blast.png",
+      "sha256": "8316e21a58ffc319b5c4d36814cc76bb936e9a64bd1e7a16c8f8478be04f806d"
+    },
+    "arc": {
+      "width": 32,
+      "height": 16,
+      "anchor": [
+        0,
+        8
+      ],
+      "frames": [
+        "arc-0",
+        "arc-1",
+        "arc-2",
+        "arc-3",
+        "arc-4",
+        "arc-5",
+        "arc-6",
+        "arc-7"
+      ],
+      "frameDurations": [
+        0.012,
+        0.014,
+        0.016,
+        0.018,
+        0.02,
+        0.02,
+        0.025,
+        0.025
+      ],
+      "duration": 0.15,
+      "loop": false,
+      "image": "arc.png",
+      "sha256": "69e26f4e6c1b110b532b27c1f7e4643ab84d11dad6d8adbedfee8d8c66ff11e9"
+    },
+    "ion-exhaust": {
+      "width": 32,
+      "height": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "frames": [
+        "ion-exhaust-0",
+        "ion-exhaust-1",
+        "ion-exhaust-2",
+        "ion-exhaust-3",
+        "ion-exhaust-4",
+        "ion-exhaust-5",
+        "ion-exhaust-6",
+        "ion-exhaust-7"
+      ],
+      "frameDurations": [
+        0.04,
+        0.04,
+        0.04,
+        0.04,
+        0.04,
+        0.04,
+        0.04,
+        0.04
+      ],
+      "duration": 0.32,
+      "loop": true,
+      "image": "ion-exhaust.png",
+      "sha256": "d248ca8b00729f2de271ca91257e1d764c84fdae981e873140e6311f967e3d35"
+    }
+  },
+  "frames": [
+    {
+      "name": "body-0",
+      "x": 2,
+      "y": 2,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        16,
+        8
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-1",
+      "x": 70,
+      "y": 2,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        16,
+        8
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-2",
+      "x": 138,
+      "y": 2,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        16,
+        8
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-3",
+      "x": 206,
+      "y": 2,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        16,
+        8
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-4",
+      "x": 274,
+      "y": 2,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        16,
+        8
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-5",
+      "x": 342,
+      "y": 2,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        16,
+        8
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-6",
+      "x": 410,
+      "y": 2,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        16,
+        8
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-7",
+      "x": 478,
+      "y": 2,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        16,
+        8
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "eject-0",
+      "x": 2,
+      "y": 70,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 14,
+        "y": 14,
+        "w": 5,
+        "h": 5
+      }
+    },
+    {
+      "name": "eject-1",
+      "x": 70,
+      "y": 70,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 9,
+        "y": 12,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "name": "eject-2",
+      "x": 138,
+      "y": 70,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 9,
+        "y": 11,
+        "w": 14,
+        "h": 12
+      }
+    },
+    {
+      "name": "eject-3",
+      "x": 206,
+      "y": 70,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 7,
+        "y": 11,
+        "w": 19,
+        "h": 11
+      }
+    },
+    {
+      "name": "eject-4",
+      "x": 274,
+      "y": 70,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 7,
+        "y": 9,
+        "w": 17,
+        "h": 14
+      }
+    },
+    {
+      "name": "eject-5",
+      "x": 342,
+      "y": 70,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 12,
+        "w": 13,
+        "h": 11
+      }
+    },
+    {
+      "name": "eject-6",
+      "x": 410,
+      "y": 70,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 9,
+        "y": 14,
+        "w": 9,
+        "h": 7
+      }
+    },
+    {
+      "name": "eject-7",
+      "x": 478,
+      "y": 70,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 16,
+        "w": 1,
+        "h": 1
+      }
+    },
+    {
+      "name": "ignite-0",
+      "x": 2,
+      "y": 138,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 26,
+        "y": 6,
+        "w": 2,
+        "h": 4
+      }
+    },
+    {
+      "name": "ignite-1",
+      "x": 70,
+      "y": 138,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 25,
+        "y": 6,
+        "w": 3,
+        "h": 4
+      }
+    },
+    {
+      "name": "ignite-2",
+      "x": 138,
+      "y": 138,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 23,
+        "y": 5,
+        "w": 5,
+        "h": 6
+      }
+    },
+    {
+      "name": "ignite-3",
+      "x": 206,
+      "y": 138,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 22,
+        "y": 5,
+        "w": 6,
+        "h": 6
+      }
+    },
+    {
+      "name": "ignite-4",
+      "x": 274,
+      "y": 138,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 20,
+        "y": 4,
+        "w": 8,
+        "h": 7
+      }
+    },
+    {
+      "name": "ignite-5",
+      "x": 342,
+      "y": 138,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 19,
+        "y": 4,
+        "w": 9,
+        "h": 7
+      }
+    },
+    {
+      "name": "ignite-6",
+      "x": 410,
+      "y": 138,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 18,
+        "y": 4,
+        "w": 10,
+        "h": 7
+      }
+    },
+    {
+      "name": "ignite-7",
+      "x": 478,
+      "y": 138,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 18,
+        "y": 4,
+        "w": 10,
+        "h": 7
+      }
+    },
+    {
+      "name": "exhaust-0",
+      "x": 2,
+      "y": 206,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 17,
+        "y": 5,
+        "w": 11,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-1",
+      "x": 70,
+      "y": 206,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 19,
+        "y": 5,
+        "w": 9,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-2",
+      "x": 138,
+      "y": 206,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 17,
+        "y": 5,
+        "w": 10,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-3",
+      "x": 206,
+      "y": 206,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 11,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-4",
+      "x": 274,
+      "y": 206,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 11,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-5",
+      "x": 342,
+      "y": 206,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 11,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-6",
+      "x": 410,
+      "y": 206,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 17,
+        "y": 5,
+        "w": 10,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-7",
+      "x": 478,
+      "y": 206,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 19,
+        "y": 5,
+        "w": 9,
+        "h": 6
+      }
+    },
+    {
+      "name": "blast-0",
+      "x": 2,
+      "y": 274,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 29,
+        "y": 29,
+        "w": 8,
+        "h": 7
+      }
+    },
+    {
+      "name": "blast-1",
+      "x": 70,
+      "y": 274,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 10,
+        "y": 11,
+        "w": 39,
+        "h": 43
+      }
+    },
+    {
+      "name": "blast-2",
+      "x": 138,
+      "y": 274,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 6,
+        "y": 4,
+        "w": 51,
+        "h": 53
+      }
+    },
+    {
+      "name": "blast-3",
+      "x": 206,
+      "y": 274,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 5,
+        "y": 6,
+        "w": 54,
+        "h": 54
+      }
+    },
+    {
+      "name": "blast-4",
+      "x": 274,
+      "y": 274,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 6,
+        "y": 7,
+        "w": 51,
+        "h": 49
+      }
+    },
+    {
+      "name": "blast-5",
+      "x": 342,
+      "y": 274,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 12,
+        "w": 49,
+        "h": 44
+      }
+    },
+    {
+      "name": "blast-6",
+      "x": 410,
+      "y": 274,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 17,
+        "w": 40,
+        "h": 32
+      }
+    },
+    {
+      "name": "blast-7",
+      "x": 478,
+      "y": 274,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 23,
+        "y": 20,
+        "w": 19,
+        "h": 25
+      }
+    },
+    {
+      "name": "smoke-0",
+      "x": 2,
+      "y": 342,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 18,
+        "y": 19,
+        "w": 30,
+        "h": 32
+      }
+    },
+    {
+      "name": "smoke-1",
+      "x": 70,
+      "y": 342,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 9,
+        "y": 12,
+        "w": 45,
+        "h": 41
+      }
+    },
+    {
+      "name": "smoke-2",
+      "x": 138,
+      "y": 342,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 5,
+        "w": 57,
+        "h": 54
+      }
+    },
+    {
+      "name": "smoke-3",
+      "x": 206,
+      "y": 342,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 5,
+        "w": 56,
+        "h": 56
+      }
+    },
+    {
+      "name": "smoke-4",
+      "x": 274,
+      "y": 342,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 6,
+        "y": 3,
+        "w": 54,
+        "h": 55
+      }
+    },
+    {
+      "name": "smoke-5",
+      "x": 342,
+      "y": 342,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 5,
+        "y": 12,
+        "w": 49,
+        "h": 47
+      }
+    },
+    {
+      "name": "smoke-6",
+      "x": 410,
+      "y": 342,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 9,
+        "y": 18,
+        "w": 43,
+        "h": 35
+      }
+    },
+    {
+      "name": "smoke-7",
+      "x": 478,
+      "y": 342,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 10,
+        "y": 25,
+        "w": 36,
+        "h": 24
+      }
+    },
+    {
+      "name": "debris-0",
+      "x": 2,
+      "y": 410,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 11,
+        "y": 12,
+        "w": 10,
+        "h": 10
+      }
+    },
+    {
+      "name": "debris-1",
+      "x": 70,
+      "y": 410,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 5,
+        "y": 7,
+        "w": 20,
+        "h": 20
+      }
+    },
+    {
+      "name": "debris-2",
+      "x": 138,
+      "y": 410,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 3,
+        "y": 4,
+        "w": 26,
+        "h": 24
+      }
+    },
+    {
+      "name": "debris-3",
+      "x": 206,
+      "y": 410,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 6,
+        "y": 7,
+        "w": 22,
+        "h": 21
+      }
+    },
+    {
+      "name": "debris-4",
+      "x": 274,
+      "y": 410,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 6,
+        "y": 9,
+        "w": 23,
+        "h": 16
+      }
+    },
+    {
+      "name": "debris-5",
+      "x": 342,
+      "y": 410,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 8,
+        "y": 10,
+        "w": 16,
+        "h": 18
+      }
+    },
+    {
+      "name": "debris-6",
+      "x": 410,
+      "y": 410,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 5,
+        "y": 10,
+        "w": 16,
+        "h": 14
+      }
+    },
+    {
+      "name": "debris-7",
+      "x": 478,
+      "y": 410,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 11,
+        "y": 15,
+        "w": 3,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-blast-0",
+      "x": 2,
+      "y": 478,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 28,
+        "y": 25,
+        "w": 10,
+        "h": 11
+      }
+    },
+    {
+      "name": "ion-blast-1",
+      "x": 70,
+      "y": 478,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 10,
+        "y": 9,
+        "w": 46,
+        "h": 45
+      }
+    },
+    {
+      "name": "ion-blast-2",
+      "x": 138,
+      "y": 478,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 7,
+        "y": 6,
+        "w": 53,
+        "h": 53
+      }
+    },
+    {
+      "name": "ion-blast-3",
+      "x": 206,
+      "y": 478,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 7,
+        "w": 54,
+        "h": 49
+      }
+    },
+    {
+      "name": "ion-blast-4",
+      "x": 274,
+      "y": 478,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 7,
+        "y": 11,
+        "w": 47,
+        "h": 45
+      }
+    },
+    {
+      "name": "ion-blast-5",
+      "x": 342,
+      "y": 478,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 7,
+        "y": 15,
+        "w": 48,
+        "h": 39
+      }
+    },
+    {
+      "name": "ion-blast-6",
+      "x": 410,
+      "y": 478,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 13,
+        "y": 18,
+        "w": 36,
+        "h": 27
+      }
+    },
+    {
+      "name": "ion-blast-7",
+      "x": 478,
+      "y": 478,
+      "w": 64,
+      "h": 64,
+      "anchor": [
+        32,
+        32
+      ],
+      "visibleBounds": {
+        "x": 26,
+        "y": 22,
+        "w": 14,
+        "h": 22
+      }
+    },
+    {
+      "name": "micro-body-0",
+      "x": 2,
+      "y": 546,
+      "w": 16,
+      "h": 12,
+      "anchor": [
+        8,
+        6
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-1",
+      "x": 70,
+      "y": 546,
+      "w": 16,
+      "h": 12,
+      "anchor": [
+        8,
+        6
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-2",
+      "x": 138,
+      "y": 546,
+      "w": 16,
+      "h": 12,
+      "anchor": [
+        8,
+        6
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-3",
+      "x": 206,
+      "y": 546,
+      "w": 16,
+      "h": 12,
+      "anchor": [
+        8,
+        6
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-4",
+      "x": 274,
+      "y": 546,
+      "w": 16,
+      "h": 12,
+      "anchor": [
+        8,
+        6
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-5",
+      "x": 342,
+      "y": 546,
+      "w": 16,
+      "h": 12,
+      "anchor": [
+        8,
+        6
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-6",
+      "x": 410,
+      "y": 546,
+      "w": 16,
+      "h": 12,
+      "anchor": [
+        8,
+        6
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-7",
+      "x": 478,
+      "y": 546,
+      "w": 16,
+      "h": 12,
+      "anchor": [
+        8,
+        6
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-blast-0",
+      "x": 2,
+      "y": 614,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 13,
+        "y": 13,
+        "w": 7,
+        "h": 7
+      }
+    },
+    {
+      "name": "micro-blast-1",
+      "x": 70,
+      "y": 614,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 10,
+        "y": 11,
+        "w": 13,
+        "h": 10
+      }
+    },
+    {
+      "name": "micro-blast-2",
+      "x": 138,
+      "y": 614,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 6,
+        "y": 7,
+        "w": 20,
+        "h": 19
+      }
+    },
+    {
+      "name": "micro-blast-3",
+      "x": 206,
+      "y": 614,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 4,
+        "y": 5,
+        "w": 24,
+        "h": 22
+      }
+    },
+    {
+      "name": "micro-blast-4",
+      "x": 274,
+      "y": 614,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 5,
+        "y": 6,
+        "w": 23,
+        "h": 21
+      }
+    },
+    {
+      "name": "micro-blast-5",
+      "x": 342,
+      "y": 614,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 6,
+        "y": 7,
+        "w": 21,
+        "h": 18
+      }
+    },
+    {
+      "name": "micro-blast-6",
+      "x": 410,
+      "y": 614,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 9,
+        "y": 9,
+        "w": 14,
+        "h": 15
+      }
+    },
+    {
+      "name": "micro-blast-7",
+      "x": 478,
+      "y": 614,
+      "w": 32,
+      "h": 32,
+      "anchor": [
+        16,
+        16
+      ],
+      "visibleBounds": {
+        "x": 13,
+        "y": 14,
+        "w": 4,
+        "h": 8
+      }
+    },
+    {
+      "name": "arc-0",
+      "x": 2,
+      "y": 682,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        0,
+        8
+      ],
+      "visibleBounds": {
+        "x": 0,
+        "y": 6,
+        "w": 32,
+        "h": 5
+      }
+    },
+    {
+      "name": "arc-1",
+      "x": 70,
+      "y": 682,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        0,
+        8
+      ],
+      "visibleBounds": {
+        "x": 0,
+        "y": 4,
+        "w": 32,
+        "h": 7
+      }
+    },
+    {
+      "name": "arc-2",
+      "x": 138,
+      "y": 682,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        0,
+        8
+      ],
+      "visibleBounds": {
+        "x": 0,
+        "y": 3,
+        "w": 32,
+        "h": 11
+      }
+    },
+    {
+      "name": "arc-3",
+      "x": 206,
+      "y": 682,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        0,
+        8
+      ],
+      "visibleBounds": {
+        "x": 0,
+        "y": 1,
+        "w": 32,
+        "h": 14
+      }
+    },
+    {
+      "name": "arc-4",
+      "x": 274,
+      "y": 682,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        0,
+        8
+      ],
+      "visibleBounds": {
+        "x": 0,
+        "y": 3,
+        "w": 32,
+        "h": 11
+      }
+    },
+    {
+      "name": "arc-5",
+      "x": 342,
+      "y": 682,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        0,
+        8
+      ],
+      "visibleBounds": {
+        "x": 0,
+        "y": 3,
+        "w": 32,
+        "h": 9
+      }
+    },
+    {
+      "name": "arc-6",
+      "x": 410,
+      "y": 682,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        0,
+        8
+      ],
+      "visibleBounds": {
+        "x": 0,
+        "y": 4,
+        "w": 32,
+        "h": 8
+      }
+    },
+    {
+      "name": "arc-7",
+      "x": 478,
+      "y": 682,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        0,
+        8
+      ],
+      "visibleBounds": {
+        "x": 11,
+        "y": 7,
+        "w": 1,
+        "h": 2
+      }
+    },
+    {
+      "name": "ion-exhaust-0",
+      "x": 2,
+      "y": 750,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-1",
+      "x": 70,
+      "y": 750,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-2",
+      "x": 138,
+      "y": 750,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-3",
+      "x": 206,
+      "y": 750,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-4",
+      "x": 274,
+      "y": 750,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-5",
+      "x": 342,
+      "y": 750,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-6",
+      "x": 410,
+      "y": 750,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-7",
+      "x": 478,
+      "y": 750,
+      "w": 32,
+      "h": 16,
+      "anchor": [
+        28,
+        8
+      ],
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    }
+  ],
+  "sources": [
+    {
+      "path": "assets/vfx/missile/source-master.png",
+      "width": 1254,
+      "height": 1254,
+      "grid": [
+        8,
+        8
+      ],
+      "sha256": "42d7b9fce05934d849b4a974cc0b8deaeda20a3bdb796e13e2bb5a8252f7e6f6",
+      "tool": "built-in image_gen",
+      "model": null,
+      "seed": null,
+      "prompt": "assets/vfx/missile/generation-prompt.txt"
+    },
+    {
+      "path": "assets/vfx/missile/source-companion.png",
+      "width": 1774,
+      "height": 887,
+      "grid": [
+        8,
+        4
+      ],
+      "sha256": "7535eb7bd854e72a94558110778174429760c72877fad973fd4f2f46778cf004",
+      "tool": "built-in image_gen",
+      "model": null,
+      "seed": null,
+      "prompt": "assets/vfx/missile/companion-prompt.txt"
+    }
+  ],
+  "processing": {
+    "script": "scripts/build-missile-vfx-assets.mjs",
+    "alphaThreshold": 208,
+    "sampling": "shared 64x64 nearest-neighbor grid and one union transform per clip; palette from palette.ts",
+    "perFrameCrop": false,
+    "perFrameRescale": false,
+    "perFrameRecenter": false,
+    "rigidHardware": "source frame 0 reused for all frames; never morph metal or stretch with engine",
+    "ignition": "leftward reveal of fixed final ignition frame; no per-frame attachment drift",
+    "loops": "ping-pong source frames 0,1,2,3,4,3,2,1",
+    "transforms": [
+      {
+        "key": "body",
+        "bounds": {
+          "x0": 11,
+          "y0": 26,
+          "x1": 59,
+          "y1": 51,
+          "cx": 35.5,
+          "cy": 39
+        },
+        "sharedScale": 0.34615384615384615,
+        "sourceFrames": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "key": "eject",
+        "bounds": {
+          "x0": 10,
+          "y0": 23,
+          "x1": 52,
+          "y1": 54,
+          "cx": 31.5,
+          "cy": 39
+        },
+        "sharedScale": 0.4418604651162791,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "ignite",
+        "bounds": {
+          "x0": 8,
+          "y0": 22,
+          "x1": 49,
+          "y1": 47,
+          "cx": 29,
+          "cy": 35
+        },
+        "sharedScale": 0.2692307692307692,
+        "sourceFrames": [
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7
+        ]
+      },
+      {
+        "key": "exhaust",
+        "bounds": {
+          "x0": 5,
+          "y0": 17,
+          "x1": 52,
+          "y1": 43,
+          "cx": 29,
+          "cy": 30.5
+        },
+        "sharedScale": 0.25,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          3,
+          2,
+          1
+        ]
+      },
+      {
+        "key": "blast",
+        "bounds": {
+          "x0": 3,
+          "y0": 3,
+          "x1": 59,
+          "y1": 61,
+          "cx": 31.5,
+          "cy": 32.5
+        },
+        "sharedScale": 0.9491525423728814,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "smoke",
+        "bounds": {
+          "x0": 3,
+          "y0": 4,
+          "x1": 61,
+          "y1": 62,
+          "cx": 32.5,
+          "cy": 33.5
+        },
+        "sharedScale": 0.9830508474576272,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "debris",
+        "bounds": {
+          "x0": 12,
+          "y0": 11,
+          "x1": 52,
+          "y1": 47,
+          "cx": 32.5,
+          "cy": 29.5
+        },
+        "sharedScale": 0.6585365853658537,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "ion-blast",
+        "bounds": {
+          "x0": 3,
+          "y0": 2,
+          "x1": 59,
+          "y1": 56,
+          "cx": 31.5,
+          "cy": 29.5
+        },
+        "sharedScale": 0.9824561403508771,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "micro-body",
+        "bounds": {
+          "x0": 17,
+          "y0": 29,
+          "x1": 53,
+          "y1": 49,
+          "cx": 35.5,
+          "cy": 39.5
+        },
+        "sharedScale": 0.23809523809523808,
+        "sourceFrames": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "key": "micro-blast",
+        "bounds": {
+          "x0": 8,
+          "y0": 19,
+          "x1": 54,
+          "y1": 62,
+          "cx": 31.5,
+          "cy": 41
+        },
+        "sharedScale": 0.5106382978723404,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "arc",
+        "bounds": {
+          "x0": 0,
+          "y0": 21,
+          "x1": 63,
+          "y1": 47,
+          "cx": 32,
+          "cy": 34.5
+        },
+        "sharedScale": 1,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "ion-exhaust",
+        "bounds": {
+          "x0": 7,
+          "y0": 18,
+          "x1": 53,
+          "y1": 43,
+          "cx": 30.5,
+          "cy": 31
+        },
+        "sharedScale": 0.2553191489361702,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          3,
+          2,
+          1
+        ]
+      }
+    ]
+  },
+  "scope": "complete animation asset pack and read-only playback; not gameplay implementation"
+}

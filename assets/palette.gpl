@@ -8,6 +8,9 @@ Columns: 8
 255 255 255	white 高光、受击反馈
 232 232 240	bone 金属/骨白
 255 217 160	sand 肤色
+197 199 207	steelLight 导弹装甲亮面
+139 143 154	steelMid 导弹装甲与烟尘
+ 74  80  98	steelDark 导弹暗部与稀疏烟尘
 244 169  64	pGold 头盔
  61 109 224	pBlue 披风
  30  58 138	pBlueDk 披风暗部

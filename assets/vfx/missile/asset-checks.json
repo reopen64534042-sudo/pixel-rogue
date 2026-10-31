@@ -1,0 +1,982 @@
+{
+  "atlasSize": [
+    544,
+    816
+  ],
+  "clips": 12,
+  "frameCount": 96,
+  "paletteColors": 14,
+  "transparentPixels": 429298,
+  "frameStats": [
+    {
+      "name": "body-0",
+      "opaquePixels": 92,
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-1",
+      "opaquePixels": 92,
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-2",
+      "opaquePixels": 92,
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-3",
+      "opaquePixels": 92,
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-4",
+      "opaquePixels": 92,
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-5",
+      "opaquePixels": 92,
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-6",
+      "opaquePixels": 92,
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "body-7",
+      "opaquePixels": 92,
+      "visibleBounds": {
+        "x": 8,
+        "y": 4,
+        "w": 16,
+        "h": 9
+      }
+    },
+    {
+      "name": "eject-0",
+      "opaquePixels": 13,
+      "visibleBounds": {
+        "x": 14,
+        "y": 14,
+        "w": 5,
+        "h": 5
+      }
+    },
+    {
+      "name": "eject-1",
+      "opaquePixels": 63,
+      "visibleBounds": {
+        "x": 9,
+        "y": 12,
+        "w": 11,
+        "h": 10
+      }
+    },
+    {
+      "name": "eject-2",
+      "opaquePixels": 94,
+      "visibleBounds": {
+        "x": 9,
+        "y": 11,
+        "w": 14,
+        "h": 12
+      }
+    },
+    {
+      "name": "eject-3",
+      "opaquePixels": 98,
+      "visibleBounds": {
+        "x": 7,
+        "y": 11,
+        "w": 19,
+        "h": 11
+      }
+    },
+    {
+      "name": "eject-4",
+      "opaquePixels": 67,
+      "visibleBounds": {
+        "x": 7,
+        "y": 9,
+        "w": 17,
+        "h": 14
+      }
+    },
+    {
+      "name": "eject-5",
+      "opaquePixels": 30,
+      "visibleBounds": {
+        "x": 8,
+        "y": 12,
+        "w": 13,
+        "h": 11
+      }
+    },
+    {
+      "name": "eject-6",
+      "opaquePixels": 6,
+      "visibleBounds": {
+        "x": 9,
+        "y": 14,
+        "w": 9,
+        "h": 7
+      }
+    },
+    {
+      "name": "eject-7",
+      "opaquePixels": 1,
+      "visibleBounds": {
+        "x": 16,
+        "y": 16,
+        "w": 1,
+        "h": 1
+      }
+    },
+    {
+      "name": "ignite-0",
+      "opaquePixels": 6,
+      "visibleBounds": {
+        "x": 26,
+        "y": 6,
+        "w": 2,
+        "h": 4
+      }
+    },
+    {
+      "name": "ignite-1",
+      "opaquePixels": 10,
+      "visibleBounds": {
+        "x": 25,
+        "y": 6,
+        "w": 3,
+        "h": 4
+      }
+    },
+    {
+      "name": "ignite-2",
+      "opaquePixels": 22,
+      "visibleBounds": {
+        "x": 23,
+        "y": 5,
+        "w": 5,
+        "h": 6
+      }
+    },
+    {
+      "name": "ignite-3",
+      "opaquePixels": 28,
+      "visibleBounds": {
+        "x": 22,
+        "y": 5,
+        "w": 6,
+        "h": 6
+      }
+    },
+    {
+      "name": "ignite-4",
+      "opaquePixels": 35,
+      "visibleBounds": {
+        "x": 20,
+        "y": 4,
+        "w": 8,
+        "h": 7
+      }
+    },
+    {
+      "name": "ignite-5",
+      "opaquePixels": 36,
+      "visibleBounds": {
+        "x": 19,
+        "y": 4,
+        "w": 9,
+        "h": 7
+      }
+    },
+    {
+      "name": "ignite-6",
+      "opaquePixels": 37,
+      "visibleBounds": {
+        "x": 18,
+        "y": 4,
+        "w": 10,
+        "h": 7
+      }
+    },
+    {
+      "name": "ignite-7",
+      "opaquePixels": 37,
+      "visibleBounds": {
+        "x": 18,
+        "y": 4,
+        "w": 10,
+        "h": 7
+      }
+    },
+    {
+      "name": "exhaust-0",
+      "opaquePixels": 35,
+      "visibleBounds": {
+        "x": 17,
+        "y": 5,
+        "w": 11,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-1",
+      "opaquePixels": 33,
+      "visibleBounds": {
+        "x": 19,
+        "y": 5,
+        "w": 9,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-2",
+      "opaquePixels": 34,
+      "visibleBounds": {
+        "x": 17,
+        "y": 5,
+        "w": 10,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-3",
+      "opaquePixels": 32,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 11,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-4",
+      "opaquePixels": 32,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 11,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-5",
+      "opaquePixels": 32,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 11,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-6",
+      "opaquePixels": 34,
+      "visibleBounds": {
+        "x": 17,
+        "y": 5,
+        "w": 10,
+        "h": 6
+      }
+    },
+    {
+      "name": "exhaust-7",
+      "opaquePixels": 33,
+      "visibleBounds": {
+        "x": 19,
+        "y": 5,
+        "w": 9,
+        "h": 6
+      }
+    },
+    {
+      "name": "blast-0",
+      "opaquePixels": 25,
+      "visibleBounds": {
+        "x": 29,
+        "y": 29,
+        "w": 8,
+        "h": 7
+      }
+    },
+    {
+      "name": "blast-1",
+      "opaquePixels": 486,
+      "visibleBounds": {
+        "x": 10,
+        "y": 11,
+        "w": 39,
+        "h": 43
+      }
+    },
+    {
+      "name": "blast-2",
+      "opaquePixels": 1189,
+      "visibleBounds": {
+        "x": 6,
+        "y": 4,
+        "w": 51,
+        "h": 53
+      }
+    },
+    {
+      "name": "blast-3",
+      "opaquePixels": 1236,
+      "visibleBounds": {
+        "x": 5,
+        "y": 6,
+        "w": 54,
+        "h": 54
+      }
+    },
+    {
+      "name": "blast-4",
+      "opaquePixels": 1030,
+      "visibleBounds": {
+        "x": 6,
+        "y": 7,
+        "w": 51,
+        "h": 49
+      }
+    },
+    {
+      "name": "blast-5",
+      "opaquePixels": 470,
+      "visibleBounds": {
+        "x": 8,
+        "y": 12,
+        "w": 49,
+        "h": 44
+      }
+    },
+    {
+      "name": "blast-6",
+      "opaquePixels": 108,
+      "visibleBounds": {
+        "x": 8,
+        "y": 17,
+        "w": 40,
+        "h": 32
+      }
+    },
+    {
+      "name": "blast-7",
+      "opaquePixels": 28,
+      "visibleBounds": {
+        "x": 23,
+        "y": 20,
+        "w": 19,
+        "h": 25
+      }
+    },
+    {
+      "name": "smoke-0",
+      "opaquePixels": 212,
+      "visibleBounds": {
+        "x": 18,
+        "y": 19,
+        "w": 30,
+        "h": 32
+      }
+    },
+    {
+      "name": "smoke-1",
+      "opaquePixels": 540,
+      "visibleBounds": {
+        "x": 9,
+        "y": 12,
+        "w": 45,
+        "h": 41
+      }
+    },
+    {
+      "name": "smoke-2",
+      "opaquePixels": 883,
+      "visibleBounds": {
+        "x": 4,
+        "y": 5,
+        "w": 57,
+        "h": 54
+      }
+    },
+    {
+      "name": "smoke-3",
+      "opaquePixels": 730,
+      "visibleBounds": {
+        "x": 4,
+        "y": 5,
+        "w": 56,
+        "h": 56
+      }
+    },
+    {
+      "name": "smoke-4",
+      "opaquePixels": 648,
+      "visibleBounds": {
+        "x": 6,
+        "y": 3,
+        "w": 54,
+        "h": 55
+      }
+    },
+    {
+      "name": "smoke-5",
+      "opaquePixels": 291,
+      "visibleBounds": {
+        "x": 5,
+        "y": 12,
+        "w": 49,
+        "h": 47
+      }
+    },
+    {
+      "name": "smoke-6",
+      "opaquePixels": 134,
+      "visibleBounds": {
+        "x": 9,
+        "y": 18,
+        "w": 43,
+        "h": 35
+      }
+    },
+    {
+      "name": "smoke-7",
+      "opaquePixels": 44,
+      "visibleBounds": {
+        "x": 10,
+        "y": 25,
+        "w": 36,
+        "h": 24
+      }
+    },
+    {
+      "name": "debris-0",
+      "opaquePixels": 59,
+      "visibleBounds": {
+        "x": 11,
+        "y": 12,
+        "w": 10,
+        "h": 10
+      }
+    },
+    {
+      "name": "debris-1",
+      "opaquePixels": 56,
+      "visibleBounds": {
+        "x": 5,
+        "y": 7,
+        "w": 20,
+        "h": 20
+      }
+    },
+    {
+      "name": "debris-2",
+      "opaquePixels": 87,
+      "visibleBounds": {
+        "x": 3,
+        "y": 4,
+        "w": 26,
+        "h": 24
+      }
+    },
+    {
+      "name": "debris-3",
+      "opaquePixels": 54,
+      "visibleBounds": {
+        "x": 6,
+        "y": 7,
+        "w": 22,
+        "h": 21
+      }
+    },
+    {
+      "name": "debris-4",
+      "opaquePixels": 33,
+      "visibleBounds": {
+        "x": 6,
+        "y": 9,
+        "w": 23,
+        "h": 16
+      }
+    },
+    {
+      "name": "debris-5",
+      "opaquePixels": 9,
+      "visibleBounds": {
+        "x": 8,
+        "y": 10,
+        "w": 16,
+        "h": 18
+      }
+    },
+    {
+      "name": "debris-6",
+      "opaquePixels": 8,
+      "visibleBounds": {
+        "x": 5,
+        "y": 10,
+        "w": 16,
+        "h": 14
+      }
+    },
+    {
+      "name": "debris-7",
+      "opaquePixels": 2,
+      "visibleBounds": {
+        "x": 11,
+        "y": 15,
+        "w": 3,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-blast-0",
+      "opaquePixels": 55,
+      "visibleBounds": {
+        "x": 28,
+        "y": 25,
+        "w": 10,
+        "h": 11
+      }
+    },
+    {
+      "name": "ion-blast-1",
+      "opaquePixels": 567,
+      "visibleBounds": {
+        "x": 10,
+        "y": 9,
+        "w": 46,
+        "h": 45
+      }
+    },
+    {
+      "name": "ion-blast-2",
+      "opaquePixels": 1158,
+      "visibleBounds": {
+        "x": 7,
+        "y": 6,
+        "w": 53,
+        "h": 53
+      }
+    },
+    {
+      "name": "ion-blast-3",
+      "opaquePixels": 555,
+      "visibleBounds": {
+        "x": 4,
+        "y": 7,
+        "w": 54,
+        "h": 49
+      }
+    },
+    {
+      "name": "ion-blast-4",
+      "opaquePixels": 300,
+      "visibleBounds": {
+        "x": 7,
+        "y": 11,
+        "w": 47,
+        "h": 45
+      }
+    },
+    {
+      "name": "ion-blast-5",
+      "opaquePixels": 148,
+      "visibleBounds": {
+        "x": 7,
+        "y": 15,
+        "w": 48,
+        "h": 39
+      }
+    },
+    {
+      "name": "ion-blast-6",
+      "opaquePixels": 58,
+      "visibleBounds": {
+        "x": 13,
+        "y": 18,
+        "w": 36,
+        "h": 27
+      }
+    },
+    {
+      "name": "ion-blast-7",
+      "opaquePixels": 12,
+      "visibleBounds": {
+        "x": 26,
+        "y": 22,
+        "w": 14,
+        "h": 22
+      }
+    },
+    {
+      "name": "micro-body-0",
+      "opaquePixels": 29,
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-1",
+      "opaquePixels": 29,
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-2",
+      "opaquePixels": 29,
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-3",
+      "opaquePixels": 29,
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-4",
+      "opaquePixels": 29,
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-5",
+      "opaquePixels": 29,
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-6",
+      "opaquePixels": 29,
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-body-7",
+      "opaquePixels": 29,
+      "visibleBounds": {
+        "x": 4,
+        "y": 3,
+        "w": 8,
+        "h": 5
+      }
+    },
+    {
+      "name": "micro-blast-0",
+      "opaquePixels": 13,
+      "visibleBounds": {
+        "x": 13,
+        "y": 13,
+        "w": 7,
+        "h": 7
+      }
+    },
+    {
+      "name": "micro-blast-1",
+      "opaquePixels": 68,
+      "visibleBounds": {
+        "x": 10,
+        "y": 11,
+        "w": 13,
+        "h": 10
+      }
+    },
+    {
+      "name": "micro-blast-2",
+      "opaquePixels": 157,
+      "visibleBounds": {
+        "x": 6,
+        "y": 7,
+        "w": 20,
+        "h": 19
+      }
+    },
+    {
+      "name": "micro-blast-3",
+      "opaquePixels": 219,
+      "visibleBounds": {
+        "x": 4,
+        "y": 5,
+        "w": 24,
+        "h": 22
+      }
+    },
+    {
+      "name": "micro-blast-4",
+      "opaquePixels": 132,
+      "visibleBounds": {
+        "x": 5,
+        "y": 6,
+        "w": 23,
+        "h": 21
+      }
+    },
+    {
+      "name": "micro-blast-5",
+      "opaquePixels": 46,
+      "visibleBounds": {
+        "x": 6,
+        "y": 7,
+        "w": 21,
+        "h": 18
+      }
+    },
+    {
+      "name": "micro-blast-6",
+      "opaquePixels": 13,
+      "visibleBounds": {
+        "x": 9,
+        "y": 9,
+        "w": 14,
+        "h": 15
+      }
+    },
+    {
+      "name": "micro-blast-7",
+      "opaquePixels": 2,
+      "visibleBounds": {
+        "x": 13,
+        "y": 14,
+        "w": 4,
+        "h": 8
+      }
+    },
+    {
+      "name": "arc-0",
+      "opaquePixels": 84,
+      "visibleBounds": {
+        "x": 0,
+        "y": 6,
+        "w": 32,
+        "h": 5
+      }
+    },
+    {
+      "name": "arc-1",
+      "opaquePixels": 98,
+      "visibleBounds": {
+        "x": 0,
+        "y": 4,
+        "w": 32,
+        "h": 7
+      }
+    },
+    {
+      "name": "arc-2",
+      "opaquePixels": 132,
+      "visibleBounds": {
+        "x": 0,
+        "y": 3,
+        "w": 32,
+        "h": 11
+      }
+    },
+    {
+      "name": "arc-3",
+      "opaquePixels": 166,
+      "visibleBounds": {
+        "x": 0,
+        "y": 1,
+        "w": 32,
+        "h": 14
+      }
+    },
+    {
+      "name": "arc-4",
+      "opaquePixels": 108,
+      "visibleBounds": {
+        "x": 0,
+        "y": 3,
+        "w": 32,
+        "h": 11
+      }
+    },
+    {
+      "name": "arc-5",
+      "opaquePixels": 65,
+      "visibleBounds": {
+        "x": 0,
+        "y": 3,
+        "w": 32,
+        "h": 9
+      }
+    },
+    {
+      "name": "arc-6",
+      "opaquePixels": 34,
+      "visibleBounds": {
+        "x": 0,
+        "y": 4,
+        "w": 32,
+        "h": 8
+      }
+    },
+    {
+      "name": "arc-7",
+      "opaquePixels": 2,
+      "visibleBounds": {
+        "x": 11,
+        "y": 7,
+        "w": 1,
+        "h": 2
+      }
+    },
+    {
+      "name": "ion-exhaust-0",
+      "opaquePixels": 32,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-1",
+      "opaquePixels": 29,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-2",
+      "opaquePixels": 26,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-3",
+      "opaquePixels": 32,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-4",
+      "opaquePixels": 30,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-5",
+      "opaquePixels": 32,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-6",
+      "opaquePixels": 26,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    },
+    {
+      "name": "ion-exhaust-7",
+      "opaquePixels": 29,
+      "visibleBounds": {
+        "x": 16,
+        "y": 5,
+        "w": 12,
+        "h": 6
+      }
+    }
+  ],
+  "atlasSha256": "d2e4e2271885afa76518402a477d469ccdcfe3c816fbd79867223ee19fe9117c",
+  "checks": [
+    "fixed shared clip transforms",
+    "rigid body lock",
+    "palette-only RGB",
+    "binary transparent alpha",
+    "nonempty frames",
+    "untrimmed anchors"
+  ],
+  "scope": "asset integrity checks; not gameplay acceptance"
+}

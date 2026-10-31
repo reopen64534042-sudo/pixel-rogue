@@ -1,4 +1,5 @@
 import { drawLaser, drawLaserResources } from "./LaserRenderer";
+import { drawMissile, drawMissileGround, drawMissileResources } from "./MissileRenderer";
 import type { GameCore } from "../core/GameCore";
 import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { FloatingText } from "../core/types";
@@ -241,6 +242,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     if (rect) ctx.sprite(rect.tex, rect.x, rect.y, rect.w, rect.h);
   }
 
+  drawMissileGround(this, ctx);
   // Issue #45：焦土燃烧地带
   for (const z of this.burnZones) {
     ctx.globalAlpha = 0.22 + Math.sin(this.time * 6) * 0.08;
@@ -1045,6 +1047,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   }
 
   drawLaserResources(this, ctx);
+  drawMissileResources(this, ctx);
   // 强化弹经验条（角色脚下；满级或满经验时整条金色）
   // 强化弹是射手专属系统；法师不显示，否则空条会压在充能点（y+17）上。
   if (this.prof === "shooter" && this.shooterWeapon === "charged") {
@@ -1267,6 +1270,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   }
 
   drawLaser(this, ctx, laserAnimation);
+  drawMissile(this, ctx);
 
   // 强化弹激光（短寿命表现层；与电弧同为一次折线批量绘制）
   if (this.lasers.length) {

@@ -101,7 +101,7 @@ export const TALENT_ENTRIES: readonly CodexEntry[] = UPGRADES.filter(
     tier: u.t,
     group: (u.prof && PROF_GROUP[u.prof]) || u.cat,
     prof: u.prof,
-    slot: u.shooterWeapon === "laser" ? "激光 · " + u.slot : u.slot,
+    slot: u.shooterWeapon === "laser" ? "激光 · " + u.slot : u.shooterWeapon === "missile" ? "导弹 · " + u.slot : u.slot,
     layer: u.layer,
     variant: u.variant,
     status: "live",

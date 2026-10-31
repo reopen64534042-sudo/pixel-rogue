@@ -108,3 +108,13 @@ export const LASER_DAMAGE = {
   farFocusSpeed: 1.4,
   highFocus: 0.75,
 } as const;
+
+/** v141: approved missile design; damage factors stay out of system orchestration. */
+export const MISSILE_DAMAGE = {
+  base: 3.6, perLevel: 0.06, liner: 1.12, twin: 0.65, pressure: 1.35,
+  pressureRadius: 1.15, radiusUpgrade: 1.2, rangeUpgrade: 1.2, vector: 1.35,
+  motor: 1.25, reload: 0.85, fastEject: 0.08,
+  beacon: 1.2, edgeLoss: 0.4, decode: 0.3, pursuit: 0.5, pursuitRadius: 0.7,
+  swarm: 0.35, recovered: 0.25, arc: 0.35, relay: 0.6, resonance: 0.4,
+  burn: 0.12, lifesteal: 0.3, armor: 0.75,
+} as const;

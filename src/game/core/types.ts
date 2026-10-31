@@ -23,7 +23,8 @@ export type DamageSource =
   | "element"
   /** 双修三法印反应（融化/超载/超导）的独立伤害分项。 */
   | "reaction"
-  | "laser";
+  | "laser"
+  | "missileMain" | "missileSwarm" | "missileArc" | "missileBurn";
 export type DamageTotals = Record<DamageSource, number>;
 /* ---------- Combat Foundation v1（S1 契约，未接入运行时战斗） ---------- */
 /** 攻击方式：决定近战/远程增伤乘区适用范围；由技能显式指定，不按距离推断 */
@@ -280,7 +281,7 @@ export type Profession = "shooter" | "mage" | "warrior" | "common";
 export type EliteAffix = "split" | "summon" | "nova";
 
 /** 射手开局主武器；未指定时沿用强化弹。 */
-export type ShooterWeapon = "charged" | "laser";
+export type ShooterWeapon = "charged" | "laser" | "missile";
 /** 战士开局流派：太刀（快、近、弱击退）/ 大剑（慢、远、强击退）。 */
 export type WarriorStyle = "katana" | "greatsword";
 
@@ -612,6 +613,8 @@ export interface Slash extends Point {
   impact?: boolean;
 }
 export interface HitOptions {
+  /** Discrete weapon fields may settle true DoT through the same orchestration. */
+  kind?: "hit" | "dot";
   /** 持续束采用浮点结算，避免高频最少 1 点伤害放大。 */
   continuous?: boolean;
   /** 由持续武器按时间窗复用暴击结果，不额外掷骰。 */
@@ -650,6 +653,7 @@ export interface HitOptions {
   lethalCap?: boolean;
 }
 export interface PlayerHitOptions {
+  kind?: "hit" | "dot";
   melee?: boolean;
   src?: Enemy;
   /** Combat Foundation S2（§5）：伤害属性，缺省 physical（接触=physical/melee、弹幕=physical/ranged、自爆=fire/other） */

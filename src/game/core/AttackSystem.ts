@@ -1,4 +1,5 @@
 import { updateLaser } from "./LaserSystem";
+import { updateMissile } from "./MissileSystem";
 import type { GameCore } from "./GameCore";
 import { SPECIAL_SHOT_EVERY } from "../data/constants";
 import {
@@ -36,6 +37,7 @@ export function updateAttacks(this: GameCore, dt: number) {
   p.fireCd -= dt;
   if (this.prof === "warrior") updateWarriorCombat.call(this, dt);
   if (this.prof === "shooter" && this.shooterWeapon === "laser") updateLaser.call(this, dt);
+  if (this.prof === "shooter" && this.shooterWeapon === "missile") updateMissile.call(this, dt);
   if (this.prof === "shooter" && this.shooterWeapon === "charged" && p.fireCd <= 0) {
     // S1：射程改为玩家属性（base 130）；索敌半径与弹道 life 共用同一值
     const tgt = this.nearestEnemy(p.x, p.y, p.attackRange);
