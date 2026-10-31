@@ -36,7 +36,8 @@ export function drawMissileGround(core: GameCore, ctx: PixelPainter) {
 
 export function drawMissileResources(core: GameCore, ctx: PixelPainter) {
   if (!active(core)) return;
-  const s = core.missile, p = core.player, x = Math.round(p.x - 10), y = Math.round(p.y + 13), alpha = ctx.globalAlpha;
+  // Dash cells occupy rounded player Y + 12..13; keep two clear rows before missile HUD.
+  const s = core.missile, p = core.player, x = Math.round(p.x - 10), y = Math.round(p.y) + 16, alpha = ctx.globalAlpha;
   ctx.globalAlpha = 1; ctx.fillStyle = C.ink1; ctx.fillRect(x, y, 20, 3);
   const loaded = s.reloadTotal > 0 ? 1 - s.reload / s.reloadTotal : 1;
   ctx.fillStyle = core.time < s.armorUntil && s.reload > 0 ? C.iceCyan : C.pGold;

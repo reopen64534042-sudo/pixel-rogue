@@ -3782,3 +3782,11 @@ dmg = Math.ceil(e.hp - 1);
 - 修复：`src/game/codex/codexData.ts` 登记 `e:splitling`（贴图 `splitling`，`link` 指向同键配置），击杀累计 / 解锁 / 详情自动生效；`CodexUI.enemyStatsHtml` 对 `w0=999`、`wt=0` 的条目显示「特殊生成 / —」，不再把内部占位值当成正常刷新数据。
 - 蛛网：生效网纹从 `#d9e7ff` / alpha 0.30 的双环 + 8 条 4px→0.95R 辐条，改为 `#8ea6cc` / 外环 alpha 0.16、内环 0.10、辐条 0.11（0.3R→0.92R）；预警金圈、半径、持续时间与 40% 减速等玩法数值不变。
 - 验证：`npm run typecheck` / `npm run build`；e2e 受控脚本（`?test=enemy-demo`）确认子体击杀写入图鉴（0→1，敌人分母 12），截图 `output/v142-web-visual.png` 显示四网叠加时角色与飘字仍清晰。按 2026-10-29 标准未运行 Vitest / Playwright；`tests/codex.test.ts` 的 `ENEMY_TOTAL` / `ETYPES` 数量旧断言在本次改动前就已过期（登记 6 vs 实际 11），本次敌人分母变为 12，留待授权测试批次统一处理。蛛网明暗属视觉手感，仍需自然试玩确认是否继续压暗或调整预警圈。
+
+## 导弹资源条与冲刺格重叠修复（v144，2026-10-31）
+
+- 复现：用户截图中，射手冲刺格位于 `round(player.y)+12..13`，导弹装填条却从 `round(player.y+13)` 开始，遮住冲刺格的下一行。
+- 修复：`MissileRenderer.drawMissileResources` 改为以 `round(player.y)+16` 为导弹组起点，整体下移 3 个游戏像素；与冲刺格之间保留第 14、15 两行空隙，三轮刻度／经验／弹药沿用组内相对间距。位置计算与冲刺共用先取整后加偏移的方式。
+- 基线：PR #210 已合并，从最新上游 3f7f691（v142）创建独立分支 codex/fix-missile-hud-spacing；改动限于资源提示位置与双端更新日志，保留已有图鉴／蛛网修复。
+- 验证按当前交付线运行 typecheck／build 并检查差异；未新增或修改测试，未运行 Vitest／Playwright。本轮未做新的实机截图验收。
+- 提交前上游合入 PR #212（22ed713，v143 激光回充／武器面板），本修复顺延为 v144，并同步保留该批更新。
