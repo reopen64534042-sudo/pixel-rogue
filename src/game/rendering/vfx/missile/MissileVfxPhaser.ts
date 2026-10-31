@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { MISSILE_ATLAS_KEY, MISSILE_CLIPS } from "./missileAssets";
 import { missileVfxCommands, type MissileVfxCommand, type MissileVfxSnapshot } from "./MissileVfxPlayer";
 
-/** Optional integration point; the new weapon is not wired to GameScene yet. */
+/** GameScene preload; the optional standalone view below shares the same commands. */
 export function preloadMissileVfx(scene: Phaser.Scene, baseUrl = import.meta.env.BASE_URL) {
   const base = `${baseUrl.replace(/\/$/, "")}/assets/vfx/missile/`;
   scene.load.atlas(MISSILE_ATLAS_KEY, `${base}missile.atlas.png`, `${base}missile.atlas.json`);
