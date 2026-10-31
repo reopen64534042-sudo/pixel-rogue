@@ -24,8 +24,8 @@
     },
     {
       "id": "ion",
-      "title": "离子战斗部 · 短电弧接力",
-      "note": "灰色弹体、青白喷流、离子爆心和真实端点样式演示"
+      "title": "离子命中 · 电弧与共振",
+      "note": "离子弹体、电弧接力与独立共振形态；目标预存电荷的素材示意"
     },
     {
       "id": "combined",
@@ -40,7 +40,11 @@
     "impact-025x.gif",
     "scenario-poster.png",
     "flight-2x.png",
-    "preview.html"
+    "preview.html",
+    "ion-cycle-1x.gif",
+    "ion-cycle-2x.gif",
+    "ion-impact-025x.gif",
+    "ion-impact-detail-4x.png"
   ],
   "inspection": [
     {
@@ -264,5 +268,42 @@
       "commands": []
     }
   ],
-  "source": "actual MissileVfxPlayer + atlas; deterministic offline choreography, not gameplay"
+  "ionInspection": [
+    {
+      "time": 0.85,
+      "sprites": 2,
+      "lines": 25
+    },
+    {
+      "time": 1.2,
+      "sprites": 1,
+      "lines": 52
+    },
+    {
+      "time": 1.24,
+      "sprites": 4,
+      "lines": 105
+    },
+    {
+      "time": 1.28,
+      "sprites": 4,
+      "lines": 103
+    },
+    {
+      "time": 1.36,
+      "sprites": 8,
+      "lines": 124
+    },
+    {
+      "time": 1.48,
+      "sprites": 4,
+      "lines": 116
+    },
+    {
+      "time": 1.58,
+      "sprites": 4,
+      "lines": 63
+    }
+  ],
+  "source": "actual MissileVfxPlayer + atlas; deterministic offline choreography with preset charges, not gameplay"
 }
