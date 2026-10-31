@@ -461,8 +461,19 @@ function findDensestPoints(
 
 function updateMeteorRoute(core: GameCore, dt: number) {
   const p = core.player;
-  core.mageMeteorT -= dt;
-  if (core.mageMeteorT <= 0) {
+  // 没有可锁定目标时不推进星陨周期：避免空放，也避免敌人刚刷新时
+  // 因旧计时已到而立刻砸出一颗，导致法师停在陨星后摇里被贴脸。
+  const hasTarget = core.enemies.some(
+    (e) =>
+      !e.dead &&
+      Math.hypot(e.x - p.x, e.y - p.y) <= p.attackRange,
+  );
+  if (!hasTarget) {
+    core.mageMeteorT = mageMeteorInterval(core);
+  } else {
+    core.mageMeteorT -= dt;
+  }
+  if (hasTarget && core.mageMeteorT <= 0) {
     core.mageMeteorT = mageMeteorInterval(core);
     const multi = (p.upCounts["多重陨星"] || 0) > 0;
     const count = multi ? MB.meteorCount : 1;
