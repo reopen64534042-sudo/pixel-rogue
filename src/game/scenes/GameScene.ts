@@ -1,3 +1,4 @@
+import { preloadBossArt, registerBossPortrait } from "../rendering/BossArt";
 import { preloadLaserVfx } from "../rendering/vfx/laser/LaserVfxPhaser";
 import { preloadMissileVfx } from "../rendering/vfx/missile/MissileVfxPhaser";
 import { clearMissileTransient } from "../core/MissileSystem";
@@ -99,12 +100,14 @@ export class GameScene extends Phaser.Scene {
     super("Game");
   }
   preload() {
+    preloadBossArt(this);
     preloadLaserVfx(this);
     preloadMissileVfx(this);
   }
   create() {
     for (const [key, canvas] of Object.entries(SPR))
       this.textures.addCanvas(key, canvas);
+    registerBossPortrait(this);
     this.painter = new PixelPainter(this);    this.ui = new GameUI(this.core);
     if (import.meta.env.DEV) this.dev = new DevPanel(this.core);
     this.touch = new TouchControls(this.core, this.game.canvas);

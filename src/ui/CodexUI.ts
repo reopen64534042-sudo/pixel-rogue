@@ -33,7 +33,7 @@ function tierName(entry: CodexEntry): string {
 
 /** 强调色：天赋按稀有度，敌人按是否精英（精英金色，普通怪浅白）。 */
 function accentColor(entry: CodexEntry): string {
-  if (entry.cat === "enemy") return entry.elite ? "#ffd24a" : "#c7cff2";
+  if (entry.cat === "enemy") return entry.boss ? "#ff8c3a" : entry.elite ? "#ffd24a" : "#c7cff2";
   return TIER_COLOR[entry.tier ?? 0] ?? TIER_COLOR[0];
 }
 
@@ -75,13 +75,13 @@ function enemyStatsHtml(entry: CodexEntry): string {
     ["攻击", String(cfg.dmg), "基础攻击；生成时按波次成长"],
     ["移速", String(cfg.speed), "像素/秒，越大移动越快"],
     ["半径", String(cfg.r), "碰撞与受击体积"],
-    ["经验", String(cfg.xp), "击杀获得的基础经验"],
+    ["经验", entry.boss ? "精英 ×8" : String(cfg.xp), entry.boss ? "(25+(波次-1)×4)×8，再乘难度经验倍率" : "击杀获得的基础经验"],
     ["护甲", def > 0 ? String(def) : "—", armorNote],
     ["抗性", resText, "正值减伤、负值增伤（弱点）；减伤上限 75%、弱点下限 -50%；— 表示无抗性"],
     [
       "解锁波次",
-      cfg.w0 < 999 ? String(cfg.w0) : "特殊生成",
-      cfg.w0 < 999 ? "首次出现的波次" : "由其他敌人的机制生成，不进入随机刷新池",
+      entry.boss ? "10 / 20 / 30…" : cfg.w0 < 999 ? String(cfg.w0) : "特殊生成",
+      entry.boss ? "每 10 波替代普通怪与精英，不进入随机池" : cfg.w0 < 999 ? "首次出现的波次" : "由其他敌人的机制生成，不进入随机刷新池",
     ],
     [
       "初始权重",
@@ -252,7 +252,7 @@ export class CodexUI {
     if (!unlocked) {
       const meta =
         entry.cat === "enemy"
-          ? "敌人 · 未击杀"
+          ? `${entry.boss ? "首领" : "敌人"} · 未击杀`
           : `${tierName(entry)} · ${entry.group ?? ""}${chainMeta(entry) ? ` · ${chainMeta(entry)}` : ""} · 未解锁`;
       const hint =
         entry.cat === "enemy" ? "击杀该敌人后解锁。" : "在冒险中获得该天赋后解锁。";
@@ -265,7 +265,7 @@ export class CodexUI {
 
     const meta =
       entry.cat === "enemy"
-        ? `敌人 · 累计击杀 ${codex.killCount(entry.id)}`
+        ? `${entry.boss ? "首领" : "敌人"} · 累计击杀 ${codex.killCount(entry.id)}`
         : `${tierName(entry)} · ${entry.group ?? ""}${chainMeta(entry) ? ` · ${chainMeta(entry)}` : ""} · 历史最高 Lv.${codex.maxLevel(entry.id)}`;
     detail.innerHTML = `
       <div class="cx-d-name" style="color:${accentColor(entry)}">${entry.icon ? `${entry.icon} ` : ""}${entry.name}</div>

@@ -1,3 +1,4 @@
+import { BOSS } from "../data/boss";
 import { WORLD, clamp } from "../data/constants";
 import { WEB_ZONE } from "../data/enemies";
 import {
@@ -32,7 +33,12 @@ export function playerMoveSpeed(core: GameCore): number {
   })
     ? WEB_ZONE.slow
     : 1;
-  return p.speed * boost * webSlow;
+  let bossSlow = core.bossSlowT > 0 ? 1 - BOSS.hazard.slow : 1;
+  for (const h of core.bossHazards) {
+    if (h.kind === "frost" && h.t > 0 && Math.hypot(p.x - h.x, p.y - h.y) <= h.r)
+      bossSlow = Math.min(bossSlow, 1 - h.slowF);
+  }
+  return p.speed * boost * webSlow * bossSlow;
 }
 
 /** 走路与冲刺共用的「势」积累；满层后清空余量，避免触发后立刻又攒一层。 */

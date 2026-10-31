@@ -1,3 +1,4 @@
+import { BOSS, isBossWave } from "../game/data/boss";
 import { LASER, LASER_UPGRADES, LASER_XP } from "../game/data/laser";
 import { MISSILE, MISSILE_UPGRADES, MISSILE_XP } from "../game/data/missile";
 import { missileDamage, missileRadius, missileRange, missileReload } from "../game/core/MissileSystem";
@@ -138,7 +139,7 @@ function damageCauseLabel(event: NonNullable<RunSummary["death"]>): string {
     case "projectile":
       return "被远程弹幕击杀";
     case "explosion":
-      return `被 ${prefix}${enemy} 的爆炸击杀`;
+      return event.sourceType === "boss_three" ? `被 ${enemy} 的招式击杀` : `被 ${prefix}${enemy} 的爆炸击杀`;
     case "dot":
       return "被持续伤害耗尽";
     default:
@@ -1118,7 +1119,7 @@ export class GameUI {
       ],
       [
         "🌊 当前波次",
-        `${this.core.waveN} · ${waveTheme(this.core.waveN).name}（配额 ${this.core.quota}）`,
+        `${this.core.waveN} · ${isBossWave(this.core.waveN) ? `首领 · ${BOSS.name}` : waveTheme(this.core.waveN).name}（配额 ${this.core.quota}）`,
       ],
       ...(dynamicDifficulty.hpMul === 1 &&
       dynamicDifficulty.attackMul === 1 &&
@@ -2313,6 +2314,7 @@ export class GameUI {
     this.codex.close();
     this.core.clearTouchInput();
     this.core.resetMissileWeapon();
+    this.core.clearBossEncounter();
     this.core.state = "start";
     this.core.view.reset();
     if (this.settingsOpen) this.closeSettings();

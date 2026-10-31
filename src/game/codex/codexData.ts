@@ -44,6 +44,7 @@ export interface CodexEntry {
   /** 变体组 id。旧表为空。 */
   variant?: string;
   elite?: boolean;
+  boss?: boolean;
   status?: "live" | "planned";
 }
 
@@ -125,6 +126,11 @@ export function enemyId(key: string): string {
  * 贴图经 `assetRegistry.spriteImageSrc()` 取得，**换贴图时本文件无需改动**。
  */
 export const ENEMY_ENTRIES: readonly CodexEntry[] = [
+  {
+    id: enemyId("boss_three"), cat: "enemy", name: "三首巨兽", spr: "boss_three", link: "boss_three", boss: true,
+    desc: "每 10 波出现的首领。70% / 35% 生命切换火焰、冰霜、雷霆首；转阶段短暂无敌。免疫硬控与击退、减速效果减半；冲锋结束后硬直 1 秒，承伤 +15%。冰环贴身可躲，雷击落点锁定施放位置。阶段随从无经验和掉落。必掉 2 普通宝箱、1 血包及 8 倍精英经验。",
+    status: "live",
+  },
   {
     id: enemyId("slime"),
     cat: "enemy",

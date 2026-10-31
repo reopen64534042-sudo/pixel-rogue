@@ -1,3 +1,4 @@
+import { clearBossTransient } from "./BossSystem";
 import { createLaserState, type LaserUpgradeId } from "../data/laser";
 import { createMissileState } from "../data/missile";
 import { clearMissileTransient, devSetMissileLevel, missileDash } from "./MissileSystem";
@@ -74,6 +75,10 @@ import {
   tierWeights,
 } from "./TalentSystem";
 import type {
+  BossState,
+  BossHazard,
+  BossStrike,
+  BossImpact,
   Bolt,
   Box,
   Bullet,
@@ -112,6 +117,11 @@ export class GameCore {
   state: Mode = "start";
   player!: Player;
   enemies: Enemy[] = [];
+  bossState: BossState | null = null;
+  bossHazards: BossHazard[] = [];
+  bossStrikes: BossStrike[] = [];
+  bossImpacts: BossImpact[] = [];
+  bossSlowT = 0;
   bullets: Bullet[] = [];
   ebullets: EnemyBullet[] = [];
   gems: Gem[] = [];
@@ -633,6 +643,11 @@ export class GameCore {
   devSetMissileLevel = devSetMissileLevel.bind(this);
   missileDash = missileDash.bind(this);
   clearMissileTransient(clearInventory = false) { clearMissileTransient(this, clearInventory); }
+  /** 返回开始页的 Boss 清理命令，UI 不直接改危险区或敌人字段。 */
+  clearBossEncounter() {
+    clearBossTransient(this);
+    this.enemies = this.enemies.filter((e) => !e.boss && !e.bossSummon);
+  }
   resetMissileWeapon() { this.missile = createMissileState(); }
   laserDash = laserDash.bind(this);
   update = update.bind(this);
@@ -683,6 +698,7 @@ export class GameCore {
       ...statBase(prof, this.warriorStyle),
     };
     this.player.hp = this.player.maxhp;
+    clearBossTransient(this);
     this.enemies = [];
     this.bullets = [];
     this.gems = [];
@@ -966,6 +982,7 @@ export class GameCore {
     this.laser = createLaserState();
     this.warriorLeapState = null;
     const wave = Math.max(1, this.waveN);
+    clearBossTransient(this);
     this.enemies = [];
     this.ebullets = [];
     this.bullets = [];
@@ -1068,6 +1085,7 @@ export class GameCore {
   }
 
   gameOver() {
+    this.clearBossEncounter();
     clearMissileTransient(this, true);
     this.laser = createLaserState();
     this.warriorLeapState = null;
