@@ -4082,3 +4082,11 @@ dmg = Math.ceil(e.hp - 1);
 - 双元素增伤：反应伤害仍按触发元素走 `hurtEnemy`（抗性/类型由触发元素决定），配对另一元素的 `typeDamageBonus` 由 `DamageMath.typeBonusMultiplier` 额外计入；受击方双抗性拆分不做。受控验证：+50% 火增伤下急淬 41→61（≈1.5×）。
 - 反应 ICD：基础 0.5 秒、反应精通 0.4 秒；每怪每发一次与标记消耗仍是主门控，ICD 只防极高速连发；元素震爆为独立事件，不读/不设 ICD。受控验证：目标 ICD=0.5 时急淬反应 0，清零后恢复 41。
 - 验证：`npm run typecheck` / `npm run build` 通过；未运行 Vitest / Playwright、未改测试基线。自然无固定刷怪 harness 因站桩法师面对远程织网蛛停在 W11，不能作为 A/B 结论；目前数据是环形极限群怪 + 满配受控，仍需自然长局与手机端试玩。
+
+## 元素法师法杖面板与脚底经验条（v160，2026-11-01）
+
+- 分支 `feat/mage-staff-panel`，从 main `9a3d860`（v159）创建。用户要求参考射手的导弹武器面板，为元素法师做对应面板，并在角色脚底增加经验条。
+- C 面板：复用 `stat-weapon` / `weapon-progress` / `weapon-stats` 结构，右侧新增「元素法杖」区；显示法杖 Lv/经验、当前元素、套装、轮盘、法阵直伤、状态/反应基准、法阵半径、已掌握反应、棱镜/回响/分影/反应 ICD/护咒壁充能，以及折叠的成长规则与当前强化列表。左栏删除重复的法杖等级/轮盘/套装/强化行。
+- 排版：法阵轮盘与已掌握反应用通栏行；状态区加 `mage-status` 单列网格，长值不再挤压标签。新增少量 CSS（`.row.wide`、`#stat-special-status-list.mage-status`）。
+- 脚底 HUD：新增 18×2 法杖经验条（成功本体施法 +1，满级整条金色），位于冲刺格与元素轮盘之间；元素轮盘下移到 y+21；删除护咒壁脚底充能格，改为面板内 `mageCharge/3`，避免与经验条堆叠。
+- 验证：`npm run typecheck` / `npm run build` 通过；Playwright 受控截图 `output/mage-panel.png`、`output/mage-foot-bar-clean.png` 检查面板宽行/单列与脚底经验条，未发现报错。未运行 Vitest/Playwright 测试套件，未改战斗数值。

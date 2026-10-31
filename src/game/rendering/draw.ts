@@ -10,7 +10,7 @@ import type { ShooterEchoDrawing } from "./characters/ShooterCharacter";
 import { W, H, VIEW, WORLD, fmtTime, fmtHp } from "../data/constants";
 import { isBrittle, isFrostLocked, isFrozen, isParalyzed, isShocked } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
-import { ELEMENTAL_MAGE, MAGE_CASTS_PER_ELEMENT, MAGE_ELEMENTS } from "../data/elementalMage";
+import { ELEMENTAL_MAGE, MAGE_CASTS_PER_ELEMENT, MAGE_ELEMENTS, STAFF_LEVELS } from "../data/elementalMage";
 import { warriorIaiStep } from "../core/WarriorSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import {
@@ -1018,7 +1018,26 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       }
     }
   }
-  // 法师：元素轮盘（角色脚下 3 格，颜色 = 当前元素；实心 = 本阶段已完成施法）。
+  // 法师：法杖经验条（角色脚下 18×2，与射手强化弹经验条同规格）。
+  // 成功本体施法 +1；满级或满经验整条金色。
+  if (
+    this.prof === "mage" &&
+    this.state === "play" &&
+    this.wavePhase === "fight"
+  ) {
+    const need = STAFF_LEVELS[this.mageStaffLevel - 1]?.xpToNext ?? null;
+    const ratio = need
+      ? Math.min(1, this.mageStaffXp / need)
+      : 1;
+    const sw = 18;
+    const sx = Math.round(this.player.x - sw / 2);
+    const sy = Math.round(this.player.y) + 16;
+    ctx.fillStyle = "#1d2440";
+    ctx.fillRect(sx, sy, sw, 2);
+    ctx.fillStyle = "#ffd24a";
+    ctx.fillRect(sx, sy, Math.round(sw * ratio), 2);
+  }
+  // 法师：元素轮盘（经验条下方 3 格，颜色 = 当前元素；实心 = 本阶段已完成施法）。
   // 每 3 次成功施法切换元素，格数归零并换色，给玩家“下一次换元素”的节奏提示。
   if (
     this.prof === "mage" &&
@@ -1034,7 +1053,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const gap = 3;
     const pw = total * cw + (total - 1) * gap;
     const px = Math.round(this.player.x) - Math.floor(pw / 2);
-    const py = Math.round(this.player.y) + 17;
+    const py = Math.round(this.player.y) + 21;
     for (let i = 0; i < total; i++) {
       ctx.globalAlpha = i < this.mageCastsInPhase ? 1 : 0.32;
       ctx.fillStyle = color;
@@ -1042,27 +1061,6 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     }
     ctx.globalAlpha = 1;
   }
-  // 护咒壁：每 3 次成功施法的充能点（第 3 发爆裂时三格全亮后清零）。
-  if (
-    this.prof === "mage" &&
-    this.state === "play" &&
-    this.wavePhase === "fight" &&
-    (this.player.upCounts["护咒壁"] || 0) > 0
-  ) {
-    const total = MB.chargeFull;
-    const cw = 2;
-    const chh = 2;
-    const gap = 3;
-    const pw = total * cw + (total - 1) * gap;
-    const px = Math.round(this.player.x) - Math.floor(pw / 2);
-    const py = Math.round(this.player.y) + 22;
-    const shown = this.mageChargeFlashT > 0 ? total : this.mageCharge;
-    for (let i = 0; i < total; i++) {
-      ctx.fillStyle = i < shown ? "#ffd24a" : "#1d2440";
-      ctx.fillRect(px + i * (cw + gap), py, cw, chh);
-    }
-  }
-
   // 战士「流 / 势」两条分段充能条（角色脚下，紧贴排列）。
   // 各 3 段、每段 5 层；未解锁的段压暗保留，升级后自然点亮。
   if (this.prof === "warrior") {

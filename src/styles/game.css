@@ -494,6 +494,12 @@ p {
   text-align: right;
   overflow-wrap: anywhere;
 }
+.stats-col-right .weapon-stats .row.wide {
+  grid-column: 1 / -1;
+}
+#stat-special-status-list.mage-status {
+  grid-template-columns: minmax(0, 1fr);
+}
 .weapon-rules .stat-group-grid {
   grid-template-columns: minmax(0, 1fr);
 }

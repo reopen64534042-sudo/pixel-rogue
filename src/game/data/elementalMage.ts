@@ -327,6 +327,23 @@ export const MAGE_ULTIMATE_UPGRADES: readonly MageUltimateUpgradeDef[] = [
   },
 ];
 
+/** 法杖强化最多可得项：普通 1 + 稀有 2 + 史诗 3 + 终极 3。 */
+export const MAGE_UPGRADE_SLOTS = 9;
+
+/** 强化定义查询：C 面板展示名称与描述。 */
+export function mageUpgradeInfo(
+  id: MageUpgradeId,
+): { name: string; desc: string } | null {
+  const all = [
+    ...MAGE_NORMAL_UPGRADES,
+    ...MAGE_RARE_UPGRADES,
+    ...MAGE_EPIC_UPGRADES,
+    ...MAGE_ULTIMATE_UPGRADES,
+  ];
+  const def = all.find((u) => u.id === id);
+  return def ? { name: def.name, desc: def.desc } : null;
+}
+
 /** 所有法杖强化 id → 显示名；UI 与提示共用。 */
 export function mageUpgradeName(id: MageUpgradeId): string {
   const all = [
