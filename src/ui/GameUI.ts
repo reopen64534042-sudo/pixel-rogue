@@ -28,6 +28,7 @@ import {
   mageElements,
 } from "../game/data/talents";
 import { fmtTime } from "../game/data/constants";
+import { levelGrowthSteps, levelGrowthSummary } from "../game/data/levelGrowth";
 import { waveTheme } from "../game/data/enemies";
 import { boltDamage, critMultiplier } from "../game/core/DamageMath";
 import { professionPierce } from "../game/core/AttributeSources";
@@ -1108,6 +1109,13 @@ export class GameUI {
     const infoRows: [string, string | number][] = [
       ["📈 等级", p.lvl],
       ["📘 下级所需经验", p.xpNext],
+      ["🌱 等级成长/级", levelGrowthSummary(this.core.prof, 1)],
+      [
+        "🌿 等级成长累计",
+        levelGrowthSteps(p.lvl) > 0
+          ? levelGrowthSummary(this.core.prof, levelGrowthSteps(p.lvl))
+          : "—",
+      ],
       [
         "🌊 当前波次",
         `${this.core.waveN} · ${waveTheme(this.core.waveN).name}（配额 ${this.core.quota}）`,
