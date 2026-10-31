@@ -3584,3 +3584,28 @@ dmg = Math.ceil(e.hp - 1);
   - C 面板：`破甲 L1 / 剑气 L2 / 铁壁 L1 / 碎盾反震 L2`，`三段斩` 无 Lv.1 也无 L1；连闪 tooltip 大剑局只含大剑描述、太刀局只含太刀描述；射手强化弹 `Lv.1 / 12` 保留。
   - 截图：`output/v137-shield-ring.png`、`output/v137-cpanel-chain.png`、`output/v137-cpanel-shooter.png`。
   - 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件。
+
+## 战士基础值、血瓶/吸血与剩余两条天赋链（v138，2026-10-31）
+
+- 版本：v137 / PR #207 之后的新一批；继续补完战士池，PR #207 会随本批更新。
+- 基础值：射手/法师 `maxhp=20`；战士按流派 `katana=25`、`greatsword=28`；大剑移速 62 → 60；战士基础吸血 4% → 1%。`statBase` 改为读 `WarriorStyle.maxhp`。
+- 血瓶：移除满血拾取转生命上限的行为；满血接触不消耗、血瓶留在地上。新增 `potionHealAmount(wave)`：1 级 10，每 4 波 +4，封顶 30；`ProgressionSystem` 只在 `hp < maxhp` 时结算并显示实际回复量。`potionGrow/potionMaxHpGrow` 字段保留为 0 以兼容旧投影/测试接口，运行时不再增长。
+- 属性吸血：`ATTR_DEFS` 吸血 base 0.0275，量化后白/绿/紫/金 = 2.8%/4.1%/5.8%/8.0%（最高品质 +8%）。
+- 反远程链：护刃/刃返/刃轮为太刀 t0/t1/t2。`Talent.f` 写 `p.orbit`/`p.bladeReflect`（属性投影不写这两个字段，recompute 重放 f 保持幂等）；`AttackSystem` 对战士飞刃使用 30px 轨道、4.8 rad/s、60% 近战伤害、命中回 0.8% 最大生命；`ProjectileSystem` 反弹伤害增加 50% 近战伤害，刃轮判定半径 +4；`draw.ts` 同步轨道半径与 1.25× 刀身。
+- 反击链：荆棘重铠不再写固定 `p.thorns`，`CombatSystem` 受近战接触时按 `p.damage × 0.75` 反伤并随近战伤害成长；血偿在 `damagePlayer` 实际掉血后叠层（最多 2、3 秒），在 `hurtEnemy` 对 `form:"melee"` 统一乘 +15%/层（挥砍、剑气、飞刃都吃）；不屈战魂在 `TalentStatSources` 声明 `nd+1`，致命时回到 20% 最大生命；旧表「不屈」已删除。铁壁与荆棘重铠双向 `excludes`。
+- 其他：无目标跃击改为原地起跳（普通跃击与三段斩第三段共用）；强袭落地攻速窗口 2→4 秒；链卡视觉稀有度由 `displayTalentTier` 导出（L2 稀有、L3 史诗、无后续 L1 普通），L1 文字取消；作弊面板战士池拆为太刀/大剑/公共。太刀脚下势条/流条上下互换；居合每层距离改为 1 级 90px → 20 级 50px 线性（居合·迅 -10px）；三段斩命中带 `triHit`，伤害数字用暗金/暖白四层大字。
+- 卡池：战士 21 → 27 张（太刀 16、大剑 15）；新卡 C 面板链标签由既有 `requires` 推导。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；受控 e2e（5339）：
+  - 基础值：射手/法师 20 HP；太刀 25 HP/68 移速/1.6 冲刺；大剑 28 HP/60 移速/1.5 攻速/1.8 冲刺；战士吸血 1%。
+  - 属性吸血：base 0.0275，白/绿/紫/金显示 2.8/4.1/5.8/8.0%；拾取范围候选仍不存在。
+  - 血瓶：波 1 回复 10、波 20 回复 26；满血时血瓶不消耗、maxhp 不变。
+  - 新卡门控：太刀 L1 可抽、L2/L3 未解锁不可抽；大剑反击 L1 可抽、护盾 L1 可抽、血偿/不屈未解锁不可抽；铁壁→荆棘重铠与荆棘重铠→铁壁双向不可抽。
+  - 反远程：三卡后 orbit=5、bladeReflect=1；飞刃命中掉血且刃轮回血；反弹后弹幕 `reflected=true`，dmg 10→17.5（+50% × 15 近战）。
+  - 反击：p.damage=100 时反伤 75（不是固定 15）；血偿 1→2 层、3 秒归零；不屈战魂致命后 HP=6/28、`ndUsed=true`；旧「不屈」不在卡表。
+  - 跃击：无目标 `warriorLeap()` 返回 true，落点=玩家当前坐标；强袭卡面与配置均为 4 秒。
+  - 链框：C 面板 护刃=t0(普通)、刃返=t1(稀有)、刃轮=t2(史诗)，无 L1 文字；作弊面板出现「战士 · 太刀 / 大剑 / 公共」三组。
+  - 居合：`warriorIaiStep` 1 级 90、10 级 71.05、20 级 50；居合势条移到 y+16、流条移到 y+20。
+  - 三段斩伤害数字：命中生成 `triDmg=true`、主色 `#fff1c4` 的暗金四层大字（截图临时受升级面板遮挡，样式仍可见）。
+  - 截图：`output/v138-cpanel-katana-ranged.png`、`output/v138-cpanel-greatsword-counter.png`、`output/v138-chain-frames.png`、`output/v138-cheat-groups.png`、`output/v138-tri-damage-number.png`。
+  - 测试影响：`tests/potion.test.ts` 的满血转上限、`s4c-c3a-life` / `s4c-c3c-runtime` 的 potionGrow 断言、旧 parity / balance 基线与新增卡条目、旧职业 HP/吸血/血瓶/不屈断言会过期；按项目裁定未修改测试，留待授权批次。
+  - 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件。
