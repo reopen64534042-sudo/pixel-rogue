@@ -79,7 +79,7 @@ function pose(index, time, legacy = false) {
     const rootAngle = legacy ? Math.atan2(75 - (oldY - 3), 205 - oldX) : oldAngle;
     const x = oldX + Math.cos(rootAngle) * 7, y = oldY - 3 + Math.sin(rootAngle) * 7;
     laser.aux.push(beam(x, y, x + Math.cos(oldAngle) * length, y + Math.sin(oldAngle) * length,
-      "echo", 4, { t: 0.3 * (1 - (time % 0.3) / 0.3), max: 0.3, lane }));
+      "echo", 4, { t: LASER.echoLife - time % LASER.echoLife, max: LASER.echoLife, lane }));
   }
   if (index === 5 || index === 6) {
     core.laserUpgrades.push("collapse");
