@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixel Rogue 导弹动画预览</title>
+<style>
+  :root { color-scheme:dark; font-family:"Microsoft YaHei",system-ui,sans-serif; background:#0d121b; color:#dbe0e8; }
+  * { box-sizing:border-box; } body { margin:0; padding:28px; } main { max-width:1120px; margin:auto; }
+  h1 { font-size:27px; margin:0 0 8px; letter-spacing:1px; } h2 { font-size:17px; margin:0 0 12px; }
+  p { color:#9da9bb; line-height:1.75; margin:8px 0 20px; } .accent { color:#e8bd66; }
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:14px; background:#171f2c; border:1px solid #2a3547; border-radius:8px; }
+  button, select { color:#e8e8f0; background:#253044; border:1px solid #46536b; padding:8px 11px; border-radius:5px; font:inherit; font-size:13px; }
+  button { cursor:pointer; } button:hover { border-color:#e8bd66; } button:focus-visible,select:focus-visible,input:focus-visible { outline:2px solid #e8bd66; outline-offset:3px; }
+  label { font-size:12px; color:#aebacf; } input[type=range] { flex:1; min-width:170px; accent-color:#e8bd66; }
+  output { font-family:Consolas,monospace; min-width:78px; color:#e8bd66; }
+  .stage { overflow:auto; border:1px solid #2a3547; background:#101620; margin:16px 0; padding:16px; border-radius:8px; }
+  canvas { display:block; image-rendering:pixelated; } #hero { margin:auto; width:960px; height:540px; }
+  .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin:20px 0 28px; }
+  article { border:1px solid #2a3547; background:#141c29; padding:14px; border-radius:8px; min-width:0; }
+  article p { font-size:12px; margin:8px 0 0; } article canvas { width:100%; height:auto; }
+  .clips { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+  .clip { text-align:center; } .clip canvas { margin:8px auto; width:128px; height:128px; object-fit:contain; }
+  .clip p { margin:0; font-family:Consolas,monospace; } .foot { font-size:12px; margin-top:24px; }
+  @media(max-width:720px) { body { padding:14px; } .grid { grid-template-columns:1fr; } .clips { grid-template-columns:repeat(2,1fr); } }
+</style>
+<main>
+  <h1>导弹动画 <span class="accent">重型制导</span></h1>
+  <p>已认可的灰色装甲造型 · 12 组透明动画 · 96 帧<br>这里展示素材与播放节奏；弹道、齐射数量和连锁是离线编排示意，未接入游戏伤害与天赋。</p>
+  <div class="toolbar">
+    <button id="play">暂停</button><button id="step">前进 1/60 秒</button>
+    <label>速度 <select id="speed"><option value="1">原速 1×</option><option value="0.25">慢放 0.25×</option><option value="0.5">慢放 0.5×</option></select></label>
+    <label>显示 <select id="zoom"><option value="2">放大 2×</option><option value="1">游戏像素 1×</option><option value="3">像素检查 3×</option></select></label>
+    <label>场景 <select id="case"></select></label>
+    <input aria-label="动画时间" type="range" id="time" min="0" max="2.8" step="0.001" value="0"><output id="clock">0.000 s</output>
+  </div>
+  <div class="stage"><canvas id="hero" width="480" height="270"></canvas></div>
+  <p id="case-note"></p>
+  <h2>完整场景</h2><div class="grid" id="scenes"></div>
+  <h2>单组动画与固定锚点</h2><p>每个窗口固定 64×64 游戏像素，按 2× 显示；十字为共享锚点。循环素材持续播放，单次素材结束后留出退场空白。</p>
+  <div class="clips" id="clips"></div>
+  <p class="foot" id="status">正在载入内嵌图集…</p>
+</main>
+<script type="module">
+  window.addEventListener("error",event=>{document.getElementById("status").textContent="预览错误："+event.message;});
+  window.addEventListener("unhandledrejection",event=>{document.getElementById("status").textContent="预览载入失败："+String(event.reason);});
+  const { missileVfxCommands, sampleMissileClip } = await import(__PLAYER_MODULE__);
+  const { drawMissileVfxCanvas } = await import(__CANVAS_MODULE__);
+  const { sampleMissileDemo, MISSILE_DEMO_CASES, MISSILE_DEMO_SECONDS } = await import(__DEMO_MODULE__);
+  const { MISSILE_CLIPS } = await import(__ASSETS_MODULE__);
+  const atlas = __ATLAS_JSON__;
+  const image = new Image(); image.src = __ATLAS_PNG__; await image.decode();
+  const el = id => document.getElementById(id);
+  const hero = el("hero"), heroContext = hero.getContext("2d");
+  let playing=true, time=0, last=performance.now();
+  const sceneViews=MISSILE_DEMO_CASES.map(c=>{
+    const article=document.createElement("article"), h=document.createElement("h2"), canvas=document.createElement("canvas"), p=document.createElement("p");
+    h.textContent=c.title; p.textContent=c.note; canvas.width=480; canvas.height=270;
+    article.append(h,canvas,p); el("scenes").append(article);
+    const option=document.createElement("option"); option.value=c.id; option.textContent=c.title; el("case").append(option);
+    return {id:c.id,ctx:canvas.getContext("2d")};
+  });
+  const clipViews=Object.entries(MISSILE_CLIPS).map(([key,c])=>{
+    const article=document.createElement("article"), canvas=document.createElement("canvas"), p=document.createElement("p");
+    article.className="clip"; canvas.width=64; canvas.height=64; p.textContent=key+" · "+c.duration.toFixed(3)+"s"+(c.loop?" ↻":"");
+    article.append(canvas,p); el("clips").append(article); return {key,c,ctx:canvas.getContext("2d")};
+  });
+  function scene(ctx,id) {
+    const demo=sampleMissileDemo(id,time);
+    ctx.fillStyle="#101620"; ctx.fillRect(0,0,480,270); ctx.fillStyle="#19222f";
+    for(let x=0;x<480;x+=16) ctx.fillRect(x,0,1,270);
+    for(let y=0;y<270;y+=16) ctx.fillRect(0,y,480,1);
+    ctx.fillStyle="#314055"; ctx.fillRect(18,216,444,1);
+    const rows=["  hhhh  "," hhhhhh "," heffeh "," hhhhhh ","  aaaa  "," aaaaaa "," aaaaaa ","   aa   ","  a  a  ","  b  b  "];
+    const colors={h:"#f4a940",e:"#22223a",f:"#ffd9a0",a:"#3d6de0",b:"#5a3a20"};
+    for(let y=0;y<rows.length;y++) for(let x=0;x<rows[y].length;x++) if(colors[rows[y][x]]) { ctx.fillStyle=colors[rows[y][x]];ctx.fillRect(demo.player.x+x-4,demo.player.y+y-5,1,1); }
+    for(const target of demo.targets) { ctx.fillStyle="#4dd44d";ctx.fillRect(target.x-4,target.y-3,8,6);ctx.fillStyle="#0a3d0a";ctx.fillRect(target.x-2,target.y-1,1,1);ctx.fillRect(target.x+2,target.y-1,1,1); }
+    drawMissileVfxCanvas(ctx,image,atlas,missileVfxCommands(demo.snapshot));
+    ctx.font="11px Microsoft YaHei";ctx.fillStyle="#8b9bb1";ctx.fillText("480 × 270 · 离线动画预览",18,240);
+  }
+  function draw() {
+    scene(heroContext,el("case").value); for(const v of sceneViews) scene(v.ctx,v.id);
+    for(const v of clipViews) {
+      v.ctx.fillStyle="#101620";v.ctx.fillRect(0,0,64,64);
+      const local=time%(v.c.loop?v.c.duration:v.c.duration+0.45), frame=sampleMissileClip(v.key,local);
+      if(frame!==null) drawMissileVfxCanvas(v.ctx,image,atlas,[{kind:"sprite",clip:v.key,frame,x:32,y:32,angle:0,scaleX:1,scaleY:1,alpha:v.key==="smoke"?0.5:1}]);
+      v.ctx.fillStyle="#b28b42";v.ctx.fillRect(30,32,5,1);v.ctx.fillRect(32,30,1,5);
+    }
+    el("time").value=String(time);el("clock").value=time.toFixed(3)+" s";
+    el("case-note").textContent=MISSILE_DEMO_CASES.find(c=>c.id===el("case").value).note;
+  }
+  function pause(){playing=false;el("play").textContent="播放";}
+  el("play").onclick=()=>{playing=!playing;el("play").textContent=playing?"暂停":"播放";};
+  el("step").onclick=()=>{pause();time=(time+1/60)%MISSILE_DEMO_SECONDS;draw();};
+  el("time").oninput=()=>{pause();time=Number(el("time").value);draw();};
+  el("zoom").onchange=()=>{const z=Number(el("zoom").value);hero.style.width=480*z+"px";hero.style.height=270*z+"px";};
+  el("case").onchange=draw;
+  el("status").textContent="资源全部内嵌，可断网打开。与 Phaser 适配器使用同一 TypeScript 采样器、帧时长与 PNG 图集；不是实机录像或战斗验收。";
+  function tick(now){const dt=Math.min(0.05,(now-last)/1000);last=now;if(playing) time=(time+dt*Number(el("speed").value))%MISSILE_DEMO_SECONDS;draw();requestAnimationFrame(tick);}
+  requestAnimationFrame(tick);
+</script>
+</html>

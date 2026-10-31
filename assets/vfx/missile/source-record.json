@@ -1,0 +1,312 @@
+{
+  "date": "2026-10-31",
+  "approvedSeed": "assets/vfx/missile/missile-seed-v2.png",
+  "seedApproval": "User approved second, heavier military-style seed and requested complete animation",
+  "sources": [
+    {
+      "path": "assets/vfx/missile/source-master.png",
+      "width": 1254,
+      "height": 1254,
+      "grid": [
+        8,
+        8
+      ],
+      "sha256": "42d7b9fce05934d849b4a974cc0b8deaeda20a3bdb796e13e2bb5a8252f7e6f6",
+      "tool": "built-in image_gen",
+      "model": null,
+      "seed": null,
+      "prompt": "assets/vfx/missile/generation-prompt.txt"
+    },
+    {
+      "path": "assets/vfx/missile/source-companion.png",
+      "width": 1774,
+      "height": 887,
+      "grid": [
+        8,
+        4
+      ],
+      "sha256": "7535eb7bd854e72a94558110778174429760c72877fad973fd4f2f46778cf004",
+      "tool": "built-in image_gen",
+      "model": null,
+      "seed": null,
+      "prompt": "assets/vfx/missile/companion-prompt.txt"
+    }
+  ],
+  "processing": {
+    "script": "scripts/build-missile-vfx-assets.mjs",
+    "alphaThreshold": 208,
+    "sampling": "shared 64x64 nearest-neighbor grid and one union transform per clip; palette from palette.ts",
+    "perFrameCrop": false,
+    "perFrameRescale": false,
+    "perFrameRecenter": false,
+    "rigidHardware": "source frame 0 reused for all frames; never morph metal or stretch with engine",
+    "ignition": "leftward reveal of fixed final ignition frame; no per-frame attachment drift",
+    "loops": "ping-pong source frames 0,1,2,3,4,3,2,1",
+    "transforms": [
+      {
+        "key": "body",
+        "bounds": {
+          "x0": 11,
+          "y0": 26,
+          "x1": 59,
+          "y1": 51,
+          "cx": 35.5,
+          "cy": 39
+        },
+        "sharedScale": 0.34615384615384615,
+        "sourceFrames": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "key": "eject",
+        "bounds": {
+          "x0": 10,
+          "y0": 23,
+          "x1": 52,
+          "y1": 54,
+          "cx": 31.5,
+          "cy": 39
+        },
+        "sharedScale": 0.4418604651162791,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "ignite",
+        "bounds": {
+          "x0": 8,
+          "y0": 22,
+          "x1": 49,
+          "y1": 47,
+          "cx": 29,
+          "cy": 35
+        },
+        "sharedScale": 0.2692307692307692,
+        "sourceFrames": [
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7
+        ]
+      },
+      {
+        "key": "exhaust",
+        "bounds": {
+          "x0": 5,
+          "y0": 17,
+          "x1": 52,
+          "y1": 43,
+          "cx": 29,
+          "cy": 30.5
+        },
+        "sharedScale": 0.25,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          3,
+          2,
+          1
+        ]
+      },
+      {
+        "key": "blast",
+        "bounds": {
+          "x0": 3,
+          "y0": 3,
+          "x1": 59,
+          "y1": 61,
+          "cx": 31.5,
+          "cy": 32.5
+        },
+        "sharedScale": 0.9491525423728814,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "smoke",
+        "bounds": {
+          "x0": 3,
+          "y0": 4,
+          "x1": 61,
+          "y1": 62,
+          "cx": 32.5,
+          "cy": 33.5
+        },
+        "sharedScale": 0.9830508474576272,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "debris",
+        "bounds": {
+          "x0": 12,
+          "y0": 11,
+          "x1": 52,
+          "y1": 47,
+          "cx": 32.5,
+          "cy": 29.5
+        },
+        "sharedScale": 0.6585365853658537,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "ion-blast",
+        "bounds": {
+          "x0": 3,
+          "y0": 2,
+          "x1": 59,
+          "y1": 56,
+          "cx": 31.5,
+          "cy": 29.5
+        },
+        "sharedScale": 0.9824561403508771,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "micro-body",
+        "bounds": {
+          "x0": 17,
+          "y0": 29,
+          "x1": 53,
+          "y1": 49,
+          "cx": 35.5,
+          "cy": 39.5
+        },
+        "sharedScale": 0.23809523809523808,
+        "sourceFrames": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "key": "micro-blast",
+        "bounds": {
+          "x0": 8,
+          "y0": 19,
+          "x1": 54,
+          "y1": 62,
+          "cx": 31.5,
+          "cy": 41
+        },
+        "sharedScale": 0.5106382978723404,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "arc",
+        "bounds": {
+          "x0": 0,
+          "y0": 21,
+          "x1": 63,
+          "y1": 47,
+          "cx": 32,
+          "cy": 34.5
+        },
+        "sharedScale": 1,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "key": "ion-exhaust",
+        "bounds": {
+          "x0": 7,
+          "y0": 18,
+          "x1": 53,
+          "y1": 43,
+          "cx": 30.5,
+          "cy": 31
+        },
+        "sharedScale": 0.2553191489361702,
+        "sourceFrames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          3,
+          2,
+          1
+        ]
+      }
+    ]
+  }
+}

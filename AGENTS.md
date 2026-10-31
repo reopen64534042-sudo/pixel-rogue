@@ -46,6 +46,8 @@
 - npm run test:browser：先构建；自动占用 5174/4173，默认系统 Chrome。无 Chrome 时安装 Playwright Chromium 并设置 PLAYWRIGHT_CHANNEL=chromium。
 - npm run preview：127.0.0.1:4173 生产预览。
 - node scripts/build-laser-vfx-preview.mjs：导出正式激光动画的自包含预览；python scripts/export-laser-vfx-preview.py 可导出 GIF（已有 Python/Pillow，不代表实机验收）。
+- node scripts/build-missile-vfx-assets.mjs：从导弹源表导出透明条带、图集、锚点／帧时长与素材检查记录。
+- node scripts/build-missile-vfx-preview.mjs：导出导弹完整周期的自包含 HTML 与原速／慢放 GIF；目前为离线素材演示，未接入武器玩法，见 docs/missile-vfx-assets.md。
 - node scripts/preview-laser-vfx.mjs：旧程序化激光回退的离线预览。
 - npm run palette:export：从 src/game/data/palette.ts 导出 assets/palette.gpl（美术产线，改动色板后必跑）。
 - node scripts/pixelize.mjs <png> --key <assetKey>：贴图后处理（规格见 docs/art-assets.md 第 7 节）。
