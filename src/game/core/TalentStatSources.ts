@@ -641,6 +641,9 @@ export function applyTalentStatProjection(
   // 两者都不在 base 里，所以属性 flat 从 0 起算，符合 statBase 的初始值。
   if (resolved.lifesteal !== undefined) p.lifesteal = resolved.lifesteal;
   if (resolved.regen !== undefined) p.regen = resolved.regen;
+  // 全局增伤进入战斗快照前必须投影；只写已有来源，保留缺省字段形状。
+  if (resolved.globalDamageBonus !== undefined)
+    p.globalDamageBonus = resolved.globalDamageBonus;
   // 属性硬顶：旧表卡直接写 f 的路径也一并夹紧，避免绕过投影超过上限
   p.lifesteal = Math.min(p.lifesteal, lifestealCap(prof));
   p.regen = Math.min(p.regen, ATTRIBUTE_CAPS.regen);

@@ -1,4 +1,6 @@
+import type { LaserLane } from "../data/laser";
 import type { Player } from "./types";
+import { LASER_DAMAGE as LD } from "../data/combatBalance";
 import { COMBAT_BALANCE as CB } from "../data/combatBalance";
 
 /**
@@ -73,4 +75,51 @@ export function multishotSpread(near: number) {
     (CB.spreadMax - CB.spreadMin) *
       Math.min(1, (near - 1) / CB.spreadRampTargets)
   );
+}
+
+/** 激光输出速率：战斗与属性面板共用，临时狂热 / 战意在这里计入。 */
+export function laserOutputRate(p: Pick<Player, "fireRate" | "haste" | "rageT" | "rageLv">) {
+  return p.fireRate * (1 + p.haste * 0.1 + (p.rageT > 0 ? 0.2 * p.rageLv : 0));
+}
+
+/** 激光攻速只缩放 DPS；不缩放结算/暴击/命中特效的时间窗。 */
+export function laserDps(p: Pick<Player, "damage" | "boltDmgMul" | "fireRate" | "haste" | "rageT" | "rageLv">, level: number) {
+  const rate = laserOutputRate(p);
+  return boltDamage(p) * rate * LD.dpsPerAttack * (1 + (level - 1) * LD.dpsPerLevel);
+}
+
+export function laserFocusMultiplier(focus: number) {
+  return 1 + Math.max(0, Math.min(1, focus)) * LD.focusBonus;
+}
+
+export function laserPierceRetention(lens: boolean, polar: boolean) {
+  return Math.min(LD.maxPierce, (lens ? LD.lensPierce : LD.pierce) + (polar ? LD.polarBonus : 0));
+}
+
+export function laserPierceMultiplier(retention: number, targetIndex: number) {
+  return retention ** Math.max(0, targetIndex);
+}
+
+export function laserExposureDamage(dps: number, seconds: number, falloff = 1, focus = 1) {
+  return dps * seconds * falloff * focus;
+}
+
+export function laserLaneDamage(damage: number, lane: LaserLane) {
+  return lane === 0 ? damage : damage * LD.tripleSideMul;
+}
+
+export function laserAuxDps(dps: number, kind: "afterglow" | "echo") {
+  return dps * (kind === "afterglow" ? LD.afterglowDps : LD.echoDps);
+}
+
+export function laserPulseDamage(p: Pick<Player, "damage" | "boltDmgMul">, meltdown: boolean, collapse: boolean) {
+  return boltDamage(p) * ((meltdown ? LD.meltdown : 0) + (collapse ? LD.collapse : 0));
+}
+
+export function laserEscapeDamage(p: Pick<Player, "damage" | "boltDmgMul">) {
+  return boltDamage(p) * LD.escape;
+}
+
+export function laserIncomingDamage(damage: number) {
+  return damage * LD.rechargeDefense;
 }

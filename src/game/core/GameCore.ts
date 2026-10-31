@@ -1,3 +1,5 @@
+import { createLaserState, type LaserUpgradeId } from "../data/laser";
+import { devSetLaserLevel, laserDash } from "./LaserSystem";
 import { AudioService } from "../../services/AudioService";
 import { StorageService } from "../../services/StorageService";
 import { CodexStore, type CodexStorage } from "../codex/CodexStore";
@@ -96,6 +98,7 @@ import type {
   Slot,
   WavePhase,
   WarriorStyle,
+  ShooterWeapon,
 } from "./types";
 import { silentView } from "./types";
 import { cardsOfTier, enterRest, startNextWave, waveQuota } from "./WaveSystem";
@@ -227,6 +230,11 @@ export class GameCore {
   prof: Profession = "shooter";
   /** 战士开局流派；非战士恒为 katana。 */
   warriorStyle: WarriorStyle = "katana";
+  shooterWeapon: ShooterWeapon = "charged";
+  laser = createLaserState();
+  laserLevel = 1;
+  laserXp = 0;
+  laserUpgrades: LaserUpgradeId[] = [];
   /** 流层数与计时（战士核心链；放 GameCore，避免 recompute 抹掉）。 */
   warriorFlowStacks = 0;
   warriorFlowT = 0;
@@ -473,6 +481,7 @@ export class GameCore {
     cast: 0,
     element: 0,
     reaction: 0,
+    laser: 0,
   };
   private waveStartDamage: DamageTotals = {
     bullet: 0,
@@ -488,6 +497,7 @@ export class GameCore {
     cast: 0,
     element: 0,
     reaction: 0,
+    laser: 0,
   };
   beginWaveReport() {
     this.waveStartDamage = { ...this.dmgBy };
@@ -585,6 +595,8 @@ export class GameCore {
   damagePlayer = damagePlayer.bind(this);
   gainSpecialXp = gainSpecialXp.bind(this);
   devSetSpecialLevel = devSetSpecialLevel.bind(this);
+  devSetLaserLevel = devSetLaserLevel.bind(this);
+  laserDash = laserDash.bind(this);
   update = update.bind(this);
   waveQuota = waveQuota.bind(this);
   startNextWave = startNextWave.bind(this);
@@ -593,10 +605,16 @@ export class GameCore {
   resetGame(
     prof: Profession = "shooter",
     warriorStyle: WarriorStyle = "katana",
+    shooterWeapon: ShooterWeapon = "charged",
   ) {
     // S3：职业必须在重建 Player 之前确定——属性投影以 statBase(prof) 重建，
     // 法师的施法速度/施法距离与战士的武器形态来自职业 base。
     this.prof = prof;
+    this.shooterWeapon = prof === "shooter" ? shooterWeapon : "charged";
+    this.laser = createLaserState();
+    this.laserLevel = 1;
+    this.laserXp = 0;
+    this.laserUpgrades = [];
     this.warriorStyle =
       prof === "warrior" ? warriorStyle : "katana";
     this.audio.cancelCues();
@@ -750,6 +768,7 @@ export class GameCore {
       cast: 0,
       element: 0,
       reaction: 0,
+      laser: 0,
     };
     this.beginWaveReport();
     this.bpMode = null;
@@ -791,8 +810,12 @@ export class GameCore {
    * 卡池，职业必须先定，否则第一批卡是按上一个职业抽的；Player 的
    * 施法速度/施法距离 base 也随职业重建。
    */
-  startGame(prof?: Profession, warriorStyle?: WarriorStyle) {
-    this.resetGame(prof ?? "shooter", warriorStyle);
+  startGame(
+    prof?: Profession,
+    warriorStyle?: WarriorStyle,
+    shooterWeapon?: ShooterWeapon,
+  ) {
+    this.resetGame(prof ?? "shooter", warriorStyle, shooterWeapon);
     this.state = "play";
     // S2 修订（用户反馈）：开局送 1 次天赋，让第 1 波起就有一次成长。
     // **必须在 view.started() 之前记账**：面板是 UI 在 started 回调里按
@@ -882,6 +905,7 @@ export class GameCore {
    * 只由 `gameOver` 在 `devRevive` 开启时调用；不写战绩。
    */
   private devReviveRun() {
+    this.laser = createLaserState();
     this.warriorLeapState = null;
     const wave = Math.max(1, this.waveN);
     this.enemies = [];
@@ -932,6 +956,7 @@ export class GameCore {
    * 清掉：picks/upCounts 与依赖天赋的运行态（护盾/充能/陨星/残域/法阵读条）。
    */
   devClearTalents() {
+    this.laser = createLaserState();
     this.warriorLeapState = null;
     const p = this.player;
     // 原地清空，避免任何持有 upCounts/picks 引用的系统读到旧对象。
@@ -984,6 +1009,7 @@ export class GameCore {
   }
 
   gameOver() {
+    this.laser = createLaserState();
     this.warriorLeapState = null;
     if (this.state === "over") return;    // DEV-only：允许复活时拦截死亡，保留本局构筑并重开当前波。
     if (import.meta.env.DEV && this.devRevive) {

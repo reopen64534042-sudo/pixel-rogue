@@ -1,3 +1,7 @@
+import { preloadLaserVfx } from "../rendering/vfx/laser/LaserVfxPhaser";
+import { LaserV137Bridge } from "../rendering/vfx/laser/LaserV137Bridge";
+import { LaserVfxPlayer, type LaserVfxCommand } from "../rendering/vfx/laser/LaserVfxPlayer";
+import { drawLaserVfxPainter } from "../rendering/vfx/laser/LaserVfxPainter";
 import Phaser from "phaser";
 import { GameCore } from "../core/GameCore";
 import { FixedClock } from "../core/FixedClock";
@@ -62,6 +66,10 @@ export class GameScene extends Phaser.Scene {
   /** 开发者作弊面板：仅 DEV 构建存在（生产包无入口、无控制桥） */
   private dev?: DevPanel;
   private clock = new FixedClock();
+  private readonly laserBridge = new LaserV137Bridge();
+  private readonly laserPlayer = new LaserVfxPlayer();
+  private laserCommands: readonly LaserVfxCommand[] = [];
+  private readonly drawLaserAnimation = () => drawLaserVfxPainter(this.painter, this.laserCommands);
   private specialTest:
     | "special-max"
     | "dash-special"
@@ -81,6 +89,9 @@ export class GameScene extends Phaser.Scene {
   }));
   constructor() {
     super("Game");
+  }
+  preload() {
+    preloadLaserVfx(this);
   }
   create() {
     for (const [key, canvas] of Object.entries(SPR))
@@ -167,7 +178,7 @@ export class GameScene extends Phaser.Scene {
       )
         this.core.chooseAttr(Number(key) - 1);
       if (this.core.state === "over" && key === "r")
-        this.core.startGame(this.core.prof, this.core.warriorStyle);
+        this.core.startGame(this.core.prof, this.core.warriorStyle, this.core.shooterWeapon);
     };
     const up = (event: KeyboardEvent) => {
       this.core.keys[event.key.toLowerCase()] = false;
@@ -195,6 +206,9 @@ export class GameScene extends Phaser.Scene {
       this.dev?.dispose();
       this.ui.dispose();
       this.core.audio.dispose();
+      this.laserBridge.reset();
+      this.laserPlayer.reset();
+      this.laserCommands = [];
       if (import.meta.env.DEV) delete window.__PIXEL_ROGUE__;
     });
     // Explicit test mode only; production bundles contain no control bridge.
@@ -582,14 +596,25 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private captureLaserAnimation() {
+    const packet = this.laserBridge.capture(this.core);
+    if (packet.reset) this.laserPlayer.reset();
+    this.laserCommands = this.laserPlayer.update(packet.frame, packet.releases);
+  }
+
   update(_now: number, delta: number) {
     if (!this.painter) return;
     // Issue #95：输入在模拟推进前落盘，否则摇杆方向会晚一帧生效
     this.touch?.sync();
     if (this.core.state === "play")
-      this.clock.advance(delta / 1000, (dt) => this.core.step(dt));
+      this.clock.advance(delta / 1000, (dt) => {
+        this.core.step(dt);
+        this.captureLaserAnimation();
+      });
     else this.clock.reset();
     if (this.specialTest) this.tickSpecialTest();
+    // Also observe UI/DEV resets and paused states on frames without a fixed step.
+    this.captureLaserAnimation();
     this.painter.begin();
     if (this.core.state === "start") {
       this.cameras.main.setScroll(0, 0);
@@ -612,7 +637,7 @@ export class GameScene extends Phaser.Scene {
         Math.round(this.core.cam.x + (shake ? (Math.random() - 0.5) * shake : 0)),
         Math.round(this.core.cam.y + (shake ? (Math.random() - 0.5) * shake : 0)),
       );
-      draw.call(this.core, this.painter);
+      draw.call(this.core, this.painter, this.drawLaserAnimation);
     }
     // v77：低血量屏幕边缘提示（DOM 覆盖层；只改 opacity，不碰画布）
     this.ui.syncLowHp();

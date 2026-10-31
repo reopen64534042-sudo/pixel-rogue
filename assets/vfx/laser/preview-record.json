@@ -1,0 +1,28 @@
+{
+  "source": "real LaserVfxPlayer + production atlas, recorded by build-laser-vfx-preview.mjs",
+  "originalSpeed": {
+    "fps": 30,
+    "frames": 96,
+    "durationMs": 3200,
+    "gif": "full-cycle-1x.gif"
+  },
+  "slow": {
+    "speed": 0.25,
+    "gif": "release-025x.gif",
+    "sampling": "uniform 120Hz source, 30fps playback",
+    "frames": 64
+  },
+  "focus": {
+    "gif": "focus-feedback-1x.gif",
+    "durationMs": 3200,
+    "fixedU": 0.4,
+    "states": [
+      0,
+      0.5,
+      1
+    ],
+    "comparison": "focus-width-comparison.png",
+    "overlap": "short-recharge-inspection.png"
+  },
+  "scope": "offline art rendering only; Pillow rasterization differs from Phaser; no gameplay, damage or browser acceptance"
+}

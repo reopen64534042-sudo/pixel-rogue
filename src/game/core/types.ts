@@ -22,7 +22,8 @@ export type DamageSource =
   | "cast"
   | "element"
   /** 双修三法印反应（融化/超载/超导）的独立伤害分项。 */
-  | "reaction";
+  | "reaction"
+  | "laser";
 export type DamageTotals = Record<DamageSource, number>;
 /* ---------- Combat Foundation v1（S1 契约，未接入运行时战斗） ---------- */
 /** 攻击方式：决定近战/远程增伤乘区适用范围；由技能显式指定，不按距离推断 */
@@ -256,6 +257,8 @@ export interface Talent {
   excludes?: string[];
   /** 战士流派归属：另一流派的卡不进本局池。 */
   warriorStyle?: WarriorStyle;
+  /** 射手主武器归属；旧射手卡缺省为 charged。 */
+  shooterWeapon?: ShooterWeapon;
   /** 变体组：同一组在一局内只能取一张。与 excludes 的区别是组合规模可变（N 选 1）。 */
   variant?: string;
   /**
@@ -276,6 +279,8 @@ export type Profession = "shooter" | "mage" | "warrior" | "common";
 /** 精英词缀：分裂 / 召唤蝙蝠 / 冰霜新星。 */
 export type EliteAffix = "split" | "summon" | "nova";
 
+/** 射手开局主武器；未指定时沿用强化弹。 */
+export type ShooterWeapon = "charged" | "laser";
 /** 战士开局流派：太刀（快、近、弱击退）/ 大剑（慢、远、强击退）。 */
 export type WarriorStyle = "katana" | "greatsword";
 
@@ -607,6 +612,14 @@ export interface Slash extends Point {
   impact?: boolean;
 }
 export interface HitOptions {
+  /** 持续束采用浮点结算，避免高频最少 1 点伤害放大。 */
+  continuous?: boolean;
+  /** 由持续武器按时间窗复用暴击结果，不额外掷骰。 */
+  critical?: boolean;
+  /** 附属光束与非触发时间窗不施加命中特效。 */
+  noOnHit?: boolean;
+  /** 持续武器合并飘字与音效。 */
+  silent?: boolean;
   noCrit?: boolean;
   noChain?: boolean;
   /** 导弹/激光/爆炸等附加效果不参与生命汲取 */

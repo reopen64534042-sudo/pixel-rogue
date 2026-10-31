@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixel Rogue · 激光完整周期素材预览</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b111b;color:#dceaf4;font:14px/1.55 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1320px;margin:auto;padding:28px 24px 64px}header{display:flex;justify-content:space-between;align-items:end;gap:24px}h1{margin:6px 0;font-size:30px;letter-spacing:-1px}.eyebrow{color:#57e6ff;font-size:12px;letter-spacing:3px}p{color:#99afc1;margin:5px 0 18px}.badge{color:#ffd24a;border:1px solid #6b5d2e;border-radius:4px;padding:5px 10px;white-space:nowrap}nav,.controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}nav{position:sticky;top:0;z-index:2;background:#101d2bf5;border:1px solid #2a4155;border-radius:8px;padding:14px;margin:20px 0}button,select{background:#1b3144;border:1px solid #3b566b;color:#dceaf4;padding:7px 10px;border-radius:4px;font:inherit;cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #57e6ff;outline-offset:3px}button.primary{background:#1a9fd4;color:#07131b;font-weight:700}input[type=range]{accent-color:#57e6ff;flex:1;min-width:160px}output{font-variant-numeric:tabular-nums;color:#57e6ff}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.card{border:1px solid #263b4e;border-radius:8px;overflow:hidden;background:#101b28}.card h2{font-size:14px;margin:0;padding:12px 14px;border-bottom:1px solid #263b4e}.number{color:#57e6ff;margin-right:9px;font:12px monospace}canvas{width:100%;height:auto;display:block;image-rendering:pixelated;background:#151e2b}.custom{margin-top:24px}.custom .controls{padding:12px 14px}.custom canvas{max-width:960px;margin:auto}.hint{padding:10px 14px;color:#99afc1;font-size:12px}.timeline{display:flex;gap:2px;height:7px;margin:12px 0}.timeline span{background:#1a9fd4}.timeline span:nth-child(2){background:#57e6ff}.timeline span:nth-child(3){background:#e8e8f0}.timeline span:nth-child(4){background:#ffd24a}footer{font-size:12px;color:#8a9eb0;margin-top:24px}a{color:#57e6ff}@media(max-width:800px){.grid{grid-template-columns:1fr}main{padding:18px 12px}header{display:block}.badge{display:inline-block}h1{font-size:24px}nav{position:static}}
+.focus-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:1000px){.focus-grid{grid-template-columns:1fr}}
+</style></head><body><main>
+<header><div><div class="eyebrow">PIXEL ROGUE / LASER VFX 02</div><h1>细束流动，聚焦渐强</h1><p>先比较相同周期进度下的真实焦点，再检查完整照射与脉冲周期</p></div><div class="badge">素材预览 · 未接入正式战斗</div></header>
+<div class="timeline" aria-label="点亮 8%，稳定照射 57%，聚能 20%，收束 15%"><span style="flex:8"></span><span style="flex:57"></span><span style="flex:20"></span><span style="flex:15"></span></div>
+<nav aria-label="播放控制"><button id="play" class="primary">暂停</button><button id="step">前进 1 帧</button><button id="reset">从头播放</button><label>速度 <select id="speed"><option value="1">1× 原速</option><option value="0.25">0.25× 慢放</option><option value="0.5">0.5×</option></select></label><input id="seek" aria-label="模拟时间" type="range" min="0" max="6.4" step="0.008333" value="0"><output id="time">0.000 s</output><button id="middle">停在收束中段</button></nav>
+<h2>聚焦与连续性对照</h2><p>本组固定 u=0.40；前排使用相同束宽、光路和时间，仅 focus 不同。前方贯穿目标不叠加锁定热点。</p>
+<div class="grid focus-grid" id="focus-grid"></div>
+<h2>完整周期与短回充</h2><div class="grid" id="grid"></div>
+<section class="card custom"><h2><span class="number">09</span>自由检查 · 宽度、射程、三束方向与短回充</h2><div class="controls">
+<label>照射 <select id="duration"><option>1.0</option><option>1.3</option></select> s</label>
+<label>束宽 <select id="width"><option>4</option><option>6</option><option>10</option></select> px</label>
+<label>射程 <select id="range"><option>130</option><option selected>190</option><option>260</option></select> px</label>
+<label>结束 <select id="pulse"><option value="none">普通消散</option><option value="collapse">普通坍缩</option><option value="meltdown" selected>熔断</option><option value="mixed">各束不同</option></select></label>
+<label>束数 <select id="lanes"><option>1</option><option>3</option></select></label>
+<label>回充 <select id="recharge"><option>0.3</option><option>0.2</option><option>0.05</option></select> s</label>
+</div><canvas id="custom" width="480" height="270"></canvas><div class="hint">白芯始终覆盖当前光路；释放瞬间整条路径先响应，移动亮头随后才出现。旧脉冲固定在发出时的位置与方向。</div></section>
+<footer>周期进度 u 与焦点分别显示。圆环使用目标最高焦点，同目标只绘制一次。演示由单一 120Hz 素材时钟推进；暂停、慢放和逐帧控制该时钟。实际适配器不创建 RAF、定时器或随机数。此文件自带 PNG 与脚本，可离线打开；不执行伤害、索敌、经验或其他战斗规则。</footer>
+</main><script type="module">
+import {LaserVfxPlayer,laserChannelLook} from __PLAYER_MODULE__;
+import {drawLaserVfxCanvas} from __CANVAS_MODULE__;
+import {LASER_DEMO_CASES,sampleLaserDemo,LASER_FOCUS_DEMO_CASES,sampleLaserFocusDemo} from __DEMO_MODULE__;
+import {PALETTE_HEX as C} from __PALETTE_MODULE__;
+const atlas=__ATLAS_JSON__, image=new Image();image.src=__ATLAS_PNG__;await image.decode();
+const $=id=>document.getElementById(id),cards=[];
+for(const [grid,cases,sampler] of [[$("focus-grid"),LASER_FOCUS_DEMO_CASES,sampleLaserFocusDemo],[$("grid"),LASER_DEMO_CASES,sampleLaserDemo]])for(const [i,c] of cases.entries()){
+ const section=document.createElement("section");section.className="card";
+ const title=document.createElement("h2");const number=document.createElement("span");number.className="number";number.textContent=String(i+1).padStart(2,"0");title.append(number,document.createTextNode(c.title));
+ const canvas=document.createElement("canvas");canvas.width=480;canvas.height=270;canvas.setAttribute("aria-label",c.title);
+ section.append(title,canvas);grid.append(section);cards.push({c,canvas,sampler,player:new LaserVfxPlayer()});
+}
+const customPlayer=new LaserVfxPlayer();let time=0,running=true,speed=1,previous=null,accumulator=0;
+function actor(ctx,p){const rows=["  hhhh  "," hhhhhh "," heffeh "," hhhhhh ","  aaaa  "," aaaaaa "," aaaaaa ","   aa   ","  a  a  ","  b  b  "],colors={h:C.pGold,e:C.ink1,f:C.sand,a:C.pBlue,b:C.pBrown};for(let y=0;y<rows.length;y++)for(let x=0;x<8;x++){const color=colors[rows[y][x]];if(color){ctx.fillStyle=color;ctx.fillRect(Math.round(p.x)-4+x,Math.round(p.y)-5+y,1,1)}}}
+function panel(canvas,c,player,sampler=sampleLaserDemo){const ctx=canvas.getContext("2d"),p=sampler(c,time);ctx.imageSmoothingEnabled=false;ctx.fillStyle="#151e2b";ctx.fillRect(0,0,480,270);
+ ctx.strokeStyle="#1e2c3b";ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<480;x+=24){ctx.moveTo(x,30);ctx.lineTo(x,270)}for(let y=30;y<270;y+=24){ctx.moveTo(0,y);ctx.lineTo(480,y)}ctx.stroke();
+ const shown=new Set();for(const target of p.targets){if(shown.has(target.id))continue;shown.add(target.id);ctx.fillStyle=C.slimeMid;ctx.fillRect(Math.round(target.x)-4,Math.round(target.y)-4,8,8);ctx.fillStyle=C.slimeDark;ctx.fillRect(Math.round(target.x)-2,Math.round(target.y)-1,1,1);ctx.fillRect(Math.round(target.x)+2,Math.round(target.y)-1,1,1)}
+ actor(ctx,p.player);drawLaserVfxCanvas(ctx,image,atlas,player.update(p.frame,p.releases));
+ ctx.fillStyle="#0b111be8";ctx.fillRect(0,0,480,29);ctx.fillStyle=C.bone;ctx.font="11px monospace";ctx.fillText(`T=${c.duration.toFixed(1)}s  recharge=${c.recharge.toFixed(2)}s  cycle=${p.cycle+1}`,10,12);
+ const look=laserChannelLook(p.frame.elapsed,p.frame.duration);ctx.fillStyle=C.iceCyan;ctx.fillText(`${p.frame.phase} / ${look.stage}  u=${look.u.toFixed(3)}`,10,25);
+ ctx.fillStyle="#0b111be8";ctx.fillRect(0,250,480,20);ctx.fillStyle=C.gold;ctx.fillText(`focus: ${p.frame.lanes.map(l=>l.focus.toFixed(2)).join(" / ")||"release snapshot"}`,10,264);
+}
+function custom(){const width=Number($("width").value),lanes=Number($("lanes").value);return{id:"custom",title:"custom",duration:Number($("duration").value),recharge:Number($("recharge").value),widths:lanes===3?[width,width,width]:[width],range:Math.min(Number($("range").value),lanes===3?220:300),pulse:$("pulse").value,moving:true}}
+function draw(){for(const card of cards)panel(card.canvas,card.c,card.player,card.sampler);panel($("custom"),custom(),customPlayer);$("time").textContent=time.toFixed(3)+" s";$("seek").value=String(time);$("play").textContent=running?"暂停":"播放";document.body.dataset.ready="true";document.body.dataset.simulationTime=String(time)}
+function clear(){for(const card of cards)card.player.reset();customPlayer.reset();accumulator=0}
+$("play").onclick=()=>{running=!running;draw()};$("step").onclick=()=>{running=false;time=Math.min(6.4,time+1/60);draw()};$("reset").onclick=()=>{time=0;clear();running=true;draw()};
+$("speed").onchange=()=>{speed=Number($("speed").value)};$("seek").oninput=()=>{running=false;time=Number($("seek").value);clear();draw()};$("middle").onclick=()=>{running=false;time=Number($("duration").value)*0.93;clear();draw()};
+for(const id of ["duration","width","range","pulse","lanes","recharge"])$(id).onchange=()=>{clear();draw()};
+function tick(now){if(previous!==null&&running){accumulator+=Math.min(0.1,(now-previous)/1000)*speed;while(accumulator>=1/120){time+=1/120;accumulator-=1/120;if(time>6.4){time=0;clear()}}}previous=now;draw();requestAnimationFrame(tick)}
+draw();requestAnimationFrame(tick);
+</script></body></html>

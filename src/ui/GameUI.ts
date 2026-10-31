@@ -1,7 +1,10 @@
+import { LASER, LASER_UPGRADES, LASER_XP } from "../game/data/laser";
+import { laserDps, laserOutputRate, laserPierceRetention } from "../game/core/DamageMath";
+import { laserBeamCount, laserRange, laserWidth, laserDuration, laserRecharge } from "../game/core/LaserSystem";
 import type { GameCore } from "../game/core/GameCore";
 import { playerMoveSpeed } from "../game/core/PlayerSystem";
 import { tutorialGemStep, tutorialTotalSteps } from "../game/core/TutorialSystem";
-import type { WarriorStyle } from "../game/core/types";
+import type { ShooterWeapon, WarriorStyle } from "../game/core/types";
 import { groupLabel, rarityLabel } from "../game/core/AttributeSystem";
 import { CHANGELOG, CURRENT_VERSION } from "../game/data/changelog";
 import { resolveDifficulty } from "../game/data/difficulty";
@@ -57,6 +60,7 @@ import { element } from "./dom";
 import { CodexUI } from "./CodexUI";
 const DMG_NAMES: Record<string, string> = {
   bullet: "🏹魔弹",
+  laser: "🔆激光",
   orbit: "🗡️飞刃",
   chain: "🌩️闪电",
   meteor: "☄️陨星",
@@ -114,6 +118,7 @@ export class GameUI {
   private captureAction: KeyAction | null = null;
   private settingsHint = "";
   private tutorialPickOpen = false;
+  private shooterPickMode: "start" | "tutorial" = "start";
   private warriorPickMode: "start" | "tutorial" = "start";
   private tutorialHudEl: HTMLElement | null = null;
   private tutorialSig = "";
@@ -133,6 +138,7 @@ export class GameUI {
           "ov-prof-pick",
           "ov-tutorial-pick",
           "ov-warrior-style",
+          "ov-shooter-weapon",
         ].forEach(hide);
         this.settingsOpen = false;
         this.keybindsOpen = false;
@@ -192,6 +198,12 @@ export class GameUI {
     element("btn-start").onclick = () => this.openProfessionPick();
     element("btn-pick-shooter").onclick = () =>
       this.startProfession("shooter");
+    element("btn-shooter-charged").onclick = () => this.chooseShooterWeapon("charged");
+    element("btn-shooter-laser").onclick = () => this.chooseShooterWeapon("laser");
+    element("btn-shooter-weapon-back").onclick = () => {
+      hide("ov-shooter-weapon");
+      show(this.shooterPickMode === "start" ? "ov-prof-pick" : "ov-tutorial-pick");
+    };
     element("btn-pick-mage").onclick = () => this.startProfession("mage");
     element("btn-pick-warrior").onclick = () =>
       this.openWarriorStyle("start");
@@ -228,7 +240,7 @@ export class GameUI {
     element("btn-changelog-close").onclick = () => hide("ov-changelog");
     // 重开保留当前职业（S3：玩家不该被强制退回射手）
     element("btn-retry").onclick = () =>
-      this.core.startGame(this.core.prof, this.core.warriorStyle);
+      this.core.startGame(this.core.prof, this.core.warriorStyle, this.core.shooterWeapon);
     element("btn-resume").onclick = () => this.core.togglePause();
     element("btn-pause-codex").onclick = () => this.codex.open();
     // Issue #100：触屏没有 C 键，属性面板从暂停界面进入
@@ -369,6 +381,7 @@ export class GameUI {
       "ov-prof-pick",
       "ov-tutorial-pick",
       "ov-warrior-style",
+      "ov-shooter-weapon",
     ].forEach(hide);
     this.settingsOpen = false;
     this.keybindsOpen = false;
@@ -506,6 +519,7 @@ export class GameUI {
     // S3：法师的伤害基线与攻速是元素/施法口径——沿用射手的「基础攻击/魔弹/攻速」
     // 会让玩家以为自己在加物理攻击（属性面板已同步改口径）。
     const isMage = this.core.prof === "mage";
+    const isLaser = this.core.prof === "shooter" && this.core.shooterWeapon === "laser";
     const isWarrior = this.core.prof === "warrior";
     const flowCap = isWarrior
       ? (p.upCounts["流·极"] || 0) > 0
@@ -623,6 +637,8 @@ export class GameUI {
                   ],
                 ] as [string, string | number][])
               : []
+          : isLaser
+            ? ([["🔆 单束基础 DPS", laserDps(p, this.core.laserLevel).toFixed(1)]] as [string, string | number][])
           : ([
               [
                 "🏹 普通魔弹",
@@ -639,6 +655,8 @@ export class GameUI {
             ] as [string, string | number][])),
       isMage
         ? ["⚡ 施法速度", p.fireRate.toFixed(2) + " 次/秒"]
+        : isLaser
+          ? ["⚡ 光束输出速率", "×" + (laserOutputRate(p) / statBase("shooter").fireRate).toFixed(2)]
         : [
             "⚡ 攻速",
             (p.fireRate * (1 + p.haste * 0.1)).toFixed(2) +
@@ -705,7 +723,7 @@ export class GameUI {
                 ],
               ] as [string, string | number][])
             : []
-          : ([
+          : isLaser ? ([["🔆 贯穿", "整条束线 · 逐目标衰减"]] as [string, string | number][]) : ([
               ["🔱 穿透", p.pierce + professionPierce(this.core.prof)],
             ] as [string, string | number][])),
       // 全局增伤：法师保留完整行；射手/战士只在非零时显示。
@@ -754,6 +772,9 @@ export class GameUI {
         knockRows.push(["🦘 跃击", knockLevel(KNOCK.warrior.leap)]);
       if ((p.upCounts["斩浪"] || 0) > 0)
         knockRows.push(["💨 斩浪", knockLevel(KNOCK.warrior.dash)]);
+    } else if (isLaser) {
+      knockRows.push(["🔆 激光", p.upCounts["光压退敌"] ? "弱（每 0.4 秒）" : "无"]);
+      if (p.upCounts["紧急散射"]) knockRows.push(["🔆 紧急散射", knockLevel(LASER.escapeKnock)]);
     } else {
       knockRows.push(["🏹 普通魔弹", knockLevel(KNOCK.shooter.bolt)]);
       knockRows.push(["✨ 强化弹", knockLevel(KNOCK.shooter.charged)]);
@@ -815,13 +836,15 @@ export class GameUI {
       ["👟 移动速度", Math.round(playerMoveSpeed(this.core))],
       [
         isMage ? "🎯 施法距离" : isWarrior ? "🎯 近战范围" : "🎯 射程",
-        Math.round(p.attackRange),
+        Math.round(isLaser ? laserRange(this.core) : p.attackRange),
       ],
       ...(isMage
         ? ([
             ["🌐 法阵范围", "×" + p.area.toFixed(2)],
           ] as [string, string | number][])
-        : []),
+        : isLaser
+          ? ([["🌐 光束宽度", laserWidth(this.core).toFixed(1) + " px"]] as [string, string | number][])
+          : []),
     ];
     const dynamicDifficulty = resolveDifficulty(
       this.core.prof,
@@ -882,12 +905,39 @@ export class GameUI {
       "stat-special-upgrades-list",
     );
     const isShooter = this.core.prof === "shooter";
-    if (specialTitle) specialTitle.style.display = isShooter ? "" : "none";
+    if (specialTitle) {
+      specialTitle.style.display = isShooter ? "" : "none";
+      specialTitle.textContent = isLaser ? "激光武器" : "强化弹";
+    }
     if (specialUpgradesEl)
       specialUpgradesEl.style.display = isShooter ? "" : "none";
     if (specialEl) {
       specialEl.style.display = isShooter ? "" : "none";
-      if (isShooter) {
+      if (isShooter && isLaser) {
+        const level = this.core.laserLevel;
+        const need = LASER_XP[level - 1];
+        const l = this.core.laser;
+        specialEl.innerHTML = renderRows([
+          ["🔆 等级", need === null ? "MAX" : "Lv." + level + " / " + LASER_XP.length],
+          ["🔆 光束数量", String(laserBeamCount(this.core)) + " 束"],
+          ["⚡ 单束基础 DPS", laserDps(p, level).toFixed(1)],
+          ["📏 射程 / 宽度", laserRange(this.core).toFixed(0) + " / " + laserWidth(this.core).toFixed(1) + " px"],
+          ["⏱ 照射 / 基础回充", laserDuration(this.core).toFixed(1) + " / " + laserRecharge(this.core).toFixed(1) + " 秒"],
+          ["➡️ 贯穿保留", (laserPierceRetention(this.core.laserUpgrades.includes("pierce"), !!p.upCounts["偏振穿透"]) * 100).toFixed(0) + "% / 目标"],
+          [laserBeamCount(this.core) === 3 ? "🎯 主 / 副束焦点" : "🎯 当前焦点",
+            (laserBeamCount(this.core) === 3 ? [l, l.sideAims[-1], l.sideAims[1]] : [l])
+              .map(aim => (aim.focus * 100).toFixed(0) + "%").join(" / ")],
+          ["📘 下一级", need === null ? "MAX" : this.core.laserXp.toFixed(1) + " / " + need + " 秒有效照射"],
+          ["🔋 成长", "主束最多 1 经验/秒，每轮最多 1；附属束不计"],
+          ["💧 吸血上限", "主束 30% 效率，全武器最多 2% 最大生命/秒"],
+          ["💥 触发节奏", "暴击与命中特效：每目标 0.4 秒一窗"],
+        ]);
+        const upgrades = LASER_UPGRADES.filter(u => this.core.laserUpgrades.includes(u.id));
+        if (specialUpgradesTitle) specialUpgradesTitle.textContent = "当前升级 (" + upgrades.length + "/" + LASER_UPGRADES.length + ")";
+        if (specialUpgradesList) specialUpgradesList.innerHTML = upgrades.length
+          ? upgrades.map(u => '<div class="special-upgrade"><span class="su-name">' + u.name + '</span><span class="su-desc">' + u.desc + '</span></div>').join("")
+          : '<div class="special-upgrade-empty">Lv.4 起，每级获得一条武器升级</div>';
+      } else if (isShooter) {
         const level = this.core.specialLevel;
         const specialStats = getSpecialLevelStats(level);
         const maxed =
@@ -1280,6 +1330,13 @@ export class GameUI {
       <div class="cat">${groupLabel(c.def.group)}</div>
       <div class="nm">${c.label}</div>
       <div class="ds">${c.text}</div>`;
+      if (c.hint) {
+        const detail = document.createElement("div");
+        detail.className = "up";
+        detail.textContent = c.hint;
+        el.appendChild(detail);
+        el.setAttribute("aria-label", el.getAttribute("aria-label") + "，" + c.hint);
+      }
       el.onclick = () => this.core.chooseAttr(i);
       box.appendChild(el);
     });
@@ -1449,13 +1506,30 @@ export class GameUI {
   private startProfession(
     prof: "shooter" | "mage" | "warrior",
     warriorStyle?: WarriorStyle,
+    shooterWeapon?: ShooterWeapon,
   ): void {
+    if (prof === "shooter" && !shooterWeapon) {
+      this.openShooterWeapon("start");
+      return;
+    }
     if (prof === "warrior" && !warriorStyle) {
       this.openWarriorStyle("start");
       return;
     }
-    if (tutorialSeen(prof)) this.core.startGame(prof, warriorStyle);
-    else this.core.startTutorial(prof, warriorStyle);
+    if (tutorialSeen(prof)) this.core.startGame(prof, warriorStyle, shooterWeapon);
+    else this.core.startTutorial(prof, warriorStyle, shooterWeapon);
+  }
+
+  private openShooterWeapon(mode: "start" | "tutorial"): void {
+    this.shooterPickMode = mode;
+    hide(mode === "start" ? "ov-prof-pick" : "ov-tutorial-pick");
+    show("ov-shooter-weapon");
+  }
+
+  private chooseShooterWeapon(weapon: ShooterWeapon): void {
+    hide("ov-shooter-weapon");
+    if (this.shooterPickMode === "tutorial") this.startTutorialFor("shooter", undefined, weapon);
+    else this.startProfession("shooter", undefined, weapon);
   }
 
   private openWarriorStyle(mode: "start" | "tutorial"): void {
@@ -1500,9 +1574,14 @@ export class GameUI {
   private startTutorialFor(
     prof: "shooter" | "mage" | "warrior",
     warriorStyle?: WarriorStyle,
+    shooterWeapon?: ShooterWeapon,
   ): void {
+    if (prof === "shooter" && !shooterWeapon) {
+      this.openShooterWeapon("tutorial");
+      return;
+    }
     this.closeTutorialPick();
-    this.core.startTutorial(prof, warriorStyle);
+    this.core.startTutorial(prof, warriorStyle, shooterWeapon);
   }
 
   /** 教程内跳过 / 完成后开始正式战斗；两者都记该职业已看。 */
@@ -1616,6 +1695,10 @@ export class GameUI {
           title: "贴身挥砍",
           body: "贴近敌人自动挥砍，扇形内所有敌人一起受伤；离得越近越容易打满。试着一次命中至少 2 个木桩。",
         };
+      if (this.core.shooterWeapon === "laser") return {
+        title: "连续切割束",
+        body: "激光自动锁定目标，可以边移动边照射；横向走位把敌人串成一线。每轮照射后短暂回充，主光束有效照射让武器成长。试着保持远距，照射木桩累计 2 秒。",
+      };
       return {
         title: "强化弹",
         body: "保持距离输出。默认每 4 发自动变成强化弹；命中会填充角色下方的强化弹经验条，升级解锁新形态。快速装填 / 超载装填提升穿透与穿透伤害，不改变发射节奏。试着打出 3 发强化弹。",
@@ -1826,6 +1909,7 @@ export class GameUI {
       "ov-prof-pick",
       "ov-tutorial-pick",
       "ov-warrior-style",
+      "ov-shooter-weapon",
     ].forEach(hide);
     this.tutorialPickOpen = false;
     this.tutorialHudEl?.classList.add("hidden");

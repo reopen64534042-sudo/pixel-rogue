@@ -1,5 +1,16 @@
 import Phaser from "phaser";
 
+interface AtlasSpritePose {
+  readonly x: number;
+  readonly y: number;
+  readonly angle: number;
+  readonly scaleX: number;
+  readonly scaleY: number;
+  readonly originX: number;
+  readonly originY: number;
+  readonly crop?: { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
+}
+
 interface TextDrawState {
   fontSize: number;
   fillStyle: string;
@@ -185,6 +196,19 @@ export class PixelPainter {
     }
     g.strokePath();
   }
+  /** 固定宽度束线，复用现有 Graphics 批次；不创建额外动画或纹理。 */
+  beam(x1: number, y1: number, x2: number, y2: number, width: number, color: string, alpha: number) {
+    this.batch().lineStyle(width, this.color(color), alpha).beginPath()
+      .moveTo(x1, y1).lineTo(x2, y2).strokePath();
+  }
+  /** 细束收尖与折射节点共用的实心多边形，沿用 Graphics 对象池。 */
+  polygon(points: readonly number[], color: string, alpha: number) {
+    if (points.length < 6) return;
+    const g = this.batch().fillStyle(this.color(color), alpha).beginPath();
+    g.moveTo(points[0], points[1]);
+    for (let i = 2; i + 1 < points.length; i += 2) g.lineTo(points[i], points[i + 1]);
+    g.closePath().fillPath();
+  }
   sprite(key: string, x: number, y: number, w?: number, h?: number) {
     this.active = null;
     const img =
@@ -192,6 +216,7 @@ export class PixelPainter {
     this.images[this.ii++] = img;
     img
       .setTexture(key)
+      .setCrop()
       .setPosition(x, y)
       .setVisible(true)
       .setAlpha(this.globalAlpha)
@@ -219,6 +244,7 @@ export class PixelPainter {
     this.images[this.ii++] = img;
     img
       .setTexture(key)
+      .setCrop()
       .setVisible(true)
       .setAlpha(this.globalAlpha)
       .setOrigin(0.5)
@@ -227,6 +253,18 @@ export class PixelPainter {
       .setScale(scale)
       .setDepth(this.depth++)
       .setScrollFactor(this.hud ? 0 : 1);
+  }
+  /** Atlas frame drawing shares the world sprite pool and existing draw order. */
+  spriteFrame(key: string, frame: string, pose: AtlasSpritePose) {
+    this.active = null;
+    const img = this.images[this.ii] ?? this.scene.add.image(0, 0, key, frame);
+    this.images[this.ii++] = img;
+    img.setTexture(key, frame).setCrop().setVisible(true)
+      .setOrigin(pose.originX, pose.originY).setPosition(pose.x, pose.y)
+      .setRotation(pose.angle).setScale(pose.scaleX, pose.scaleY)
+      .setAlpha(this.globalAlpha).setDepth(this.depth++)
+      .setScrollFactor(this.hud ? 0 : 1);
+    if (pose.crop) img.setCrop(pose.crop.x, pose.crop.y, pose.crop.width, pose.crop.height);
   }
   private textState(): TextDrawState {
     return {
