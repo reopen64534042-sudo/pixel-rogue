@@ -518,6 +518,8 @@ export interface FloatingText extends Point {
    * 居合是周期性爆发（每波 2–6 次），数字需要一眼能从满屏白字里认出来。
    */
   iaiDmg?: boolean;
+  /** 大剑三段斩专属样式：与居合同级的四层大字，但改为暗金/暖白。 */
+  triDmg?: boolean;
 }
 export interface Meteor extends Point {
   t: number;
@@ -615,6 +617,8 @@ export interface HitOptions {
   specialHit?: boolean;
   /** 太刀「居合斩」：伤害数字用专属大字样式（见 FloatingText.iaiDmg） */
   iaiHit?: boolean;
+  /** 大剑三段斩：伤害数字用暗金大字样式（见 FloatingText.triDmg） */
+  triHit?: boolean;
   src?: DamageSource;
   fromExplode?: boolean;
   /** Combat Foundation S2（§5）：伤害属性，缺省 physical；所有既有调用点均已显式声明 */

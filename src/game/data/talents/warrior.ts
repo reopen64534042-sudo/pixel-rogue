@@ -11,7 +11,7 @@ import { WARRIOR_BALANCE as WB } from "../warriorBalance";
  *
  * 太刀可选增幅：流·初/续/极（只增幅居合）、居合·迅/极、残心；
  * 大剑自带重斩基础机制；破甲 → 剑气 → 裂地依次强化，铁壁 → 碎盾反震 → 重壁护盾链，入场三段斩/跃击/强袭；
- * 共享点缀：裂甲/破围；连斩归太刀；护盾、反远程与反击链在后续批次补。
+ * 共享点缀：裂甲/破围；连斩归太刀；太刀反远程链（护刃/刃返/刃轮）与大剑反击链（荆棘重铠/血偿/不屈战魂）已接入。
  */
 export const WARRIOR_TALENTS: Talent[] = [
   // ================= 太刀：流 =================
@@ -79,9 +79,9 @@ export const WARRIOR_TALENTS: Talent[] = [
     prof: "warrior",
     warriorStyle: "katana",
     mech: 1,
-    d: "移动每 50px 积 1 层「势」（上限 8）。满层后下一刀变居合斩：伤害 420%、360° 全向旋斩、击退 ×3；命中补 2 层流，并在 1.5 秒内攻速 +50%。",
+    d: "移动攒「势」（上限 8）；每层所需距离随等级从 90px 线性降到 50px（20 级封顶）。满层后下一刀变居合斩：伤害 420%、360° 全向旋斩、击退 ×3；命中补 2 层流，并在 1.5 秒内攻速 +50%。",
     max: 1,
-    pv: () => "满 8 层 · 420% 伤害 · 360° 旋斩",
+    pv: () => "势 8 层 · 每层 90→50px · 420% 伤害 · 360° 旋斩",
     f: () => {},
     cur: () => "移动积势，满层后 360° 居合",
   },
@@ -96,9 +96,9 @@ export const WARRIOR_TALENTS: Talent[] = [
     warriorStyle: "katana",
     requires: "居合",
     mech: 1,
-    d: "势上限 +4（12 层）；每层所需移动距离 −10px（50→40px）。",
+    d: "势上限 +4（12 层）；每层所需移动距离在当前等级基础上 −10px。",
     max: 1,
-    pv: () => "势 12 层 · 每层 40px",
+    pv: () => "势 12 层 · 当前每层距离 -10px",
     f: () => {},
     cur: () => "势 12 层 · 攒得更快",
   },
@@ -120,6 +120,65 @@ export const WARRIOR_TALENTS: Talent[] = [
     cur: () => "居合范围与破甲增幅",
   },
 
+  // ================= 太刀：反远程链 =================
+  {
+    n: "护刃",
+    ico: "🔪",
+    t: 0,
+    cat: "防御",
+    slot: "反远程",
+    layer: 1,
+    prof: "warrior",
+    warriorStyle: "katana",
+    mech: 1,
+    d: "获得 1 把环绕飞刃，接触敌人造成 60% 近战伤害。",
+    max: 1,
+    pv: () => "环绕飞刃 1 把 · 60% 近战伤害",
+    f: (p) => {
+      p.orbit += 1;
+    },
+    cur: (p) => `飞刃 ${p.orbit} 把`,
+  },
+  {
+    n: "刃返",
+    ico: "↩️",
+    t: 1,
+    cat: "防御",
+    slot: "反远程",
+    layer: 2,
+    prof: "warrior",
+    warriorStyle: "katana",
+    requires: "护刃",
+    mech: 1,
+    d: "飞刃 +2 把（共 3 把）；飞刃可反弹敌方弹幕，反弹伤害 = 弹幕伤害 + 50% 近战伤害。",
+    max: 1,
+    pv: () => "飞刃 3 把 · 弹幕反弹 + 50% 近战",
+    f: (p) => {
+      p.orbit += 2;
+      p.bladeReflect = 1;
+    },
+    cur: (p) => `飞刃 ${p.orbit} 把 · 可反弹弹幕`,
+  },
+  {
+    n: "刃轮",
+    ico: "🌀",
+    t: 2,
+    cat: "防御",
+    slot: "反远程",
+    layer: 3,
+    prof: "warrior",
+    warriorStyle: "katana",
+    requires: "刃返",
+    mech: 1,
+    d: "飞刃 +2 把（共 5 把）；环绕更快、刀身更长（攻击与反弹范围 +4px）；每次飞刃命中回复 0.8% 最大生命。",
+    max: 1,
+    pv: () => "飞刃 5 把 · 加速加长 · 命中回 0.8% 生命",
+    f: (p) => {
+      p.orbit += 2;
+    },
+    cur: (p) => `飞刃 ${p.orbit} 把 · 刃轮加速回血`,
+  },
+
   // ================= 大剑：重斩链 =================
   // 重斩是大剑基础机制（每第 3 下自动触发），不再占卡位；
   // 破甲/剑气/裂地依次强化它。
@@ -133,7 +192,7 @@ export const WARRIOR_TALENTS: Talent[] = [
     prof: "warrior",
     warriorStyle: "greatsword",
     mech: 1,
-    d: "重斩命中使目标护甲 −40%，持续 4 秒。",
+    d: "重斩命中使目标护甲 −40%，持续 4 秒（剑气前置）。",
     max: 1,
     pv: () => "重斩破甲 −40% · 4 秒",
     f: () => {},
@@ -184,6 +243,7 @@ export const WARRIOR_TALENTS: Talent[] = [
     layer: 1,
     prof: "warrior",
     warriorStyle: "greatsword",
+    excludes: ["荆棘重铠"],
     mech: 1,
     d: "护盾层数上限 +1，每波开始至少获得 1 层护盾；护盾破裂后 15 秒重建。",
     max: 1,
@@ -224,6 +284,61 @@ export const WARRIOR_TALENTS: Talent[] = [
     pv: () => "护盾上限 3 层 · 20% 保全 · 恢复 -3s",
     f: () => {},
     cur: () => "护盾上限提升，概率保全，恢复加快",
+  },
+
+  // ================= 大剑：反击链 =================
+  {
+    n: "荆棘重铠",
+    ico: "🌵",
+    t: 0,
+    cat: "防御",
+    slot: "反击",
+    layer: 1,
+    prof: "warrior",
+    warriorStyle: "greatsword",
+    excludes: ["铁壁"],
+    mech: 1,
+    d: "受到近战接触伤害时，对攻击者反伤 75% 近战伤害（随近战伤害成长）。",
+    max: 1,
+    pv: () => "受击反伤 75% 近战伤害",
+    f: () => {},
+    cur: (p) =>
+      `反伤 ${Math.round(p.damage * WB.counterChain.thornsMeleeMul)} 点`,
+  },
+  {
+    n: "血偿",
+    ico: "🩸",
+    t: 1,
+    cat: "防御",
+    slot: "反击",
+    layer: 2,
+    prof: "warrior",
+    warriorStyle: "greatsword",
+    requires: "荆棘重铠",
+    mech: 1,
+    d: "受到实际伤害后 3 秒内，近战伤害 +15%/层，最多 2 层（+30%）；再次受伤刷新持续时间。",
+    max: 1,
+    pv: () => "受伤后近战伤害 +15%/层 · 最多 2 层 · 3 秒",
+    f: () => {},
+    cur: () => "受伤后短时强化挥砍",
+  },
+  {
+    n: "不屈战魂",
+    ico: "🏅",
+    t: 2,
+    cat: "防御",
+    slot: "反击",
+    layer: 3,
+    prof: "warrior",
+    warriorStyle: "greatsword",
+    requires: "血偿",
+    mech: 1,
+    d: "受到致命伤害时免除本次伤害并回复 20% 最大生命，每波一次。",
+    max: 1,
+    pv: () => "每波一次致命免死 · 回复 20% 最大生命",
+    // nd 由 TalentStatSources 声明；f 保持空操作，避免 recompute 重放。
+    f: () => {},
+    cur: (p) => `每波一次免死 · ${p.ndUsed ? "本波已触发" : "本波可用"}`,
   },
 
   // ================= 太刀入场 =================
@@ -289,7 +404,7 @@ export const WARRIOR_TALENTS: Talent[] = [
     prof: "warrior",
     warriorStyle: "greatsword",
     mech: 1,
-    d: "冲刺锁定攻击距离 +80px 内最密集敌群的落点，起手 0.24 秒后坠击，落地 140% 范围伤害 + 击退；无目标时退回普通冲刺。持有三段斩时，跃击替换其第三段（三段组成变为扇斩→旋斩→跃击）。",
+    d: "冲刺锁定攻击距离 +80px 内最密集敌群的落点，起手 0.24 秒后坠击，落地 140% 范围伤害 + 击退；无目标时在原地释放跃击。持有三段斩时，跃击替换其第三段（三段组成变为扇斩→旋斩→跃击）。",
     max: 1,
     pv: () => "跃向密集敌群 · 落地 140% AOE",
     f: () => {},
@@ -306,9 +421,9 @@ export const WARRIOR_TALENTS: Talent[] = [
     warriorStyle: "greatsword",
     requires: "跃击",
     mech: 1,
-    d: "跃击（含三段斩第三段）可锁定敌人的距离从「攻击距离 +80px」提高到「攻击距离 +104px」；落地后 2 秒内攻速 +40%。",
+    d: "跃击（含三段斩第三段）可锁定敌人的距离从「攻击距离 +80px」提高到「攻击距离 +104px」；落地后 4 秒内攻速 +40%。",
     max: 1,
-    pv: () => "跃击锁定距离 +24px · 落地攻速 +40%",
+    pv: () => "跃击锁定距离 +24px · 落地攻速 +40%（4 秒）",
     f: () => {},
     cur: () => "跃击后短时加速",
   },

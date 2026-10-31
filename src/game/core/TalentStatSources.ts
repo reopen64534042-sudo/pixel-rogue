@@ -18,7 +18,7 @@
  *   flat +1/级 且 dashMax 有序 flat −0.4/级（每级一条独立修饰符，base 2.4
  *   逐次累加逐位复现旧 f 序列 2.0/1.6/1.2000000000000002，B16 验证；**禁止**
  *   折叠式 2.4−0.4×lv）、「双段疾冲」dashChargeLv flat +1/级、「壁垒」
- *   barrierLv flat +1/级、「不屈」nd flat +1（max=1，保持数字 0/1 与旧 f
+ *   barrierLv flat +1/级、「不屈战魂」nd flat +1（max=1，保持数字 0/1 与旧 f
  *   `p.nd = 1` 一致）、「战意沸腾」rageLv flat +1/级。对应运行状态
  *   （haste/hasteT、rageT、dashT/dashCharges/dashRe、tempShield、ndUsed）
  *   由 RuntimeStateProtection 快照保留；击杀狂热的「首级 Buff」是获得时
@@ -65,7 +65,7 @@
  *   base=0）。对应运行状态写入者不变：haste/hasteT（killEnemy 叠层/受伤
  *   扣层/衰减 + OnAcquire 首级 Buff）、rageT（受击触发/衰减）、dashT/
  *   dashCharges/dashRe（PlayerSystem 充能/消耗/倒计时）、tempShield
- *   （startNextWave 重建/受击消耗）、ndUsed（不屈触发/换波重置）——本表
+ *   （startNextWave 重建/受击消耗）、ndUsed（不屈战魂触发/换波重置）——本表
  *   与投影**不声明、不写回**这些字段。击杀狂热的 haste/hasteT 获得时效果
  *   归 OnAcquireEffects；上限协调（haste 降级夹紧/末级清除、dashCharges
  *   夹紧）归 RuntimeStateProtection.reconcileRuntimeToCaps。
@@ -441,10 +441,10 @@ export function talentStatModifiers(
           value: 1,
         });
         break;
-      case "不屈": // data/talents.ts：p.nd = 1（max 1，hidden）；保持数字
-        // 0/1 与旧 f 写入形状一致，不布尔化；ndUsed 属运行状态不在本表
+      case "不屈战魂": // 大剑反击链 L3：nd=1（max 1）
+        // 保持数字 0/1 形状；ndUsed 属运行状态不在本表
         scalars.push({
-          sourceId: "天赋:不屈",
+          sourceId: "天赋:不屈战魂",
           stat: "nd",
           stage: "flat",
           value: 1,

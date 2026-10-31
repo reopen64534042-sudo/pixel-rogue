@@ -135,14 +135,13 @@ export const ATTR_DEFS: readonly AttrDef[] = [
 
   // ================= 续航 =================
   // 续航之一（#135）：命中回复伤害的百分比。
-  // 0.04 = 4%/次：前期攻击 11 → 约 0.44/次、攻速 2.2 → 约 1/s，
-  // 后期攻击上百后成为主要回复来源（与「生命回复」形成「打得多回得多 vs 稳定回」的分工）。
+  // v138：白/绿/紫/金 = 2.8%/4.1%/5.8%/8.0%，最高品质封顶 +8%。
   {
     group: "special",
     label: "吸血",
     stat: "lifesteal",
     stage: "flat",
-    base: 0.04,
+    base: 0.0275,
     kind: "pct",
     capped: (p, prof) => p.lifesteal >= lifestealCap(prof),
   },

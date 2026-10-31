@@ -134,10 +134,13 @@ export function warriorIaiCap(core: GameCore): number {
   );
 }
 
-/** 每层势所需的移动距离（px）：核心 50；「居合·迅」再减 10。 */
+/** 每层势距离：1 级 90px → 20 级 50px 线性；「居合·迅」再减 10。 */
 export function warriorIaiStep(core: GameCore): number {
+  const lvl = Math.max(1, Math.min(20, core.player.lvl));
+  const t = (lvl - 1) / 19;
+  const base = WB.iai.stepLv1 + (WB.iai.stepLv20 - WB.iai.stepLv1) * t;
   return (
-    WB.iai.distPerStack -
+    base -
     ((core.player.upCounts["居合·迅"] || 0) > 0
       ? WB.iai.stepReduction
       : 0)
@@ -232,33 +235,12 @@ function warriorTriStage3(core: GameCore): boolean {
   );
 }
 
-/** 无锁定目标时的前冲落点：沿当前朝向（无输入则朝最近敌人）。 */
-function forwardLeapPoint(core: GameCore): { x: number; y: number } {
-  const p = core.player;
-  let dx = p.dx;
-  let dy = p.dy;
-  if (!dx && !dy) {
-    const target = core.nearestEnemy(p.x, p.y, p.attackRange + WB.triDash.leapDist);
-    if (target) {
-      dx = target.x - p.x;
-      dy = target.y - p.y;
-    } else {
-      dx = 1;
-    }
-  }
-  const len = Math.hypot(dx, dy) || 1;
-  return {
-    x: clamp(p.x + (dx / len) * WB.triDash.leapDist, 24, WORLD.w - 24),
-    y: clamp(p.y + (dy / len) * WB.triDash.leapDist, 24, WORLD.h - 24),
-  };
-}
-
 /**
  * 跃击（v131 状态机）：锁定落点，起手 + 坠落结束后才结算 AOE。
  *
- * - 普通跃击：消耗一次共享冲刺充能，锁定最密集敌群；无目标退回普通冲刺。
- * - 三段斩第三段（triStage3）：消费第 3 个独立冲刺槽；无目标时向前 85px
- *   起跳；落地附带眩晕、推进三段循环，并开启 0.8s 落地无敌。
+ * - 普通跃击：消耗一次共享冲刺充能，锁定最密集敌群；无目标时原地起跳。
+ * - 三段斩第三段（triStage3）：消费第 3 个独立冲刺槽；无目标时也原地起跳；
+ *   落地附带眩晕、推进三段循环，并开启 0.8s 落地无敌。
  */
 export function warriorLeap(
   this: GameCore,
@@ -284,10 +266,9 @@ export function warriorLeap(
     return false;
   }
   const target = findLeapTarget(this);
-  if (!target && !tri) return false;
   const point = target
     ? { x: target.x, y: target.y }
-    : forwardLeapPoint(this);
+    : { x: p.x, y: p.y };
   if (tri) {
     // 三段斩第三段消费第 3 个独立冲刺槽。
     this.warriorTriSlotRe[2] = warriorTriDashCd(p.dashMax, p.lvl);
@@ -319,6 +300,7 @@ export function warriorLeap(
         particleColor: style.particle,
         weapon: "greatsword",
         impact: true,
+        ...(tri ? { triHit: true } : {}),
         life: WB.leapImpactLife,
         shake: tri ? 6 : 4,
       },
@@ -467,7 +449,9 @@ export function finishWarriorTriDash(this: GameCore): void {
     particleColor: style.particle,
     weapon: "greatsword",
     ...(spin ? { spin: true } : {}),
-    ...(this.warriorStyle === "greatsword" ? { dashSlash: true } : {}),
+    ...(this.warriorStyle === "greatsword"
+      ? { dashSlash: true, triHit: true }
+      : {}),
     shake: spin ? 3 : 2,
   });
   advanceWarriorTriDash.call(this);
@@ -588,6 +572,10 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     this.warriorHeavyReadyT = Math.max(0, this.warriorHeavyReadyT - dt);
   if (this.warriorLeapInvulnT > 0)
     this.warriorLeapInvulnT = Math.max(0, this.warriorLeapInvulnT - dt);
+  if (this.warriorBloodDebtT > 0) {
+    this.warriorBloodDebtT = Math.max(0, this.warriorBloodDebtT - dt);
+    if (this.warriorBloodDebtT === 0) this.warriorBloodDebtStacks = 0;
+  }
 
   // 流计时：断档清空
   if (this.warriorFlowT > 0) {

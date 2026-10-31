@@ -108,6 +108,16 @@ export function hurtEnemy(
   if (!opts.noCrit && Math.random() < critChance) {
     crit = true;
   }
+  // 血偿：受伤后的近战伤害加成覆盖挥砍、剑气、飞刃等所有 melee 形式。
+  if (
+    this.prof === "warrior" &&
+    opts.form === "melee" &&
+    this.warriorBloodDebtStacks > 0
+  )
+    dmg *=
+      1 +
+      WARRIOR_BALANCE.counterChain.bloodDebtPerStack *
+        this.warriorBloodDebtStacks;
   // 冷读是「下一次命中」，命中即消费；赌命是窗口，不消费
   if (crit && this.dodgeNextCrit) this.dodgeNextCrit = false;
   // Issue #42 灼热易伤：灼烧目标受伤增加——条件天赋增伤折叠进 rawAmount
@@ -218,20 +228,23 @@ export function hurtEnemy(
     e.x,
     e.y - e.r - 2,
     mainDamage,
-    // 居合斩优先用冰白主色（配专属双层描边，见 draw.ts）
-    opts.iaiHit
-      ? "#e8ffff"
-      : mainIsTrue
-        ? TRUE_DAMAGE_COLOR
-        : opts.specialHit || crit
-          ? "#ffd24a"
-          : "#ffffff",
+    // 居合/三段斩优先用专属主色（配对应四层描边，见 draw.ts）
+    opts.triHit
+      ? "#fff1c4"
+      : opts.iaiHit
+        ? "#e8ffff"
+        : mainIsTrue
+          ? TRUE_DAMAGE_COLOR
+          : opts.specialHit || crit
+            ? "#ffd24a"
+            : "#ffffff",
     crit,
     mainIsTrue,
     false,
     mainSpecial,
     crit,
     opts.iaiHit === true,
+    opts.triHit === true,
   );
   if (crit) {
     // 暴击火花：不推进随机数，按敌人 seed 给四向金色/白色短粒子。
@@ -599,6 +612,7 @@ export function addText(
   specialDmg = false,
   critDmg = false,
   iaiDmg = false,
+  triDmg = false,
 ) {
   // 同位置叠字是玩家实机反馈的问题（伤害数字与机制标签互相盖住，两个都看不清）。
   // 生成时就按当前飘字错开：同一列（x 差 <18px）每撞到一条，新字上移 9px（最多 4 层）。
@@ -626,6 +640,7 @@ export function addText(
     ...(specialDmg ? { specialDmg: true } : {}),
     ...(critDmg ? { critDmg: true } : {}),
     ...(iaiDmg ? { iaiDmg: true } : {}),
+    ...(triDmg ? { triDmg: true } : {}),
     ...(small ? { small: true } : {}),
   };
   this.texts.push(text);
@@ -762,7 +777,19 @@ export function damagePlayer(
   const hpBefore = p.hp;
   p.hurtCd = 0.6;
   p.hp -= dmg;
-  // 不屈会在下方把 HP 拉回 1，致死阈值必须先于该重置捕获（§3.5：lethal 与死亡结算解耦）
+  // 血偿：实际掉血后叠层并刷新 3 秒窗口。
+  if (
+    this.prof === "warrior" &&
+    this.warriorStyle === "greatsword" &&
+    (p.upCounts["血偿"] || 0) > 0
+  ) {
+    this.warriorBloodDebtStacks = Math.min(
+      WARRIOR_BALANCE.counterChain.bloodDebtMaxStacks,
+      this.warriorBloodDebtStacks + 1,
+    );
+    this.warriorBloodDebtT = WARRIOR_BALANCE.counterChain.bloodDebtT;
+  }
+  // 不屈战魂会把 HP 拉回 20%，致死阈值必须先于该重置捕获（§3.5：lethal 与死亡结算解耦）
   const lethal = p.hp <= 0;
   const applied = (killed: boolean, preventedDeath = false): DamageResult => ({
     ...calc,
@@ -773,13 +800,18 @@ export function damagePlayer(
     killed,
     preventedDeath,
   });
-  if (opts.melee && p.thorns && opts.src) {
+  const thornsDmg =
+    p.thorns +
+    ((p.upCounts["荆棘重铠"] || 0) > 0
+      ? p.damage * WARRIOR_BALANCE.counterChain.thornsMeleeMul
+      : 0);
+  if (opts.melee && thornsDmg && opts.src) {
     const dx = p.x - opts.src.x,
       dy = p.y - opts.src.y,
       kd = Math.hypot(dx, dy) || 1;
     this.hurtEnemy(
       opts.src,
-      p.thorns,
+      thornsDmg,
       (-dx / kd) * KNOCK.thorns,
       (-dy / kd) * KNOCK.thorns,
       {
@@ -801,11 +833,11 @@ export function damagePlayer(
   this.addText(p.x, p.y - 10, "-" + Math.round(dmg), "#ff5b5b");
   this.audio.beep(110, 0.15, "sawtooth", 0.08, -40);
   if (p.hp <= 0) {
-    // 不屈: 每波一次免死
+    // 不屈战魂：每波一次，免除致命伤害并回到 20% 最大生命。
     if (p.nd && !p.ndUsed) {
       p.ndUsed = true;
-      p.hp = 1;
-      this.addText(p.x, p.y - 16, "不屈!!", "#ffd24a", true);
+      p.hp = Math.max(1, Math.round(p.maxhp * 0.2));
+      this.addText(p.x, p.y - 16, "不屈战魂!!", "#ffd24a", true);
       this.audio.beep(1046, 0.3, "square", 0.08, 200);
       return applied(false, true);
     }

@@ -7,8 +7,19 @@ export const WORLD = { w: 1392, h: 1040 };
  * 后期必须让玩家看清画面，所有来源统一受此上限约束。
  */
 export const SHAKE_MAX = 4;
-/** 满血拾取血包转化为最大生命的每波上限（加成本身永久保留，不设总上限） */
+/** 历史基线：满血血包转生命上限已移除；保留给旧测试编译，运行时不再消费。 */
 export const POTION_GROW_CAP = 10;
+/** 血瓶回复：1 级 10 点，每 4 波 +4，封顶 30。 */
+export const POTION_HEAL_BASE = 10;
+export const POTION_HEAL_STEP = 4;
+export const POTION_HEAL_CAP = 30;
+export function potionHealAmount(wave: number): number {
+  const steps = Math.floor((Math.max(1, wave) - 1) / 4);
+  return Math.min(
+    POTION_HEAL_CAP,
+    POTION_HEAL_BASE + steps * POTION_HEAL_STEP,
+  );
+}
 /** 宝箱拾取回血：普通与精英宝箱相同（v79 用户裁定） */
 export const CHEST_HEAL = 10;
 /** 每波普通怪宝箱掉落上限；精英宝箱不占此名额 */

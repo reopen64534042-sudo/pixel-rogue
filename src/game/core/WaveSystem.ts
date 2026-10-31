@@ -45,7 +45,9 @@ export function startNextWave(this: GameCore) {
     this.player.shield = Math.max(1, this.player.shield);
     this.player.shieldCd = shieldRebuildSeconds(this.player.upCounts);
   }
-  this.player.ndUsed = false; // 不屈: 每波重置
+  this.player.ndUsed = false; // 不屈战魂: 每波重置
+  this.warriorBloodDebtStacks = 0;
+  this.warriorBloodDebtT = 0;
   this.swapUsedThisRest = false;
   const difficulty = resolveDifficulty(
     this.prof,

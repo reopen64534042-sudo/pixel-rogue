@@ -11,8 +11,8 @@ import { hasteCap, physMitPct } from "./common";
  *
  * S2 起本表整体退役：`UPGRADES` 的条目全部标记 `hidden`，不再进入抽取池。
  * 卡名同时是图鉴 id（`codex.syncTalents`），因此除用户明确要求彻底删除的卡外
- * 仍在表内保留实现。v137 已按用户要求移除「能量护盾」；`tests/parity.test.ts`
- * 的 41 张逐字段对照基线因此过期，留待授权测试批次统一处理（见 docs/migration.md）。
+ * 仍在表内保留实现。v138 已按用户要求移除「能量护盾」与旧「不屈」；
+ * `tests/parity.test.ts` 的 41 张逐字段对照基线因此过期，留待授权测试批次统一处理。
  */
 export const LEGACY_UPGRADES: Talent[] = [
   {
@@ -460,22 +460,6 @@ export const LEGACY_UPGRADES: Talent[] = [
     // 快照保留现值。
     f: () => {},
     cur: (p) => `每波临时护盾 ${p.barrierLv} 层`,
-  },
-  {
-    hidden: 1,
-    n: "不屈",
-    ico: "🏅",
-    t: 3,
-    cat: "防御",
-    d: "受到致命伤害时以 1 点 HP 存活（每波一次）",
-    max: 1,
-    mech: 1,
-    pv: (p) => (p.nd ? "已解锁" : "解锁: 每波一次免死"),
-    // S4-C C3-C：nd = 1（max=1）由权威来源表声明（core/TalentStatSources.ts，
-    // nd flat +1，保持数字 0/1 形状）；ndUsed 属运行状态（触发置 true/换波
-    // 重置），recompute 由 RuntimeStateProtection 快照保留（D-C3-04）。
-    f: () => {},
-    cur: (p) => `每波一次致命免死 · ${p.ndUsed ? "本波已触发" : "本波可用"}`,
   },
   {
     retired: 1,

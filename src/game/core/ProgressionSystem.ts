@@ -2,7 +2,7 @@ import {
   CHEST_HEAL,
   ELITE_BOX_GAIN,
   ELITE_BOX_POINT_CAP,
-  POTION_GROW_CAP,
+  potionHealAmount,
 } from "../data/constants";
 import type { GameCore } from "./GameCore";
 import { tutorialGemStep } from "./TutorialSystem";
@@ -49,8 +49,7 @@ export function updateProgression(this: GameCore, dt: number) {
       }
     }
   }
-  // 满血时不再吸附：满血血包会转最大生命，但让玩家自己决定何时踩上去；
-  // 手动接触仍保留满血转化（不再自动把血包吸走）。
+  // 满血时不吸附、不拾取，血瓶留在原地；v138 起满血不再转生命上限。
   const pullR = p.magnet * 0.4; // 血瓶吸附范围 ≤ 经验球的一半
   for (let i = this.potions.length - 1; i >= 0; i--) {
     const o = this.potions[i];
@@ -62,25 +61,15 @@ export function updateProgression(this: GameCore, dt: number) {
       o.x += (dx / d) * s * dt;
       o.y += (dy / d) * s * dt;
     }
-    if (dx * dx + dy * dy < 36) {
-      if (p.hp >= p.maxhp) {
-        // 满血转化：每波最多 +POTION_GROW_CAP 点最大生命，加成本身永久保留
-        if (this.potionGrow < POTION_GROW_CAP) {
-          this.potionGrow++;
-          // C3-A（D-C3-01）：先累计实例级持久来源（权威），再即时双写实体
-          // 兼容投影——保持本帧 regen/满血判定/治疗读取行为不变；实体字段
-          // 不构成第二来源，recompute 由投影以 potionMaxHpGrow 重建（契约 §8.2）
-          this.potionMaxHpGrow++;
-          p.maxhp += 1;
-          p.hp += 1;
-          this.addText(p.x, p.y - 10, "生命上限+1", "#ffd24a");
-        } else {
-          this.addText(p.x, p.y - 10, "本波已满", "#8a93b0");
-        }
-      } else {
-        p.hp = Math.min(p.maxhp, p.hp + 20);
-        this.addText(p.x, p.y - 10, "+20", "#4dff88");
-      }
+    if (p.hp < p.maxhp && dx * dx + dy * dy < 36) {
+      const before = p.hp;
+      p.hp = Math.min(p.maxhp, p.hp + potionHealAmount(this.waveN));
+      this.addText(
+        p.x,
+        p.y - 10,
+        "+" + Math.round(p.hp - before),
+        "#4dff88",
+      );
       this.potions.splice(i, 1);
       this.audio.beep(700, 0.12, "triangle", 0.06, 200);
     }

@@ -313,6 +313,9 @@ export class GameCore {
   warriorHeavyReadyT = 0;
   /** 三段斩第三段跃击：落地后的额外无敌时间。 */
   warriorLeapInvulnT = 0;
+  /** 血偿：受伤后的挥砍增伤层数与剩余时间。 */
+  warriorBloodDebtStacks = 0;
+  warriorBloodDebtT = 0;
   /** 教程核心步骤：是否已经打出过重斩。 */
   tutorialHeavyDone = false;
   /** 新手教程（v83）：练习场标记与分步状态 */
@@ -695,6 +698,8 @@ export class GameCore {
     this.warriorLianShanT = 0;
     this.warriorHeavyReadyT = 0;
     this.warriorLeapInvulnT = 0;
+    this.warriorBloodDebtStacks = 0;
+    this.warriorBloodDebtT = 0;
     this.tutorialHeavyDone = false;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
@@ -898,6 +903,8 @@ export class GameCore {
     this.warriorTriSlotRe = [0, 0, 0];
     this.warriorHeavyReadyT = 0;
     this.warriorLeapInvulnT = 0;
+    this.warriorBloodDebtStacks = 0;
+    this.warriorBloodDebtT = 0;
     this.warriorWaves = [];
     this.bpMode = null;
     this.state = "play";
@@ -961,6 +968,8 @@ export class GameCore {
     this.warriorLianShanT = 0;
     this.warriorHeavyReadyT = 0;
     this.warriorLeapInvulnT = 0;
+    this.warriorBloodDebtStacks = 0;
+    this.warriorBloodDebtT = 0;
     this.recompute();
     this.addText(p.x, p.y - 26, "已清空天赋", "#ffd24a", true);
   }
