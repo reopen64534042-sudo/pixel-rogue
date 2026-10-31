@@ -28,7 +28,7 @@ import {
   displayTalentTier,
   mageElements,
 } from "../game/data/talents";
-import { fmtTime } from "../game/data/constants";
+import { fmtHp, fmtTime } from "../game/data/constants";
 import { levelGrowthSteps, levelGrowthSummary } from "../game/data/levelGrowth";
 import { waveTheme } from "../game/data/enemies";
 import { boltDamage, critMultiplier } from "../game/core/DamageMath";
@@ -1047,7 +1047,7 @@ export class GameUI {
       knockRows.push(["🌵 荆棘反伤", knockLevel(KNOCK.thorns)]);
 
     const survivalRows: [string, string | number][] = [
-      ["❤️ 生命", `${Math.ceil(p.hp)} / ${p.maxhp}`],
+      ["❤️ 生命", fmtHp(p.hp, p.maxhp)],
       // S3-C：护甲/元素抗性与战斗计算同公式（K/(K+DEF)，与减伤乘算）
       [
         "🪨 护甲",
