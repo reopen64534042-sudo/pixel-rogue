@@ -103,7 +103,7 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
       e.ky = (d > 0.01 ? dy / d : Math.sin(angle)) * opts.knock;
     }
     this.hurtEnemy(e, opts.dmg, 0, 0, {
-      src: "melee",
+      src: opts.iaiHit ? "iai" : opts.triHit ? "tri" : "melee",
       type: "physical",
       form: "melee",
       ...(opts.lifestealMul !== undefined

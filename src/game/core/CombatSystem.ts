@@ -24,7 +24,9 @@ import { calculateDamage } from "./DamageSystem";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { elementDamageMultiplier } from "./ElementMath";
 import type {
+  DamageCause,
   DamageResult,
+  DamageTakenEvent,
   Enemy,
   HitOptions,
   PlayerHitOptions,
@@ -202,6 +204,8 @@ export function hurtEnemy(
     settled += trueDamage;
   }
   dmg = settled;
+  if (dmg > this.runHighestHit.amount)
+    this.runHighestHit = { amount: dmg, source: opts.src ?? "melee" };
   // 动态难度：最终伤害层，连 true / 百分比生命伤害一起压。
   // 放在所有伤害修正之后、lethalCap 之前；主伤害与 +真实伤害分别按同一乘区取整。
   const damageTakenMul = e.damageTakenMul ?? 1;
@@ -432,6 +436,10 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   if (e.dead) return;
   e.dead = true;
   this.kills++;
+  if (e.elite) {
+    this.runEliteKills++;
+    if (e.type === "brute") this.runBossKills++;
+  }
   // Issue #82 图鉴：只登记类型与数量，不参与任何战斗计算。
   // 写普通字段 killLog（不依赖 CodexSystem），波末 / 局末由图鉴消费后清空。
   // 重构本函数时必须保留：删除后图鉴的敌人击杀数会静默归零（tests/codex.test.ts 会红）。
@@ -794,6 +802,23 @@ export function damagePlayer(
   const hpBefore = p.hp;
   p.hurtCd = 0.6;
   p.hp -= dmg;
+  // 死亡总结：只记录实际掉血；护盾/闪避/无敌在上方已提前返回。
+  const cause: DamageCause =
+    opts.cause ?? (opts.melee ? "contact" : "unknown");
+  const hitEvent: DamageTakenEvent = {
+    t: this.time,
+    amount: dmg,
+    hpBefore,
+    cause,
+    sourceType: opts.src?.type,
+    sourceElite: opts.src?.elite === true,
+    type: opts.type ?? "physical",
+    form: opts.form ?? "other",
+  };
+  this.runDamageTaken += dmg;
+  this.runDamageTakenByCause[cause] += dmg;
+  this.runRecentHits.push(hitEvent);
+  if (this.runRecentHits.length > 5) this.runRecentHits.shift();
   // 血偿：实际掉血后叠层并刷新 3 秒窗口。
   if (
     this.prof === "warrior" &&

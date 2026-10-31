@@ -7,7 +7,13 @@ import { laserBeamCount, laserRange, laserWidth, laserDuration, laserRecharge } 
 import type { GameCore } from "../game/core/GameCore";
 import { playerMoveSpeed } from "../game/core/PlayerSystem";
 import { tutorialGemStep, tutorialTotalSteps } from "../game/core/TutorialSystem";
-import type { ShooterWeapon, WarriorStyle } from "../game/core/types";
+import type {
+  RunSummary,
+  ShooterWeapon,
+  WarriorStyle,
+} from "../game/core/types";
+import { ENEMY_ENTRIES } from "../game/codex/codexData";
+import { DAMAGE_TYPES } from "../game/data/damageTypes";
 import { groupLabel, rarityLabel } from "../game/core/AttributeSystem";
 import { CHANGELOG, CURRENT_VERSION } from "../game/data/changelog";
 import { resolveDifficulty } from "../game/data/difficulty";
@@ -76,12 +82,68 @@ const DMG_NAMES: Record<string, string> = {
   burn: "♨️灼烧",
   shock: "💥反震",
   reflect: "🌀飞刃反弹",
+  melee: "⚔️近战",
+  iai: "⚔️居合",
+  qi: "🗡️剑气",
+  fissure: "🌋裂地",
+  tri: "🌪️三段斩",
   // S3 法师池：法阵爆裂与元素 DoT 的分项（types.DamageSource 的 cast/element）。
   // 缺这两项时报告按 DMG_NAMES 的键遍历，法师的主要伤害会整行消失。
   cast: "🔮法阵",
   element: "✹元素",
   reaction: "☯反应",
 };
+
+/** 伤害来源 → 主要解锁它的卡；只用于死亡总结的说明，不反推精确伤害归因。 */
+const SOURCE_TALENT: Record<string, string> = {
+  melee: "平A / 近战增幅",
+  iai: "居合",
+  qi: "剑气",
+  fissure: "裂地",
+  tri: "三段斩",
+  orbit: "护刃 / 刃轮",
+  reflect: "刃返",
+  shock: "碎盾反震",
+  thorns: "荆棘重铠",
+  laser: "激光武器",
+  missileMain: "导弹核心",
+  missileSwarm: "蜂群",
+  missileArc: "电弧 / 共振",
+  missileBurn: "导弹余烬",
+  bullet: "魔弹",
+  chain: "雷霆连锁",
+  meteor: "星陨",
+  cast: "法阵",
+  element: "元素印记",
+  reaction: "元素反应",
+  burn: "灼烧",
+  explode: "爆炸",
+};
+
+function enemyDisplayName(type?: string): string {
+  if (!type) return "未知敌人";
+  const entry = ENEMY_ENTRIES.find(
+    (e) => e.link === type || e.id === type || e.id === `${type}_elite`,
+  );
+  return entry?.name ?? type;
+}
+
+function damageCauseLabel(event: NonNullable<RunSummary["death"]>): string {
+  const enemy = enemyDisplayName(event.sourceType);
+  const prefix = event.sourceElite ? "精英·" : "";
+  switch (event.cause) {
+    case "contact":
+      return `被 ${prefix}${enemy} 撞击`;
+    case "projectile":
+      return "被远程弹幕击杀";
+    case "explosion":
+      return `被 ${prefix}${enemy} 的爆炸击杀`;
+    case "dot":
+      return "被持续伤害耗尽";
+    default:
+      return "未知伤害";
+  }
+}
 const show = (id: string) => element(id).classList.remove("hidden");
 const hide = (id: string) => element(id).classList.add("hidden");
 
@@ -117,6 +179,9 @@ export class GameUI {
   /** 重新开始的二次确认态（Issue #81） */
   private restartArmed = false;
   private restartTimer: number | undefined;
+  /** v147：暂停恢复倒计时；倒计时期间 core 保持 pause，模拟继续冻结 */
+  private resumeTimer: number | undefined;
+  private resumeCount = 0;
   /** 低血量屏幕边缘提示层（index.html 的静态节点） */
   private lowHpEl: HTMLElement | null = null;
   /** 设置菜单 / 键位子窗口 / 改键捕获态（v79，v81 拆子窗口） */
@@ -153,6 +218,7 @@ export class GameUI {
         this.tutorialPickOpen = false;
         this.tutorialHudEl?.classList.add("hidden");
         this.tutorialSig = "";
+        this.clearResumeCountdown();
         // S2 修订（用户反馈）：开局送 1 次天赋 → 选完再进入战斗。
         // 面板由**UI 层**弹出而不是 GameCore.startGame：core 里开面板会走
         // rollPicks，消耗 Math.random 打乱确定性序列，所有基于种子随机的
@@ -190,11 +256,13 @@ export class GameUI {
       attr: () => this.openAttrPanel(),
       rest: () => this.showRestBar(),
       over: () => {
-        element("over-stats").innerHTML =
-          `存活时间 <span class="accent">${fmtTime(core.time)}</span> ｜ 击杀 <span class="accent">${core.kills}</span> ｜ 等级 <span class="accent">${core.player.lvl}</span>`;
+        this.clearResumeCountdown();
+        ["bp-level", "bp-attr", "bp-rest", "bottom-bar"].forEach(hide);
+        this.renderDeathSummary();
         show("ov-over");
         if (core.storage.lastError) {
           const warning = document.createElement("p");
+          warning.className = "over-warning";
           warning.textContent = "战绩未保存：" + core.storage.lastError;
           element("over-stats").append(warning);
         }
@@ -256,7 +324,8 @@ export class GameUI {
     // 重开保留当前职业（S3：玩家不该被强制退回射手）
     element("btn-retry").onclick = () =>
       this.core.startGame(this.core.prof, this.core.warriorStyle, this.core.shooterWeapon);
-    element("btn-resume").onclick = () => this.core.togglePause();
+    element("btn-over-home").onclick = () => this.returnToStart();
+    element("btn-resume").onclick = () => this.startResumeCountdown();
     element("btn-pause-codex").onclick = () => this.codex.open();
     // Issue #100：触屏没有 C 键，属性面板从暂停界面进入
     element("btn-pause-stats").onclick = () => this.core.openStatsFromPause();
@@ -282,6 +351,7 @@ export class GameUI {
     element("btn-statclose").onclick = () => this.core.toggleStats();
     element("btn-pause").onclick = () => {
       element("btn-pause").blur();
+      if (this.cancelResumeCountdown()) return;
       this.core.togglePause();
     };
     element("bp-swapbtn").onclick = () => {
@@ -427,10 +497,167 @@ export class GameUI {
     const next = opacity.toFixed(3);
     if (overlay.style.opacity !== next) overlay.style.opacity = next;
   }
+
+  /** v147：把局末快照渲染成死亡总结；不读取已重置的运行数组。 */
+  private renderDeathSummary(): void {
+    const core = this.core;
+    const summary = core.runSummary;
+    if (!summary) {
+      element("over-stats").textContent =
+        `存活时间 ${fmtTime(core.time)} ｜ 击杀 ${core.kills} ｜ 等级 ${core.player.lvl}`;
+      return;
+    }
+    const pct = (value: number) =>
+      summary.totalDamage > 0
+        ? ((value / summary.totalDamage) * 100).toFixed(0) + "%"
+        : "0%";
+    const num = (value: number) => Math.round(value).toLocaleString();
+    const profLabel =
+      core.prof === "warrior"
+        ? core.warriorStyle === "greatsword"
+          ? "战士 · 大剑"
+          : "战士 · 太刀"
+        : core.prof === "mage"
+          ? "法师"
+          : "射手";
+    element("over-meta").textContent =
+      `第 ${summary.wave} 波 · ${fmtTime(summary.time)} · 等级 ${summary.level}`;
+    element("over-class").textContent = `${profLabel} · ${CURRENT_VERSION}`;
+
+    const cause = summary.death;
+    if (cause) {
+      const overkill = Math.max(0, cause.amount - cause.hpBefore);
+      const typeLabel = DAMAGE_TYPES[cause.type]?.label ?? "未知";
+      const formLabel =
+        cause.form === "melee" ? "近战" : cause.form === "ranged" ? "远程" : "其他";
+      element("over-cause").innerHTML =
+        `<div class="over-cause-main">${damageCauseLabel(cause)}</div>` +
+        `<div class="over-cause-detail">最后一击 <b>${num(cause.amount)}</b> 伤害` +
+        ` · ${typeLabel} · ${formLabel}` +
+        (overkill > 0.5 ? ` · 溢出 ${num(overkill)}` : "") +
+        `<br>当时生命 ${num(cause.hpBefore)}</div>`;
+    } else {
+      element("over-cause").innerHTML =
+        '<div class="over-cause-main">未记录到最后一击</div>';
+    }
+    const recent = summary.recentHits.slice(-3).reverse();
+    element("over-recent").innerHTML = recent.length
+      ? `<div class="over-subtitle">最近受击</div>${recent
+          .map(
+            (hit) =>
+              `<div class="over-hit"><span>${fmtTime(hit.t)}</span><span>${num(hit.amount)} 伤害</span><span>${damageCauseLabel(hit)}</span></div>`,
+          )
+          .join("")}`
+      : "";
+
+    const metrics: [string, string][] = [
+      ["击杀", num(summary.kills)],
+      ["总伤害", num(summary.totalDamage)],
+      ["承受伤害", num(summary.damageTaken)],
+      ["精英 / 首领", `${summary.eliteKills} / ${summary.bossKills}`],
+      ["属性选择", `${summary.attributePicks.length} 次`],
+    ];
+    element("over-stats").innerHTML = metrics
+      .map(
+        ([label, value]) =>
+          `<div class="over-metric"><span>${label}</span><b>${value}</b></div>`,
+      )
+      .join("");
+    const causeLabels: Record<string, string> = {
+      contact: "接触",
+      projectile: "弹幕",
+      explosion: "爆炸",
+      dot: "持续伤害",
+      unknown: "其他",
+    };
+    const taken = Object.entries(summary.damageTakenByCause)
+      .filter(([, value]) => value > 0.5)
+      .sort((a, b) => b[1] - a[1]);
+    const takenMax = taken[0]?.[1] ?? 1;
+    element("over-damage-taken").innerHTML = taken.length
+      ? `<div class="over-subtitle">承伤构成</div>${taken
+          .map(
+            ([cause, value]) =>
+              `<div class="over-dmg-row"><div class="over-dmg-head"><span>${causeLabels[cause] ?? cause}</span><span>${num(value)} <i>${((value / summary.damageTaken) * 100).toFixed(0)}%</i></span></div>` +
+              `<div class="over-dmg-track"><i style="width:${Math.max(2, Math.round((value / takenMax) * 100))}%"></i></div></div>`,
+          )
+          .join("") }`
+      : "";
+    element("over-highlights").innerHTML =
+      `<div class="over-subtitle">本局亮点</div>` +
+      `<div class="over-hit"><span>最高一击</span><span>${num(summary.highestHit.amount)}</span><span>${DMG_NAMES[summary.highestHit.source] ?? summary.highestHit.source}</span></div>`;
+
+    const dmgEntries = Object.keys(DMG_NAMES)
+      .map((key) => ({
+        key,
+        value: summary.damageBySource[key as keyof typeof summary.damageBySource] ?? 0,
+      }))
+      .filter((entry) => entry.value > 0.5)
+      .sort((a, b) => b.value - a.value);
+    const maxDamage = dmgEntries[0]?.value ?? 1;
+    element("over-damage").innerHTML = dmgEntries.length
+      ? dmgEntries
+          .map(
+            (entry) =>
+              `<div class="over-dmg-row"><div class="over-dmg-head"><span>${DMG_NAMES[entry.key] ?? entry.key}</span><span>${num(entry.value)} <i>${pct(entry.value)}</i></span></div>` +
+              `<div class="over-dmg-track"><i style="width:${Math.max(2, Math.round((entry.value / maxDamage) * 100))}%"></i></div>` +
+              `<small>${SOURCE_TALENT[entry.key] ?? ""}</small></div>`,
+          )
+          .join("")
+      : '<div class="over-empty">本局没有造成伤害</div>';
+
+    const owned: { u: (typeof UPGRADES)[number]; lv: number }[] = [];
+    for (const [name, lv] of Object.entries(summary.upCounts)) {
+      if (lv <= 0) continue;
+      const u = UPGRADES.find((item) => item.n === name);
+      if (u) owned.push({ u, lv });
+    }
+    owned.sort((a, b) => (a.u.layer ?? 9) - (b.u.layer ?? 9));
+    element("over-talents").innerHTML = owned.length
+      ? owned
+          .map(({ u, lv }) => {
+            const tier = displayTalentTier(u, UPGRADES);
+            const chain = chainDisplayLayer(u, UPGRADES);
+            const suffix = u.max > 1 ? ` Lv.${lv}` : chain ? ` L${chain}` : "";
+            return `<span class="over-talent t${tier}">${u.ico} ${u.n}${suffix}</span>`;
+          })
+          .join("")
+      : '<div class="over-empty">本局没有获得天赋</div>';
+    const groups = new Map<string, { slot: string; cards: (typeof UPGRADES)[number][] }>();
+    for (const u of UPGRADES) {
+      if (
+        !u.layer ||
+        !u.slot ||
+        (u.prof !== core.prof && u.prof !== "common") ||
+        (u.warriorStyle && u.warriorStyle !== core.warriorStyle)
+      )
+        continue;
+      const key = `${u.prof}|${u.warriorStyle ?? ""}|${u.slot}`;
+      const group = groups.get(key);
+      if (group) group.cards.push(u);
+      else groups.set(key, { slot: u.slot, cards: [u] });
+    }
+    const chainItems: string[] = [];
+    for (const group of groups.values()) {
+      const maxLayer = Math.max(...group.cards.map((u) => u.layer ?? 0));
+      if (maxLayer <= 1) continue;
+      const learned = group.cards.filter((u) => (summary.upCounts[u.n] || 0) > 0);
+      if (!learned.length) continue;
+      const learnedMax = Math.max(...learned.map((u) => u.layer ?? 0));
+      chainItems.push(
+        `${group.slot} ${learnedMax}/${maxLayer}${learnedMax >= maxLayer ? " ✓" : ""}`,
+      );
+    }
+    element("over-chains").innerHTML = chainItems.length
+      ? `<div class="over-subtitle">链进度</div><div class="over-chain-list">${chainItems.join(" · ")}</div>`
+      : "";
+  }
+
   choose(index: number) {
     this.core.chooseSlot(index);
   }
   dispose() {
+    this.clearResumeCountdown();
     this.core.view = {
       reset() {},
       started() {},
@@ -1992,6 +2219,71 @@ export class GameUI {
     );
   }
 
+  /**
+   * v147：暂停界面点「继续战斗」后不立即恢复模拟，而是回到游戏画面倒数
+   * 3-2-1。倒数期间 core 仍是 pause，输入与模拟都保持冻结；倒数结束才恢复。
+   */
+  startResumeCountdown(): void {
+    if (this.core.state !== "pause" || this.resumeTimer !== undefined) return;
+    this.codex.close();
+    if (this.settingsOpen) this.closeSettings();
+    hide("ov-pause");
+    this.setResumeCount(3);
+    show("resume-countdown");
+    this.resumeTimer = window.setInterval(() => {
+      if (this.resumeCount <= 1) {
+        this.finishResumeCountdown();
+        return;
+      }
+      this.setResumeCount(this.resumeCount - 1);
+    }, 1000);
+  }
+
+  isResumeCounting(): boolean {
+    return this.resumeTimer !== undefined;
+  }
+
+  /** 返回 true 表示取消了一次进行中的倒数（仍保持暂停，不会恢复模拟）。 */
+  cancelResumeCountdown(): boolean {
+    if (this.resumeTimer === undefined) return false;
+    this.clearResumeCountdown();
+    if (this.core.state === "pause") {
+      this.renderPause();
+      show("ov-pause");
+    }
+    return true;
+  }
+
+  private setResumeCount(value: number): void {
+    this.resumeCount = value;
+    const number = document.getElementById("resume-count-number");
+    if (number) {
+      number.textContent = String(value);
+      // 重新触发缩放动画：连续修改 textContent 不会重播 CSS animation
+      number.classList.remove("pop");
+      void number.offsetWidth;
+      number.classList.add("pop");
+    }
+    this.core.audio.beep(value === 1 ? 880 : 620, 0.09, "square", 0.05);
+  }
+
+  private finishResumeCountdown(): void {
+    this.clearResumeCountdown();
+    if (this.core.state !== "pause") return;
+    this.core.audio.beep(1040, 0.12, "square", 0.06);
+    this.core.togglePause();
+  }
+
+  private clearResumeCountdown(): void {
+    if (this.resumeTimer !== undefined) {
+      window.clearInterval(this.resumeTimer);
+      this.resumeTimer = undefined;
+    }
+    this.resumeCount = 0;
+    hide("resume-countdown");
+    document.getElementById("resume-count-number")?.classList.remove("pop");
+  }
+
   private renderPause(): void {
     this.disarmRestart();
     const core = this.core;
@@ -2009,6 +2301,7 @@ export class GameUI {
    */
   private returnToStart(): void {
     this.disarmRestart();
+    this.clearResumeCountdown();
     this.codex.close();
     this.core.clearTouchInput();
     this.core.resetMissileWeapon();

@@ -141,11 +141,15 @@ export class GameScene extends Phaser.Scene {
       // 覆盖层优先：图鉴打开时暂停键 / Esc 只关闭图鉴，不恢复游戏（Issue #78 / #81）
       if (key === this.core.keybinds.pause || key === "escape") {
         if (this.ui.dismissOverlay()) return;
+        // 恢复倒数期间再按暂停：取消倒数并回到暂停界面，不直接开打
+        if (this.ui.cancelResumeCountdown()) return;
         if (key === this.core.keybinds.pause) this.core.togglePause();
         else if (this.core.state === "stats") this.core.toggleStats();
         else if (this.core.state === "pause") this.core.togglePause();
         return;
       }
+      // 倒数期间只接受暂停键，避免 C / 下一波等快捷键绕过倒数
+      if (this.ui.isResumeCounting()) return;
       // 图鉴打开时不响应属性面板，避免两层 overlay 互相遮挡
       if (key === this.core.keybinds.stats && !this.ui.hasOverlay())
         this.core.toggleStats();
@@ -194,8 +198,10 @@ export class GameScene extends Phaser.Scene {
     };
     const hidden = () => {
       clear();
-      if (document.hidden && this.core.state === "play")
-        this.core.togglePause();
+      if (!document.hidden) return;
+      // 切后台时取消恢复倒数并保持暂停，回来不会凭空开打
+      if (this.ui.cancelResumeCountdown()) return;
+      if (this.core.state === "play") this.core.togglePause();
     };
     this.input.keyboard?.on("keydown", down).on("keyup", up);
     window.addEventListener("blur", clear);
