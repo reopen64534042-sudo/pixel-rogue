@@ -403,10 +403,16 @@ export class GameCore {
    */
   mageElementPickPending: "second" | "third" | null = null;
   /**
-   * S1：本波剩余的可选次数（波次发放，波末消费）。为 0 时属性面板不出现。
+   * S1/v139：本次休整可用的属性消费额度（波次 + 成长徽记）。为 0 时属性面板不出现。
    * 不进 parity 快照白名单：它只驱动面板流程，不参与任何数值计算。
    */
   attrPicks = 0;
+  /** 升级获得的属性点池（v139）：每级 +2，休整时按额度消费。 */
+  attributePoints = 0;
+  /** 普通宝箱的品质祝福层数（v139，最多 2 层）。 */
+  attrQualityBoosts = 0;
+  /** 已发放里程碑属性额度的波次（4/8/12…，防止面板重入重复发）。 */
+  attrMilestoneWave = 0;
   /**
    * 本波已经**发放**的属性选择次数（#134 方案 B）。
    *
@@ -447,9 +453,9 @@ export class GameCore {
    * 非 Player 字段：不进实体序列化（parity 快照不受影响，先例 potionGrow）。
    */
   potionMaxHpGrow = 0;
-  /** 本波普通怪已掉落的宝箱数（精英宝箱不占此名额） */
+  /** 本波普通怪已掉落的成长徽记数（精英普通宝箱不占此名额） */
   boxDropsThisWave = 0;
-  /** 本波精英宝箱已贡献的强化点数（Issue #87：上限 ELITE_BOX_POINT_CAP，换波清零） */
+  /** 历史精英宝箱点数（当前不再投放，保留给后续 Boss 强化宝箱） */
   eliteBoxPointsThisWave = 0;
   /** 已拾取、待开启的宝箱数 */
   boxPicks = 0;
@@ -703,6 +709,9 @@ export class GameCore {
     this.tutorialHeavyDone = false;
     // S1：属性选择按波发放（本波次数在波末消费），新局从第 1 波的额度开始
     this.attributePicks = [];
+    this.attributePoints = 0;
+    this.attrQualityBoosts = 0;
+    this.attrMilestoneWave = 0;
     this.qualityScore = 0;
     // #134：走统一入口，让「第 1 波基础额度」也受单波上限约束
     this.attrPicks = 0;

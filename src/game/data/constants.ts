@@ -22,9 +22,9 @@ export function potionHealAmount(wave: number): number {
 }
 /** 宝箱拾取回血：普通与精英宝箱相同（v79 用户裁定） */
 export const CHEST_HEAL = 10;
-/** 每波普通怪宝箱掉落上限；精英宝箱不占此名额 */
+/** 每波普通怪成长徽记掉落上限；精英普通宝箱不占此名额 */
 export const BOX_DROP_CAP = 2;
-/** 普通怪单只掉宝箱概率 */
+/** 普通怪单只掉成长徽记概率 */
 export const BOX_DROP_RATE = 0.01;
 /**
  * 精英（含 BOSS）宝箱掉落概率。

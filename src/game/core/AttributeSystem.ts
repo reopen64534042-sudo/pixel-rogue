@@ -7,7 +7,7 @@ import type { AttributePoint } from "./AttributeSources";
 import type { ModifierStage, StatId } from "./StatModel";
 
 /**
- * 伤害重做 S1：属性发放（波末四选一 + 一次刷新）。
+ * 伤害重做 S1：属性发放（升级点 + 休整四选一 + 一次刷新）。
  *
  * 设计口径（`docs/talent-pool-design-rules.md` §5.3 / `damage-rework-coordination-v1.md` §4-D）：
  * - 四格固定为 输出 / 生存 / 续航 / 功能，各出一格，所以「方向」永远齐全；
@@ -89,13 +89,13 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   // 原值对基础攻击 11 是 **+45%/次**，配上每波 5-7 次，30 波能把攻击堆到数百，
   // 天赋的机制收益完全被淹没。+2 约等于 +18%/次，与「一次选择 = 一个小台阶」相称。
   { group: "offense", label: "攻击", labels: { mage: "元素伤害" }, stat: "attack", stage: "flat", base: 2, kind: "int" },
-  { group: "offense", label: "攻速", labels: { mage: "施法速度" }, stat: "fireRate", stage: "percent", base: 0.04, kind: "pct", capped: (p, prof, style) => p.fireRate >= statBase(prof, style).fireRate * ATTRIBUTE_CAPS.fireRateMul },
+  { group: "offense", label: "攻速", labels: { mage: "施法速度" }, stat: "fireRate", stage: "percent", base: 0.035, kind: "pct", capped: (p, prof, style) => p.fireRate >= statBase(prof, style).fireRate * ATTRIBUTE_CAPS.fireRateMul },
   {
     group: "offense",
     label: "暴击",
     stat: "critChance",
     stage: "flat",
-    base: 0.03,
+    base: 0.025,
     kind: "pct",
     capped: (p) => p.crit >= 1,
   },
@@ -104,7 +104,7 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     label: "暴击伤害",
     stat: "critMultiplier",
     stage: "flat",
-    base: 0.15,
+    base: 0.1,
     kind: "pct",
   },
   {
@@ -112,60 +112,58 @@ export const ATTR_DEFS: readonly AttrDef[] = [
     label: "全局增伤",
     stat: "globalDamageBonus",
     stage: "percent",
-    base: 0.05,
+    base: 0.04,
     kind: "pct",
   },
 
   // ================= 生存 =================
-  // #134 方案 B：生命 +15 → +10（对基础 100 是 +10%/次，原先 15% 偏猛）
-  { group: "defense", label: "生命", stat: "maxHp", stage: "flat", base: 10, kind: "int" },
-  { group: "defense", label: "护甲", stat: "defense", stage: "flat", base: 6, kind: "int" },
-  // S5：闪避（完全免伤）。上限 60% 取自设计文档附录 E 的成长预算；
-  // 白档 +3%（与暴击同档），金色 8.7%，集中投入约 7 次到顶。
+  // v139：生命 +10 → +9，护甲 +6 → +5。
+  { group: "defense", label: "生命", stat: "maxHp", stage: "flat", base: 9, kind: "int" },
+  { group: "defense", label: "护甲", stat: "defense", stage: "flat", base: 5, kind: "int" },
+  // S5：闪避（完全免伤）。上限 60%；v139 白档 +3% → +4%，金约 11.6%。
   // 来源迁移：旧卡「闪避本能」已进 TalentStatSources，投影不会互相抹。
   {
     group: "defense",
     label: "闪避",
     stat: "dodge",
     stage: "flat",
-    base: 0.03,
+    base: 0.04,
     kind: "pct",
     capped: (p) => p.dodge >= 0.6,
   },
 
   // ================= 续航 =================
   // 续航之一（#135）：命中回复伤害的百分比。
-  // v138：白/绿/紫/金 = 2.8%/4.1%/5.8%/8.0%，最高品质封顶 +8%。
+  // v139：白档 2.5%，金品质约 7.25%，仍低于 8% 上限。
   {
     group: "special",
     label: "吸血",
     stat: "lifesteal",
     stage: "flat",
-    base: 0.0275,
+    base: 0.025,
     kind: "pct",
     capped: (p, prof) => p.lifesteal >= lifestealCap(prof),
   },
-  // 续航之二（#135）：每秒固定回复。0.6/秒 取自旧卡「修复微光」，
-  // 避免出现第二套量级。
+  // 续航之二（#135）：每秒固定回复。v139 白档 0.6 → 0.2/秒。
   {
     group: "special",
     label: "生命回复",
     stat: "regen",
     stage: "flat",
-    base: 0.6,
+    base: 0.2,
     kind: "dec",
     unit: "/秒",
     capped: (p) => p.regen >= ATTRIBUTE_CAPS.regen,
   },
 
   // ================= 功能 =================
-  { group: "utility", label: "移速", stat: "moveSpeed", stage: "percent", base: 0.04, kind: "pct", capped: (p, prof, style) => p.speed >= statBase(prof, style).speed * ATTRIBUTE_CAPS.moveSpeedMul },
+  { group: "utility", label: "移速", stat: "moveSpeed", stage: "percent", base: 0.035, kind: "pct", capped: (p, prof, style) => p.speed >= statBase(prof, style).speed * ATTRIBUTE_CAPS.moveSpeedMul },
   // v137：移除「拾取范围」属性候选。magnet 仍保留给旧卡「磁力护符」
   // 与 ProgressionSystem 的吸附逻辑，但不再作为升级选项投放。
-  { group: "utility", label: "射程", labels: { mage: "施法距离", warrior: "近战范围" }, stat: "attackRange", stage: "percent", base: 0.05, kind: "pct" },
+  { group: "utility", label: "射程", labels: { mage: "施法距离", warrior: "近战范围" }, stat: "attackRange", stage: "percent", base: 0.045, kind: "pct" },
   // 法阵范围：S2（#135）因射手零感知被移出面板，S3 法师的法阵半径直接读
   // `p.area`（mageCircleRadius），因此只对法师投放。
-  { group: "utility", label: "法阵范围", prof: "mage", stat: "area", stage: "percent", base: 0.05, kind: "pct" },
+  { group: "utility", label: "法阵范围", prof: "mage", stat: "area", stage: "percent", base: 0.045, kind: "pct" },
 ];
 
 /** 稀有度倍率：白 / 绿 / 紫 / 金 */
@@ -201,9 +199,9 @@ export function expectedRarity(lvl: number): number {
 /**
  * 每波**新增**属性选择次数的硬上限（#134 方案 B）。
  *
- * 注意这是「新增额度」不是「存量上限」：`attrPicks` 仍是累加的（保留「这波没选完
- * 可以留到下次」的既有行为），但一波之内无论多少来源（基础额度 / 普通宝箱 /
- * 精英宝箱）合计不会超过这个数。
+ * 注意这是「新增额度」不是「存量上限」：`attrPicks` 是消费额度，仍是累加的（保留「这波没选完
+ * 可以留到下次」的既有行为），但一波之内无论多少来源（基础额度 / 成长徽记 /
+ * 后续强化宝箱）合计不会超过这个数。
  *
  * 改之前：基础最多 3 + 宝箱最多 4 = 单波最多 7 次；一局约 120 次属性对上 8 次天赋，
  * 权重 15:1，天赋的机制完全被数值淹没。
@@ -211,9 +209,8 @@ export function expectedRarity(lvl: number): number {
 export const ATTR_WAVE_GRANT_CAP = 3;
 
 export function attrPicksPerWave(wave: number): number {
-  // 原实现 `1 + floor((wave-1)/10)` 会在 21 波后给到 3，把额度占满、宝箱补不进来。
-  // 现在基础只给 1（前期）/ 2（11 波起），留出 1~2 的余量给宝箱，
-  // 让「打精英拿宝箱 → 多一次属性」这条因果仍然成立。
+  // 原实现 `1 + floor((wave-1)/10)` 会在 21 波后给到 3，把额度占满、徽记补不进来。
+  // 现在基础只给 1（前期）/ 2（11 波起），留出 1~2 的余量给成长徽记。
   return wave >= 11 ? 2 : 1;
 }
 
@@ -312,6 +309,14 @@ export function toAttributePoint(choice: AttrChoice): AttributePoint {
   };
 }
 
+/** 普通宝箱的「品质祝福」：把候选品质提升一档（最高传奇）。 */
+export function boostAttrChoice(choice: AttrChoice): AttrChoice {
+  if (choice.rarity >= 3) return choice;
+  const rarity = choice.rarity + 1;
+  const value = quantize(choice.def, choice.def.base * RARITY_MUL[rarity]);
+  return { ...choice, rarity, value, text: textOf(choice.def, value) };
+}
+
 /** 稀有度显示名（与天赋共用四档命名，便于玩家把两套系统对起来） */
 export function rarityLabel(rarity: number): string {
   return TIERS[rarity];
@@ -324,18 +329,18 @@ export function groupLabel(group: AttrGroup): string {
 
 // ---- 面板流程 -------------------------------------------------------------
 // 与天赋面板同构：open 掷四格、refresh 全量重掷一次、choose 落地并 recompute。
-// 与天赋的关键差异：这里**可能连续选多次**（attrPicks 由波次给），所以 choose 后
+// 与天赋的关键差异：这里**可能连续选多次**（额度由波次/徽记给，点数由升级给），所以 choose 后
 // 若仍有剩余次数，就地重掷下一组，不关闭面板。
 
 /**
  * 发放属性选择次数（#134 方案 B 的统一入口）。
  *
- * 所有来源（每波基础额度 / 普通宝箱 / 精英宝箱）都必须走这里：
+ * 所有来源（每波基础额度 / 成长徽记 / 后续强化宝箱）都必须走这里：
  * - 单波新增合计不超过 `ATTR_WAVE_GRANT_CAP`；
- * - `attrPicks` 仍是累加的，未用完的次数照旧留到下次（既有语义不变）。
+ * - `attrPicks` 仍是累加的，未用完的额度照旧留到下次（既有语义不变）。
  *
  * 之前两处直接 `attrPicks +=`：`startNextWave`（基础）与 `enterRest`（宝箱），
- * 互相不设限，所以单波最多能到 7 次。
+ * 互相不设限，所以单波最多能到 7 次；v139 起额度只由基础与成长徽记供给。
  *
  * @returns 实际发放的次数（可能小于请求值，被单波额度截断）
  */
@@ -350,6 +355,7 @@ export function grantAttrPicks(this: GameCore, n: number): number {
 }
 export function openAttrPanel(this: GameCore) {
   if (this.bpMode) return;
+  if (this.attributePoints <= 0 || this.attrPicks <= 0) return;
   this.bpMode = "attr";
   this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle);
   this.attrRefreshUsed = false;
@@ -369,8 +375,13 @@ export function refreshAttr(this: GameCore) {
 export function chooseAttr(this: GameCore, index: number) {
   this.ensurePlay();
   if (this.state !== "play" || this.bpMode !== "attr") return false;
-  const choice = this.attrChoices[index];
+  let choice = this.attrChoices[index];
   if (!choice) return false;
+  if (this.attrQualityBoosts > 0 && choice.rarity < 3) {
+    choice = boostAttrChoice(choice);
+    this.attrQualityBoosts--;
+    this.addText(this.player.x, this.player.y - 16, "宝箱祝福!", "#ffd24a");
+  }
   // 动态难度：只把战斗属性计入品质偏离；功能属性不提高难度。
   const qualityWeight = choice.def.group === "utility" ? 0 : 1;
   this.qualityScore +=
@@ -382,6 +393,7 @@ export function chooseAttr(this: GameCore, index: number) {
   const hpRatio = maxBefore > 0 ? hpBefore / maxBefore : 1;
   this.attributePicks.push(toAttributePoint(choice));
   if (this.attrPicks > 0) this.attrPicks--;
+  if (this.attributePoints > 0) this.attributePoints--;
   this.recompute();
   if (choice.def.stat === "maxHp" && this.player.maxhp > maxBefore) {
     this.player.hp = Math.max(
@@ -392,8 +404,8 @@ export function chooseAttr(this: GameCore, index: number) {
       ),
     );
   }
-  if (this.attrPicks > 0) {
-    // 还有次数：就地换一组新的，刷新额度重置（每「次选择」各有一次刷新）
+  if (this.attrPicks > 0 && this.attributePoints > 0) {
+    // 还有额度与升级点：就地换一组新的，刷新额度重置
     this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle);
     this.attrRefreshUsed = false;
   } else {

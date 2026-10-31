@@ -1,9 +1,4 @@
-import {
-  CHEST_HEAL,
-  ELITE_BOX_GAIN,
-  ELITE_BOX_POINT_CAP,
-  potionHealAmount,
-} from "../data/constants";
+import { CHEST_HEAL, potionHealAmount } from "../data/constants";
 import type { GameCore } from "./GameCore";
 import { tutorialGemStep } from "./TutorialSystem";
 
@@ -38,15 +33,22 @@ export function updateProgression(this: GameCore, dt: number) {
       p.xp += g.v;
       this.gems.splice(i, 1);
       this.audio.beep(920 + Math.random() * 120, 0.05, "sine", 0.04);
+      let gained = 0;
       while (p.xp >= p.xpNext) {
         p.xp -= p.xpNext;
         p.lvl++;
         p.xpNext = Math.ceil(p.xpNext * 1.13);
-        // S2：**升级不再发放天赋**。天赋改由「每 4 波节点精英 + 终局」发放
-        //（一局 8 次），属性强化由波末结算发放。v46 起等级也不再参与怪物生命
-        //（lvlPow 已移除），只保留两个职责：属性稀有度档位（AttributeSystem
-        // 的 rarityChances）与 HUD 显示。
+        gained++;
+        // v139：等级是属性点来源，但只在休整期消费；升级不打断战斗。
+        this.attributePoints += 2;
       }
+      if (gained > 0)
+        this.addText(
+          p.x,
+          p.y - 20,
+          `升级 · 属性点 +${gained * 2}`,
+          "#ffd24a",
+        );
     }
   }
   // 满血时不吸附、不拾取，血瓶留在原地；v138 起满血不再转生命上限。
@@ -74,7 +76,7 @@ export function updateProgression(this: GameCore, dt: number) {
       this.audio.beep(700, 0.12, "triangle", 0.06, 200);
     }
   }
-  // 宝箱：平时留在原地等玩家踩上去；波次结束（auto）后像经验球一样飞过来。
+  // 成长徽记 / 普通宝箱：平时留在原地等玩家踩上去；波次结束（auto）后像经验球一样飞过来。
   // 波末自动飞行**不看血量**：收球阶段要等 boxes 清空才开属性面板，
   // 满血不飞会让面板一直卡住（v91 修复）。「满血不吸附」只保留给血瓶。
   for (let i = this.boxes.length - 1; i >= 0; i--) {
@@ -91,34 +93,46 @@ export function updateProgression(this: GameCore, dt: number) {
       // v79：普通/精英宝箱拾取回血相同；满血时回复 0，但属性/经验照常。
       // 取整：p.hp 可能是小数（生命汲取、生命回复都走浮点），直接相减会得到
       // 4.63000000000001 这类值并被原样拼进飘字（用户反馈「宝箱弹出一串小数」）。
-      const healed = Math.round(
-        Math.min(CHEST_HEAL, Math.max(0, p.maxhp - p.hp)),
-      );
-      if (healed > 0) p.hp = Math.min(p.maxhp, p.hp + healed);
-      const healText = healed > 0 ? ` · 生命 +${healed}` : "";
-      if (!b.special) {
-        // 普通宝箱：固定 1 点，不受精英上限约束
-        this.boxPicks += 1;
-        this.addText(p.x, p.y - 14, `宝箱 +1${healText}`, "#ffc23d");
+      if (b.kind === "token") {
+        const granted = this.grantAttrPicks(1);
+        if (granted > 0)
+          this.addText(
+            p.x,
+            p.y - 14,
+            "成长徽记 · 属性额度 +1",
+            "#57e6ff",
+          );
+        else {
+          this.player.xp += 8;
+          this.potions.push({ x: p.x, y: p.y });
+          this.addText(
+            p.x,
+            p.y - 14,
+            "本波额度已满 · 转经验 + 血包",
+            "#9aa3c7",
+          );
+        }
       } else {
-        // Issue #87（用户批准的平衡变更）：特殊宝箱 1 点 + 每波精英点数上限 2，
-        // 超出部分转为经验 + 血包（沿用 Issue #71 的兜底口径），避免后期多精英导致数值膨胀。
-        const room = Math.max(
-          0,
-          ELITE_BOX_POINT_CAP - this.eliteBoxPointsThisWave,
+        const healed = Math.round(
+          Math.min(CHEST_HEAL, Math.max(0, p.maxhp - p.hp)),
         );
-        const gain = Math.min(ELITE_BOX_GAIN, room);
-        if (gain > 0) {
-          this.eliteBoxPointsThisWave += gain;
-          this.boxPicks += gain;
-          this.addText(p.x, p.y - 14, `特殊宝箱 +${gain}${healText}`, "#ffd24a");
+        if (healed > 0) p.hp = Math.min(p.maxhp, p.hp + healed);
+        const healText = healed > 0 ? ` · 生命 +${healed}` : "";
+        if (this.attrQualityBoosts < 2) {
+          this.attrQualityBoosts++;
+          this.addText(
+            p.x,
+            p.y - 14,
+            `普通宝箱 · 品质祝福 +1${healText}`,
+            "#ffd24a",
+          );
         } else {
           this.player.xp += 8;
           this.potions.push({ x: p.x, y: p.y });
           this.addText(
             p.x,
             p.y - 14,
-            `精英宝箱已满 · 转经验 + 血包${healText}`,
+            `宝箱祝福已满 · 转经验 + 血包${healText}`,
             "#9aa3c7",
           );
         }

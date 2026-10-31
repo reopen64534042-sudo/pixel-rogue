@@ -490,7 +490,9 @@ export interface BurnZone extends Point {
 export interface Box extends Point {
   /** 波次结束后自动飞向玩家 */
   auto?: boolean;
-  /** Issue #48：BOSS 掉落的特殊宝箱（+2 宝箱点数，不占普通掉落上限） */
+  /** token=普通怪成长徽记；chest=精英普通宝箱；缺省按 chest 兼容。 */
+  kind?: "token" | "chest";
+  /** 历史特殊宝箱标记；强化宝箱留给后续 Boss，当前不再投放。 */
   special?: boolean;
 }
 export interface Particle extends Point {
