@@ -77,6 +77,8 @@ export const STAT_IDS = [
   "boltDmgMul",
   "magnet",
   "area",
+  // 激光回充效率：flat 百分点从 0 累加，由 LaserSystem 缩短回充。
+  "laserRechargeEfficiency",
   // S2 射手池：核心链与机动/距离链需要的标量槽位。
   // pierce 与 pierceFalloff 成对使用（穿几个、每次穿完剩多少）；
   // multishot 用 final 区表达「一次射几发」（旧卡是 flat +1，两种语义都能表达）；

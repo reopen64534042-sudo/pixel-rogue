@@ -4,6 +4,7 @@ import type { CombatStatsSnapshot, Enemy, Point } from "../core/types";
 export const LASER = {
   duration: 1,
   recharge: 0.3,
+  minRecharge: 0.05,
   width: 4,
   turnRate: 8,
   tick: 0.1,
@@ -38,7 +39,7 @@ export const LASER_UPGRADES = [
   { id: "wide", name: "扩束镜", desc: "所有主光束宽度 +50%", minLevel: 4 },
   { id: "long", name: "长焦镜", desc: "光束射程 +25%", minLevel: 4 },
   { id: "capacitor", name: "储能电容", desc: "每轮照射延长至 1.3 秒；单轮经验上限仍为 1 秒", minLevel: 4 },
-  { id: "cooling", name: "快速回充", desc: "回充时间 0.3 → 0.2 秒", minLevel: 5 },
+  { id: "cooling", name: "快速回充", desc: "基础回充 0.3 → 0.2 秒，再计算回充效率", minLevel: 5 },
   { id: "stable", name: "稳束器", desc: "光束转向速度 +35%", minLevel: 5 },
   { id: "afterglow", name: "余辉轨迹", desc: "每 0.15 秒留下一段 0.25 秒低伤余辉，不提供武器经验或命中特效", minLevel: 5 },
   { id: "pierce", name: "透射镜", desc: "贯穿每个目标后保留伤害 80% → 90%", minLevel: 7 },

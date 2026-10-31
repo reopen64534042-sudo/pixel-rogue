@@ -621,6 +621,13 @@ export function applyTalentStatProjection(
   );
   p.magnet = resolved.magnet ?? base.magnet;
   p.area = resolved.area ?? base.area;
+  // 回充效率无来源时保持缺省；重算与移除来源时不能残留上一轮投影。
+  if (resolved.laserRechargeEfficiency !== undefined)
+    p.laserRechargeEfficiency = Math.min(
+      Math.max(0, resolved.laserRechargeEfficiency),
+      ATTRIBUTE_CAPS.laserRechargeEfficiency,
+    );
+  else delete p.laserRechargeEfficiency;
   // S1：射程写回（base 130；属性/天赋都未改动时写回 130，与旧硬编码等价）
   p.attackRange = resolved.attackRange ?? base.attackRange;
   // S2 射手池：核心/距离/机动三个槽位的标量。
