@@ -1,0 +1,533 @@
+# 三首巨兽 · Boss 机制、阶段与实现交接
+
+> 状态：**v154 已接入运行时代码，完整玩法验收待集中进行**。已参照合并的 C 方案太刀人物，用生图重绘 72×56 八姿态 Boss 及 6 套技能序列图；强度依用户反馈加强，保留程序化素材回退。
+> 代码基线：v150（P1 怪物图鉴/文档修正已合并）。
+> 相关文档：`docs/monster-numerics.md`（怪物基线）、`docs/combat-numerics-agent-guide.md`（伤害管线）、`docs/art-assets.md`（贴图产线）。
+> 读者：Codex（实现）、素材生成、平衡与试玩。
+
+## 1. 一句话
+
+每 10 波出现一次的三首巨兽：火焰首、冰霜首、雷霆首依次苏醒，三个阶段各有一套有预警的攻击；击败后进入收球/休整并发放 Boss 奖励。
+
+首版只做一个 Boss、一个场景内的机制，不做独立 Boss 房间、不做多 Boss 轮换、不做召唤物专属美术。
+
+## 2. 范围与非目标
+
+### 2.1 本版包含
+
+- 单个 Boss `boss_three`，72×56 贴图，三阶段。
+- Boss 波：`wave % 10 === 0`（10、20、30…）。
+- 三套元素招式、阶段转换、Boss 血条、Boss 击杀统计、图鉴条目。
+- 复用现有蝙蝠/角兽作为阶段召唤物（无经验、无掉落）。
+- 失败/重开/暂停/返回开始/波末清理全部沿用现有生命周期。
+
+### 2.2 本版不做
+
+- 独立 Boss 房、边界墙、场景切换。
+- 独立骨骼动画或方向组；当前使用八姿态图集 + 模拟状态采样，不引入新动画运行时。
+- 多个 Boss 或 Boss 词缀。
+- 召唤物专属新美术。
+- 新的敌方弹丸元素类型（Boss 全部使用地面预警/范围判定）。
+
+## 3. 出现节奏与波次流程
+
+### 3.1 Boss 波判定
+
+```ts
+isBossWave(wave) = wave > 0 && wave % 10 === 0
+```
+
+- 第 10、20、30… 波为 Boss 波。
+- Boss 波**不刷普通怪和精英**，`quota = 1`（只算 Boss 本体）。
+- 波次标题显示「首领 · 三首巨兽」，替代普通主题名。
+- Boss 波仍按精英波逻辑在波末给 1 次属性消费额度，方便玩家在 Boss 前/后成型。
+  实现提示：`enterRest` 现有的 `eliteQuotaForWave(this.waveN) > 0` 判断需要扩展为 `eliteQuotaForWave(this.waveN) > 0 || isBossWave(this.waveN)`，否则第 10/30 波不会发放这次额度。
+
+### 3.2 波次开始
+
+1. `startNextWave` 检测 Boss 波，设置 `quota = 1`、`spawnedThisWave = 0`、`wavePhase = "fight"`。
+2. 播放 1.2 秒 Boss 入场：镜头轻微震动 + 低频音效 + 顶部 Boss 血条淡入；Boss 不出手。
+3. Boss 在玩家约 200px 外生成（世界边界内 30px 夹取）；朝向玩家。
+4. 入场结束后进入 AI；Boss 与召唤物都清空后进入 `collect`，再走现有收球/休整。
+
+### 3.3 边界情况
+
+- Boss 死亡时若场上仍有召唤物：Boss 立即掉落，但波次继续，直到召唤物也清空。
+- 玩家死亡：立即停止 Boss 定时器/攻击；重开或返回开始清空 Boss、血条、地面危险区。
+- 暂停 / 属性面板 / 图鉴：Boss 与危险区计时跟随固定步长冻结，恢复后继续。
+- 波末清理：Boss、Boss 血条、Boss 地面危险区、雷击标记全部清空。
+- Boss 波不生成精英，`eliteQuotaForWave` 在 Boss 波返回 0 或由 `updateWave` 直接跳过精英分支；不要同时生成 3 只精英。
+
+## 4. 数值初稿
+
+### 4.1 基础数值
+
+| 项目 | 数值 | 说明 |
+|---|---|---|
+| 生命 | `1600 × hpScale` | 用户确认加强压迫感；`hpScale = 1+(wave-1)×0.18+over²×0.06` |
+| 攻击 | `24 × dmgScale` | 各招式再乘 0.6–1.35；多段伤害仍受受击冷却约束 |
+| 护甲 | 60 | 同蛮牛基础值；之后按波次护甲成长 |
+| 抗性 | 火/冰/雷各 10% | 不免疫任何元素，物理/元素/真实伤害都能打 |
+| 移速 | 38 | P3 ×1.2；持续远离时再 ×1.45 |
+| 半径 | 24 | 72×56 贴图的判定中心 |
+| 经验 | 精英经验 ×8 | `(25+(wave-1)×4) × 8 × 难度 xpMul` |
+| 控制 | 免疫冻结/眩晕/麻痹/击退 | 冲锋撞墙后的 1 秒硬直是唯一易伤窗口 |
+
+### 4.2 关键波次参考值
+
+| 波次 | hpScale | Boss 生命 | dmgScale | Boss 攻击 | 精英经验 ×8 |
+|---|---|---|---|---|---|
+| 10 | 2.62 | 4,192 | 1.495 | 35.9 | 488 |
+| 20 | 5.92 | 9,472 | 2.345 | 56.3 | 808 |
+| 30 | 19.72 | 31,552 | 5.295 | 127.1 | 1,128 |
+
+`Boss 攻击` 是招式倍率前的基准；实际单次伤害 = `Boss 攻击 × 招式倍率`，再走统一玩家受伤管线（护甲/属性/闪避/护盾/冲刺无敌等）。
+
+### 4.3 目标战斗时长
+
+- 首个 Boss（第 10 波）目标 **25–35 秒**；第 20/30 波目标 **30–45 秒**。
+- 不靠超高血量拖时间：Boss 的难度来自预警、走位、阶段切换和少量召唤物。
+- 初始按上表落地；如果实测明显偏长/偏短，优先调 Boss HP 倍率，不要先动玩家或普通怪。
+
+## 5. 三阶段
+
+### 5.1 阶段阈值
+
+| 阶段 | 生命区间 | 苏醒的头 | 主要元素 |
+|---|---|---|---|
+| P1 | 100%–70% | 左·火焰首 | 火焰 |
+| P2 | 70%–35% | 中·冰霜首 | 冰霜 |
+| P3 | 35%–0% | 右·雷霆首 | 雷电 |
+
+- 阶段切换阈值：**70% / 35%**。
+- 当前苏醒的头亮起、旧头变暗；身体与轮廓不变。
+- 如果一次大伤害直接跨过两个阈值，只触发一次转换，直接进入 P3，避免连续两次 0.8 秒无敌。
+- 转阶段期间 Boss **不受任何伤害（含 DoT）**；DoT 计时继续推进但暂不结算，防止过场白嫖。
+- 转阶段 0.8 秒：清空敌方弹幕，播放吼叫/震屏，重置所有招式冷却，不重置玩家输出、不清玩家子弹。
+- 转阶段结束后才召唤该阶段随从，避免和无敌窗口重叠。
+
+### 5.2 每阶段招式
+
+所有招式在施放前停止移动并锁定方向/落点；预警结束后才结算伤害。三轮雷罚每轮重新锁定一次玩家位置，锁定后不追踪，每轮均有完整 0.6 秒预警。
+
+#### 通用招式（三阶段都有）
+
+| 招式 | 触发 | 预警 | 判定 | 伤害 | 冷却 |
+|---|---|---|---|---|---|
+| 震地践踏 | 玩家在 Boss 70px 内 | 0.6s 圆 | 以 Boss 为圆心 R100 | 0.95× 攻击，物理 | 3.4s |
+| 蛮荒冲撞 | 玩家 90–220px；或远距离优先 | 0.65s 红线 | 锁定方向 286px（0.65s × 440 速），预警包含本体碰撞宽度 | 1.35× 攻击，物理 | P1 5.6s / P2 6.4s / P3 4.8s |
+
+冲锋撞墙或冲刺结束：Boss 硬直 1.0 秒，期间受到伤害 **+15%**；硬直结束进入正常行动。Boss 冲锋期间不重复结算接触伤害（依靠玩家 `hurtCd` 也不会连跳）。
+
+#### P1 · 火焰首（100%–70%）
+
+| 招式 | 预警 | 判定 | 伤害 | 附加 | 冷却 |
+|---|---|---|---|---|---|
+| 焚野吐息 | 0.7s 扇形 | 锁定 65° / 210px，喷射 0.9s | 3 次 0.85× 原始攻击脉冲，间隔 0.36s；受击冷却会挡住紧邻脉冲 | 2 片火地面（R30，4s，0.4× 攻击 DPS） | 4.6s |
+
+安全区：Boss 背后、锥形两侧、贴脸但不在正面。吐息结束后 Boss 有 0.28 秒收招，不移动。
+
+#### P2 · 冰霜首（70%–35%）
+
+| 招式 | 预警 | 判定 | 伤害 | 附加 | 冷却 |
+|---|---|---|---|---|---|
+| 双重霜环 | 首段 0.85s；二段再预警 0.65s | 首环半径 45–155，二环半径 58–185 | 每段 1.05× 攻击，冰霜 | 减速 40%，3s | 5.8s |
+| 冰川连刺 | 首段 0.65s，后续每段再延迟 0.18s | 朝锁定方向排布 3 个 R36 落点，间距 65px | 每段 0.85× 攻击，冰霜 | 冰面减速 40%，4s | 4.2s |
+
+安全区：双环均可贴身（<45px）躲避，或离开二环（>185px）；连刺沿侧面躲避。进入 P2 时召唤 **2 只蝙蝠**（无经验/掉落，不占配额）。
+
+#### P3 · 雷霆首（35%–0%）
+
+| 招式 | 预警 | 判定 | 伤害 | 附加 | 冷却 |
+|---|---|---|---|---|---|
+| 三轮雷罚 | 每轮独立 0.6s 三圆，轮间空档 0.18s | 每轮重新锁定玩家位置 + 两侧各 58px，R38 | 每圈 1.0× 攻击，雷电 | 共 3 轮，同屏最多 3 个落点预警 | 4.8s |
+| 贯雷锁链 | 0.55s 直线 | 朝玩家 270px，宽 18px | 主线命中玩家 1.15×；经随从向其 100px 内玩家跳跃 0.6×（用户确认） | — | 5.6s |
+
+P3 进入时召唤 **2 只角兽**（无经验/掉落）。Boss 行动间隔 ×0.78（0.68s → 约 0.53s），移速 ×1.2。雷罚每轮重新锁定一次，需要持续走位；雷电链站在 Boss 背后或侧后方即可躲开。
+
+### 5.3 招式选择规则
+
+- Boss 每轮行动间隔 **0.68 秒**（P3 为约 0.53 秒）；同一招式不能连续使用两次。
+- 玩家在 70px 内：踏地优先。
+- 玩家在 220px 外：冲锋优先；若冲锋冷却，使用射程内的阶段招式；射程外继续追击，避免原地空放。
+- 其余情况在阶段招式中按冷却轮换；同一时间最多一个“大招式”（吐息/新星/突刺/落点/链）。
+- 转阶段、硬直、入场期间不选招。
+- 远距离超过 240px 持续 1.6 秒：Boss 获得 45% 移速加成，直到距离回到 180px 内；防止无限风筝（不额外加伤害）。
+
+## 6. AI、移动与状态
+
+### 6.1 状态机
+
+```text
+intro
+  -> chase（靠近玩家，停手冷却）
+  -> choose
+      -> stompWindup -> stompResolve -> recover
+      -> chargeWindup -> chargeDash -> chargeStagger -> recover
+      -> breathWindup -> breathResolve -> cast（持续喷射）-> recover
+      -> novaWindup -> novaResolve -> cast（二次冰环）-> recover
+      -> spikesWindup -> spikesResolve -> cast（逐段突刺）-> recover
+      -> marksWindup -> marksResolve -> cast（三轮雷罚）-> recover
+      -> chainWindup -> chainResolve -> recover
+  -> phaseTransition（0.8s 无敌）-> 下一阶段
+  -> dead
+```
+
+- 所有计时使用固定步长 `dt`；暂停/属性冻结时同停。
+- 施放预警期间 Boss 不移动；冲锋按锁定方向移动，撞墙或时间结束进入硬直。
+- Boss 不参与普通敌人的分离推挤：在分离循环中跳过 Boss，或给 Boss `noKnock`，避免被召唤物推开。
+- Boss 目标始终是玩家，不被法师镜像残影吸引；镜像只影响普通敌人。
+- Boss 使用世界边界夹取，不做寻路；靠冲锋/远程招式处理距离。
+
+### 6.2 地面危险区与落点
+
+新增独立的 Boss 危险区，不复用玩家的 `burnZones`（那是玩家打敌人的焦土）：
+
+```ts
+interface BossHazard {
+  kind: "fire" | "frost";
+  x: number;
+  y: number;
+  r: number;
+  t: number;          // 剩余时间
+  tickT: number;      // 下一次结算
+  dmg: number;        // 每 tick 伤害
+  slowF?: number;     // 冰面减速
+}
+
+interface BossStrike {
+  x: number;
+  y: number;
+  r: number;
+  t: number;          // 剩余预警/落点时间
+  dmg: number;
+  type: "lightning";
+}
+```
+
+- 火焰/冰面最多同时 4 片；雷霆落点最多 3 个；转阶段、Boss 死亡、波末、返回开始全部清空。
+- 火焰/冰面按固定 tick 结算玩家伤害；冰面额外减速；雷霆落点预警结束后一次性结算。
+- 预警和危险区绘制复用现有 `PixelPainter` 批次，不新增 Phaser 对象或 RAF。
+- 不在 Boss 死亡后继续造成伤害；危险区随 Boss 死亡立即清除（或明确在死亡动画后 0.2s 内清空，首版直接清空）。
+
+### 6.3 控制与状态交互
+
+- **硬控免疫**：冻结、眩晕、麻痹、击退全部不生效；在状态写入点判断 `e.boss`。
+- **减速**：Boss 受到减速效果时按 50% 效果生效（例如 40% 减速 → 20%），只影响移动，不影响行动间隔。
+- **DoT**：灼烧/余烬等 DoT 正常生效；阶段转换无敌期间不结算，计时继续。
+- **易伤**：仅在冲锋硬直期间受到伤害 +15%；其余时间不额外增伤。
+- **击杀类效果**：Boss 死亡正常触发玩家的击杀类效果（击杀狂热、击杀爆炸等）；但 Boss 不应被当作精英蛮牛计入 `runBossKills`。
+
+## 7. 掉落、经验与图鉴
+
+### 7.1 奖励初稿
+
+| 奖励 | 数量 | 说明 |
+|---|---|---|
+| Boss 经验 | 精英经验 ×8 | 例：W10 488、W20 808、W30 1,128（再乘难度 xpMul） |
+| 普通宝箱（品质祝福） | 2 | 沿用现有 `kind: "chest"`；每箱提供 1 层品质祝福 |
+| 血包 | 1 | 保证 Boss 战后的恢复 |
+| 图鉴击杀 | 1 | `e:boss_three` 解锁 |
+
+- 不重新启用旧的「特殊宝箱 / 精英宝箱点数 / 强化面板」；那套在一次性天赋后已退化。
+- 召唤物无经验、无掉落；Boss 死亡时立即结算 Boss 奖励，不等待召唤物清空。
+- 若品质祝福已达上限，宝箱仍会掉落并按现有规则处理溢出。
+
+### 7.2 击杀统计
+
+- `killEnemy` 中 Boss 走独立分支：
+  - `runBossKills++`
+  - `codexKey = "boss_three"`（不拼 `_elite`）
+  - 不增加 `runEliteKills`
+- **v154 已修正**：只有 `e.boss` 增加 `runBossKills`；普通精英仅增加 `runEliteKills`。
+- 死亡总结已有 `bossKills` 字段与「精英 / 首领」行，无需新增字段。
+
+## 8. UI 与表现
+
+### 8.1 Boss 血条
+
+- 位置：画面顶部中央，XP 条下方、波次计时附近；尺寸约 `240×6`，不新增 DOM。
+- 内容：`三首巨兽` + 当前元素首名称 + 三个阶段圆点。
+- 当前阶段颜色：
+  - 火焰：`#ff8c3a`
+  - 冰霜：`#57e6ff`
+  - 雷霆：`#ffe14a`
+- 受伤/转阶段时轻微闪烁；Boss 死亡、进入休整、返回开始立即隐藏。
+- 血条只显示 Boss，不显示召唤物。
+
+### 8.2 表现与音效
+
+- 入场：低频音 + 轻震屏 + 名称淡入；不播放全屏闪白。
+- 转阶段：吼叫 + 环形冲击 + 当前头变色；不造成伤害。
+- 招式预警：
+  - 火焰：橙色扇形/燃烧地格；
+  - 冰霜：浅蓝环形/落点 + 冰面；
+  - 雷电：白蓝圆圈/直线；
+  - 物理：红色冲锋线/踏地圆。
+- 预警颜色保持和现有怪物一致的低饱和规则，Boss 可以略亮但不要大面积高亮填充。
+- 所有预警与危险区在暂停时冻结，不继续计时。
+
+### 8.3 贴图
+
+- 基础：`boss_three`，72×56，透明底，居中；正式八姿态图集覆盖静态回退，图鉴使用同源 idle 帧。
+- 可选阶段变体：`boss_three_fire` / `boss_three_frost` / `boss_three_lightning`，同尺寸、同轮廓、仅当前苏醒的头与光效不同。
+- 正式动画共用同一张八姿态图集，以火星 / 冰晶 / 电弧表示当前苏醒的头；静态阶段变体仅在动画素材加载失败的回退路径中查找。缺失则使用基础图。
+- 图鉴条目 `e:boss_three` 使用 `spr: "boss_three"`。
+
+## 9. 实现交接
+
+### 9.1 文件与职责
+
+| 文件 | 职责 |
+|---|---|
+| `src/game/data/boss.ts` | Boss 基础数值、阶段阈值、招式表、危险区参数、奖励 |
+| `src/game/core/types.ts` | `BossState`、`BossAttackId`、`BossHazard`、`BossStrike`、`Enemy.boss` 等类型 |
+| `src/game/core/BossSystem.ts` | 生成、阶段、状态机、招式、冲锋、危险区、召唤、清理 |
+| `src/game/core/WaveSystem.ts` | Boss 波判定、quota、跳过普通/精英、波末属性额度、清场 |
+| `src/game/core/Simulation.ts` | 在固定步长中调用 `updateBosses` |
+| `src/game/core/EnemySystem.ts` | Boss 跳过通用 AI 与分离推挤；目标固定为玩家 |
+| `src/game/core/CombatSystem.ts` | Boss 击杀统计、掉落、`bossKills` 修正 |
+| `src/game/rendering/draw.ts` | Boss 贴图、预警、危险区、血条 |
+| `src/game/rendering/sprites.ts` | `boss_three` 程序化占位贴图（外部 PNG 就绪前） |
+| `src/game/codex/codexData.ts` | `e:boss_three` 条目 |
+| `src/game/scenes/GameScene.ts` | 如使用外部图集/预载则接入；优先走现有 `manifest.json` 覆盖链路 |
+
+### 9.2 推荐数据结构
+
+```ts
+type BossPhase = 1 | 2 | 3;
+
+type BossAction =
+  | "idle"
+  | "stompWindup" | "stompResolve"
+  | "chargeWindup" | "chargeDash" | "chargeStagger"
+  | "breathWindup" | "breathResolve"
+  | "novaWindup" | "novaResolve"
+  | "spikesWindup" | "spikesResolve"
+  | "marksWindup" | "marksResolve"
+  | "chainWindup" | "chainResolve"
+  | "phaseTransition";
+
+interface BossState {
+  enemy: Enemy;
+  phase: BossPhase;
+  action: BossAction;
+  actionT: number;
+  cooldowns: Record<string, number>;
+  lastAction: BossAction | null;
+  chargeDx: number;
+  chargeDy: number;
+  vulnerableT: number; // 冲锋硬直易伤
+  introT: number;
+}
+```
+
+- `Enemy.boss = true` 用于击杀、掉落、图鉴和分离跳过；Boss AI 不塞进 `updateEnemies` 的长 if/else。
+- 每局最多一个 Boss；`GameCore.bossState` 在重开/返回开始/死亡时置空。
+- 阶段、危险区、落点都属于 Core 状态，渲染只读取，不反向修改。
+
+### 9.3 更新顺序建议
+
+1. `updateBosses(core, dt)`：推进入场/阶段/招式/危险区/召唤。
+2. `updateEnemies(core, dt)`：Boss 走跳过分支；普通怪按原逻辑。
+3. 危险区伤害在 BossSystem 内按 tick 调用 `damagePlayer`。
+4. 击杀/掉落仍在 `CombatSystem.killEnemy`，BossSystem 只负责把 Boss 打到 0 并标记死亡。
+
+### 9.4 实现批次
+
+- **批次 A**：数据 + Boss 生成 + Boss 波流程 + 血条 + P1 火焰招式。
+- **批次 B**：P2/P3 阶段、冲锋/踏地、危险区、召唤物、转阶段表现。
+- **批次 C**：奖励、图鉴、`bossKills` 修正、文档/CHANGELOG、受控 e2e 与试玩。
+- 每个批次独立通过 `typecheck` + `build`；视觉/手感在批次 C 后集中试玩。
+
+## 10. 验证计划
+
+按项目 2026-10-29 裁定：默认只跑 `npm run typecheck` + `npm run build`，不主动运行/扩展 Vitest、Playwright 或补基线；用户点名再做。
+
+### 10.1 受控验证
+
+- 用 e2e 桥在 W10/20/30 生成 Boss，确认：
+  - Boss 波不生成普通怪/精英；
+  - Boss 血条出现、阶段在 70%/35% 切换；
+  - 三阶段招式预警、伤害、危险区持续时间；
+  - 冲锋撞墙硬直与 +15% 易伤；
+  - 召唤物无掉落、无经验、可清场；
+  - Boss 死亡掉落、波末/重开/返回开始清理；
+  - 死亡总结的「首领击杀」为 1，普通精英不再误计。
+- 截图：Boss 三阶段、血条、危险区、死亡总结。
+
+### 10.2 自然试玩
+
+- 三职业各打一次 W10/W20：
+  - Boss 是否有明确安全区；
+  - 近战是否有输出窗口；
+  - 远程是否会被无限追/无限风筝；
+  - TTK 是否在 25–45 秒目标附近；
+  - 血条/阶段提示是否清楚。
+- 不把 typecheck/build 当玩法验收；试玩结论单独记录。
+
+### 10.3 基线影响
+
+- 新增 Boss 图鉴条目会增加 `ENEMY_TOTAL`；`tests/codex.test.ts` 的旧数量断言、parity/balance 基线可能过期。
+- 按当前裁定不修改测试，留待用户授权的测试批次统一处理，并在提交信息与 `docs/migration.md` 留痕。
+
+## 11. 素材规格与 GPT Image 提示词
+
+### 11.1 素材清单
+
+| 素材 | key | 尺寸 | 用途 | 优先级 |
+|---|---|---|---|---|
+| 三首巨兽基础图 | `boss_three` | 72×56 | Boss 本体 | 必需 |
+| 火焰首阶段 | `boss_three_fire` | 72×56 | P1 | 建议 |
+| 冰霜首阶段 | `boss_three_frost` | 72×56 | P2 | 建议 |
+| 雷霆首阶段 | `boss_three_lightning` | 72×56 | P3 | 建议 |
+
+- 阶段变体只改当前苏醒的头和头部光效；身体、姿势、轮廓、锚点必须一致。
+- 如果阶段变体未就绪，Codex 使用 `boss_three` + 代码 tint/头顶光环，不阻塞实现。
+- 不生成召唤物、预警、HUD、施法特效的位图；这些用现有绘制/代码完成。
+
+### 11.2 通用风格块
+
+```text
+A single full-body boss sprite for a 480x270 pixel-art action roguelike.
+Front-facing three-quarter top-down view, centered, all four feet visible,
+transparent background, no ground shadow, 3:2 aspect ratio.
+A hulking compact three-headed beast with dark crimson-brown scales,
+jagged gold horns, bone-white claws, and molten cracks along the chest and legs.
+Three distinct heads on thick necks:
+left = fire dragon head with short curved orange horns and ember-orange eyes;
+center = frost serpent head with a pale cyan crystalline mane and ice-blue eyes;
+right = lightning beast head with forked yellow-white horns and sharp yellow eyes.
+Strong readable silhouette, large color blocks, deep ink outlines, flat pixel shading.
+Limited palette: #1a0a2a, #3a1a0a, #c05050, #ff8c3a, #ffd24a, #ffe14a,
+#57e6ff, #e8e8f0, #ffffff.
+Crisp hard-edged pixel-art style, no anti-aliasing, no gradients, no blur,
+no 3D, no photorealism, no text, no UI, no frame, no background,
+no extra heads, no extra limbs, no sprite sheet.
+```
+
+### 11.3 基础图 `boss_three`
+
+在通用风格块后追加：
+
+```text
+Neutral pose: all three heads alert and facing forward, mouths closed,
+no elemental glow, tail curled behind, weight planted on four legs.
+Keep the three head colors distinct but subdued.
+Final game asset footprint is 72x56; render the concept at high resolution
+with large, readable shapes that will survive downscaling.
+```
+
+### 11.4 阶段变体
+
+推荐用 GPT Image 的参考图编辑，而不是重新生成。
+
+#### `boss_three_fire`
+
+```text
+Use the provided neutral boss sprite as an exact reference image.
+Keep the body, pose, camera, silhouette, horn and claw placement, scale,
+outline, palette, and transparent background 100% unchanged.
+Only the left fire head is active: eyes and mouth glow orange-red,
+small embers at the mouth; the center frost head and right lightning head
+are dim with closed eyes and no ice or lightning effects.
+Same crisp limited-palette pixel-art style.
+Do not add scenery, text, UI, shadow, new heads, or new limbs.
+```
+
+#### `boss_three_frost`
+
+```text
+Use the provided neutral boss sprite as an exact reference image.
+Keep the body, pose, camera, silhouette, horn and claw placement, scale,
+outline, palette, and transparent background 100% unchanged.
+Only the center frost head is active: pale cyan glow, crystalline ice shards
+around the mane, cold mist at the mouth; the left fire head and right lightning
+head are dim with closed eyes and no fire or lightning effects.
+Same crisp limited-palette pixel-art style.
+Do not add scenery, text, UI, shadow, new heads, or new limbs.
+```
+
+#### `boss_three_lightning`
+
+```text
+Use the provided neutral boss sprite as an exact reference image.
+Keep the body, pose, camera, silhouette, horn and claw placement, scale,
+outline, palette, and transparent background 100% unchanged.
+Only the right lightning head is active: yellow-white glowing eyes and forked
+horns, small white-blue electric arcs around the head; the left fire head and
+center frost head are dim with closed eyes and no fire or ice effects.
+Same crisp limited-palette pixel-art style.
+Do not add scenery, text, UI, shadow, new heads, or new limbs.
+```
+
+### 11.5 通用负面提示
+
+```text
+background, scenery, floor, ground shadow, text, UI, frame, watermark,
+sprite sheet, multiple views, extra heads, extra limbs, realistic fur,
+3D render, soft shading, gradients, anti-aliasing, blur, glow covering the body
+```
+
+### 11.6 后处理与限制
+
+```bash
+node scripts/pixelize.mjs output/boss-three-source.png --key boss_three \
+  --model "gpt-image-2.5" --seed "<seed>" --prompt "<简短主体描述>"
+```
+
+- 目标尺寸 `72×56`；阶段变体必须来自同一张基础图，保证换阶段身体不抖动。
+- `assets/plan.json` 已有 `boss_three` 键；若增加阶段变体，Codex 需同步 `plan.json`、`SPR`、绘制查找与图鉴/资源记录。
+- **重要限制**：项目产线实测指出，大图缩到目标网格会抹平细节；GPT Image 没有真正的 72×56 像素网格。最稳妥流程是 GPT Image 出概念/造型 → 在 Aseprite 按 `assets/palette.gpl` 重绘 72×56 成品；`pixelize` 只作保底与量化。阶段变体建议在成品基础图上局部换头/换色，而不是每张独立重画。
+- 贴图命名沿用 `SPR` 键：基础 `boss_three`，变体 `boss_three_<element>`；不要使用 `elite_` 前缀。
+
+## 12. 开放问题
+
+当前默认值如下，若改动需同步本文与实现：
+
+1. Boss 频率：默认 `wave % 10 === 0`；也可只做 10/20/30。
+2. 阶段随从：默认 P2 蝙蝠、P3 角兽；也可首版不召唤或后续做专属小怪。
+3. 奖励：默认 2 普通宝箱 + 1 血包 + 8 倍精英经验；品质祝福上限沿用现有规则。
+4. 控制：默认硬免疫 + 冲锋硬直易伤；也可改成“冻结/眩晕时长减半”。
+5. 场地：默认不建独立 Boss 房；依靠冲锋和远程招式处理风筝。
+6. 多 Boss：首版只做三首巨兽；后续可在同一框架下加不同 Boss 或词缀。
+
+## 13. 验收清单
+
+- [ ] Boss 波（10/20/30…）只生成 Boss，不生成普通怪/精英。
+- [ ] Boss 在 70% / 35% 正常转阶段；转阶段无敌、清弹幕、无伤害。
+- [ ] 三阶段招式均有清晰预警、安全区、伤害类型与冷却。
+- [ ] Boss 不吃硬控/击退；减速减半；冲锋硬直有 +15% 易伤。
+- [ ] Boss 血条显示名称、当前阶段与三阶段圆点，死亡/休整/重开隐藏。
+- [ ] 召唤物无经验/掉落，清空后才进入收球；不占普通波次配额。
+- [ ] Boss 奖励、经验、图鉴条目正常；`runBossKills` 只统计真实 Boss。
+- [ ] 死亡总结「首领击杀」正确，普通精英不再误计。
+- [ ] 暂停/属性/图鉴冻结 Boss 与危险区；重开/返回开始清理干净。
+- [ ] `npm run typecheck`、`npm run build` 通过；受控 e2e 与自然试玩分别记录。
+- [ ] 素材命名/尺寸/透明底/阶段变体一致；manifest 与 `plan.json` 同步。
+
+## 14. 实现与重绘落点（开发标签 v151，交付 v154）
+
+- 用户反馈首版动画、特效和强度不满意，并确认「压迫感不足，招式太弱或太容易躲」。本次改动继续在 codex/boss-three-headed-beast，不把首版视为用户验收通过；未提交 / 推送 / 创建 PR。
+- 当前美术：用户选择精致像素 / 卡通奇幻，并指定 PR #220 C 方案太刀人物为参照。内置生图工具生成 Boss 八姿态及 6 套技能，每套 6 帧；当前正式输入在 assets/boss-three/upgrade。BossPixelArt.ts 六色矩阵只保留为加载失败回退，之前的高细节与六色版本均为迭代历史。
+- 动画：BossAnimation 直接采样固定步状态选择静立、蓄力、咆哮、左右迈步、扑击、落地、硬直。BossArt 随 GameScene preload 加载正式 PNG；BossVfx 复用 PixelPainter 图集/图形池绘制，不增加规则 RAF、Phaser 动画计时或全局状态。加载失败时保留六色矩阵及程序化特效回退；正常路径加载生图本体与技能图集。
+- 表现：喷流与焦土火舌、双重冰环碎晶、逐段破土冰柱、三轮雷柱、分叉电弧、裂地碎石、冲锋残像；预警/危险区/命中余波读取实际几何和 Core 表现事件。受击不再给整个 Boss 盖白色矩形，改为局部轮廓闪光。
+- 规则：基础 HP 1600、攻击 24、速度 38、半径 24；行动间隔 0.68 秒，P3 ×0.78；远距离 1.6 秒后速度 ×1.45。冲锋 440px/s ×0.65s =286px，硬直 1 秒及承伤 +15% 不变。具体招式范围、脉冲和冷却以上表及 data/boss.ts 为准。
+- 持续攻击：新增 cast 行为与 castRepeats / castTickT。吐息 0.9 秒内有 3 次原始伤害脉冲；双环相隔 0.65 秒；冰刺每段错开 0.18 秒；雷罚每轮重锁落点，保留 0.6 秒预警，共 3 轮。所有伤害走 DamageMath + damagePlayer，受击冷却 / 闪避 / 护盾 / 冲刺无敌继续生效，不补发躲掉的脉冲。
+- 生命周期：bossImpacts 为限时只读表现事件（上限 24），与 bossState / hazards / strikes 同步在转阶段、Boss 死亡、重开、返回开始、玩家死亡和波末清理；暂停时使用模拟时钟冻结。
+- 预览：node scripts/build-boss-preview.mjs 导出正式 BossVfx + 正式图集的 PNG / 240 帧 GIF / 可暂停慢放 HTML，访问 /boss-preview/。这是离线素材编排，未执行战斗伤害，不是 Phaser 实机或自然战斗验收。
+- 验证与基线：typecheck / build；按当前约定不写或改测试，不运行 Vitest / Playwright。Boss 数值、招式次数、状态结构、图鉴数量和波次配额会影响旧断言；已在 migration 记录，授权测试批次再统一处理。TTK 与三职业实战强度尚待试玩，不能把加强参数当成平衡已经验收。
+
+## 15. 画风修订（2026-10-31）
+
+- 用户明确指出高细节版本与现有游戏风格差异过大；本次只重绘造型和锚点，不调整已经加强的招式、生命、攻击、速度或碰撞。
+- 对照图直接读取现有玩家 / 史莱姆 / 角兽 / 岩石巨兽贴图，统一原尺寸及 4× 放大比较。Boss 使用角兽同色红身体、6 色大色块、无鳞片噪点，三颗头以火角 / 冰冠 / 雷角区分；8 姿态共用身体和尾巴结构。
+- 当前源文件 BossPixelArt.ts，重建命令不再读取旧高细节 PNG。style-comparison.png / pose-sheet.png / 动态预览已同步生成；具体资产说明见 assets/boss-three/README.md。
+
+## 16. 生图升级与太刀人物参照（2026-10-31）
+
+- 用户确认允许超出现有简陋美术，目标为「精致像素、偏卡通奇幻」，并要求使用生图重画 Boss 与技能。参照上游 PR #220（80b6df4 / 28d1779）的 C 方案布衣浪人，读取实际源图 / 帧表，不根据名称猜测风格。
+- 当前 Boss 来自 upgrade/boss-source-v2.png：同一整表 8 姿态，修正第 5 格尾巴方向，72×56、共用缩放 / 脚底锚点、现有色板；技能图集包含火焰、踏地、冰环、冰刺、落雷、电链 36 帧，128×128/帧，保留透明边缘。
+- BossArt 预载 boss.atlas 和 boss-fx.atlas，BossGeneratedVfx 按表现事件寿命选帧、旋转 / 缩放；冲锋撞地复用踏地，电链随从传导复用同一电弧片段。喷火不再用重复三角形作为正常绘制路径。图集缺失时才使用原程序化回退。
+- 薄线预警、危险区域和技能判定继续由原 Core 参数决定；本轮没有更改任何 Boss 战斗数值、波次、伤害或碰撞。暂停 / 转阶段 / 死亡 / 重开 / 波末清理沿用同一模拟时钟和表现事件生命周期。
+- 预览共用正式图集与绘制代码，并修正软件预览对旋转、缩放和源 alpha 的支持；不把离线素材编排当作实机或自然战斗验收。源图、完整提示词、参考提交和哈希见 upgrade/asset-record.json 及目录 README。

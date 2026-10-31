@@ -106,7 +106,7 @@
 | `brute` | `brute` | 16×16 | 红色壮硕近战，金纹 |
 | `brute_elite` | `brute_elite` | 24×24 | 岩石巨兽（已认可造型 16×14 → 重制） |
 | `shooter_elite` | `shooter_elite` | 24×24 | 飞行眼魔（已认可造型 16×14 → 重制） |
-| `boss_three` | 暂无 | 48×32 | 三头巨兽；当前 ETYPES 无 BOSS，键名待定 |
+| `boss_three` | `boss_three` | 72×56 | 三首巨兽；正式八姿态图集，图鉴 PNG 同源 |
 | `boss_reaper` / `boss_tyrant` | 暂无 | TBD | **造型未定，暂不生成** |
 
 ### 5.2 投射物与拾取物（6）
@@ -328,3 +328,15 @@
 | 34 个抽象概念压进 16×16 | 可识别性下降 | 保留 emoji 作 hover 文本与无障碍标签 |
 | 商用授权条款 | ~~法务风险~~ **已确认** | 官网 FAQ 明确：生成内容归使用者所有，可用于个人与商业项目。仍建议首次生成后截图存档条款页面 |
 | BOSS 造型未定 | 2 张无法启动 | 保持 TBD，不阻塞其余 48 张 |
+
+## 三首巨兽重绘（v151，2026-10-31）
+
+- 当前 Boss 采用 BossPixelArt.ts 的 36×28 手绘像素矩阵，固定 2× 输出 72×56 PNG，6 色大色块匹配现有角色。八姿态共享源结构与脚底锚点，回退贴图同源；用户否定的高细节图像源表与提示词保留在 assets/boss-three 历史记录中，不参与构建。assets/plan.json、sprites manifest 与 GameScene preload 已同步；此前章节的「不做动画」为早期全局规划，本次为用户明确授权的 Boss 动画重绘。
+- node scripts/build-boss-assets.mjs：生成 public/assets/boss-three/boss.atlas.png / json 与 public/assets/sprites/boss_three.png；保留现有调色板，不修改全局色板或新增依赖。
+- node scripts/build-boss-preview.mjs：导出 assets/boss-three/preview 的 PNG / GIF / HTML，并同步 public/boss-preview/index.html。预览共用正式 BossVfx，只证明素材编排与绘制，不代表伤害/强度实机验收。
+
+## 三首巨兽生图升级与太刀参照（2026-10-31）
+
+- 用户后续明确允许美术升级，选择精致像素 / 卡通奇幻，以已合并 PR #220 的 C 方案太刀人物为参照。当前正式素材由内置生图工具生成，覆盖前一节六色矩阵版的正常绘制；矩阵仅保留 fallback，历史源图不删除。
+- build-boss-assets.mjs 现为 build-boss-generated-assets.mjs 的稳定入口：Boss 8 姿态 72×56；6 技能各 6 帧 128×128，汇入 boss-fx.atlas。记录 SHA-256、色板、原点平移、alpha 策略与参考提交，未新增依赖 / 修改全局色板。
+- 生成源图和完整提示词在 assets/boss-three/upgrade，太刀参照在 reference；正常游戏通过 BossArt 预载，BossGeneratedVfx 播放。伤害、判定与预警几何不因美术素材改变。

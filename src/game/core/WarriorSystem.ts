@@ -77,7 +77,7 @@ function landWarriorLeap(core: GameCore, leap: WarriorLeapState) {
   const hits = core.meleeSwing(leap.impact);
   if (leap.triStage3) {
     for (const e of hits)
-      e.stunT = Math.max(e.stunT ?? 0, WB.triDash.stunT);
+      if (!e.boss) e.stunT = Math.max(e.stunT ?? 0, WB.triDash.stunT);
     advanceWarriorTriDash.call(core);
     core.warriorLeapInvulnT = WB.triDash.leapInvulnT;
   }
@@ -407,7 +407,7 @@ function updateWarriorWaves(this: GameCore, dt: number): void {
         type: "physical",
         form: "melee",
       });
-      if (w.stun > 0) e.stunT = Math.max(e.stunT ?? 0, w.stun);
+      if (!e.boss && w.stun > 0) e.stunT = Math.max(e.stunT ?? 0, w.stun);
     }
   }
 }

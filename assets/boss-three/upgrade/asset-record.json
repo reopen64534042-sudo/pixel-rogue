@@ -1,0 +1,433 @@
+{
+  "tool": "built-in image_gen.imagegen",
+  "model": null,
+  "seed": null,
+  "style": "refined cartoon fantasy pixel art; reference PR #220 C ronin",
+  "referenceCommit": "28d1779",
+  "referenceMerge": "80b6df4",
+  "sources": [
+    {
+      "path": "assets/boss-three/upgrade/boss-source-v2.png",
+      "width": 2172,
+      "height": 724,
+      "sha256": "522386ccabe8a838358de56475f029167815f66a11b704237f716e5981364808"
+    },
+    {
+      "path": "assets/boss-three/upgrade/fire-source.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "8dbbe3085f9745e7c0639b6254d06bb71b5644013d8fbed2752f1d741d29d92f"
+    },
+    {
+      "path": "assets/boss-three/upgrade/stomp-source.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "9d92c9e02b3ec2d7d044d56ccb5c35837d8454709a57eb3df09b7bbffef5318f"
+    },
+    {
+      "path": "assets/boss-three/upgrade/nova-source.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "3c803600e74382b175fba37cbc31c2ccb38f211a5e6da86b1db0004dd11b4843"
+    },
+    {
+      "path": "assets/boss-three/upgrade/spikes-source.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "5f5d299c1a767648c11b749618b624cc10a80f9dabd5c20180e24f85d29eb5db"
+    },
+    {
+      "path": "assets/boss-three/upgrade/marks-source.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "bc875c8d0c835f45d839cd479c84ff19674a42a0164c9de6853c131637c4548b"
+    },
+    {
+      "path": "assets/boss-three/upgrade/chain-source.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "66f70c2fd9ac6cba149864a2574874d8cfa00a4c40b1d8616fd06ef4d2210aba"
+    }
+  ],
+  "body": {
+    "frameSize": [
+      72,
+      56
+    ],
+    "poses": [
+      "idle",
+      "crouch",
+      "roar",
+      "walk-left",
+      "walk-right",
+      "lunge",
+      "impact",
+      "stagger"
+    ],
+    "sharedScale": 0.1252302025782689,
+    "anchor": [
+      36,
+      54
+    ],
+    "palette": [
+      "ink0",
+      "ink1",
+      "stoneDark",
+      "stoneRed",
+      "fireOrange",
+      "fireDeep",
+      "gold",
+      "iceCyan",
+      "iceDeep",
+      "bone",
+      "sand",
+      "steelDark"
+    ],
+    "alphaThreshold": 128,
+    "bounds": [
+      {
+        "left": 86,
+        "top": 32,
+        "right": 510,
+        "bottom": 339
+      },
+      {
+        "left": 67,
+        "top": 66,
+        "right": 531,
+        "bottom": 339
+      },
+      {
+        "left": 53,
+        "top": 15,
+        "right": 533,
+        "bottom": 339
+      },
+      {
+        "left": 86,
+        "top": 40,
+        "right": 508,
+        "bottom": 339
+      },
+      {
+        "left": 72,
+        "top": 20,
+        "right": 523,
+        "bottom": 325
+      },
+      {
+        "left": 11,
+        "top": 58,
+        "right": 537,
+        "bottom": 329
+      },
+      {
+        "left": 35,
+        "top": 41,
+        "right": 531,
+        "bottom": 328
+      },
+      {
+        "left": 70,
+        "top": 42,
+        "right": 511,
+        "bottom": 323
+      }
+    ]
+  },
+  "effects": {
+    "fire": {
+      "frames": 6,
+      "frameSize": [
+        128,
+        128
+      ],
+      "anchor": [
+        12,
+        64
+      ],
+      "sourceOrigins": [
+        [
+          15,
+          70
+        ],
+        [
+          15,
+          70
+        ],
+        [
+          15,
+          70
+        ],
+        [
+          15,
+          64
+        ],
+        [
+          15,
+          64
+        ],
+        [
+          15,
+          64
+        ]
+      ],
+      "alphaThreshold": 72,
+      "palette": [
+        "ink0",
+        "stoneDark",
+        "fireDeep",
+        "fireOrange",
+        "gold",
+        "sand",
+        "bone"
+      ],
+      "processing": "whole-cell nearest sampling, translation only, preserved useful source alpha"
+    },
+    "stomp": {
+      "frames": 6,
+      "frameSize": [
+        128,
+        128
+      ],
+      "anchor": [
+        64,
+        70
+      ],
+      "sourceOrigins": [
+        [
+          64,
+          70
+        ],
+        [
+          64,
+          70
+        ],
+        [
+          64,
+          70
+        ],
+        [
+          64,
+          70
+        ],
+        [
+          64,
+          70
+        ],
+        [
+          64,
+          70
+        ]
+      ],
+      "alphaThreshold": 72,
+      "palette": [
+        "ink0",
+        "ink2",
+        "pBrown",
+        "sand",
+        "gold",
+        "steelMid",
+        "steelLight",
+        "steelDark"
+      ],
+      "processing": "whole-cell nearest sampling, translation only, preserved useful source alpha"
+    },
+    "nova": {
+      "frames": 6,
+      "frameSize": [
+        128,
+        128
+      ],
+      "anchor": [
+        64,
+        70
+      ],
+      "sourceOrigins": [
+        [
+          64,
+          70
+        ],
+        [
+          64,
+          70
+        ],
+        [
+          64,
+          70
+        ],
+        [
+          64,
+          70
+        ],
+        [
+          64,
+          70
+        ],
+        [
+          64,
+          70
+        ]
+      ],
+      "alphaThreshold": 72,
+      "palette": [
+        "ink0",
+        "ink1",
+        "iceDeep",
+        "iceCyan",
+        "bone",
+        "steelLight",
+        "pBlueDk"
+      ],
+      "processing": "whole-cell nearest sampling, translation only, preserved useful source alpha"
+    },
+    "spikes": {
+      "frames": 6,
+      "frameSize": [
+        128,
+        128
+      ],
+      "anchor": [
+        64,
+        112
+      ],
+      "sourceOrigins": [
+        [
+          64,
+          118
+        ],
+        [
+          64,
+          118
+        ],
+        [
+          64,
+          120
+        ],
+        [
+          64,
+          110
+        ],
+        [
+          64,
+          110
+        ],
+        [
+          64,
+          110
+        ]
+      ],
+      "alphaThreshold": 72,
+      "palette": [
+        "ink0",
+        "ink1",
+        "iceDeep",
+        "iceCyan",
+        "bone",
+        "steelLight",
+        "pBlueDk"
+      ],
+      "processing": "whole-cell nearest sampling, translation only, preserved useful source alpha"
+    },
+    "marks": {
+      "frames": 6,
+      "frameSize": [
+        128,
+        128
+      ],
+      "anchor": [
+        64,
+        116
+      ],
+      "sourceOrigins": [
+        [
+          64,
+          120
+        ],
+        [
+          64,
+          120
+        ],
+        [
+          64,
+          120
+        ],
+        [
+          64,
+          116
+        ],
+        [
+          64,
+          116
+        ],
+        [
+          64,
+          116
+        ]
+      ],
+      "alphaThreshold": 72,
+      "palette": [
+        "ink0",
+        "ink1",
+        "iceDeep",
+        "iceCyan",
+        "bone",
+        "steelLight",
+        "pBlueDk",
+        "fireYellow",
+        "gold"
+      ],
+      "processing": "whole-cell nearest sampling, translation only, preserved useful source alpha"
+    },
+    "chain": {
+      "frames": 6,
+      "frameSize": [
+        128,
+        128
+      ],
+      "anchor": [
+        12,
+        64
+      ],
+      "sourceOrigins": [
+        [
+          16,
+          76
+        ],
+        [
+          16,
+          76
+        ],
+        [
+          16,
+          76
+        ],
+        [
+          16,
+          50
+        ],
+        [
+          16,
+          50
+        ],
+        [
+          16,
+          50
+        ]
+      ],
+      "alphaThreshold": 72,
+      "palette": [
+        "ink0",
+        "ink1",
+        "iceDeep",
+        "iceCyan",
+        "bone",
+        "steelLight",
+        "pBlueDk",
+        "fireYellow",
+        "gold"
+      ],
+      "processing": "whole-cell nearest sampling, translation only, preserved useful source alpha"
+    }
+  }
+}

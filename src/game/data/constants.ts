@@ -61,3 +61,13 @@ export function fmtTime(t: number) {
     s = Math.floor(t % 60);
   return m + ":" + String(s).padStart(2, "0");
 }
+
+/**
+ * 生命值文本：上限为整数时保持旧的向上取整当前值；
+ * 等级成长会产生 0.5 上限，此时两侧统一保留一位小数，
+ * 避免当前 21.5 被 ceil 成 22、显示成 22/21.5。
+ */
+export function fmtHp(hp: number, maxhp: number) {
+  if (Number.isInteger(maxhp)) return `${Math.ceil(hp)}/${maxhp}`;
+  return `${hp.toFixed(1)}/${maxhp.toFixed(1)}`;
+}

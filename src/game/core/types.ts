@@ -323,7 +323,56 @@ export type ShooterWeapon = "charged" | "laser" | "missile";
 /** 战士开局流派：太刀（快、近、弱击退）/ 大剑（慢、远、强击退）。 */
 export type WarriorStyle = "katana" | "greatsword";
 
+export type BossPhase = 1 | 2 | 3;
+export type BossAttackId = "stomp" | "charge" | "breath" | "nova" | "spikes" | "marks" | "chain";
+export interface BossState {
+  enemy: Enemy;
+  phase: BossPhase;
+  action: "intro" | "chase" | "windup" | "dash" | "stagger" | "recover" | "transition" | "cast";
+  actionT: number;
+  attack: BossAttackId | null;
+  lastAttack: BossAttackId | null;
+  cooldowns: Record<BossAttackId, number>;
+  angle: number;
+  targets: Point[];
+  farT: number;
+  enraged: boolean;
+  dashHit: boolean;
+  summonedThrough: BossPhase;
+  castRepeats: number;
+  castTickT: number;
+}
+export interface BossHazard extends Point {
+  kind: "fire" | "frost";
+  r: number;
+  t: number;
+  tickT: number;
+  dmg: number;
+  slowF: number;
+}
+export interface BossStrike extends Point {
+  attack: "marks" | "spikes" | "nova";
+  windup: number;
+  innerR: number;
+  r: number;
+  t: number;
+  dmg: number;
+  type: "lightning" | "frost";
+}
+/** 固定步生成的短期表现事件，不参与伤害，生命周期随 Boss 清理。 */
+export interface BossImpact extends Point {
+  attack: BossAttackId;
+  phase: BossPhase;
+  angle: number;
+  r: number;
+  innerR: number;
+  t: number;
+  max: number;
+  points: Point[];
+}
 export interface Enemy extends Point {
+  boss?: boolean;
+  bossSummon?: boolean;
   type: string;
   spr: string;
   hp: number;

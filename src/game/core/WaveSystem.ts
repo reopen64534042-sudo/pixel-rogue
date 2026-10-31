@@ -1,3 +1,5 @@
+import { BOSS, isBossWave } from "../data/boss";
+import { clearBossTransient, spawnBoss } from "./BossSystem";
 import { UPGRADES } from "../data/talents";
 import { clearMissileTransient } from "./MissileSystem";
 import { waveTheme } from "../data/enemies";
@@ -6,12 +8,12 @@ import { resolveDifficulty } from "../data/difficulty";
 import { attrPicksPerWave } from "./AttributeSystem";
 import type { GameCore } from "./GameCore";
 export function waveQuota(this: GameCore, n: number) {
-  return Math.min(150, 20 + (n - 1) * 10);
+  return isBossWave(n) ? 1 : Math.min(150, 20 + (n - 1) * 10);
 }
 
 /** 每波精英数量：4/8/12… 至少 1；12 波起 2、20 波起 3。 */
 export function eliteQuotaForWave(n: number): number {
-  return n >= 20 ? 3 : n >= 12 ? 2 : n % 4 === 0 ? 1 : 0;
+  return isBossWave(n) ? 0 : n >= 20 ? 3 : n >= 12 ? 2 : n % 4 === 0 ? 1 : 0;
 }
 
 export function startNextWave(this: GameCore) {
@@ -26,9 +28,10 @@ export function startNextWave(this: GameCore) {
   this.swapOpen = false;
   this.swTarget = 0;
   this.swSel = {};
+  clearBossTransient(this);
   this.waveN++;
   const theme = waveTheme(this.waveN);
-  this.themeGuarantee = theme.signature ?? null;
+  this.themeGuarantee = isBossWave(this.waveN) ? null : theme.signature ?? null;
   // S2：每波重置节点天赋开关（同一波多只精英只发一次）
   this.waveTalentGiven = false;
   // S1：属性次数按波发放，波末消费
@@ -45,6 +48,10 @@ export function startNextWave(this: GameCore) {
   this.spawnCd = 1.2;
   this.wavePhase = "fight";
   this.state = "play";
+  if (isBossWave(this.waveN)) {
+    spawnBoss(this);
+    this.spawnedThisWave = 1;
+  }
   this.player.tempShield = this.player.barrierLv; // 壁垒: 每波临时护盾
   // 大剑护盾链：铁壁每波至少给 1 层护盾，额外层数靠充能补。
   if ((this.player.upCounts["铁壁"] || 0) > 0) {
@@ -67,7 +74,7 @@ export function startNextWave(this: GameCore) {
   this.addText(
     this.player.x,
     this.player.y - 18,
-    `WAVE ${this.waveN} · ${theme.name}${difficultyText}`,
+    `WAVE ${this.waveN} · ${isBossWave(this.waveN) ? `首领 · ${BOSS.name}` : theme.name}${difficultyText}`,
     "#ff5b5b",
     true,
   );
@@ -123,7 +130,7 @@ export function enterRest(this: GameCore) {
   // v139：精英波（4/8/12/16/20/24/28）额外给 1 次属性消费额度，
   // 让升级点有出口、不长期堆积；额度与精英刷新规则共用同一函数。
   if (
-    eliteQuotaForWave(this.waveN) > 0 &&
+    (eliteQuotaForWave(this.waveN) > 0 || isBossWave(this.waveN)) &&
     this.attrMilestoneWave !== this.waveN
   ) {
     this.attrMilestoneWave = this.waveN;
@@ -131,7 +138,7 @@ export function enterRest(this: GameCore) {
     this.addText(
       this.player.x,
       this.player.y - 24,
-      `精英波 · 属性额度 +1`,
+      `${isBossWave(this.waveN) ? "首领波" : "精英波"} · 属性额度 +1`,
       "#ffd24a",
     );
   }
@@ -160,7 +167,11 @@ export function updateWave(this: GameCore, dt: number) {
   if (this.tutorialMode) return;
   // ---- 波次推进: 刷满配额且全部清空才算过波 ----
   if (this.wavePhase === "fight") {
-    if (this.spawnedThisWave < this.quota) {
+    if (isBossWave(this.waveN) && this.spawnedThisWave < this.quota) {
+      this.quota = 1;
+      spawnBoss(this);
+      this.spawnedThisWave = 1;
+    } else if (this.spawnedThisWave < this.quota) {
       this.spawnCd -= dt;
       if (this.spawnCd <= 0 && this.enemies.length < 160) {
         this.spawnCd = Math.max(0.32, 1.2 - this.waveN * 0.07);
@@ -182,6 +193,7 @@ export function updateWave(this: GameCore, dt: number) {
         }
       }
     } else if (this.enemies.length === 0 && !this.warriorLeapState) {
+      clearBossTransient(this);
       // 本波怪清空 → 收尾: 先吸经验球、选完升级，再收宝箱，最后休整
       this.wavePhase = "collect";
       if (this.prof === "shooter" && this.shooterWeapon === "missile") clearMissileTransient(this, false, true);
