@@ -24,6 +24,8 @@ export const ATTRIBUTE_CAPS = {
   fireRateMul: 2.5,
   /** 移速总上限 = 职业基础移速 × 该倍率（2 = +100%） */
   moveSpeedMul: 2,
+  /** 激光回充效率最多 +300%：快速回充 0.2 秒在此达到 0.05 秒下限。 */
+  laserRechargeEfficiency: 3,
 } as const;
 
 export function lifestealCap(prof: Profession): number {

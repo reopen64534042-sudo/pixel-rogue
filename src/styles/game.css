@@ -389,7 +389,21 @@ p {
   color: #e8fbff;
 }
 
-/* 属性面板整体容器与分栏 */
+/* 属性面板整体容器与分栏：正文按实际游戏区域收缩，标题与返回按钮固定可见。 */
+#ov-stats:not(.hidden) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  justify-content: stretch;
+  justify-items: center;
+  gap: 1.6vmin;
+  overflow: hidden;
+}
+#ov-stats .stats-container {
+  min-height: 0;
+  height: 100%;
+  max-height: 68vmin;
+}
 .stats-container {
   display: flex;
   flex-direction: row;
@@ -417,10 +431,83 @@ p {
   padding-right: 1.2vmin;
 }
 .stats-col-right {
-  display: flex;
-  flex-direction: column;
+  --stats-accent: #57e6ff;
+  --stats-muted: #9aa3c7;
+  --stats-line: #2a3356;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.stats-col-right:focus-visible,
+.stats-col-right summary:focus-visible {
+  outline: 0.2vmin solid var(--stats-accent);
+  outline-offset: 0.2vmin;
+}
+.stats-section {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.stats-section + .stats-section {
+  margin-top: 1vmin;
+}
+.stats-help {
+  color: var(--stats-muted);
+  font-size: 1.2vmin;
+  line-height: 1.6;
+  margin-bottom: 1vmin;
+}
+.weapon-progress {
+  margin-bottom: 1.3vmin;
+}
+.weapon-progress-label {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5vmin 1vmin;
+  font-size: 1.25vmin;
+  line-height: 1.6;
+  color: var(--stats-muted);
+  margin-bottom: 0.5vmin;
+}
+.weapon-progress-label strong {
+  color: var(--stats-accent);
+}
+.weapon-progress-track {
+  height: 0.7vmin;
+  background: #0c0f1d;
+  border: 0.15vmin solid var(--stats-line);
+}
+.weapon-progress-fill {
+  height: 100%;
+  background: var(--stats-accent);
+}
+.stats-col-right .weapon-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+/* 武器数值复用左栏的字号、横排行与间距，长值在自身单元格内换行。 */
+.stats-col-right .weapon-stats .row,
+.stats-col-right .weapon-stats .k,
+.stats-col-right .weapon-stats .v {
+  min-width: 0;
+}
+.stats-col-right .weapon-stats .v {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.weapon-rules .stat-group-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.stats-col-right .weapon-rules .row {
+  align-items: flex-start;
+}
+.weapon-rules .k {
+  flex: 0 0 7em;
+}
+.stats-col-right .weapon-rules .v {
+  min-width: 0;
+  font-weight: normal;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 .stats-group-title {
   color: #ffd24a;
@@ -445,7 +532,7 @@ p {
   padding: 0.45vmin 0;
   align-items: center;
 }
-/* 强化弹当前升级：名称 + 完整说明，独立滚动，不挤压已学天赋 */
+/* 规则与升级共享右栏滚动，展开时天赋仍可通过同一滚动区域访问。 */
 .special-upgrades {
   flex: 0 0 auto;
   min-height: 0;
@@ -472,10 +559,7 @@ p {
   display: flex;
   flex-direction: column;
   gap: 0.55vmin;
-  max-height: 30vmin;
   min-height: 0;
-  overflow-y: auto;
-  padding-right: 0.8vmin;
   margin-bottom: 1.2vmin;
   flex: 0 1 auto;
 }
@@ -519,10 +603,7 @@ p {
 
 /* 右栏天赋列表与分类 */
 #talent-list {
-  flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  padding-right: 0.8vmin;
   display: flex;
   flex-direction: column;
   gap: 1.2vmin;
@@ -734,6 +815,7 @@ p {
 @media (max-width: 768px), (max-height: 520px) {
   .stats-container {
     flex-direction: column;
+    justify-content: flex-start;
     height: 72vmin;
     max-height: 72vmin;
     overflow-y: auto;
@@ -744,9 +826,12 @@ p {
     max-height: none;
     overflow: visible;
   }
-  #talent-list {
-    max-height: 28vmin;
-    overflow-y: auto;
+  .weapon-rules .row {
+    flex-direction: column;
+    gap: 0.4vmin;
+  }
+  .weapon-rules .k {
+    flex-basis: auto;
   }
 }
 /* ============================================================
