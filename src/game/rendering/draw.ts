@@ -6,7 +6,7 @@ import type { GameCore } from "../core/GameCore";
 import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
-import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
+import { W, H, VIEW, WORLD, fmtTime, fmtHp } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
 import { warriorIaiStep } from "../core/WarriorSystem";
@@ -1521,7 +1521,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   ctx.fillStyle = "#e8e8f0";
   ctx.textAlign = "left";
   ctx.fillText("Lv" + this.player.lvl, 6, 34);
-  ctx.fillText(Math.ceil(this.player.hp) + "/" + this.player.maxhp, 6, 56); // 血量数值 (与计时同规格)
+  ctx.fillText(fmtHp(this.player.hp, this.player.maxhp), 6, 56); // 血量数值 (与计时同规格)
   // 护盾层数改到角色护盾环（见玩家绘制段）；HUD 不再显示小格。
   // Issue #51：冲刺充能格已移至角色脚下（见玩家绘制段），不再占用 HUD
   // 时间 (带波次号, 16px 像素字体)

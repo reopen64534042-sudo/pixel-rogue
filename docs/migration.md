@@ -3966,3 +3966,10 @@ dmg = Math.ceil(e.hp - 1);
 - 基线影响须随提交信息保留：W10/20/30… 的配额和精英数、Boss 波末属性额度、ENEMY_TOTAL=13、真实 Boss 击杀统计、新 Boss 数值和多段招式。按 2026-10-29 裁定不新增或修改测试 / 基线，不运行 Vitest / Playwright。用户对本地试玩表现的认可不等于代理已完成全部职业 TTK / 平衡验收。
 - 同步结果：已合并 upstream/main 7305711，冲突仅在 AGENTS / CHANGELOG / TS 更新日志 / migration 四处，保留双方内容并将 v154 放在 v153 / v152 / v151 之前。自动合并的 CombatSystem 同时保留 dealtHpLoss 吸血口径与 Boss 转阶段保护；人物绘制和 Scene 生命周期同时保留太刀与 Boss 接线。
 - 合并后 typecheck / build 通过（121 模块，保留既有大 chunk 提示）；检查上游成长、星陨、血瓶、太刀人物文件无额外差异。测试文件和依赖未改，完整 Vitest / Playwright / 三职业平衡验收仍留待授权批次。
+
+## D-129 生命值小数显示修正（v155）
+
+- 复现：Lv4 射手生命上限为 `20 + 3 × 0.5 = 21.5`，满血 `hp = 21.5`；HUD 与 C 面板用 `Math.ceil(hp)` 显示当前值 22，而上限保留 21.5，看起来当前生命超过上限。受控 e2e 读取 `hp=21.5 / maxhp=21.5 / hpExceeds=false`，内部没有真实越界。
+- 根因：v153 等级自动成长每级 +0.5 生命上限；HUD 只对当前 HP 向上取整，C 面板同样处理，上限却保留原始小数。
+- 修复：`src/game/data/constants.ts` 新增 `fmtHp()`：上限为整数时保持旧的 `Math.ceil(hp)/maxhp`；上限含小数时两侧统一 `toFixed(1)`。`draw.ts` HUD 与 `ui/GameUI.ts` C 面板共用，实际 HP、上限、伤害、治疗与等级成长逻辑不变。
+- 验证：`npm run typecheck` / `npm run build`；e2e Lv4 满血 HUD 与 C 面板均显示 `21.5/21.5`，截图 `output/v155-hp-hud.png`、`output/v155-hp-panel.png`。按 2026-10-29 标准未运行 Vitest / Playwright；无测试断言依赖该显示字符串。
