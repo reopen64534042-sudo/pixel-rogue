@@ -86,6 +86,17 @@ export function mageReactionDamageMul(core: GameCore): number {
   return mul;
 }
 
+/** 每只敌人两次普通反应之间的间隔；反应精通 −0.1 秒。 */
+export function mageReactionIcd(core: GameCore): number {
+  return Math.max(
+    0,
+    ELEMENTAL_MAGE.reaction.icdBase -
+      (hasMageUpgrade(core, "reactionMastery")
+        ? ELEMENTAL_MAGE.mastery.icdReduction
+        : 0),
+  );
+}
+
 /** 法阵扩幅：法阵半径倍率。 */
 export function mageCircleWidthMul(core: GameCore): number {
   return hasMageUpgrade(core, "circleWidth")

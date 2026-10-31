@@ -1,6 +1,7 @@
 import { BOSS } from "../data/boss";
 import { BOSS_DAMAGE } from "../data/combatBalance";
 import { ELITE_XP_STEP } from "../data/constants";
+import type { DamageTypeId } from "../data/damageTypes";
 import type { LaserLane } from "../data/laser";
 import type { Player } from "./types";
 import { LASER_DAMAGE as LD, MISSILE_DAMAGE as MD } from "../data/combatBalance";
@@ -142,6 +143,20 @@ export const missileBurnDps = (base: number) => base * MD.burn;
 export const missileDotAmount = (dps: number, seconds: number) => dps * seconds;
 export const missileHealing = (loss: number, lifesteal: number) => loss * lifesteal * MD.lifesteal;
 export const missileIncomingDamage = (damage: number) => damage * MD.armor;
+
+/**
+ * 第二元素的进攻增伤倍率。
+ *
+ * 反应伤害仍以触发元素走统一受击管线（抗性/克制方向由触发元素决定）；
+ * 该倍率把配对的另一元素的 typeDamageBonus 也计入，避免“双元素反应只吃
+ * 单一元素加成”。globalDamageBonus 仍由 hurtEnemy 只乘一次。
+ */
+export function typeBonusMultiplier(
+  bonus: Partial<Record<DamageTypeId, number>> | undefined,
+  type: DamageTypeId,
+): number {
+  return 1 + (bonus?.[type] ?? 0);
+}
 /** All overlapping grounds have the same defender/fire mitigation; compare offensive power only. */
 export function missileGroundPower(dps: number, stats: import("./types").CombatStatsSnapshot) {
   const fire = Object.hasOwn(stats.typeDamageBonus, "fire") ? stats.typeDamageBonus.fire ?? 0 : 0;

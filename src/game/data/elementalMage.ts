@@ -112,7 +112,7 @@ export const MAGE_REACTIONS: Record<MageReactionId, MageReactionDef> = {
     to: "fire",
     suit: "B",
     color: "#e8f7ff",
-    desc: "火击命中冻结或霜牢目标：退出控制、清空凝冰，消耗本次灼烧，按凝冰层数 × 75% 结算",
+    desc: "火击命中冻结或霜牢目标：退出控制、清空凝冰，消耗本次灼烧，按凝冰层数 × 95% 结算",
   },
   overload: {
     id: "overload",
@@ -121,7 +121,7 @@ export const MAGE_REACTIONS: Record<MageReactionId, MageReactionDef> = {
     to: "lightning",
     suit: "B",
     color: "#ff9a3d",
-    desc: "直接雷击命中带灼烧目标：消耗灼烧，按层数 × 100% 结算；链上目标不触发",
+    desc: "直接雷击命中带灼烧目标：消耗灼烧，按层数 × 125% 结算；链上目标不触发",
   },
   blaze: {
     id: "blaze",
@@ -302,7 +302,7 @@ export const MAGE_EPIC_UPGRADES: readonly MageEpicUpgradeDef[] = [
     id: "reactionMastery",
     name: "反应精通",
     ico: "☯️",
-    desc: "元素反应伤害 +15%",
+    desc: "元素反应伤害 +15%，反应 ICD −0.1 秒（基础 0.5 → 0.4 秒）",
   },
 ];
 
@@ -323,7 +323,7 @@ export const MAGE_ULTIMATE_UPGRADES: readonly MageUltimateUpgradeDef[] = [
     id: "reactionFinale",
     name: "反应终章",
     ico: "☯️",
-    desc: "元素反应伤害 +25%；A 套装向附近 1 个敌人传播低伤害回响，B 套装对冻结/霜牢目标额外增伤",
+    desc: "元素反应伤害 +25%；A 套装向附近 1 个敌人传播低伤害回响，B 套装对冻结/霜牢目标额外 +30%",
   },
 ];
 
@@ -378,10 +378,12 @@ export const ELEMENTAL_MAGE = {
     superconductJumps: 4,
   },
   reaction: {
+    /** 每只敌人两次反应之间的基础间隔；低于基础施法周期，避免前期误伤；精通再降低。 */
+    icdBase: 0.5,
     quenchPerBurn: 0.8,
     quenchFrostStacks: 2,
-    meltPerFrost: 0.75,
-    overloadPerBurn: 1,
+    meltPerFrost: 0.95,
+    overloadPerBurn: 1.25,
     blazeMain: 1.2,
     blazeSplash: 0.6,
     blazeSplashCount: 3,
@@ -415,6 +417,7 @@ export const ELEMENTAL_MAGE = {
   },
   mastery: {
     reactionDamage: 0.15,
+    icdReduction: 0.1,
   },
   finale: {
     reactionDamage: 0.25,
@@ -422,7 +425,7 @@ export const ELEMENTAL_MAGE = {
     echoMul: 0.4,
     echoRadius: 80,
     /** B 套装：对冻结/霜牢目标的额外反应伤害。 */
-    controlledBonus: 0.2,
+    controlledBonus: 0.3,
   },
   shadow: {
     damageMul: 0.55,
