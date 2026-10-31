@@ -3858,3 +3858,10 @@ dmg = Math.ceil(e.hp - 1);
 - 原始源图、正式 PNG／条带／图集保持不变，21 项已认可素材哈希全部匹配。正式试玩服务的 IonVfx 模块和离线预览入口均返回 200，v148 已热更新；未做新的 Phaser 实机截图验收，实战高密度可读性与性能仍待试玩反馈。
 - 验证按 typecheck／build／差异检查；双端更新日志与素材维护说明同步。未新增或修改测试、fixtures 或 mocks，未运行 Vitest／Playwright。
 - 用户认可本轮离子表现并授权提交／推送／创建 PR。提交前 upstream/main 已到 b83443d，包含 v147 死亡总结与暂停恢复倒数；本批顺延为 v148，通过普通 merge 同步，保留上游改动后重新编译检查。
+## D-128 怪物基线审计与图鉴/文档修正（v149）
+
+- 审计范围：v147 的 12 条敌人图鉴、`EnemySystem` / `WaveSystem` / `CombatSystem` / `EnemyStatSources`、绘制与图鉴 UI；本批不改任何战斗数值。
+- 修复：`CodexUI` 精英生命倍率 ×3.5 → ×5（与 `EnemyStatSources` 一致）；`codexData` 精英描述「特殊宝箱」→「普通宝箱（品质祝福）50%」；`assets/plan.json` 与 `docs/art-assets.md` 的 `elite_brute` / `elite_shooter` → `brute_elite` / `shooter_elite`，与 `draw.ts` 的 `` `${spr}_elite` `` 约定一致。manifest 当前为空，属出图前的潜伏问题。
+- 文档：重写 `docs/monster-numerics.md` 到当前实现（10 种普通/特殊 + 子体 + 精英、主题权重、精英规则、掉落、行为、修改入口、已知缺口）；README / AGENTS 同步敌人数量、解锁波次与精英规则。
+- 验证：`npm run typecheck` / `npm run build`。按 2026-10-29 标准未运行 Vitest / Playwright；`tests/codex.test.ts` 的 `ENEMY_TOTAL=6` 旧断言仍过期（当前 12），留待授权测试批次。
+- 审计中记录的 P2/P3（批次可将同屏上限顶到 161、`ETYPES.wt` 无消费点、掘地虫 surface 索敌、自爆计击杀、分离包含死敌、每射手 alive 过滤）本批未修，留待后续批次。

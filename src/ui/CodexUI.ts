@@ -53,7 +53,7 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
  * 敌人详情里的属性表。
  *
  * 数值直接读 `ETYPES`，与真实刷新/战斗同源；精英条目复用基础怪配置，
- * 再单列一行精英修正，避免把 ×3.5 后的数字误当成基础值。
+ * 再单列一行精英修正，避免把加成后的数字误当成基础值。
  */
 function enemyStatsHtml(entry: CodexEntry): string {
   if (!entry.link) return "";
@@ -92,7 +92,7 @@ function enemyStatsHtml(entry: CodexEntry): string {
   if (entry.elite)
     rows.push([
       "精英强化",
-      "生命 ×3.5 · 攻击 ×1.6 · 移速 ×0.8 · 半径 ×1.8",
+      "生命 ×5 · 攻击 ×1.6 · 移速 ×0.8 · 半径 ×1.8",
       "普通宝箱 50% 概率（品质祝福）；经验 25+(波次-1)×4",
     ]);
   return `<div class="cx-d-stats">
