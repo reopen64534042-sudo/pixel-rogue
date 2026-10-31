@@ -3739,3 +3739,10 @@ dmg = Math.ceil(e.hp - 1);
 - 连续属性选择同时检查升级点和分配额度，并继续传当前主武器；品质祝福沿用上游 boostAttrChoice，标签与 hint 随候选保留。伤害飘字把上游 triHit 参数与色彩完整放入原 silent 门控中，避免激光高频飘字重复显示。
 - 双端更新日志保留上游 v138/v139，激光发布版本顺延 v140，条目按新的分类前缀规范整理。旧草案及首次整理的 v138 编号仅作为本聊天开发记录保留。
 - 合并后重新进行 typecheck / build / 差异检查和只读评审；按项目规则不运行 Vitest / Playwright，不修改测试基线。推送与 PR 以同步后的版本为准。
+
+## D-126 图鉴补录分裂子体与蛛网视觉减弱（v142）
+
+- 复现：裂胶史莱姆死亡生成 `splitling`，`CombatSystem.killEnemy` 已按裸类型键累计 `killLog`，但 `ENEMY_ENTRIES` 未登记该类型，`CodexSystem.syncEnemies` 的「未登记不写盘」过滤会静默丢弃；图鉴敌人总数、击杀数与详情都缺子体。
+- 修复：`src/game/codex/codexData.ts` 登记 `e:splitling`（贴图 `splitling`，`link` 指向同键配置），击杀累计 / 解锁 / 详情自动生效；`CodexUI.enemyStatsHtml` 对 `w0=999`、`wt=0` 的条目显示「特殊生成 / —」，不再把内部占位值当成正常刷新数据。
+- 蛛网：生效网纹从 `#d9e7ff` / alpha 0.30 的双环 + 8 条 4px→0.95R 辐条，改为 `#8ea6cc` / 外环 alpha 0.16、内环 0.10、辐条 0.11（0.3R→0.92R）；预警金圈、半径、持续时间与 40% 减速等玩法数值不变。
+- 验证：`npm run typecheck` / `npm run build`。按 2026-10-29 标准未运行 Vitest / Playwright；`tests/codex.test.ts` 的 `ENEMY_TOTAL` / `ETYPES` 数量旧断言在本次改动前就已过期（登记 6 vs 实际 11），本次敌人分母变为 12，留待授权测试批次统一处理。蛛网明暗属视觉手感，未做浏览器截图 / 自然试玩，需实机确认是否仍需继续压暗或调整预警圈。

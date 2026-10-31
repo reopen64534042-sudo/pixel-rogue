@@ -180,6 +180,15 @@ export const ENEMY_ENTRIES: readonly CodexEntry[] = [
     status: "live",
   },
   {
+    id: enemyId("splitling"),
+    cat: "enemy",
+    name: "小史莱姆",
+    desc: "裂胶史莱姆死亡后裂出的子体：体型更小、生命更低，不再分裂，也不掉落经验；只由母体生成，不进入随机刷新池。",
+    spr: "splitling",
+    link: "splitling",
+    status: "live",
+  },
+  {
     id: enemyId("charger"),
     cat: "enemy",
     name: "角兽",
