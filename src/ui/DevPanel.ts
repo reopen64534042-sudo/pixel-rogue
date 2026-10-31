@@ -110,9 +110,10 @@ export class DevPanel {
       tools.appendChild(b);
     };
     mk("属性 +5", () => {
+      this.core.attributePoints += 5;
       this.core.attrPicks += 5;
       // 立即弹出属性选择面板，不用等到休整环节；若当前已有面板，
-      // openAttrPanel 会早退，这 5 次仍排在波末使用。
+      // openAttrPanel 会早退，这 5 点仍排在波末使用。
       if (this.core.state === "play") this.core.openAttrPanel();
     });
     mk("重开本局", () => {

@@ -232,20 +232,12 @@ export function draw(this: GameCore, ctx: PixelPainter) {
     const rect = spriteRect("potion", o.x, o.y);
     if (rect) ctx.sprite(rect.tex, rect.x, rect.y, rect.w, rect.h);
   }
-  // 宝箱（波次结束后会自动飞向玩家）
+  // 成长徽记 / 普通宝箱（波次结束后会自动飞向玩家）
   for (const b of this.boxes) {
     const bob = Math.sin(this.time * 4 + b.x) * 1.2;
-    const rect = spriteRect("box", b.x, b.y + bob);
+    const token = b.kind === "token";
+    const rect = spriteRect(token ? "sigil" : "box", b.x, b.y + bob);
     if (rect) ctx.sprite(rect.tex, rect.x, rect.y, rect.w, rect.h);
-    // Issue #48：特殊宝箱金色皇冠标记
-    if (b.special) {
-      const gx = Math.round(b.x - 5);
-      const gy = Math.round(b.y - 12 + bob);
-      ctx.fillStyle = "#ffd24a";
-      ctx.fillRect(gx, gy, 10, 2);
-      ctx.fillRect(gx + 1, gy + 2, 2, 2);
-      ctx.fillRect(gx + 7, gy + 2, 2, 2);
-    }
   }
 
   // Issue #45：焦土燃烧地带
@@ -1504,7 +1496,7 @@ export function draw(this: GameCore, ctx: PixelPainter) {
   ctx.fillStyle = "#3a0d0d";
   ctx.fillRect(7, 9, 82, 5);
   ctx.fillStyle =
-    this.player.hp / this.player.maxhp < 0.3 ? "#ff5b5b" : "#ff4d6d";
+    this.player.hp / this.player.maxhp < 0.45 ? "#ff5b5b" : "#ff4d6d";
   ctx.fillRect(
     7,
     9,

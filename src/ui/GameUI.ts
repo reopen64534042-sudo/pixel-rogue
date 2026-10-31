@@ -97,8 +97,8 @@ function lianShanDesc(style: WarriorStyle): string {
  */
 const SWAP_ENTRY_ENABLED: boolean = false;
 
-/** 低血量红边阈值：与 HUD 血条变红阈值一致（draw.ts 的 <0.3）。 */
-const LOW_HP_RATIO = 0.3;
+/** 低血量红边阈值：与 HUD 血条变红阈值一致（draw.ts 的 <0.45）。 */
+const LOW_HP_RATIO = 0.45;
 
 export class GameUI {
   /** 图鉴面板：开始界面与暂停界面共用同一实例（Issue #78） */
@@ -381,7 +381,7 @@ export class GameUI {
   /**
    * 低血量屏幕边缘提示（v77）。
    *
-   * 仅战斗中显示；与 HUD 血条同阈值（<30%），越低越明显；不做循环闪烁
+   * 仅战斗中显示；与 HUD 血条同阈值（<45%），越低越明显；不做循环闪烁
    * （表现层铁律：状态优先用颜色，不用动画抢注意力）。
    */
   syncLowHp() {
@@ -394,7 +394,7 @@ export class GameUI {
     const active =
       this.core.state === "play" && ratio > 0 && ratio < LOW_HP_RATIO;
     const opacity = active
-      ? Math.min(0.9, 0.28 + (LOW_HP_RATIO - ratio) * 2.8)
+      ? Math.min(0.95, 0.34 + (LOW_HP_RATIO - ratio) * 3.0)
       : 0;
     const next = opacity.toFixed(3);
     if (overlay.style.opacity !== next) overlay.style.opacity = next;
@@ -1241,13 +1241,14 @@ export class GameUI {
     const title = document.querySelector<HTMLElement>("#attr-title");
     if (title)
       title.textContent =
-        g.attrPicks > 1
-          ? `◆ 属性强化 · 还剩 ${g.attrPicks} 次`
-          : "◆ 属性强化 · 选择一项";
+        `◆ 属性强化 · 升级点 ${g.attributePoints} · 本次可分配 ${g.attrPicks}`;
     const hint = document.querySelector<HTMLElement>("#attr-hint");
     if (hint)
       hint.textContent =
-        "模拟不暂停 · 四格顺序随机 · 键盘 1 / 2 / 3 / 4 快捷选取 · 刷新会连稀有度一起重掷";
+        "模拟不暂停 · 四格顺序随机 · 键盘 1 / 2 / 3 / 4 快捷选取 · 刷新会连稀有度一起重掷" +
+        (g.attrQualityBoosts > 0
+          ? ` · 宝箱祝福 ×${g.attrQualityBoosts}：选中项品质 +1`
+          : "");
     const btn = element("attr-refresh") as HTMLButtonElement;
     btn.disabled = g.attrRefreshUsed;
     btn.textContent = g.attrRefreshUsed ? "已刷新" : "刷新（每次一次）";
@@ -1284,7 +1285,7 @@ export class GameUI {
     });
   }
   closeAttrPanelIfDone() {
-    if (this.core.attrPicks > 0) return;
+    if (this.core.attrPicks > 0 && this.core.attributePoints > 0) return;
     element("bp-attr").classList.add("hidden");
     // 与升级面板同一条链：属性 → 天赋 → 宝箱 → 报告
     if (this.core.pendingLevels > 0) {
@@ -1803,7 +1804,7 @@ export class GameUI {
   }
 
   /**
-   * 暂停界面的「重新开始」回到主界面，允许重新选择职业。
+   * 暂停界面的「返回主界面」回到主界面，允许重新选择职业。
    *
    * 不立即重置 player：职业按钮调用 startGame 时才重建新局，避免先按本局
    * 职业重建一次再被覆盖。
@@ -1857,7 +1858,7 @@ export class GameUI {
     window.clearTimeout(this.restartTimer);
     this.restartTimer = undefined;
     const button = element("btn-restart");
-    button.textContent = "重 新 开 始";
+    button.textContent = "返 回 主 界 面";
     button.classList.remove("armed");
   }
 }
