@@ -282,8 +282,6 @@ export class DevPanel {
     c.burnZones = [];
     c.trailZones = [];
     c.webZones = [];
-    c.mageMeteors = [];
-    c.mageDomains = [];
     c.mageDecoys = [];
     // 上游 v74 新增：导弹/激光是瞬态对象，跳波时必须清掉，
     // 否则旧目标/旧弹道会带进新波；specialLevel/Upgrades 属于构筑，保留。
@@ -297,11 +295,15 @@ export class DevPanel {
     c.texts = [];
     c.slashes = [];
     c.bolts = [];
-    // 中断可能正在进行的施法/陨星计时，避免跨波结算
+    // 中断可能正在进行的施法，避免跨波结算
     c.castPhase = "idle";
     c.castT = 0;
     c.castCd = 0;
-    c.mageMeteorT = 0;
+    // DEV 跳波：保证法师有可用元素，否则 startNextWave 会被待选元素拦住。
+    if (c.prof === "mage") {
+      if (!c.mageElements.length) c.mageElements = ["fire"];
+      c.mageElementPickPending = null;
+    }
     c.pendingLevels = 0;
     c.startTalentPending = false;
     c.bpMode = null;

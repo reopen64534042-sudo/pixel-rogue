@@ -21,7 +21,8 @@ export function startNextWave(this: GameCore) {
   if (
     this.state !== "play" ||
     this.wavePhase !== "rest" ||
-    this.pendingLevels > 0
+    this.pendingLevels > 0 ||
+    this.mageElementPickPending
   )
     return false;
   this.bpMode = null;
@@ -147,6 +148,13 @@ export function enterRest(this: GameCore) {
   if (this.attributePoints > 0 && this.attrPicks > 0) {
     this.bpMode = null;
     this.openAttrPanel();
+    return;
+  }
+  // 元素法师：法杖 Lv3/6 的元素选择优先于普通三选一；
+  // 带待选元素时不放行下一波。
+  if (this.mageElementPickPending) {
+    this.bpMode = null;
+    this.openLevelPanel();
     return;
   }
   if (this.pendingLevels > 0) {

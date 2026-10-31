@@ -15,7 +15,7 @@ import { WARRIOR_TALENTS } from "./warrior";
  * - `common.ts`  公共常量与纯函数（稀有度、权重曲线、分类颜色、无副作用派生）
  * - `legacy.ts`  v40 及以前的通用卡（S2 起整体 `hidden`；v138 移除能量护盾与旧不屈后 39 张）
  * - `shooter.ts` 射手职业池（S2）
- * - `mage.ts`    法师职业池（S3）
+ * - `mage.ts`    法师保留卡（元素/反应/法杖成长已迁到 elementalMage + MageProgressionSystem）
  * - `warrior.ts` 战士池（太刀/大剑核心、入场与共享卡）
  *
  * 外部一律从 `data/talents` 导入，不直接引用子文件。
@@ -24,15 +24,7 @@ export * from "./common";
 export { LEGACY_UPGRADES, DMG_POOL } from "./legacy";
 export { SHOOTER_TALENTS } from "./shooter";
 export { WARRIOR_TALENTS } from "./warrior";
-export {
-  MAGE_TALENTS,
-  MAGE_ELEMENT_CARDS,
-  MAGE_VARIANT_CYCLE,
-  MAGE_VARIANT_ELEMENT,
-  MAGE_VARIANT_ESCAPE,
-  mageElements,
-  mageHasElement,
-} from "./mage";
+export { MAGE_TALENTS, MAGE_VARIANT_ESCAPE } from "./mage";
 
 /**
  * 全局卡表（旧表在前、各职业池在后）。
@@ -40,9 +32,9 @@ export {
  * 顺序有语义：旧表必须在前且保持 v40 的原顺序；v138 删除「能量护盾」与旧「不屈」后，
  * `tests/parity.test.ts` 的 41 张基线已过期，留待授权测试批次处理。
  *
- * S3 起职业池按「射手 → 法师 → 战士」顺序追加：法师池里有 4 张卡与旧表同名
- * （已改名，见 mage.ts 顶部的改名说明），旧表在前保证 `UPGRADES.find(u.n === ...)`
- * 仍命中旧卡——同名会让两套机制共用同一个 upCounts 计数器。
+ * S3 起职业池按「射手 → 法师 → 战士」顺序追加；法师池现只保留速咏/连咏、
+ * 广域符印、护咒壁、相位/镜像，元素与反应不再经过三选一。旧表在前保证
+ * `UPGRADES.find(u.n === ...)` 的稳定命中。
  */
 export const UPGRADES: Talent[] = [
   ...LEGACY_UPGRADES,

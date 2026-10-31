@@ -26,7 +26,6 @@ import {
   CAT_ICO,
   chainDisplayLayer,
   displayTalentTier,
-  mageElements,
 } from "../game/data/talents";
 import { fmtHp, fmtTime } from "../game/data/constants";
 import { levelGrowthSteps, levelGrowthSummary } from "../game/data/levelGrowth";
@@ -46,6 +45,14 @@ import {
   type KeyAction,
 } from "../game/data/keybindings";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
+import {
+  MAGE_ELEMENTS,
+  MAGE_CASTS_PER_ELEMENT,
+  STAFF_LEVELS,
+  elementOrderLabel,
+  mageUpgradeName,
+} from "../game/data/elementalMage";
+import { mageCurrentElement, mageCastSpeedMul } from "../game/core/MageProgressionSystem";
 import { statBase } from "../game/data/stats";
 import {
   WARRIOR_BALANCE,
@@ -776,12 +783,9 @@ export class GameUI {
             : 0
       : 0;
     // 元素名（法师「当前元素」行）
-    const ELEM_LABEL: Record<string, string> = {
-      fire: "火",
-      frost: "冰",
-      lightning: "雷",
-    };
-    const elems = isMage ? mageElements(p) : [];
+    const elems = isMage ? this.core.mageElements : [];
+    const currentElement = isMage ? mageCurrentElement(this.core) : null;
+    const staffNeed = STAFF_LEVELS[this.core.mageStaffLevel - 1]?.xpToNext;
     // 「居合」的势：势只增不减，满层后下一刀自动变居合斩（见 warriorBalance.iai）
     const iaiCap =
       isWarrior && this.core.warriorStyle === "katana"
@@ -819,8 +823,25 @@ export class GameUI {
       ...(isMage
         ? ([
             [
-              "☄️ 法阵伤害",
-              (p.damage * MAGE_BALANCE.castDamageMul).toFixed(1),
+              "☄️ 法阵直伤",
+              currentElement
+                ? (
+                    p.damage *
+                    MAGE_BALANCE.elementBaseMul *
+                    MAGE_BALANCE.directDamageMul *
+                    MAGE_ELEMENTS[currentElement].damageMul
+                  ).toFixed(1)
+                : "—",
+            ],
+            [
+              "✹ 状态/反应基准",
+              (p.damage * MAGE_BALANCE.elementBaseMul).toFixed(1),
+            ],
+            [
+              "🪄 法杖等级",
+              staffNeed === null || staffNeed === undefined
+                ? `Lv.${this.core.mageStaffLevel} · 满级`
+                : `Lv.${this.core.mageStaffLevel} · ${this.core.mageStaffXp}/${staffNeed}`,
             ],
           ] as [string, string | number][])
         : isWarrior
@@ -902,7 +923,10 @@ export class GameUI {
               ],
             ] as [string, string | number][])),
       isMage
-        ? ["⚡ 施法速度", p.fireRate.toFixed(2) + " 次/秒"]
+        ? [
+            "⚡ 施法速度",
+            (p.fireRate * mageCastSpeedMul(this.core)).toFixed(2) + " 次/秒",
+          ]
         : isLaser
           ? ["⚡ 光束输出速率", "×" + (laserOutputRate(p) / statBase("shooter").fireRate).toFixed(2)]
         : isMissile
@@ -947,8 +971,17 @@ export class GameUI {
       ...(isMage
         ? ([
             [
-              "🔮 当前元素",
-              elems.length ? elems.map((e) => ELEM_LABEL[e]).join(" · ") : "无",
+              "🔮 元素轮盘",
+              elems.length
+                ? `${elementOrderLabel(elems)} · 当前 ${currentElement ? MAGE_ELEMENTS[currentElement].name : "—"} · ${this.core.mageCastsInPhase}/${MAGE_CASTS_PER_ELEMENT}`
+                : "未选元素",
+            ],
+            ["🎴 元素套装", this.core.mageSuit ?? "未确定"],
+            [
+              "✹ 法杖强化",
+              this.core.mageUpgrades.length
+                ? this.core.mageUpgrades.map(mageUpgradeName).join(" · ")
+                : "—",
             ],
           ] as [string, string | number][])
         : isWarrior
@@ -998,11 +1031,7 @@ export class GameUI {
     ];
     const knockRows: [string, string | number][] = [];
     if (isMage) {
-      const meteorRoute = (p.upCounts["星陨"] || 0) > 0;
-      knockRows.push([
-        meteorRoute ? "☄️ 陨星" : "🔮 法阵",
-        knockLevel(meteorRoute ? KNOCK.mage.meteor : KNOCK.mage.cast),
-      ]);
+      knockRows.push(["🔮 法阵", knockLevel(KNOCK.mage.cast)]);
     } else if (isWarrior) {
       const style = WARRIOR_BALANCE.styles[this.core.warriorStyle];
       knockRows.push(["⚔️ 挥砍", knockLevel(style.knock)]);
@@ -1587,29 +1616,27 @@ export class GameUI {
     if (title)
       title.textContent = box
         ? `🎁 开启宝箱 · 剩余 ${this.core.boxPicks} 次强化 · 强化一项已学天赋`
-        : pending === "second"
-          ? "☯️ 双修 · 选择第二个元素"
-          : pending === "third"
-            ? "✴️ 三修 · 选择第三个元素"
-            : "⬆ 等级提升！选择一项天赋强化";
+        : pending
+          ? `🔮 法杖 Lv.${this.core.mageStaffLevel} · 选择第${pending === "first" ? "一" : pending === "second" ? "二" : "三"}元素`
+          : "⬆ 等级提升！选择一项天赋强化";
     const hint = document.querySelector<HTMLElement>(
       "#bp-level .level-subhint",
     );
     if (hint)
       hint.textContent = box
         ? "只强化已学天赋 · 键盘 1 / 2 / 3 快捷选取"
-        : pending === "second"
-          ? "只显示尚未持有的元素 · 键盘 1 / 2 快捷选取"
-          : pending === "third"
-            ? "只显示尚未持有的元素 · 键盘 1 快捷选取"
-            : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷新」换一张";
+        : pending
+          ? `只显示尚未持有的元素 · 选择后立即加入圆盘 · 键盘 ${
+              pending === "first" ? "1 / 2 / 3" : pending === "second" ? "1 / 2" : "1"
+            } 快捷选取`
+          : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷新」换一张";
     this.drawCards();
     element("bp-level").classList.remove("hidden");
     element("bp-rest").classList.add("hidden");
     element("bottom-bar").classList.remove("hidden");
   }
   closeLevelPanelIfDone() {
-    if (this.core.pendingLevels > 0) return;
+    if (this.core.pendingLevels > 0 || this.core.mageElementPickPending) return;
     element("bp-level").classList.add("hidden");
     // Issue #71：升级选完后若仍有宝箱点数 → 依次开箱
     if (this.core.boxPicks > 0) {
@@ -1691,8 +1718,8 @@ export class GameUI {
   closeAttrPanelIfDone() {
     if (this.core.attrPicks > 0 && this.core.attributePoints > 0) return;
     element("bp-attr").classList.add("hidden");
-    // 与升级面板同一条链：属性 → 天赋 → 宝箱 → 报告
-    if (this.core.pendingLevels > 0) {
+    // 与升级面板同一条链：属性 → （元素选择）→ 天赋 → 宝箱 → 报告
+    if (this.core.mageElementPickPending || this.core.pendingLevels > 0) {
       this.core.openLevelPanel();
       return;
     }
@@ -2035,7 +2062,7 @@ export class GameUI {
       if (prof === "mage")
         return {
           title: "站定施法",
-          body: "法阵会自动落在怪最密集处；读条最后 40% 停下，伤害 ×1.5。试着站定命中至少 2 个目标。",
+          body: "法阵会自动落在最近的可见敌人身上；读条最后 40% 停下，伤害 ×1.5。试着站定命中至少 2 个目标。",
         };
       if (prof === "warrior")
         return {

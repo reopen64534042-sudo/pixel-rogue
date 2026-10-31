@@ -42,7 +42,7 @@ export function statBase(
     meteorGuided: 0,
     burnGround: 0,
     bladeReflect: 0,
-    // 法师：1 / 0.55s 施法周期 ≈ 1.82 次/秒（MageSystem 按此值缩放前摇与间隔）
+    // 法师：1 / 0.75s 施法周期 ≈ 1.33 次/秒（MageSystem 按此值缩放前摇与间隔）
     fireRate: warrior
       ? wstyle.fireRate
       : mage

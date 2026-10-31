@@ -1,5 +1,6 @@
 import type { GameCore } from "./GameCore";
 import { KNOCK_DAMP } from "../data/knockback";
+import { isFrostLocked } from "./ElementMath";
 import type { Enemy } from "./types";
 
 const FULL = Math.PI * 2;
@@ -161,7 +162,8 @@ export function updateMelee(this: GameCore, dt: number) {
 
 /** 击退位移与衰减；由 EnemySystem 在每个敌人每帧调用 */
 export function applyKnockback(e: Enemy, dt: number) {
-  if (e.noKnock || e.boss) {
+  // 霜牢锚定：不会被击退/拉拽/位移；Boss 同样免疫击退。
+  if (e.noKnock || e.boss || isFrostLocked(e)) {
     e.kx = 0;
     e.ky = 0;
     return;
