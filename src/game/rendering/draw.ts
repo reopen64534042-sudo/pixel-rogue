@@ -274,11 +274,15 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.stroke();
       ctx.globalAlpha = 1;
     } else {
-      ctx.globalAlpha = 0.3 + Math.sin(this.time * 3 + z.x) * 0.05;
-      ctx.strokeStyle = "#d9e7ff";
+      // 生效后的网压低对比：多张网叠加时不能盖住角色和弹幕，
+      // 外圈 + 内圈负责读出减速范围，辐条只画外段避免中心糊成一团。
+      const pulse = Math.sin(this.time * 3 + z.x) * 0.02;
+      ctx.globalAlpha = 0.16 + pulse;
+      ctx.strokeStyle = "#8ea6cc";
       ctx.beginPath();
       ctx.arc(Math.round(z.x), Math.round(z.y), z.R, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.globalAlpha = 0.1 + pulse;
       ctx.beginPath();
       ctx.arc(
         Math.round(z.x),
@@ -292,12 +296,12 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2;
         ctx.moveTo(
-          Math.round(z.x + Math.cos(a) * 4),
-          Math.round(z.y + Math.sin(a) * 4),
+          Math.round(z.x + Math.cos(a) * z.R * 0.3),
+          Math.round(z.y + Math.sin(a) * z.R * 0.3),
         );
         ctx.lineTo(
-          Math.round(z.x + Math.cos(a) * z.R * 0.95),
-          Math.round(z.y + Math.sin(a) * z.R * 0.95),
+          Math.round(z.x + Math.cos(a) * z.R * 0.92),
+          Math.round(z.y + Math.sin(a) * z.R * 0.92),
         );
       }
       ctx.stroke();

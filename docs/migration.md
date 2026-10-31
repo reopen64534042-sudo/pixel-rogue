@@ -3776,3 +3776,9 @@ dmg = Math.ceil(e.hp - 1);
 
 - 用户明确授权使用 gh 同步上游、推送并创建 PR。已 fetch origin／upstream，最新两端 main 均为 c3dee30；该提交已是导弹分支祖先，本轮没有额外上游提交需要合并，也无冲突。其余工作树保持原样。
 - 重新通过 typecheck／build／差异检查；构建保留现有大 chunk 提示。继续按当前裁定不运行 Vitest／Playwright、不修改测试基线；自然战斗和 Phaser 实机验收边界不变。
+## D-126 图鉴补录分裂子体与蛛网视觉减弱（v142）
+
+- 复现：裂胶史莱姆死亡生成 `splitling`，`CombatSystem.killEnemy` 已按裸类型键累计 `killLog`，但 `ENEMY_ENTRIES` 未登记该类型，`CodexSystem.syncEnemies` 的「未登记不写盘」过滤会静默丢弃；图鉴敌人总数、击杀数与详情都缺子体。
+- 修复：`src/game/codex/codexData.ts` 登记 `e:splitling`（贴图 `splitling`，`link` 指向同键配置），击杀累计 / 解锁 / 详情自动生效；`CodexUI.enemyStatsHtml` 对 `w0=999`、`wt=0` 的条目显示「特殊生成 / —」，不再把内部占位值当成正常刷新数据。
+- 蛛网：生效网纹从 `#d9e7ff` / alpha 0.30 的双环 + 8 条 4px→0.95R 辐条，改为 `#8ea6cc` / 外环 alpha 0.16、内环 0.10、辐条 0.11（0.3R→0.92R）；预警金圈、半径、持续时间与 40% 减速等玩法数值不变。
+- 验证：`npm run typecheck` / `npm run build`；e2e 受控脚本（`?test=enemy-demo`）确认子体击杀写入图鉴（0→1，敌人分母 12），截图 `output/v142-web-visual.png` 显示四网叠加时角色与飘字仍清晰。按 2026-10-29 标准未运行 Vitest / Playwright；`tests/codex.test.ts` 的 `ENEMY_TOTAL` / `ETYPES` 数量旧断言在本次改动前就已过期（登记 6 vs 实际 11），本次敌人分母变为 12，留待授权测试批次统一处理。蛛网明暗属视觉手感，仍需自然试玩确认是否继续压暗或调整预警圈。
