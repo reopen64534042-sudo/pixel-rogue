@@ -46,6 +46,8 @@ flowchart TD
 | src/game/core/AttributeSystem.ts | AttrDef.shooterWeapon / rollAttrChoices | 激光专属光束宽度只在 laser 武器入池；开面板、刷新、连选都传第四参 shooterWeapon，area 经既有 StatModel 投影 |
 | src/game/data/laser.ts / data/talents/laser.ts | LASER / LASER_XP / LASER_UPGRADES / LASER_TALENTS | 激光节奏、几何、成长与专属卡表；伤害系数仍在 combatBalance.LASER_DAMAGE，公式在 DamageMath |
 | src/game/core/LaserSystem.ts | updateLaser / laserDash | 射手独立主武器：三联各自持有目标 / 方向 / 焦点；同目标伤害合并，XP 每帧只累计一次，吸血与命中特效共用时间预算 |
+| src/game/data/missile.ts / data/talents/missile.ts | MISSILE / MISSILE_XP / MISSILE_UPGRADES / MISSILE_TALENTS | 导弹节奏、共享齐射、12 级／9 硬件／14 天赋；伤害系数集中在 combatBalance.MISSILE_DAMAGE，公式在 DamageMath |
+| src/game/core/MissileSystem.ts / MissileCombat.ts | updateMissile / detonateMissile / updateMissileGround | 实弹有限制导与弹头扫掠，主爆炸每轮至多 1 XP，派生来源隔离；实际 HP 损失吸血，重叠余烬比较输出后积分 |
 | src/game/core/AttackSystem.ts | updateAttacks | 玩家弹丸、攻速、陨星、环绕、焦土；形成 rawAmount 和快照 |
 | src/game/core/ProjectileSystem.ts | updateProjectiles | 双方弹丸/碰撞/反弹，命中时委托 CombatSystem |
 | src/game/core/PlayerSystem.ts | updatePlayer | 移动/冲刺/回血/护盾充能/临时计时 |

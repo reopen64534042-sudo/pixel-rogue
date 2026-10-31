@@ -1,6 +1,6 @@
 import type { LaserLane } from "../data/laser";
 import type { Player } from "./types";
-import { LASER_DAMAGE as LD } from "../data/combatBalance";
+import { LASER_DAMAGE as LD, MISSILE_DAMAGE as MD } from "../data/combatBalance";
 import { COMBAT_BALANCE as CB } from "../data/combatBalance";
 
 /**
@@ -122,4 +122,26 @@ export function laserEscapeDamage(p: Pick<Player, "damage" | "boltDmgMul">) {
 
 export function laserIncomingDamage(damage: number) {
   return damage * LD.rechargeDefense;
+}
+
+export function missileBaseDamage(p: Pick<Player, "damage" | "boltDmgMul">, level: number, liner: boolean) {
+  return boltDamage(p) * MD.base * (1 + (level - 1) * MD.perLevel) * (liner ? MD.liner : 1);
+}
+export function missileBlastDamage(base: number, fraction: number, distance: number, radius: number,
+  pressure: boolean, beacon: boolean, direct = false) {
+  const falloff = direct ? 1 : 1 - MD.edgeLoss * Math.max(0, Math.min(1, distance / radius));
+  return base * fraction * (pressure ? MD.pressure : 1) * (beacon ? MD.beacon : 1) * falloff;
+}
+export const missileDecodeDamage = (base: number) => base * MD.decode;
+export const missileArcDamage = (base: number, relay: boolean) => base * MD.arc * (relay ? MD.relay : 1);
+export const missileResonanceDamage = (base: number) => base * MD.resonance;
+export const missileBurnDps = (base: number) => base * MD.burn;
+export const missileDotAmount = (dps: number, seconds: number) => dps * seconds;
+export const missileHealing = (loss: number, lifesteal: number) => loss * lifesteal * MD.lifesteal;
+export const missileIncomingDamage = (damage: number) => damage * MD.armor;
+/** All overlapping grounds have the same defender/fire mitigation; compare offensive power only. */
+export function missileGroundPower(dps: number, stats: import("./types").CombatStatsSnapshot) {
+  const fire = Object.hasOwn(stats.typeDamageBonus, "fire") ? stats.typeDamageBonus.fire ?? 0 : 0;
+  const ranged = Object.hasOwn(stats.formDamageBonus, "ranged") ? stats.formDamageBonus.ranged ?? 0 : 0;
+  return dps * (1 + stats.globalDamageBonus) * (1 + fire) * (1 + ranged);
 }

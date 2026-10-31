@@ -1,4 +1,5 @@
 import { UPGRADES } from "../data/talents";
+import { clearMissileTransient } from "./MissileSystem";
 import { waveTheme } from "../data/enemies";
 import { shieldRebuildSeconds } from "../data/warriorBalance";
 import { resolveDifficulty } from "../data/difficulty";
@@ -183,6 +184,7 @@ export function updateWave(this: GameCore, dt: number) {
     } else if (this.enemies.length === 0 && !this.warriorLeapState) {
       // 本波怪清空 → 收尾: 先吸经验球、选完升级，再收宝箱，最后休整
       this.wavePhase = "collect";
+      if (this.prof === "shooter" && this.shooterWeapon === "missile") clearMissileTransient(this, false, true);
       this.gems.forEach((g) => (g.auto = true));
       this.boxes.forEach((b) => (b.auto = true)); // 未拾取的宝箱自动飞向玩家
       this.audio.beep(520, 0.2, "triangle", 0.06, 180);

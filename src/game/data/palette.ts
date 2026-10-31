@@ -17,7 +17,7 @@ export interface PaletteEntry {
   note: string;
 }
 
-/** 26 色 / 8 组。顺序即 .gpl 导出顺序。 */
+/** 29 色 / 9 组。顺序即 .gpl 导出顺序。 */
 export const PALETTE: readonly PaletteEntry[] = [
   { key: "ink0", hex: "#1a0a2a", group: "轮廓", note: "最深描边" },
   { key: "ink1", hex: "#22223a", group: "轮廓", note: "次级描边、眼窝" },
@@ -25,6 +25,9 @@ export const PALETTE: readonly PaletteEntry[] = [
   { key: "white", hex: "#ffffff", group: "中性", note: "高光、受击反馈" },
   { key: "bone", hex: "#e8e8f0", group: "中性", note: "金属/骨白" },
   { key: "sand", hex: "#ffd9a0", group: "中性", note: "肤色" },
+  { key: "steelLight", hex: "#c5c7cf", group: "中性", note: "导弹装甲亮面" },
+  { key: "steelMid", hex: "#8b8f9a", group: "中性", note: "导弹装甲与烟尘" },
+  { key: "steelDark", hex: "#4a5062", group: "中性", note: "导弹暗部与稀疏烟尘" },
   { key: "pGold", hex: "#f4a940", group: "玩家", note: "头盔" },
   { key: "pBlue", hex: "#3d6de0", group: "玩家", note: "披风" },
   { key: "pBlueDk", hex: "#1e3a8a", group: "玩家", note: "披风暗部" },
@@ -52,5 +55,5 @@ export const PALETTE_HEX: Readonly<Record<string, string>> = Object.freeze(
   Object.fromEntries(PALETTE.map((entry) => [entry.key, entry.hex])),
 );
 
-/** 26 色硬性上限：后处理校验用它拦截模型溢色。 */
+/** 当前色板大小为硬性上限：后处理校验用它拦截模型溢色。 */
 export const PALETTE_MAX_COLORS = PALETTE.length;
