@@ -1,0 +1,30 @@
+{
+  "path": "assets/vfx/laser/source-master.png",
+  "width": 1254,
+  "height": 1254,
+  "sha256": "72c2e0821724d87a6342165dac040039b1c24323fbb4878355ab91affbb9edb9",
+  "tool": "built-in image_gen",
+  "model": null,
+  "seed": null,
+  "prompt": "assets/vfx/laser/generation-prompt.txt",
+  "promptSha256": "b90686bdc4a95ffd81d8f713f82189e053cc05d7bf7be65f60a1e75742fc6684",
+  "processing": {
+    "script": "scripts/build-laser-vfx-assets.mjs",
+    "sourceGrid": [
+      8,
+      8
+    ],
+    "logicalSourceCell": [
+      32,
+      32
+    ],
+    "sampling": "one shared nearest-neighbor grid; alpha threshold 160; nearest palette RGB",
+    "perFrameCrop": false,
+    "perFrameRescale": false,
+    "perFrameRecenter": false,
+    "pulseCanvas": "32px art centered in padded 64x32 canvas, not stretched",
+    "materialLoop": "one low-contrast slice, runtime frame 0, shared -floor(simulationTime*80) mod 32 source phase; ordinary interior-column edges, no bright caps",
+    "cropping": "integer floor/clamp source cropX and cropWidth; round material length once; cropped left starts at command x/y; Phaser compensates rotated cropX*scaleX",
+    "dissolve": "deterministic ordered pixel erosion of compressed source, no RNG"
+  }
+}

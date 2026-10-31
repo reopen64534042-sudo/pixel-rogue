@@ -1,0 +1,6 @@
+# Keep recorded text hashes stable under Windows core.autocrlf.
+*.json text eol=lf
+*.txt text eol=lf
+*.html text eol=lf
+*.png -text
+*.gif -text

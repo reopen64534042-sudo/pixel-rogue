@@ -3650,3 +3650,34 @@ dmg = Math.ceil(e.hp - 1);
 - 显示：属性名 / 说明支持武器口径。激光 fireRate 卡显示光束输出＋提高光束每秒伤害，宽度卡说明扫中范围；提示以 textContent 添加并同步可访问名称。C 面板输出速率改为相对初始值的倍率，复用 DamageMath.laserOutputRate，计入狂热 / 战意；原始光束数值标为单束基础 DPS，新增实际宽度行。
 - 文档：双端日志 v137，激光说明与数值维护入口同步。无新增依赖、无旧数据迁移、无测试或基线改写。
 - 验证按项目当前交付线执行 npm run typecheck / npm run build / git diff --check，并进行只读代码评审。未运行 Vitest / Playwright；旧激光 DPS / 角速度、全局属性目录数量和仅法师拥有 area 候选等断言可能过期，留待授权测试批次处理。基础手感、宽度成长和满配三束强度仍待自然试玩。
+
+## 激光动画素材包与独立播放器（2026-10-31）
+
+- 用户明确要求正式透明动画素材、Phaser 图集、元数据、完整周期预览和表现适配器；战斗规则接线留待后续任务。使用独立 worktree E:\AllProjects\pixel-rogue-laser-animation / codex/laser-animation-remake；基于原目录当前未提交 v137 激光草案快照，不从缺失激光的旧 HEAD 独立臆造。原目录全部修改完整保留，无 stash、提交、推送或恢复操作。
+- 新增 public/assets/vfx/laser/：9 组 / 72 帧透明 PNG、544×324 Phaser JSON Hash 图集、含固定锚点 / 帧时长 / 循环 / 可见范围 / 色板 / SHA-256 的元数据。assets/vfx/laser/ 保留内置 image_gen 原始生成表、实际完整提示词、来源（未知 model / seed 为 null）、检查图、原速 / 慢放 GIF 和可离线打开的完整交互预览。
+- 新增 rendering/vfx/laser/ 纯表现播放器、当前 v137 只读采集桥、Phaser 池化视图和 Canvas 后端。按 u=elapsed/T 驱动点亮、持续流动、聚能和收束；末段姿态与释放前 45ms 交叉过渡，脉冲表现独立存活 0.24 秒、短回充可与下一轮叠加，不改变原 0.12 秒伤害对象或任何结算。逐束读取真实几何 / 焦点，圆环按目标最高焦点去重；实际正式游戏仍使用原草案绘制，接线说明见 docs/laser-vfx-assets.md。
+- 演示覆盖 1.0 / 1.3 秒、普通结束 / 坍缩 / 熔断、三束独立多向、4 / 6 / 10px、不同射程、移动中释放 / 换目标 / 焦点失效、0.05 秒回充重叠、暂停 / 慢放 / 逐帧与圆环。未运行真实战斗或浏览器验收；内置浏览器拒绝 file:// 导航，未绕过策略，HTML 交互待本机打开确认。
+- 本次没有修改正式伤害、索敌、经验、回充、宽度成长、旧 LaserRenderer、测试或 parity 基线，没有新增依赖。交付检查为素材 alpha / 色板 / 固定帧与哈希、离线逐帧观感、typecheck 和 build；未运行 Vitest / Playwright。后续接线需在每个固定步采集，清主束前提供逐束释放快照，明确重置和层级，并保留原余辉 / 折光步 / 紧急散射的辅助绘制。
+
+## 激光素材第二稿：真实聚焦反馈与连续细束（2026-10-31）
+
+- 用户要求仅局部修改素材播放器、后端、派生束身与预览，继续使用 codex/laser-animation-remake / E:\AllProjects\pixel-rogue-laser-animation；保留此前全部未提交工作，无提交、推送、stash 或战斗接线。开始时记录 70 个修改 / 新增文件的哈希，并在 output/laser-focus-refinement-baseline/ 保存本轮前快照。
+- LaserVfxPlayer 明确区分周期 u 与逐束真实 focus：白芯 max(1,width×0.12)、alpha 0.60→1.00；主要青色束身从实际宽度的 48% 轻微收紧至 44%；发射口随 focus 增亮凝聚。仅 contacts.target=true 的锁定目标命中点强化热点与火花（比例 0.45→0.85、alpha 0.55→1.00），普通贯穿点保持低强度。三束独立，原聚焦圆环和完整周期保留。
+- beam-flow 派生图去掉白芯 / 亮截面，保留 32×16 固定画布、锚点及 8 个兼容帧名；播放器只读取静态 frame 0，以 -floor(time×80) mod32 的全束共用相位滚动，材质 alpha 0.10→0.22，纵向基础 width/4×0.28，首尾段按统一整数约定裁切。原始生成表、提示词和其他八组条带保持原样，图集 / metadata / SHA-256 随束身更新。
+- sprite 新增 cropX，Canvas / Phaser / Pillow 都采用 floor / clamp 的相同源范围及目标起点语义；Phaser 将 Image 沿旋转束轴反向补偿 cropX×scaleX，依据当前 Phaser 的 Crop / TransformerImage 实现核对，避免实际接入时错位。没有新增 RAF / 定时器 / 表现随机数。
+- v137 兼容桥保留释放前目标 / contacts / focus，真实熔断事件将视觉 focus 确认为 1，几何 / 时间 / 种类仍来自真实脉冲；不改战斗侧清零。旧余波在下一轮前 80ms 平滑从权重 1 降至 0.4，替换 age=0.05 时硬切，保留原 45ms 交叉过渡和 0.24 秒表现寿命。
+- 预览新增同 u / 同束宽 / 同方向的 focus=0 / 0.5 / 1 对照、4 / 6 / 10px 横向长束、斜向长束、固定 u 的聚焦升满后回落、未命中锁定目标与三束不同焦点；输出 focus-feedback-1x.gif、focus-width-comparison.png、short-recharge-inspection.png，并更新完整周期 GIF、慢放、检查图与自包含 HTML。
+- 验证范围为离线素材 / 指令与裁切核对、typecheck、build 和文件哈希；未运行 Vitest / Playwright，未新增或改写测试 / parity 基线，未做真实战斗或 Phaser 浏览器渲染验收。实际伤害、索敌、照射 / 回充、碰撞宽度和成长规则不变。
+
+## 激光素材第三稿：坍缩与熔断保持细束（2026-10-31）
+
+- 用户确认第二稿方向，要求坍缩 / 熔断时的激光主体与普通照射一样细。沿用独立 codex/laser-animation-remake 工作区，保留全部此前修改，无提交 / 推送 / stash。
+- 仅调整 LaserVfxPlayer.drawRelease 的整条光路宽度：移除原实际宽度加 2 / 5px 的彩色束身扩张，以及白芯在释放展开时继续变粗的逻辑。统一为普通照射的 44%—48% 彩色主体、max(1,width×0.12) 连续白芯和低亮实际宽度包络；强度通过青白 / 金白、局部能量头及尾迹区分。
+- 保留真实焦点快照、45ms 过渡、0.24 秒余波、80ms 重叠权重、聚焦圆环和全部战斗参数。更新原速 / 慢放 GIF、逐帧检查图和自包含 HTML；正式 PNG、图集、源图与提示词不变。
+- 按项目交付线执行 typecheck / build / 差异检查；未运行 Vitest / Playwright，未新增或修改测试 / 基线，未接入正式战斗。
+
+## 激光素材包独立提交整理（2026-10-31）
+
+- 用户认可最终细束效果并授权本地提交；提交范围仅为本任务的正式资源、源图 / 提示词、完整周期与聚焦对照预览、制作脚本、表现适配器、接入文档和本任务 migration 记录，不包含继承的 v137 战斗草案。
+- 兼容桥与 Phaser 视图改用最小只读 LaserV137CoreSnapshot 结构，不再导入未提交的 data/laser.ts 或要求当前 HEAD 的 GameCore 先增加激光字段。该类型边界不改变逐束采集、焦点、释放快照或绘制行为。
+- 提交前从实际暂存索引导出独立检查副本，运行 typecheck / build，避免仅在混有草案的工作区通过编译。未运行 Vitest / Playwright，未修改测试 / 基线；继承修改在工作区保留，不推送、不创建 PR、不合并。
