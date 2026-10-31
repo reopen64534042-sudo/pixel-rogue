@@ -43,8 +43,9 @@ function heal(core: GameCore, loss: number, volley: MissileVolley) {
   if (amount > 0) { p.hp += amount; s.heals.push({ at: core.time, amount }); }
 }
 
-function impact(core: GameCore, x: number, y: number, radius: number, ion: boolean, micro = false) {
-  core.missile.impacts.push({ x, y, at: core.time, radius, look: micro ? "micro" : ion ? "ion" : "heavy" });
+function impact(core: GameCore, x: number, y: number, radius: number, ion: boolean, micro = false, resonance = false) {
+  core.missile.impacts.push({ x, y, at: core.time, radius, look: micro ? "micro" : ion ? "ion" : "heavy",
+    ...(resonance ? { kind: "resonance" as const } : {}) });
 }
 
 /** Charge only direct ion contacts/arc targets, once per target/volley. Discharges are terminal. */
@@ -69,7 +70,7 @@ function arcs(core: GameCore, x: number, y: number, hits: readonly Enemy[], v: M
   const hit = (px: number, py: number, e: Enemy, relay: boolean) => {
     const result = auxiliary(core, e, missileArcDamage(v.damage, relay), v, "lightning", "missileArc");
     if (!result || result.effectiveHpLoss <= 0) return;
-    core.missile.arcs.push({ x: px, y: py, x2: e.x, y2: e.y, at: core.time });
+    core.missile.arcs.push({ x: px, y: py, x2: e.x, y2: e.y, at: core.time, ...(relay ? { relay: true } : {}) });
     charge(core, e, v, bursts);
   };
   for (const e of roots) {
@@ -132,7 +133,7 @@ export function detonateMissile(core: GameCore, p: GuidedMissile, direct: Enemy)
     if (!v.arcUsed) { v.arcUsed = true; arcs(core, p.x, p.y, hits, v, bursts); }
   }
   for (const burst of bursts) {
-    impact(core, burst.x, burst.y, v.resonanceRadius, true);
+    impact(core, burst.x, burst.y, v.resonanceRadius, true, false, true);
     for (const e of core.enemies) {
       if (e.dead) continue;
       const d = Math.max(0, Math.hypot(e.x - burst.x, e.y - burst.y) - e.r);

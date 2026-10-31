@@ -1,6 +1,7 @@
 import { MISSILE as M, MISSILE_TALENT_NAMES, MISSILE_UPGRADES, MISSILE_XP, createMissileState } from "../data/missile";
 import type { GuidedMissile, MissileSource, MissileTalentName, MissileUpgradeId, MissileVolley, PendingMissile } from "../data/missile";
 import { MISSILE_NOSE } from "../data/missileGeometry";
+import { MISSILE_VFX } from "../data/missileVfx";
 import { MISSILE_DAMAGE as MD } from "../data/combatBalance";
 import { WORLD } from "../data/constants";
 import { statBase } from "../data/stats";
@@ -186,7 +187,7 @@ export function updateMissile(this: GameCore, dt: number) {
   const s = this.missile;
   s.launches = s.launches.filter(e => this.time - e.at < 0.3);
   s.impacts = s.impacts.filter(e => this.time - e.at < 0.69);
-  s.arcs = s.arcs.filter(e => this.time - e.at < 0.15);
+  s.arcs = s.arcs.filter(e => this.time - e.at < MISSILE_VFX.arcLife);
   s.escapes = s.escapes.filter(e => this.time - e.at < 0.25);
   s.heals = s.heals.filter(h => this.time - h.at < 1);
   for (const [enemy, charge] of s.charges) if (enemy.dead || charge.until <= this.time) s.charges.delete(enemy);
