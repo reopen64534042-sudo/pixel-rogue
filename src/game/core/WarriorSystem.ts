@@ -1,4 +1,7 @@
-import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
+import {
+  WARRIOR_BALANCE as WB,
+  warriorTriDashCd,
+} from "../data/warriorBalance";
 import { WORLD, clamp } from "../data/constants";
 import { KNOCK, KNOCK_DAMP } from "../data/knockback";
 import type { GameCore } from "./GameCore";
@@ -193,7 +196,7 @@ function warriorLeapRange(core: GameCore): number {
   return p.attackRange + WB.leapRange * extra;
 }
 
-/** 跃击目标：搜索范围内最密集的敌群，同密度取最近。 */
+/** 跃击目标：可锁定范围内最密集的敌群，同密度取最近。 */
 function findLeapTarget(core: GameCore): Enemy | null {
   const p = core.player;
   const range = warriorLeapRange(core);
@@ -287,7 +290,7 @@ export function warriorLeap(
     : forwardLeapPoint(this);
   if (tri) {
     // 三段斩第三段消费第 3 个独立冲刺槽。
-    this.warriorTriSlotRe[2] = p.dashMax;
+    this.warriorTriSlotRe[2] = warriorTriDashCd(p.dashMax, p.lvl);
     p.dashCharges = 0;
     p.dashRe = 0;
   } else {
@@ -330,7 +333,7 @@ function advanceWarriorTriDash(this: GameCore): void {
   this.warriorTriDashStage = (this.warriorTriDashStage + 1) % 3;
 }
 
-/** 重斩命中后生成平推剑气；持裂地时改为四斜向强化剑气。 */
+/** 重斩挥出后生成平推剑气；持裂地时改为四斜向强化剑气。 */
 function spawnWarriorHeavyWaves(this: GameCore, angle: number): void {
   const p = this.player;
   if ((p.upCounts["裂地"] || 0) > 0) {
@@ -622,7 +625,13 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
   if (p.fireCd > 0) return;
 
   const style = WB.styles[this.warriorStyle];
-  const target = this.nearestEnemy(p.x, p.y, p.attackRange);
+  // 剑气让自动挥砍能朝更远的敌人挥出第三段波面；挥砍半径仍用 attackRange。
+  const targetRange =
+    p.attackRange *
+    ((p.upCounts["剑气"] || 0) > 0
+      ? WB.energyWaves.qi.targetRangeMul
+      : 1);
+  const target = this.nearestEnemy(p.x, p.y, targetRange);
   if (!target) {
     p.fireCd = 0.06;
     return;
@@ -769,16 +778,18 @@ function resolveWarriorSwing(
     }
   }
 
-  if (heavy && hits.length) {
-    this.tutorialHeavyDone = true;
-    // 破甲：重斩命中后护甲 −40%，持续 4 秒
-    if ((p.upCounts["破甲"] || 0) > 0) {
-      for (const e of hits) {
-        e.armorBreakT = WB.heavyArmorBreakT;
-        e.armorBreakPct = WB.heavyArmorBreakPct;
+  if (heavy) {
+    if (hits.length) {
+      this.tutorialHeavyDone = true;
+      // 破甲：重斩命中后护甲 −40%，持续 4 秒
+      if ((p.upCounts["破甲"] || 0) > 0) {
+        for (const e of hits) {
+          e.armorBreakT = WB.heavyArmorBreakT;
+          e.armorBreakPct = WB.heavyArmorBreakPct;
+        }
       }
     }
-    // 剑气/裂地：重斩命中当步生成脱离角色的移动波面。
+    // 剑气/裂地不依赖挥砍命中：索敌翻倍后，第三段可以朝远敌空挥出波面。
     spawnWarriorHeavyWaves.call(this, angle);
   }
 

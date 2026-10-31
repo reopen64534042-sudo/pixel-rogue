@@ -1,6 +1,10 @@
 import { WORLD, clamp } from "../data/constants";
 import { WEB_ZONE } from "../data/enemies";
-import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
+import {
+  WARRIOR_BALANCE as WB,
+  shieldRebuildSeconds,
+  warriorTriDashCd,
+} from "../data/warriorBalance";
 import {
   finishWarriorTriDash,
   updateWarriorLeapMotion,
@@ -159,7 +163,8 @@ export function updatePlayer(this: GameCore, dt: number) {
     if (!leap) {
       p.dashT = 0.16;
       if (triOwned) {
-        this.warriorTriSlotRe[this.warriorTriDashStage] = p.dashMax;
+        this.warriorTriSlotRe[this.warriorTriDashStage] =
+          warriorTriDashCd(p.dashMax, p.lvl);
         p.dashCharges = 0;
         p.dashRe = 0;
       } else {
@@ -244,10 +249,7 @@ export function updatePlayer(this: GameCore, dt: number) {
     p.shieldCd -= dt;
     if (p.shieldCd <= 0) {
       p.shield++;
-      p.shieldCd =
-        (p.upCounts["铁壁"] || 0) > 0
-          ? WB.shieldChain.rebuild
-          : 10;
+      p.shieldCd = shieldRebuildSeconds(p.upCounts);
       this.audio.beep(760, 0.1, "sine", 0.05, 150);
     }
   }

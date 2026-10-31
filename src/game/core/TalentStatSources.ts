@@ -10,10 +10,10 @@
  *   C3-A 两张生命 flat：「生命之泉/巨人血脉」的 maxHp flat +20/+30 在此声明，
  *   并新增实例级持久来源 PersistentStatSources（血包永久成长 potionMaxHpGrow，
  *   作为 maxHp 的 base 增量参与解析——只计一次，不做 flat 修饰符）。
- *   C3-B 一张护盾 flat：「能量护盾」的 shieldMax flat +1/级 在此声明（StatId
- *   白名单新增 shieldMax）；「当前护盾 +1」是获得时效果，分离至
- *   core/OnAcquireEffects.ts——本表不声明 shield/shieldCd（RuntimeState，
- *   D-C3-02/04：重算保留现值、绝不重放赠层）。
+ *   C3-B 护盾 flat：旧「能量护盾」已移除；现行护盾链「铁壁/碎盾反震/重壁」
+ *   的 shieldMax flat +1 在此声明（StatId 白名单含 shieldMax）；「当前护盾 +1」
+ *   是获得时效果，分离至 core/OnAcquireEffects.ts——本表不声明
+ *   shield/shieldCd（RuntimeState，D-C3-02/04：重算保留现值、绝不重放赠层）。
  *   C3-C 六张等级型机制卡：「击杀狂热」hasteLv flat +1/级、「疾影步」dashLv
  *   flat +1/级 且 dashMax 有序 flat −0.4/级（每级一条独立修饰符，base 2.4
  *   逐次累加逐位复现旧 f 序列 2.0/1.6/1.2000000000000002，B16 验证；**禁止**
@@ -24,7 +24,7 @@
  *   由 RuntimeStateProtection 快照保留；击杀狂热的「首级 Buff」是获得时
  *   效果（OnAcquireEffects，lvBefore===0 判定），recompute 绝不重放。
  *   data/talents.ts 中这二十二张卡的 `f` 不再写入属性字段（C1/C2 卡无获得时
- *   即时效果，f 为空操作；生命两卡的治疗、能量护盾的赠层分离至
+ *   即时效果，f 为空操作；生命两卡的治疗、护盾链的赠层分离至
  *   core/OnAcquireEffects.ts，仅在 learnTalent 成功获得时执行、recompute
  *   绝不重放）。旧 `Talent.f`
  *   累加/乘算与新 Modifier 不并行生效——learnTalent/recompute/melt 统一收敛
@@ -52,8 +52,8 @@
  *   （ProgressionSystem——权威为实例级 potionMaxHpGrow 持久来源，双写仅为
  *   保持当帧满血判定/治疗读取行为，不构成第二来源）；maxhp 基础值唯一来自
  *   `statBase()`（recompute 经 Object.assign 重置后由投影重建）。
- * - 来源所有权（C3-B 审计定界）：`p.shieldMax` 的运行期写入者**只有**能量
- *   护盾的旧 f（本批取消）+ 本投影；基础值唯一来自 `statBase()`（recompute
+ * - 来源所有权（C3-B 审计定界）：`p.shieldMax` 的运行期写入者**只有**护盾
+ *   链卡的旧 f（本批取消）+ 本投影；基础值唯一来自 `statBase()`（recompute
  *   经 Object.assign 重置后由投影重建）。`p.shield`/`p.shieldCd` 是
  *   RuntimeState：写入者为恢复逻辑（PlayerSystem）、破盾消耗（CombatSystem）
  *   与获得时赠层（OnAcquireEffects，仅 learnTalent 路径）——本表与投影
@@ -136,6 +136,7 @@ const ELEMENT_TDB_KEYS = ["fire", "lightning"] as const;
 export function talentStatModifiers(
   picks: readonly string[],
   persistent: PersistentStatSources,
+  warriorStyle: WarriorStyle = "katana",
 ): TalentStatContribution {
   if (persistent.potionMaxHpGrow < 0)
     throw new RangeError(
@@ -355,10 +356,9 @@ export function talentStatModifiers(
       // ---- C3-B：护盾容量 flat（shieldMax StatId，C3-B 新增白名单；整数
       // 贡献无浮点歧义）。「当前护盾 +1」为获得时效果（OnAcquireEffects），
       // 本表只承载容量属性，不声明 shield/shieldCd（RuntimeState，D-C3-02）。----
-      case "能量护盾": // data/talents.ts：p.shieldMax++（max 3）；旧 f 的
-        // p.shield++（赠层）分离至 OnAcquireEffects，仅 learnTalent 执行
       case "铁壁": // 大剑护盾链 L1：+1 盾容量
-      case "重壁": // 大剑护盾链 L3：再 +1 盾容量（最多 2）
+      case "碎盾反震": // 大剑护盾链 L2：+1 盾容量
+      case "重壁": // 大剑护盾链 L3：+1 盾容量（满链最多 3）
         scalars.push({
           sourceId: `天赋:${name}`,
           stat: "shieldMax",
@@ -408,8 +408,14 @@ export function talentStatModifiers(
           value: 1,
         });
         break;
-      // 战士「连闪」（共享 t0）：冲刺充能 +1 次、冷却 -0.4s。
-      case "连闪":
+      // 战士「连闪」（共享 t0）：冲刺充能 +1 次、冷却封顶到 1.6s。
+      // 大剑基础 1.8s → 减 0.2s；太刀基础已是 1.6s → 不增不减。
+      case "连闪": {
+        const baseDash = WARRIOR_BALANCE.styles[warriorStyle].dashMax;
+        const reduction = Math.min(
+          0,
+          WARRIOR_BALANCE.lianShan.cdTarget - baseDash,
+        );
         scalars.push(
           {
             sourceId: "天赋:连闪",
@@ -421,10 +427,11 @@ export function talentStatModifiers(
             sourceId: "天赋:连闪",
             stat: "dashMax",
             stage: "flat",
-            value: -WARRIOR_BALANCE.lianShan.cdReduction,
+            value: reduction,
           },
         );
         break;
+      }
       case "壁垒": // data/talents.ts：barrierLv++（max 2）；tempShield
         // 每波重建属换波语义（WaveSystem），不在本表
         scalars.push({
@@ -484,7 +491,7 @@ export function talentStatModifiers(
  * barrierLv/nd/rageLv`（C3-C）为必写字段：字段由 statBase 提供
  * （与 tough/crit/critMul 同类的必填投影），投影以对应 base 全量解析后
  * 覆写——无来源时写回 base 值（maxHp 无生命卡来源时 = 100 + 血包永久成长，
- * shieldMax 无能量护盾来源时 = 0，dashMax 无疾影步来源时 = 2.4，nd 保持
+ * shieldMax 无护盾链来源时 = 0，dashMax 按 statBase 的职业/流派 base，nd 保持
  * 数字 0/1）。来源所有权见模块头注：卡外写入者
  * 出现前不得以本投影覆盖。`p.shield`/`p.shieldCd`（C3-B）与 `p.haste`/
  * `p.hasteT`/`p.rageT`/`p.dashT`/`p.dashCharges`/`p.dashRe`/`p.tempShield`/
@@ -520,7 +527,11 @@ export function applyTalentStatProjection(
   warriorStyle: WarriorStyle = "katana",
 ): void {
   const base = statBase(prof, warriorStyle);
-  const { scalars, typeDamageBonus } = talentStatModifiers(p.picks, persistent);
+  const { scalars, typeDamageBonus } = talentStatModifiers(
+    p.picks,
+    persistent,
+    warriorStyle,
+  );
   const resolved = resolveStats({
     base: {
       attack: base.damage,
@@ -544,7 +555,7 @@ export function applyTalentStatProjection(
       // 重置后由本投影全量解析，无来源时写回 base 值
       shieldMax: base.shieldMax,
       // C3-C：六张等级型机制卡的等级属性 base = 数据层初始值（dashMax
-      // 2.4 为未解锁占位——消费点由 dashLv>0 门控，不消费该值；nd 保持
+      // 由 statBase 按职业/流派给出——消费点由 dashLv>0 门控；nd 保持
       // 数字与旧 f `p.nd = 1` 形状一致），recompute 重置后由本投影重建
       hasteLv: base.hasteLv,
       dashLv: base.dashLv,
