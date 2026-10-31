@@ -21,6 +21,7 @@ import {
   CHARGER_CHARGE,
   DRUMMER_AURA,
   ELITE_AFFIX_INFO,
+  ELITE_NOVA,
   WEB_ZONE,
 } from "../data/enemies";
 import { spriteEntry } from "./assetRegistry";
@@ -274,11 +275,15 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.stroke();
       ctx.globalAlpha = 1;
     } else {
-      ctx.globalAlpha = 0.3 + Math.sin(this.time * 3 + z.x) * 0.05;
-      ctx.strokeStyle = "#d9e7ff";
+      // 生效后的网压低对比：多张网叠加时不能盖住角色和弹幕，
+      // 外圈 + 内圈负责读出减速范围，辐条只画外段避免中心糊成一团。
+      const pulse = Math.sin(this.time * 3 + z.x) * 0.02;
+      ctx.globalAlpha = 0.16 + pulse;
+      ctx.strokeStyle = "#8ea6cc";
       ctx.beginPath();
       ctx.arc(Math.round(z.x), Math.round(z.y), z.R, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.globalAlpha = 0.1 + pulse;
       ctx.beginPath();
       ctx.arc(
         Math.round(z.x),
@@ -292,12 +297,12 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2;
         ctx.moveTo(
-          Math.round(z.x + Math.cos(a) * 4),
-          Math.round(z.y + Math.sin(a) * 4),
+          Math.round(z.x + Math.cos(a) * z.R * 0.3),
+          Math.round(z.y + Math.sin(a) * z.R * 0.3),
         );
         ctx.lineTo(
-          Math.round(z.x + Math.cos(a) * z.R * 0.95),
-          Math.round(z.y + Math.sin(a) * z.R * 0.95),
+          Math.round(z.x + Math.cos(a) * z.R * 0.92),
+          Math.round(z.y + Math.sin(a) * z.R * 0.92),
         );
       }
       ctx.stroke();
@@ -718,20 +723,23 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.fillRect(mx, my - 2, 2, 5);
     }
     if (e.elite && e.affix === "nova" && (e.novaT ?? 0) > 0) {
-      const k = 1 - (e.novaT ?? 0) / 0.55;
-      ctx.globalAlpha = 0.45 + Math.sin(this.time * 24) * 0.2;
-      ctx.strokeStyle = "#57e6ff";
+      const cx = Math.round(e.x);
+      const cy = Math.round(e.y);
+      const k = 1 - (e.novaT ?? 0) / ELITE_NOVA.windup;
+      const urgent = (e.novaT ?? 0) < 0.18;
+      // 只保留两层低饱和蓝灰线：外圈固定为真实命中半径，内圈随蓄力扩张；
+      // 不填充、不用白色高亮，保证看得清但不抢战场。
+      ctx.globalAlpha = urgent ? 0.8 : 0.55 + Math.sin(this.time * 20) * 0.08;
+      ctx.strokeStyle = urgent ? "#bcd8e6" : "#7fa8c0";
       ctx.beginPath();
-      ctx.arc(Math.round(e.x), Math.round(e.y), 90, 0, Math.PI * 2);
+      ctx.arc(cx, cy, ELITE_NOVA.radius, 0, Math.PI * 2);
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(
-        Math.round(e.x),
-        Math.round(e.y),
-        Math.max(2, 90 * k),
-        0,
-        Math.PI * 2,
-      );
+      ctx.arc(cx, cy, ELITE_NOVA.radius - 1, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = urgent ? 0.65 : 0.32 + k * 0.25;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.max(2, ELITE_NOVA.radius * k), 0, Math.PI * 2);
       ctx.stroke();
       ctx.globalAlpha = 1;
     }

@@ -198,6 +198,8 @@ export interface Player extends Point {
   /** 冲刺距离倍率（1 = 基础 280 px/s × 0.28s）。 */
   dashDistMul: number;
   area: number;
+  /** 激光专属回充效率；缺省为 0，0.15 表示 +15%。 */
+  laserRechargeEfficiency?: number;
   crit: number;
   critMul: number;
   ricochet: number;

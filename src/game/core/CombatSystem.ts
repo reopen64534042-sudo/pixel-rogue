@@ -232,11 +232,15 @@ export function hurtEnemy(
   const mainIsTrue = opts.type === "true";
   const mainSpecial = opts.specialHit === true && !mainIsTrue;
   const mainDamage = trueDamage > 0 ? Math.max(0, dmg - trueDamage) : dmg;
+  // Missile ground retains float settlement; quantize only its visible damage label.
+  const mainDamageLabel = opts.src === "missileBurn" && mainDamage > 0
+    ? Math.max(1, Math.round(mainDamage))
+    : mainDamage;
   if (!opts.silent) {
     const mainText = this.addText(
       e.x,
       e.y - e.r - 2,
-      mainDamage,
+      mainDamageLabel,
       // 居合/三段斩优先用专属主色（配对应四层描边，见 draw.ts）
       opts.triHit
         ? "#fff1c4"
@@ -273,7 +277,7 @@ export function hurtEnemy(
       const subLabel = `+${trueDamage}`;
       // Press Start 2P 近似等宽：按字号估宽，给主数字和 +N 之间留 3px 空隙。
       const mainCharW = mainIsTrue ? (crit ? 16 : 12) : mainSpecial ? 9 : 8;
-      const mainW = Math.max(8, String(mainDamage).length * mainCharW);
+      const mainW = Math.max(8, String(mainDamageLabel).length * mainCharW);
       const subW = subLabel.length * 8;
       this.addText(
         mainText.x + mainW / 2 + 3 + subW / 2,

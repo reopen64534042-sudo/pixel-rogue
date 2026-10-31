@@ -213,16 +213,29 @@
         <div class="stats-group-title">局内信息</div>
         <div id="stat-info" class="stat-group-grid"></div>
       </div>
-      <div class="stats-col stats-col-right">
-        <div class="stats-group-title" id="stat-special-title">强化弹</div>
-        <div id="stat-special" class="stat-group-grid"></div>
-        <details id="stat-special-upgrades" class="special-upgrades">
-          <summary class="stats-group-title" id="stat-special-upgrades-title">当前升级</summary>
-          <div id="stat-special-upgrades-list" class="special-upgrade-list"></div>
-        </details>
-        <div class="stats-group-title">已学天赋</div>
-        <div id="talent-list" class="talent-groups-wrap"></div>
-
+      <div class="stats-col stats-col-right" tabindex="0" aria-label="武器与已学天赋，可滚动">
+        <section id="stat-weapon" class="stats-section" aria-labelledby="stat-special-title">
+          <h3 class="stats-group-title" id="stat-special-title">强化弹</h3>
+          <div id="stat-special-progress" class="weapon-progress"></div>
+          <div id="stat-special" class="stat-group-grid weapon-stats"></div>
+          <section id="stat-special-status" class="stats-section" aria-labelledby="stat-special-status-title" hidden>
+            <h4 class="stats-group-title" id="stat-special-status-title">专属机制</h4>
+            <div id="stat-special-status-list" class="stat-group-grid weapon-stats"></div>
+          </section>
+          <details id="stat-special-rules" class="special-upgrades weapon-rules">
+            <summary class="stats-group-title">成长与触发规则</summary>
+            <div id="stat-special-rules-list" class="stat-group-grid"></div>
+          </details>
+          <details id="stat-special-upgrades" class="special-upgrades">
+            <summary class="stats-group-title" id="stat-special-upgrades-title">当前升级</summary>
+            <div id="stat-special-upgrades-list" class="special-upgrade-list"></div>
+          </details>
+        </section>
+        <section class="stats-section" aria-labelledby="stat-talents-title">
+          <h3 class="stats-group-title" id="stat-talents-title">已学天赋</h3>
+          <p class="stats-help">悬停或点按天赋，查看完整效果</p>
+          <div id="talent-list" class="talent-groups-wrap"></div>
+        </section>
       </div>
     </div>
 
@@ -245,7 +258,7 @@
     <p id="pause-version" class="pause-version"></p>
   </div>
 
-  <!-- v142：恢复战斗前的 3-2-1 倒数（模拟保持冻结） -->
+  <!-- v147：恢复战斗前的 3-2-1 倒数（模拟保持冻结） -->
   <div id="resume-countdown" class="resume-countdown hidden" aria-live="polite">
     <span id="resume-count-number" class="resume-count-number">3</span>
     <span class="resume-count-hint">准 备 战 斗</span>
@@ -295,7 +308,7 @@
     <button class="btn" id="btn-input-close">返 回</button>
   </div>
 
-  <!-- 结算：v142 死亡总结 -->
+  <!-- 结算：v147 死亡总结 -->
   <div id="ov-over" class="overlay hidden">
     <div class="over-summary">
       <div class="over-head">

@@ -169,8 +169,8 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   // 法阵范围：S2（#135）因射手零感知被移出面板，S3 法师的法阵半径直接读
   // `p.area`（mageCircleRadius），因此只对法师投放。
   { group: "utility", label: "法阵范围", prof: "mage", stat: "area", stage: "percent", base: 0.045, kind: "pct" },
-  // 复用已接通的 area 来源，激光的碰撞 / 绘制都由 laserWidth 消费。
-  { group: "utility", label: "光束宽度", prof: "shooter", shooterWeapon: "laser", hints: { laser: "加宽光束，扩大扫中敌人的范围" }, stat: "area", stage: "percent", base: 0.1, kind: "pct" },
+  // 回充效率独立累加，不借用范围属性；白档约提高 3.1% 的基础周期输出。
+  { group: "utility", label: "回充效率", prof: "shooter", shooterWeapon: "laser", hints: { laser: "缩短两轮激光之间的回充时间，不加快聚焦；上限 +300%" }, stat: "laserRechargeEfficiency", stage: "flat", base: 0.15, kind: "pct", capped: (p) => (p.laserRechargeEfficiency ?? 0) >= ATTRIBUTE_CAPS.laserRechargeEfficiency },
   { group: "utility", label: "爆炸半径", prof: "shooter", shooterWeapon: "missile", hints: { missile: "扩大主弹、小弹与共振范围，不提高单目标伤害" }, stat: "area", stage: "percent", base: 0.045, kind: "pct" },
 ];
 

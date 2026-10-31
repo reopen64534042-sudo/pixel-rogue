@@ -554,7 +554,7 @@ export class GameCore {
    * 刻意做成普通字段而非图鉴 API —— 战斗系统因此完全不依赖 `CodexSystem`。
    */
   killLog: Record<string, number> = {};
-  /* ---- v142 死亡总结运行统计：只服务局末回顾，不参与战斗数值 ---- */
+  /* ---- v147 死亡总结运行统计：只服务局末回顾，不参与战斗数值 ---- */
   runDamageTaken = 0;
   runDamageTakenByCause: Record<DamageCause, number> = {
     contact: 0,
