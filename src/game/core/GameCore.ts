@@ -262,16 +262,26 @@ export class GameCore {
     /** qi=剑气直线；dash=斩浪路径；slam=跃击落地冲击波环。 */
     kind: "dash" | "qi" | "slam";
   }[] = [];
-  /** 裂地：重斩后在目标脚下延迟爆裂的地裂。 */
-  warriorFissures: {
+  /** 剑气/裂地：重斩后脱离角色向前或四斜向移动的波面。 */
+  warriorWaves: {
+    kind: "qi" | "fissure";
     x: number;
     y: number;
+    vx: number;
+    vy: number;
+    angle: number;
     t: number;
     max: number;
-    r: number;
+    /** 沿飞行方向的半宽 / 垂直方向的半高（与敌人身体半径相加）。 */
+    halfW: number;
+    halfH: number;
     dmg: number;
+    /** 命中瞬间的位移 px（hurtEnemy 的 kx/ky 口径）。 */
     knock: number;
     stun: number;
+    scale: number;
+    /** 每个波面（裂地四道共享）已命中的敌人。 */
+    hit: Enemy[];
   }[] = [];
   /** 斩浪的起跳点（冲刺结束时结算路径伤害）。 */
   warriorDashFromX: number | null = null;
@@ -672,7 +682,7 @@ export class GameCore {
     this.warriorIaiDist = 0;
     this.warriorIaiHasteT = 0;
     this.warriorQi = [];
-    this.warriorFissures = [];
+    this.warriorWaves = [];
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;
     this.warriorResolveT = 0;
@@ -888,7 +898,7 @@ export class GameCore {
     this.warriorTriSlotRe = [0, 0, 0];
     this.warriorHeavyReadyT = 0;
     this.warriorLeapInvulnT = 0;
-    this.warriorFissures = [];
+    this.warriorWaves = [];
     this.bpMode = null;
     this.state = "play";
     this.wavePhase = "rest";
@@ -938,7 +948,7 @@ export class GameCore {
     this.warriorIaiDist = 0;
     this.warriorIaiHasteT = 0;
     this.warriorQi = [];
-    this.warriorFissures = [];
+    this.warriorWaves = [];
     this.warriorDashFromX = null;
     this.warriorDashFromY = null;
     this.warriorResolveT = 0;

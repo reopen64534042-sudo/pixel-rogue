@@ -3,22 +3,25 @@ import type { WarriorStyle } from "../core/types";
 /**
  * 战士基础形态与核心链系数。
  *
- * 数值口径（2026-10-30 用户确认的提案）：
- * - 80 HP / 68 移速 / 10 护甲 / 4% 吸血；
+ * 数值口径（2026-10-31 v137 调整）：
+ * - 60 HP / 移速 太刀 68、大剑 62 / 10 护甲 / 4% 吸血；
  * - 太刀 15 伤害 ×2.5/s、52px、100° 扇形、击退 4px；
- * - 大剑 20 伤害 ×1.55/s、45px、130° 扇形、击退 10px；
+ * - 大剑 20 伤害 ×1.5/s、45px、130° 扇形、击退 10px；
  * - 职业底座：近战无视 30% 护甲（与大剑「破甲」叠乘，不改怪物数值）。
  *
  * 战士的强度靠「贴住」换覆盖：挥砍本身是扇形、不依赖排线，
  * 代价是必须贴身吃伤害。太刀核心压缩为居合/斩浪/连闪 3 张；
  * 流链只增幅居合，居合·迅/极与其余卡作为可选点缀。
- * 当前共 18 张（单流派可见：太刀 12、大剑 10）。
+ * 当前共 21 张（单流派可见：太刀 13、大剑 12；连斩归太刀）。
  */
 export interface WarriorStyleStats {
   readonly label: string;
   readonly short: string;
   readonly damage: number;
   readonly fireRate: number;
+  readonly speed: number;
+  /** 基础冲刺冷却（秒）；大剑比太刀更慢。 */
+  readonly dashMax: number;
   readonly range: number;
   /** 扇形张角（弧度）。 */
   readonly spread: number;
@@ -32,8 +35,7 @@ export interface WarriorStyleStats {
 }
 
 export const WARRIOR_BALANCE = {
-  maxhp: 80,
-  speed: 68,
+  maxhp: 60,
   defense: 10,
   lifesteal: 0.04,
   /**
@@ -59,17 +61,15 @@ export const WARRIOR_BALANCE = {
    * 一次冲刺能跨进环带内，与「斩浪」卡的 1.3 独立相乘。
    */
   baseDashMul: 1.5,
-  /** 冲刺冷却（秒）：战士 1.6（原 2.4），近战靠短 CD 反复接近。 */
-  dashMax: 1.6,
   /**
    * 「连闪」共享机动天赋（t0）：
-   * 充能 +1、冷却 -0.4s；冲刺穿过敌人减速并返还冷却。
+   * 充能 +1、冷却降到 1.6s 封顶；冲刺穿过敌人减速并返还冷却。
    * 太刀：冲刺后 2 秒暴击率/暴击伤害 +30%；
    * 大剑：冲刺后 2 秒内下一刀视为重斩（不推进自然重斩计数）。
    * 与「三段斩」互斥，避免两套冲刺身份互相覆盖。
    */
   lianShan: {
-    cdReduction: 0.4,
+    cdTarget: 1.6,
     slowT: 1.5,
     slowF: 0.3,
     refundPerHit: 0.1,
@@ -121,6 +121,9 @@ export const WARRIOR_BALANCE = {
     stunT: 0.6,
     /** 持跃击的三段斩第三段：落地后额外无敌时间（起手本身也无敌）。 */
     leapInvulnT: 0.8,
+    /** 1 级每槽固定 5 秒，20 级线性降到基础冲刺冷却。 */
+    cdLv1: 5,
+    cdFullLevel: 20,
   },
   // 残心（太刀入场 L2）：冲刺后下一次命中追加 50% 残影斩。
   // 由「下一刀 +100%」改为派生追击：保留冲刺后的节奏，但不再与居合/锐势的爆发数字重叠。
@@ -147,19 +150,49 @@ export const WARRIOR_BALANCE = {
   breakoutDamageMul: 1.35,
   breakoutKnockMul: 3,
   heavyArmorBreakT: 4,
-  swordQiRange: 200,
-  swordQiWidth: 10,
-  swordQiDamageMul: 0.8,
   /**
-   * 「裂地」（重斩链 L3）：重斩命中后在主目标脚下延迟 0.22s 裂开。
-   * 半径固定 55px，不吃「近战范围」属性；对已破甲目标 +30%。
+   * 大剑护盾链（v136）：
+   * 铁壁 / 碎盾反震 / 重壁各 +1 盾层上限（满链 3 层）；破裂后 15 秒重建，
+   * 重壁再减 3 秒。破盾由碎盾反震解锁 80px 震波（250% 近战伤害 + 眩晕 1s）；
+   * 重壁让护盾有 20% 概率受击不消耗层数（层数制护盾下等同免伤）。
    */
-  fissure: {
-    delay: 0.22,
-    radius: 55,
-    dmgMul: 1.2,
-    armorBonus: 0.3,
-    stunT: 0.45,
+  shieldChain: {
+    rebuild: 15,
+    rebuildCut: 3,
+    legacyRebuild: 10,
+    guardChance: 0.2,
+    shockDmgMul: 2.5,
+    shockStunT: 1,
+  },
+  /**
+   * 重斩链剑气（v135）：
+   * - 剑气（L2）：向前一道脱离角色的平推波面，80% 伤害、强击退、穿透。
+   * - 裂地（L3）：同时向四个斜向放出强化波面，120% 伤害、眩晕 0.45s、
+   *   对破甲目标 +30%；四道共享命中表，同一敌人整次只吃一次。
+   * halfW/halfH 是“飞行方向半宽 / 垂直方向半高”的碰撞盒；不是圆形半径。
+   */
+  energyWaves: {
+    qi: {
+      speed: 230,
+      life: 0.8,
+      dmgMul: 0.8,
+      halfW: 8,
+      halfH: 21,
+      offset: 22,
+      /** 剑气比挥砍远：只放大自动索敌半径，挥砍命中范围不变。 */
+      targetRangeMul: 3,
+    },
+    fissure: {
+      speed: 200,
+      life: 0.85,
+      dmgMul: 1.2,
+      halfW: 12,
+      halfH: 32,
+      offset: 10,
+      stunT: 0.45,
+      armorBonus: 0.3,
+      scale: 1,
+    },
   },
   // 剑气击退不在此表：已统一到 data/knockback.ts 的 KNOCK.warrior.qi（14px），
   // 避免「伤害数值」与「击退数值」两套口径各自漂移。
@@ -220,6 +253,8 @@ export const WARRIOR_BALANCE = {
       // #180：攻速 2.0 → 2.5、射程 42 → 52（用户要求「增加攻击距离与基础攻速」）。
       // 太刀是三方里唯一必须贴身的近战，射程与攻速同时补，才追得上射手 24.2 的基线 DPS。
       fireRate: 2.5,
+      speed: 68,
+      dashMax: 1.6,
       // 射程 34 → 42（#180）→ 52（本次）。刀光素材中心同步 22 → 26（见 draw.ts）。
       range: 52,
       spread: (100 * Math.PI) / 180,
@@ -231,9 +266,11 @@ export const WARRIOR_BALANCE = {
     greatsword: {
       label: "大剑流",
       short: "大 剑",
-      // 17 → 20（用户 2026-10-30 裁定）；攻速 1.2 → 1.55、射程 36 → 45（#180 同批）。
+      // 17 → 20（用户 2026-10-30 裁定）；攻速 1.2 → 1.55（#180）→ 1.5（v137 略削）。
       damage: 20,
-      fireRate: 1.55,
+      fireRate: 1.5,
+      speed: 62,
+      dashMax: 1.8,
       range: 45,
       spread: (130 * Math.PI) / 180,
       knock: 10,
@@ -248,3 +285,23 @@ export const WARRIOR_STYLE_ORDER: readonly WarriorStyle[] = [
   "katana",
   "greatsword",
 ];
+
+/** 下一层护盾的完整重建时间；重壁从铁壁的 15s 里减 3s。 */
+export function shieldRebuildSeconds(
+  upCounts: Record<string, number>,
+): number {
+  const chain = WARRIOR_BALANCE.shieldChain;
+  if ((upCounts["重壁"] || 0) > 0) return chain.rebuild - chain.rebuildCut;
+  if ((upCounts["铁壁"] || 0) > 0) return chain.rebuild;
+  return chain.legacyRebuild;
+}
+
+/** 三段斩单槽冷却：1 级 5 秒，20 级降到基础冲刺冷却，中间线性。 */
+export function warriorTriDashCd(dashMax: number, level: number): number {
+  const cfg = WARRIOR_BALANCE.triDash;
+  const t = Math.max(
+    0,
+    Math.min(1, (level - 1) / (cfg.cdFullLevel - 1)),
+  );
+  return cfg.cdLv1 + (dashMax - cfg.cdLv1) * t;
+}

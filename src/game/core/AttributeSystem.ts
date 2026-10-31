@@ -161,9 +161,8 @@ export const ATTR_DEFS: readonly AttrDef[] = [
 
   // ================= 功能 =================
   { group: "utility", label: "移速", stat: "moveSpeed", stage: "percent", base: 0.04, kind: "pct", capped: (p, prof, style) => p.speed >= statBase(prof, style).speed * ATTRIBUTE_CAPS.moveSpeedMul },
-  // 「拾取范围」：magnet 决定经验球与血瓶的自动吸附半径（ProgressionSystem）。
-  // 旧名「拾取」含义模糊（是范围？速度？自动？），直接写清范围，不加额外提示。
-  { group: "utility", label: "拾取范围", stat: "magnet", stage: "flat", base: 8, kind: "int" },
+  // v137：移除「拾取范围」属性候选。magnet 仍保留给旧卡「磁力护符」
+  // 与 ProgressionSystem 的吸附逻辑，但不再作为升级选项投放。
   { group: "utility", label: "射程", labels: { mage: "施法距离", warrior: "近战范围" }, stat: "attackRange", stage: "percent", base: 0.05, kind: "pct" },
   // 法阵范围：S2（#135）因射手零感知被移出面板，S3 法师的法阵半径直接读
   // `p.area`（mageCircleRadius），因此只对法师投放。

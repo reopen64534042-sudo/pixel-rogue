@@ -1,4 +1,7 @@
-import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
+import {
+  WARRIOR_BALANCE as WB,
+  warriorTriDashCd,
+} from "../data/warriorBalance";
 import { WORLD, clamp } from "../data/constants";
 import { KNOCK, KNOCK_DAMP } from "../data/knockback";
 import type { GameCore } from "./GameCore";
@@ -193,7 +196,7 @@ function warriorLeapRange(core: GameCore): number {
   return p.attackRange + WB.leapRange * extra;
 }
 
-/** 跃击目标：搜索范围内最密集的敌群，同密度取最近。 */
+/** 跃击目标：可锁定范围内最密集的敌群，同密度取最近。 */
 function findLeapTarget(core: GameCore): Enemy | null {
   const p = core.player;
   const range = warriorLeapRange(core);
@@ -287,7 +290,7 @@ export function warriorLeap(
     : forwardLeapPoint(this);
   if (tri) {
     // 三段斩第三段消费第 3 个独立冲刺槽。
-    this.warriorTriSlotRe[2] = p.dashMax;
+    this.warriorTriSlotRe[2] = warriorTriDashCd(p.dashMax, p.lvl);
     p.dashCharges = 0;
     p.dashRe = 0;
   } else {
@@ -330,54 +333,101 @@ function advanceWarriorTriDash(this: GameCore): void {
   this.warriorTriDashStage = (this.warriorTriDashStage + 1) % 3;
 }
 
-/** 裂地延迟结束：对落点半径内的敌人结算伤害/击退/眩晕。 */
-function eruptWarriorFissure(
-  this: GameCore,
-  f: { x: number; y: number; r: number; dmg: number; knock: number; stun: number },
-): void {
-  for (const e of this.enemies) {
-    if (e.dead) continue;
-    const dx = e.x - f.x;
-    const dy = e.y - f.y;
-    const d = Math.hypot(dx, dy);
-    if (d > f.r + e.r) continue;
-    if (d > 0.01) {
-      e.kx = (dx / d) * f.knock;
-      e.ky = (dy / d) * f.knock;
+/** 重斩挥出后生成平推剑气；持裂地时改为四斜向强化剑气。 */
+function spawnWarriorHeavyWaves(this: GameCore, angle: number): void {
+  const p = this.player;
+  if ((p.upCounts["裂地"] || 0) > 0) {
+    const cfg = WB.energyWaves.fissure;
+    const sharedHit: Enemy[] = [];
+    for (const dir of [
+      (-3 * Math.PI) / 4,
+      -Math.PI / 4,
+      Math.PI / 4,
+      (3 * Math.PI) / 4,
+    ]) {
+      this.warriorWaves.push({
+        kind: "fissure",
+        x: p.x + Math.cos(dir) * cfg.offset,
+        y: p.y + Math.sin(dir) * cfg.offset,
+        vx: Math.cos(dir) * cfg.speed,
+        vy: Math.sin(dir) * cfg.speed,
+        angle: dir,
+        t: cfg.life,
+        max: cfg.life,
+        halfW: cfg.halfW,
+        halfH: cfg.halfH,
+        dmg: p.damage * cfg.dmgMul,
+        knock: KNOCK.warrior.fissure,
+        stun: cfg.stunT,
+        scale: cfg.scale,
+        hit: sharedHit,
+      });
     }
-    const armorBonus =
-      (e.armorBreakT ?? 0) > 0 ? 1 + WB.fissure.armorBonus : 1;
-    this.hurtEnemy(e, f.dmg * armorBonus, 0, 0, {
-      src: "melee",
-      type: "physical",
-      form: "melee",
-    });
-    e.stunT = Math.max(e.stunT ?? 0, f.stun);
+    this.audio.beep(180, 0.12, "sawtooth", 0.05, -40);
+    return;
   }
-  this.warriorQi.push({
-    x1: f.x,
-    y1: f.y,
-    x2: f.x,
-    y2: f.y,
-    t: 0.35,
-    max: 0.35,
-    c: "#ff8c3a",
-    kind: "slam",
-  });
-  for (let i = 0; i < 18; i++) {
-    const a = (i / 18) * Math.PI * 2;
-    this.parts.push({
-      x: f.x,
-      y: f.y,
-      vx: Math.cos(a) * 95,
-      vy: Math.sin(a) * 95,
-      life: 0.28,
-      c: i % 3 === 0 ? "#fff3b0" : "#ffd24a",
+  if ((p.upCounts["剑气"] || 0) > 0) {
+    const cfg = WB.energyWaves.qi;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    this.warriorWaves.push({
+      kind: "qi",
+      x: p.x + cos * cfg.offset,
+      y: p.y + sin * cfg.offset,
+      vx: cos * cfg.speed,
+      vy: sin * cfg.speed,
+      angle,
+      t: cfg.life,
+      max: cfg.life,
+      halfW: cfg.halfW,
+      halfH: cfg.halfH,
+      dmg: p.damage * cfg.dmgMul,
+      knock: KNOCK.warrior.qi,
+      stun: 0,
+      scale: 1,
+      hit: [],
     });
+    this.audio.beep(280, 0.1, "sine", 0.04, 120);
   }
-  this.shake = Math.min(this.shake + 3, 8);
-  this.audio.beep(90, 0.16, "square", 0.05, -40);
-  this.addText(f.x, f.y - 14, "裂地", "#ff8c3a", false, false, true);
+}
+
+/** 推进波面并按“方向半宽/垂直半高”碰撞盒结算，每个波面/整次裂地只命中一次。 */
+function updateWarriorWaves(this: GameCore, dt: number): void {
+  for (let i = this.warriorWaves.length - 1; i >= 0; i--) {
+    const w = this.warriorWaves[i];
+    w.t -= dt;
+    if (w.t <= 0) {
+      this.warriorWaves.splice(i, 1);
+      continue;
+    }
+    w.x += w.vx * dt;
+    w.y += w.vy * dt;
+    const cos = Math.cos(w.angle);
+    const sin = Math.sin(w.angle);
+    for (const e of this.enemies) {
+      if (e.dead || w.hit.includes(e)) continue;
+      const dx = e.x - w.x;
+      const dy = e.y - w.y;
+      const forward = dx * cos + dy * sin;
+      const lateral = -dx * sin + dy * cos;
+      if (
+        Math.abs(forward) > w.halfW + e.r ||
+        Math.abs(lateral) > w.halfH + e.r
+      )
+        continue;
+      w.hit.push(e);
+      const armorBonus =
+        w.kind === "fissure" && (e.armorBreakT ?? 0) > 0
+          ? 1 + WB.energyWaves.fissure.armorBonus
+          : 1;
+      this.hurtEnemy(e, w.dmg * armorBonus, cos * w.knock, sin * w.knock, {
+        src: "melee",
+        type: "physical",
+        form: "melee",
+      });
+      if (w.stun > 0) e.stunT = Math.max(e.stunT ?? 0, w.stun);
+    }
+  }
 }
 
 /**
@@ -524,14 +574,8 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     this.warriorQi[i].t -= dt;
     if (this.warriorQi[i].t <= 0) this.warriorQi.splice(i, 1);
   }
-  // 裂地：延迟爆裂，先于跃击早退推进，避免起手期间计时停住。
-  for (let i = this.warriorFissures.length - 1; i >= 0; i--) {
-    const f = this.warriorFissures[i];
-    f.t -= dt;
-    if (f.t > 0) continue;
-    this.warriorFissures.splice(i, 1);
-    eruptWarriorFissure.call(this, f);
-  }
+  // 剑气/裂地波面：先于跃击早退推进，飞行与命中不受当前动作阻塞。
+  updateWarriorWaves.call(this, dt);
   if (this.warriorResolveT > 0)
     this.warriorResolveT = Math.max(0, this.warriorResolveT - dt);
   if (this.warriorLeapHasteT > 0)
@@ -581,7 +625,13 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
   if (p.fireCd > 0) return;
 
   const style = WB.styles[this.warriorStyle];
-  const target = this.nearestEnemy(p.x, p.y, p.attackRange);
+  // 剑气让自动挥砍能朝更远的敌人挥出第三段波面；挥砍半径仍用 attackRange。
+  const targetRange =
+    p.attackRange *
+    ((p.upCounts["剑气"] || 0) > 0
+      ? WB.energyWaves.qi.targetRangeMul
+      : 1);
+  const target = this.nearestEnemy(p.x, p.y, targetRange);
   if (!target) {
     p.fireCd = 0.06;
     return;
@@ -728,73 +778,19 @@ function resolveWarriorSwing(
     }
   }
 
-  if (heavy && hits.length) {
-    this.tutorialHeavyDone = true;
-    // 破甲：重斩命中后护甲 −40%，持续 4 秒
-    if ((p.upCounts["破甲"] || 0) > 0) {
-      for (const e of hits) {
-        e.armorBreakT = WB.heavyArmorBreakT;
-        e.armorBreakPct = WB.heavyArmorBreakPct;
-      }
-    }
-    // 剑气：重斩命中后向前放出一道直线，80% 伤害 + 强击退
-    if ((p.upCounts["剑气"] || 0) > 0) {
-      const x1 = p.x;
-      const y1 = p.y - 3;
-      const x2 = p.x + Math.cos(angle) * WB.swordQiRange;
-      const y2 = p.y - 3 + Math.sin(angle) * WB.swordQiRange;
-      for (const e of this.enemies) {
-        if (e.dead) continue;
-        if (
-          pointSegmentDistance(e.x, e.y, x1, y1, x2, y2) >
-          WB.swordQiWidth + e.r
-        )
-          continue;
-        this.hurtEnemy(
-          e,
-          dmg * WB.swordQiDamageMul,
-          Math.cos(angle) * KNOCK.warrior.qi,
-          Math.sin(angle) * KNOCK.warrior.qi,
-          {
-            src: "melee",
-            type: "physical",
-            form: "melee",
-          },
-        );
-      }
-      this.warriorQi.push({
-        x1,
-        y1,
-        x2,
-        y2,
-        t: 0.18,
-        max: 0.18,
-        c: "#ffd24a",
-        kind: "qi",
-      });
-    }
-    // 裂地：重斩落地后，在最近命中目标脚下延迟撕开地面。
-    if ((p.upCounts["裂地"] || 0) > 0 && hits.length) {
-      let focus = hits[0];
-      let bestD = Infinity;
-      for (const e of hits) {
-        const d = Math.hypot(e.x - p.x, e.y - p.y);
-        if (d < bestD) {
-          bestD = d;
-          focus = e;
+  if (heavy) {
+    if (hits.length) {
+      this.tutorialHeavyDone = true;
+      // 破甲：重斩命中后护甲 −40%，持续 4 秒
+      if ((p.upCounts["破甲"] || 0) > 0) {
+        for (const e of hits) {
+          e.armorBreakT = WB.heavyArmorBreakT;
+          e.armorBreakPct = WB.heavyArmorBreakPct;
         }
       }
-      this.warriorFissures.push({
-        x: focus.x,
-        y: focus.y,
-        t: WB.fissure.delay,
-        max: WB.fissure.delay,
-        r: WB.fissure.radius,
-        dmg: p.damage * WB.fissure.dmgMul,
-        knock: KNOCK.warrior.fissure * KNOCK_DAMP,
-        stun: WB.fissure.stunT,
-      });
     }
+    // 剑气/裂地不依赖挥砍命中：索敌翻倍后，第三段可以朝远敌空挥出波面。
+    spawnWarriorHeavyWaves.call(this, angle);
   }
 
   // 流：命中叠层；只增幅居合，不再触发独立 3 秒爆发。

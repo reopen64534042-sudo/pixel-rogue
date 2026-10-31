@@ -1,7 +1,7 @@
 import type { GameCore } from "../game/core/GameCore";
 import { playerMoveSpeed } from "../game/core/PlayerSystem";
 import { tutorialGemStep, tutorialTotalSteps } from "../game/core/TutorialSystem";
-import type { WarriorStyle } from "../game/core/types";
+import type { Talent, WarriorStyle } from "../game/core/types";
 import { groupLabel, rarityLabel } from "../game/core/AttributeSystem";
 import { CHANGELOG, CURRENT_VERSION } from "../game/data/changelog";
 import { resolveDifficulty } from "../game/data/difficulty";
@@ -31,7 +31,10 @@ import {
 } from "../game/data/keybindings";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
 import { statBase } from "../game/data/stats";
-import { WARRIOR_BALANCE } from "../game/data/warriorBalance";
+import {
+  WARRIOR_BALANCE,
+  warriorTriDashCd,
+} from "../game/data/warriorBalance";
 import {
   warriorIaiCap,
   warriorSwingDamage,
@@ -68,6 +71,38 @@ const DMG_NAMES: Record<string, string> = {
 };
 const show = (id: string) => element(id).classList.remove("hidden");
 const hide = (id: string) => element(id).classList.add("hidden");
+
+/** 连闪是共享卡，但锐势/重斩就绪互斥；面板与卡面只展示当前流派。 */
+function lianShanDesc(style: WarriorStyle): string {
+  const base =
+    `冲刺充能 +1 次（上限 2 次），冷却降至 ${WARRIOR_BALANCE.lianShan.cdTarget.toFixed(1)} 秒；` +
+    "冲刺穿过敌人时每个返还 10% 冷却（每次最多 30%）并减速 30%/1.5 秒。";
+  const branch =
+    style === "katana"
+      ? "太刀：冲刺后 2 秒暴击率与暴击伤害 +30%。"
+      : "大剑：冲刺后 2 秒内下一次挥砍视为重斩（不推进重斩计数）。";
+  return base + branch + "与「三段斩」互斥。";
+}
+
+/**
+ * C 面板链层级：L1 被同槽 L2 以 req 承接（元素/循环/生存），
+ * 或存在 requires 连线时才算链；孤立的 L1（如连闪、三段斩）不标。
+ */
+function chainTagOf(u: Talent): string | null {
+  if (!u.layer) return null;
+  const group = UPGRADES.filter(
+    (x) =>
+      x.slot === u.slot &&
+      x.prof === u.prof &&
+      x.warriorStyle === u.warriorStyle,
+  );
+  const linked =
+    !!u.requires ||
+    UPGRADES.some((x) => x.requires === u.n) ||
+    (u.layer === 1 &&
+      group.some((x) => (x.layer ?? 0) > 1 && !x.requires && !!x.req));
+  return linked ? `L${u.layer}` : null;
+}
 
 /**
  * 置换（熔炉）入口开关。
@@ -412,7 +447,12 @@ export class GameUI {
     this.core.slots.forEach((s, i) => {
       const u = s.u;
       const lv = this.core.player.upCounts[u.n] || 0;
-      const desc = u.dyn ? u.dyn(this.core.player) : u.d;
+      const desc =
+        u.n === "连闪"
+          ? lianShanDesc(this.core.warriorStyle)
+          : u.dyn
+            ? u.dyn(this.core.player)
+            : u.d;
       const el = document.createElement("div");
       // Issue #35：本局首次选卡时全部标 NEW，之后仅机制型 Lv.0 标记
       const firstPick = this.core.player.picks.length === 0;
@@ -543,7 +583,10 @@ export class GameUI {
                 ["🪓 重斩", "每 3 下 · 250% · 范围 +50%"],
                 ...((p.upCounts["三段斩"] || 0) > 0
                   ? ([
-                      ["🌀 冲刺段", `${triStage + 1}/3 · ${triLabel}`],
+                      [
+                        "🌀 冲刺段",
+                        `${triStage + 1}/3 · ${triLabel} · CD ${warriorTriDashCd(p.dashMax, p.lvl).toFixed(1)}s`,
+                      ],
                     ] as [string, string][])
                   : []),
                 ...(this.core.warriorHeavyReadyT > 0
@@ -559,6 +602,18 @@ export class GameUI {
                       [
                         "🛡️ 跃击无敌",
                         `剩 ${this.core.warriorLeapInvulnT.toFixed(1)}s`,
+                      ],
+                    ] as [string, string][])
+                  : []),
+                ...(p.shieldMax > 0
+                  ? ([
+                      [
+                        "🛡️ 护盾",
+                        `${p.shield}/${p.shieldMax}${
+                          p.shield < p.shieldMax
+                            ? ` · 下层 ${Math.ceil(p.shieldCd)}s`
+                            : ""
+                        }`,
                       ],
                     ] as [string, string][])
                   : []),
@@ -763,7 +818,6 @@ export class GameUI {
     const utilityRows: [string, string | number][] = [
       // 显示当前实际移速（含冲刺/闪避加成与蛛网减速），不再单独列冲刺加成行。
       ["👟 移动速度", Math.round(playerMoveSpeed(this.core))],
-      ["🧲 拾取范围", Math.round(p.magnet)],
       [
         isMage ? "🎯 施法距离" : isWarrior ? "🎯 近战范围" : "🎯 射程",
         Math.round(p.attackRange),
@@ -916,8 +970,10 @@ export class GameUI {
         html += `<div class="talent-cat-tags">`;
         for (const [n, lv] of inCat) {
           const u = UPGRADES.find((item) => item.n === n)!;
-
-          html += `<span class="talent-tag t${u.t}" data-n="${n}">${u.ico} ${n} Lv.${lv}</span>`;
+          const chainTag = chainTagOf(u);
+          const suffix =
+            u.max > 1 ? ` Lv.${lv}` : chainTag ? ` ${chainTag}` : "";
+          html += `<span class="talent-tag t${u.t}" data-n="${n}">${u.ico} ${n}${suffix}</span>`;
         }
         html += `</div></div>`;
       }
@@ -954,9 +1010,22 @@ export class GameUI {
       if (!tooltip) return;
       const u = UPGRADES.find((item) => item.n === tag.dataset.n)!;
       const lv = p.upCounts[u.n] || 0;
-      const desc = u.dyn ? u.dyn(p) : u.d;
-      const curDesc = u.cur ? u.cur(p) : desc;
+      const desc =
+        u.n === "连闪"
+          ? lianShanDesc(this.core.warriorStyle)
+          : u.dyn
+            ? u.dyn(p)
+            : u.d;
+      const curDesc =
+        u.n === "连闪"
+          ? this.core.warriorStyle === "katana"
+            ? "冲刺后 2 秒锐势：暴击率与暴击伤害 +30%"
+            : "冲刺后 2 秒内下一刀视为重斩"
+          : u.cur
+            ? u.cur(p)
+            : desc;
       const catColor = CAT_COLOR[u.cat] || "#57e6ff";
+      const chainTag = chainTagOf(u);
       // 一次性天赋（max 1）不显示等级与「当前等级生效效果」：
       // 二者对 max 1 的卡是重复信息，机制说明已包含全部内容。
       const showLevel = u.max > 1;
@@ -969,7 +1038,7 @@ export class GameUI {
             <div class="tt-name t${u.t}">${u.n}</div>
             <div class="tt-sub">
               <span class="tt-tier t${u.t}">${TIERS[u.t]}</span>
-              <span class="tt-cat" style="color:${catColor}">[${u.cat}]</span>
+              <span class="tt-cat" style="color:${catColor}">[${u.cat}${chainTag ? ` · ${chainTag}` : ""}]</span>
               ${showLevel ? `<span class="tt-lvl">Lv.${lv} / ${u.max}</span>` : ""}
             </div>
           </div>

@@ -38,9 +38,12 @@ export function meteorDamage(p: Pick<Player, "damage" | "meteor">) {
   return p.damage * CB.meteorBase + p.meteor * CB.meteorPerLevel;
 }
 
-/** 护盾破碎反震（Issue #43） */
-export function shieldShockDamage(p: Pick<Player, "damage">) {
-  return p.damage * CB.shieldShock;
+/** 护盾破碎反震（Issue #43）；碎盾反震传入自己的 250% 系数。 */
+export function shieldShockDamage(
+  p: Pick<Player, "damage">,
+  mul = CB.shieldShock,
+) {
+  return p.damage * mul;
 }
 
 /** 灼烧：每层 DPS = 全局伤害 × 10%（Issue #42 叠层制） */

@@ -9,11 +9,10 @@ import { hasteCap, physMitPct } from "./common";
 /**
  * 旧版通用天赋表（v40 及以前）。
  *
- * S2 起本表整体退役：`UPGRADES` 的条目全部标记 `hidden`，不再进入抽取池，
- * 但**不能删除**——`tests/parity.test.ts` 的「41 张逐字段对照」要求它们仍在表内，
- * 卡名同时是图鉴 id（`codex.syncTalents`），删除会让旧存档条目变孤儿。
- *
- * 真正的退役（迁移到属性系统 / 彻底移除）在 S4 处理。
+ * S2 起本表整体退役：`UPGRADES` 的条目全部标记 `hidden`，不再进入抽取池。
+ * 卡名同时是图鉴 id（`codex.syncTalents`），因此除用户明确要求彻底删除的卡外
+ * 仍在表内保留实现。v137 已按用户要求移除「能量护盾」；`tests/parity.test.ts`
+ * 的 41 张逐字段对照基线因此过期，留待授权测试批次统一处理（见 docs/migration.md）。
  */
 export const LEGACY_UPGRADES: Talent[] = [
   {
@@ -265,23 +264,6 @@ export const LEGACY_UPGRADES: Talent[] = [
     pv: (p) => `反伤 ${p.thorns} → ${p.thorns + 6}`,
     f: (p) => (p.thorns += 6),
     cur: (p) => `反伤 ${p.thorns} 点`,
-  },
-  {
-    retired: 1,
-    n: "能量护盾",
-    ico: "🛡️",
-    t: 2,
-    cat: "防御",
-    d: "+1 层护盾；破碎时反震 80px 内敌人（200% 伤害 + 击退）",
-    max: 3,
-    mech: 1,
-    pv: (p) => `护盾 ${p.shieldMax} → ${p.shieldMax + 1} 层 · 破碎反震`,
-    // S4-C C3-B：shieldMax +1/级 由权威来源表声明（core/TalentStatSources.ts，
-    // shieldMax flat）；「当前护盾 +1」为获得时效果（core/OnAcquireEffects.ts，
-    // 无条件赠层与旧 f 逐字一致），仅在 learnTalent 成功获得时执行一次，
-    // recompute 绝不重放（D-C3-02：重算保留已消耗现值）。
-    f: () => {},
-    cur: (p) => `护盾 ${p.shield}/${p.shieldMax} 层 · 破碎反震 200%`,
   },
   {
     retired: 1,

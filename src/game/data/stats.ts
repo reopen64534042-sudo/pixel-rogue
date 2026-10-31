@@ -8,7 +8,7 @@ import type { Profession, WarriorStyle } from "../core/types";
  * 以下字段按职业分叉，其余字段三职业共用：
  * - 射手：50 HP / 70 移速 / 13 攻击 / 130 索敌 / 2.2 发每秒；
  * - 法师：40 HP（v76 用户裁定） / 62 移速 / 11 攻击 / 150px 施法距离 / 1 / castCycle；
- * - 战士：80 HP / 68 移速 / 10 护甲 / 4% 吸血；太刀 15×2.5/s、大剑 20×1.55/s。
+ * - 战士：60 HP / 10 护甲 / 4% 吸血；太刀 15×2.5/s、移速 68；大剑 20×1.5/s、移速 62。
  *   法师的施法前摇与间隔都按「当前施法速度 ÷ 基础施法速度」同比缩放，
  *   因此属性「施法速度」对法师是从施法周期生效的。
  *
@@ -25,9 +25,9 @@ export function statBase(
   const wstyle = WARRIOR_BALANCE.styles[warriorStyle];
   return {
     // v76：法师基础生命 40（用户裁定）；护盾/回复按最大生命百分比结算，
-    // 会随之下调。射手保持 50。战士 80（2026-10-30 提案）。
+    // 会随之下调。射手保持 50。战士 60（v137 调整）。
     maxhp: warrior ? WARRIOR_BALANCE.maxhp : mage ? 40 : 50,
-    speed: warrior ? WARRIOR_BALANCE.speed : mage ? 62 : 70,
+    speed: warrior ? wstyle.speed : mage ? 62 : 70,
     projSpeed: 260,
     // S1：攻击射程从 AttackSystem 的硬编码 130 提为属性（base 130，数值不变）
     attackRange: warrior
@@ -82,8 +82,8 @@ export function statBase(
     dashLv: 1,
     dashT: -1,
     // 冲刺冷却：#180 起战士单独配置（近战贴身的接近手段，CD 更短）。
-    // 其他职业沿用 2.4 秒。
-    dashMax: warrior ? WARRIOR_BALANCE.dashMax : 2.4,
+    // v137 起按流派分岔：太刀 1.6s，大剑 1.8s；其他职业沿用 2.4 秒。
+    dashMax: warrior ? wstyle.dashMax : 2.4,
     dashCharges: 1,
     dashRe: 0,
     dashChargeLv: 0,
