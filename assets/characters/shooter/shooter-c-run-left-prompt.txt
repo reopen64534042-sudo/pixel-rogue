@@ -1,0 +1,13 @@
+Create the matching LEFT-facing version of the supplied eight-frame improved RUN CYCLE for the same SHOOTER C. Preserve exact identity, silver hair, cyan side goggle, dark eye, light steel vest, navy/teal clothes, power-pack, energy box, brown boots and all body/head proportions. Redraw the turned view with appropriate equipment occlusion; not a new character or a mechanical outfit mirror.
+Output a WIDE 2:1 genuinely transparent canvas, exactly FOUR COLUMNS and TWO ROWS, EIGHT complete body frames read row-major as one continuous running strip. Every figure faces LEFT and slightly toward viewer from the same mild elevated three-quarter camera. Same body size, shared foot baseline, conceptually 32x32 logical cells with about 24-25 pixel body height and 2 pixels clear padding. No per-frame enlargement.
+The gait must be very readable at native size, with wide front/back boot separation around 8-10 logical pixels total at contact extremes, clear empty leg gaps and lifted knees:
+1 left-foot forward CONTACT, other leg extends back.
+2 DOWN/weight absorption, bent knees and rising rear heel.
+3 PASSING, right knee lifts 3-4 logical pixels and boot tucks back.
+4 PUSH/REACH, right leg reaches forward toward screen-left, left toe pushes.
+5 opposite right-foot CONTACT and opposite visible knee/boot overlap.
+6 opposite DOWN/weight absorption.
+7 opposite PASSING with left knee lifted.
+8 PUSH/REACH with left leg reaching toward the next contact.
+Keep near/far knee armor and leg overlap clear so the two halves visibly alternate rather than repeating the same standing pose. Shoulders/head have modest one-pixel weight shifts, slight forward running lean, but hands stay compact near the lower-chest/waist weapon mount; gear stays attached. Brown soles visible. No handheld weapon, effects, dust, streaks, ground or shadow.
+Coarse hard square clusters, same palette as reference: #1a0a2a #22223a, #c5c7cf #8b8f9a #4a5062, #1e3a8a #3d6de0, #1a9fd4 #57e6ff, #ffd9a0, #5a3a20, sparse #f4a940 #e8e8f0. No gradients, soft edges, fine texture, labels, text, cell lines, frames, logos or watermark.

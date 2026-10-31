@@ -6,6 +6,7 @@ import type { GameCore } from "../core/GameCore";
 import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
+import type { ShooterEchoDrawing } from "./characters/ShooterCharacter";
 import { W, H, VIEW, WORLD, fmtTime, fmtHp } from "../data/constants";
 import { isFrozen, isParalyzed } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
@@ -178,7 +179,8 @@ function drawChargeBar(
   }
 }
 
-export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean, character?: CharacterDrawing) {
+export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean, character?: CharacterDrawing,
+  shooterWeapon?: () => void, shooterEcho?: ShooterEchoDrawing) {
   const TS = 16,
     tw = WORLD.w / TS,
     th = WORLD.h / TS;
@@ -1271,7 +1273,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     ctx.polyline3(pts, "#aef1ff", 0.9);
   }
 
-  drawLaser(this, ctx, laserAnimation);
+  drawLaser(this, ctx, laserAnimation, shooterEcho);
   drawMissile(this, ctx);
 
   // 强化弹激光（短寿命表现层；与电弧同为一次折线批量绘制）
@@ -1348,6 +1350,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   }
   ctx.globalAlpha = 1;
 
+  shooterWeapon?.();
   // 飘字：每条文字在生命周期内绑定固定 label 槽位，只更新坐标/透明度，
   // 避免文字过期后槽位整体前移导致的每帧纹理重建。
   ctx.textAlign = "center";
