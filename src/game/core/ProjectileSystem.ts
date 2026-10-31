@@ -274,6 +274,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
       const hit = this.damagePlayer(b.dmg, {
         type: "physical",
         form: "ranged",
+        cause: "projectile",
         attackerStats: b.stats,
       });
       if (hit.killed) return true;

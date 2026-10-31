@@ -24,8 +24,44 @@ export type DamageSource =
   /** 双修三法印反应（融化/超载/超导）的独立伤害分项。 */
   | "reaction"
   | "laser"
-  | "missileMain" | "missileSwarm" | "missileArc" | "missileBurn";
+  | "missileMain" | "missileSwarm" | "missileArc" | "missileBurn"
+  // 战士技能拆分：让死亡总结能区分平A、居合、剑气、裂地、三段斩。
+  | "iai" | "qi" | "fissure" | "tri";
 export type DamageTotals = Record<DamageSource, number>;
+export type DamageCause =
+  | "contact"
+  | "projectile"
+  | "explosion"
+  | "dot"
+  | "unknown";
+export interface DamageTakenEvent {
+  t: number;
+  amount: number;
+  hpBefore: number;
+  cause: DamageCause;
+  sourceType?: string;
+  sourceElite?: boolean;
+  type: DamageTypeId;
+  form: AttackForm;
+}
+export interface RunSummary {
+  time: number;
+  wave: number;
+  level: number;
+  kills: number;
+  totalDamage: number;
+  damageBySource: DamageTotals;
+  damageTaken: number;
+  damageTakenByCause: Record<DamageCause, number>;
+  recentHits: DamageTakenEvent[];
+  death: DamageTakenEvent | null;
+  highestHit: { amount: number; source: DamageSource };
+  eliteKills: number;
+  bossKills: number;
+  talents: string[];
+  upCounts: Record<string, number>;
+  attributePicks: ReadonlyArray<{ stat: string; value: number }>;
+}
 /* ---------- Combat Foundation v1（S1 契约，未接入运行时战斗） ---------- */
 /** 攻击方式：决定近战/远程增伤乘区适用范围；由技能显式指定，不按距离推断 */
 export type AttackForm = "melee" | "ranged" | "other";
@@ -656,6 +692,8 @@ export interface PlayerHitOptions {
   kind?: "hit" | "dot";
   melee?: boolean;
   src?: Enemy;
+  /** 死亡总结用的受击来源分类；缺省按 melee/unknown 推断。 */
+  cause?: DamageCause;
   /** Combat Foundation S2（§5）：伤害属性，缺省 physical（接触=physical/melee、弹幕=physical/ranged、自爆=fire/other） */
   type?: DamageTypeId;
   /** Combat Foundation S2（§5）：攻击方式，缺省 other */

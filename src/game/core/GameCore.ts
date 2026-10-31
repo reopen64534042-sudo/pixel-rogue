@@ -77,6 +77,9 @@ import type {
   Bolt,
   Box,
   Bullet,
+  DamageCause,
+  DamageSource,
+  DamageTakenEvent,
   DamageTotals,
   Enemy,
   EnemyBullet,
@@ -96,6 +99,7 @@ import type {
   Player,
   Point,
   Profession,
+  RunSummary,
   Slash,
   Slot,
   WavePhase,
@@ -480,6 +484,10 @@ export class GameCore {
     burn: 0,
     shock: 0,
     melee: 0,
+    iai: 0,
+    qi: 0,
+    fissure: 0,
+    tri: 0,
     reflect: 0,
     cast: 0,
     element: 0,
@@ -497,6 +505,10 @@ export class GameCore {
     burn: 0,
     shock: 0,
     melee: 0,
+    iai: 0,
+    qi: 0,
+    fissure: 0,
+    tri: 0,
     reflect: 0,
     cast: 0,
     element: 0,
@@ -542,6 +554,23 @@ export class GameCore {
    * 刻意做成普通字段而非图鉴 API —— 战斗系统因此完全不依赖 `CodexSystem`。
    */
   killLog: Record<string, number> = {};
+  /* ---- v142 死亡总结运行统计：只服务局末回顾，不参与战斗数值 ---- */
+  runDamageTaken = 0;
+  runDamageTakenByCause: Record<DamageCause, number> = {
+    contact: 0,
+    projectile: 0,
+    explosion: 0,
+    dot: 0,
+    unknown: 0,
+  };
+  runRecentHits: DamageTakenEvent[] = [];
+  runHighestHit: { amount: number; source: DamageSource } = {
+    amount: 0,
+    source: "melee",
+  };
+  runEliteKills = 0;
+  runBossKills = 0;
+  runSummary: RunSummary | null = null;
   constructor(
     public audio = new AudioService(),
     public storage = new StorageService(),
@@ -683,6 +712,19 @@ export class GameCore {
     this.time = 0;
     this.kills = 0;
     this.killLog = {};
+    this.runDamageTaken = 0;
+    this.runDamageTakenByCause = {
+      contact: 0,
+      projectile: 0,
+      explosion: 0,
+      dot: 0,
+      unknown: 0,
+    };
+    this.runRecentHits = [];
+    this.runHighestHit = { amount: 0, source: "melee" };
+    this.runEliteKills = 0;
+    this.runBossKills = 0;
+    this.runSummary = null;
     this.spawnCd = 1.2;
     this.shake = 0;
     this.hurtFlash = 0;
@@ -775,6 +817,10 @@ export class GameCore {
       thorns: 0,
       burn: 0,
       melee: 0,
+    iai: 0,
+    qi: 0,
+    fissure: 0,
+    tri: 0,
       cast: 0,
       element: 0,
       reaction: 0,
@@ -1031,13 +1077,41 @@ export class GameCore {
       return;
     }
     this.state = "over";
+    const p = this.player;
+    const totalDamage = Object.values(this.dmgBy).reduce(
+      (sum, value) => sum + value,
+      0,
+    );
+    this.runSummary = {
+      time: this.time,
+      wave: this.waveN,
+      level: p.lvl,
+      kills: this.kills,
+      totalDamage,
+      damageBySource: { ...this.dmgBy },
+      damageTaken: this.runDamageTaken,
+      damageTakenByCause: { ...this.runDamageTakenByCause },
+      recentHits: this.runRecentHits.slice(),
+      death: this.runRecentHits.length
+        ? { ...this.runRecentHits[this.runRecentHits.length - 1] }
+        : null,
+      highestHit: { ...this.runHighestHit },
+      eliteKills: this.runEliteKills,
+      bossKills: this.runBossKills,
+      talents: p.picks.slice(),
+      upCounts: { ...p.upCounts },
+      attributePicks: this.attributePicks.map(({ stat, value }) => ({
+        stat,
+        value,
+      })),
+    };
     this.storage.append({
       d: Date.now(),
       t: Math.round(this.time),
       k: this.kills,
-      lv: this.player.lvl,
+      lv: p.lvl,
       w: this.waveN,
-      up: { ...this.player.upCounts },
+      up: { ...p.upCounts },
       dmg: { ...this.dmgBy },
     });
     // 局末同步图鉴：与战绩写入同一收口，放在 append 之后避免影响其行为。

@@ -1408,6 +1408,63 @@ p {
 #ov-pause {
   z-index: 60;
 }
+/* v142：恢复倒计时只盖表现层，模拟仍由 core 的 pause 状态冻结 */
+#resume-countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6vmin;
+  z-index: 40;
+  pointer-events: none;
+  text-align: center;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(8, 12, 24, 0.25),
+    rgba(8, 12, 24, 0) 62%
+  );
+}
+/* ID 选择器优先级高于 .hidden，必须显式覆盖，否则倒数层会一直盖在结算上 */
+#resume-countdown.hidden {
+  display: none;
+}
+.resume-count-number {
+  color: #ffd24a;
+  font-size: 12vmin;
+  line-height: 1;
+  text-shadow:
+    0 0 1.6vmin rgba(255, 210, 74, 0.65),
+    0 0.5vmin 0 #6b4d00;
+}
+.resume-count-number.pop {
+  animation: resume-count-pop 0.9s ease-out;
+}
+@keyframes resume-count-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.92);
+    opacity: 0.55;
+  }
+}
+.resume-count-hint {
+  color: #cfe0ff;
+  font-size: 1.6vmin;
+  letter-spacing: 0.3vmin;
+  text-shadow: 0 0.25vmin 0 rgba(0, 0, 0, 0.65);
+}
 #ov-stats {
   z-index: 30;
 }
@@ -1602,4 +1659,206 @@ p {
 #btn-warrior-greatsword small {
   color: #ffe8a3;
   opacity: 0.9;
+}
+
+/* v142 死亡总结 */
+#ov-over {
+  justify-content: center;
+  padding: 1.6vmin;
+}
+.over-summary {
+  width: min(96vmin, 1120px);
+  max-height: 90vh;
+  overflow-y: auto;
+  text-align: left;
+  background: rgba(12, 15, 30, 0.97);
+  border: 0.25vmin solid #3d4a7a;
+  box-shadow: 0 1vmin 4vmin rgba(0, 0, 0, 0.75);
+  padding: 1.8vmin;
+}
+.over-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2vmin;
+  border-bottom: 0.2vmin solid #2a3356;
+  padding-bottom: 1vmin;
+  margin-bottom: 1.2vmin;
+}
+.over-title {
+  color: #ff5b5b;
+  font-size: 3.4vmin;
+  text-shadow: 0.35vmin 0.35vmin 0 #5b1a2a;
+}
+.over-meta,
+.over-class {
+  color: #9aa3c7;
+  font-size: 1.25vmin;
+  line-height: 1.7;
+}
+.over-class {
+  color: #57e6ff;
+  text-align: right;
+}
+.over-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.2vmin;
+}
+.over-card {
+  min-width: 0;
+  background: rgba(20, 25, 48, 0.85);
+  border: 0.15vmin solid #2a3356;
+  padding: 1.1vmin;
+}
+.over-card-title {
+  color: #ffd24a;
+  font-size: 1.35vmin;
+  letter-spacing: 0.12vmin;
+  border-bottom: 0.12vmin solid #2a3356;
+  padding-bottom: 0.55vmin;
+  margin-bottom: 0.8vmin;
+}
+.over-cause-main {
+  color: #ff7b7b;
+  font-size: 1.65vmin;
+  font-weight: bold;
+  line-height: 1.6;
+}
+.over-cause-detail {
+  color: #c9d4f2;
+  font-size: 1.2vmin;
+  line-height: 1.8;
+  margin-top: 0.45vmin;
+}
+.over-cause-detail b {
+  color: #ffd24a;
+}
+.over-subtitle {
+  color: #7d8ec4;
+  font-size: 1.1vmin;
+  letter-spacing: 0.08vmin;
+  margin: 1vmin 0 0.45vmin;
+}
+.over-recent,
+.over-highlights {
+  font-size: 1.1vmin;
+  color: #9aa3c7;
+}
+.over-hit {
+  display: flex;
+  gap: 1.2vmin;
+  font-size: 1.1vmin;
+  line-height: 1.8;
+  color: #aab6d8;
+}
+.over-hit span:first-child {
+  color: #6d7fb5;
+  min-width: 5vmin;
+}
+.over-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55vmin 1.2vmin;
+}
+.over-metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8vmin;
+  padding: 0.35vmin 0;
+  border-bottom: 0.1vmin solid rgba(61, 74, 122, 0.4);
+  font-size: 1.15vmin;
+  color: #9aa3c7;
+}
+.over-metric b {
+  color: #e8f0ff;
+  font-weight: bold;
+}
+.over-dmg-row {
+  margin-bottom: 0.7vmin;
+  font-size: 1.1vmin;
+  color: #c9d4f2;
+}
+.over-dmg-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8vmin;
+}
+.over-dmg-head i {
+  color: #7d8ec4;
+  font-style: normal;
+  margin-left: 0.6vmin;
+}
+.over-dmg-track {
+  height: 0.7vmin;
+  background: #1a2035;
+  margin-top: 0.3vmin;
+}
+.over-dmg-track i {
+  display: block;
+  height: 100%;
+  background: #57e6ff;
+}
+.over-dmg-row small {
+  display: block;
+  color: #6d7fb5;
+  font-size: 1vmin;
+  margin-top: 0.15vmin;
+}
+.over-talent-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55vmin;
+}
+.over-talent {
+  display: inline-block;
+  border: 0.14vmin solid #3d4a7a;
+  background: rgba(29, 36, 64, 0.8);
+  color: #cfe0ff;
+  padding: 0.4vmin 0.65vmin;
+  font-size: 1.1vmin;
+  line-height: 1.4;
+}
+.over-talent.t1 { border-color: #2f9e5f; color: #4dff88; }
+.over-talent.t2 { border-color: #8a4fd4; color: #c07bff; }
+.over-talent.t3 { border-color: #c9a227; color: #ffd24a; }
+.over-chain-list {
+  color: #9aa3c7;
+  font-size: 1.1vmin;
+  line-height: 1.7;
+}
+.over-empty {
+  color: #6d7fb5;
+  font-size: 1.1vmin;
+  padding: 0.4vmin 0;
+}
+.over-warning {
+  color: #ffb0b0;
+  font-size: 1.05vmin;
+  margin-top: 0.6vmin;
+}
+.over-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1.4vmin;
+  margin-top: 1.2vmin;
+}
+@media (max-width: 720px), (max-height: 420px) {
+  .over-summary {
+    width: 98%;
+    max-height: 94vh;
+    padding: 1.1vmin;
+  }
+  .over-grid {
+    grid-template-columns: 1fr;
+  }
+  .over-title {
+    font-size: 2.8vmin;
+  }
+  .over-head {
+    align-items: flex-start;
+  }
+  .over-class {
+    text-align: left;
+  }
 }

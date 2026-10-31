@@ -245,6 +245,12 @@
     <p id="pause-version" class="pause-version"></p>
   </div>
 
+  <!-- v142：恢复战斗前的 3-2-1 倒数（模拟保持冻结） -->
+  <div id="resume-countdown" class="resume-countdown hidden" aria-live="polite">
+    <span id="resume-count-number" class="resume-count-number">3</span>
+    <span class="resume-count-hint">准 备 战 斗</span>
+  </div>
+
   <!-- 设置菜单（v81：子窗口结构，后续设置项继续加在这里） -->
   <div id="ov-settings" class="overlay hidden">
     <h2>设 置</h2>
@@ -289,11 +295,43 @@
     <button class="btn" id="btn-input-close">返 回</button>
   </div>
 
-  <!-- 结算 -->
+  <!-- 结算：v142 死亡总结 -->
   <div id="ov-over" class="overlay hidden">
-    <h1 style="color:#ff5b5b;text-shadow:0.5vmin 0.5vmin 0 #5b1a2a">你 阵 亡 了</h1>
-    <p id="over-stats"></p>
-    <button class="btn" id="btn-retry">再 来 一 局 (R)</button>
+    <div class="over-summary">
+      <div class="over-head">
+        <div>
+          <h1 class="over-title">☠ 本 局 结 束</h1>
+          <div id="over-meta" class="over-meta"></div>
+        </div>
+        <div id="over-class" class="over-class"></div>
+      </div>
+      <div class="over-grid">
+        <section class="over-card over-cause-card">
+          <div class="over-card-title">死亡原因</div>
+          <div id="over-cause" class="over-cause"></div>
+          <div id="over-recent" class="over-recent"></div>
+        </section>
+        <section class="over-card">
+          <div class="over-card-title">本局数据</div>
+          <div id="over-stats" class="over-metrics"></div>
+          <div id="over-damage-taken" class="over-damage-taken"></div>
+          <div id="over-highlights" class="over-highlights"></div>
+        </section>
+        <section class="over-card over-damage-card">
+          <div class="over-card-title">伤害构成</div>
+          <div id="over-damage" class="over-damage"></div>
+        </section>
+        <section class="over-card over-talent-card">
+          <div class="over-card-title">本局天赋</div>
+          <div id="over-chains" class="over-chains"></div>
+          <div id="over-talents" class="over-talent-grid"></div>
+        </section>
+      </div>
+      <div class="over-actions">
+        <button class="btn" id="btn-retry">再 来 一 局 (R)</button>
+        <button class="btn" id="btn-over-home">返 回 主 界 面</button>
+      </div>
+    </div>
   </div>
   <!-- 天赋悬浮详情窗口 -->
   <div id="talent-tooltip" class="talent-tooltip hidden"></div>

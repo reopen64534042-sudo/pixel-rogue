@@ -328,6 +328,7 @@ export function updateEnemies(this: GameCore, dt: number) {
                 type: "frost",
                 form: "other",
                 src: e,
+                cause: "explosion",
               });
             for (let i = 0; i < 18; i++) {
               const na = (i / 18) * Math.PI * 2;
@@ -438,6 +439,8 @@ export function updateEnemies(this: GameCore, dt: number) {
             this.damagePlayer(e.dmg * aura.dmg, {
               type: "fire",
               form: "other",
+              src: e,
+              cause: "explosion",
               attackerStats: getEnemyCombatStats(e),
             });
           for (let j = 0; j < 12; j++) {
@@ -731,6 +734,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         const hit = this.damagePlayer(contactDmg, {
           melee: true,
           src: e,
+          cause: "contact",
           type: "physical",
           form: "melee",
         });

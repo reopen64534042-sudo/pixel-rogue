@@ -3776,3 +3776,14 @@ dmg = Math.ceil(e.hp - 1);
 
 - 用户明确授权使用 gh 同步上游、推送并创建 PR。已 fetch origin／upstream，最新两端 main 均为 c3dee30；该提交已是导弹分支祖先，本轮没有额外上游提交需要合并，也无冲突。其余工作树保持原样。
 - 重新通过 typecheck／build／差异检查；构建保留现有大 chunk 提示。继续按当前裁定不运行 Vitest／Playwright、不修改测试基线；自然战斗和 Phaser 实机验收边界不变。
+
+## 死亡总结与恢复倒数（v142，2026-10-31）
+
+- 用户确认方案后实现：死亡后展示死因、最后一击/溢出、最近受击、本局数据、伤害构成、本局天赋与链进度；结算界面增加返回主界面。用户复看后去掉 DPS 与「保命资源」，死亡总结只保留击杀、总伤害、承受伤害、精英/首领击杀与属性选择。
+- 数据层：`GameCore` 新增本次局统计（承伤总量/分类、最近 5 次受击、最高一击、精英/Boss 击杀）；`gameOver` 生成只读 `runSummary` 快照，不改战绩 v1 字段。保命资源计数随展示项一并从快照与记录点移除，避免留下无消费者的状态。
+- 死因：`damagePlayer` 只记录实际掉血；`contact/projectile/explosion/dot/unknown` 由调用点标注，角兽/火囊虫等用敌人名与精英标记展示；伤害类型改用 `DAMAGE_TYPES` 的中文展示名（物理/火焰/冰霜/雷电/真实），「当时 HP」改为「当时生命」，BOSS 写作首领。
+- 伤害来源：新增 `iai/qi/fissure/tri` 分项；近战命中、居合、剑气/裂地、三段斩分别记账，死亡总结和本波伤害报告可区分。源→天赋采用静态说明映射，不把增幅卡的伤害强行拆分到单卡。
+- UI：`#ov-over` 改为可滚动总结面板；死亡时收起 `bp-level/bp-attr/bp-rest/bottom-bar`；召唤师/法师/射手/太刀/大剑职业与流派标题由当前局生成。
+- 恢复倒数：暂停点「继续战斗」只隐藏暂停层并显示游戏画面中央的 3-2-1，core 仍是 `pause`，模拟与输入保持冻结；倒数结束才调用 `togglePause` 恢复。倒数中按暂停/Esc 图标或暂停键会取消倒数并回到暂停，切后台也取消；`#resume-countdown` 的 ID 样式会压过 `.hidden`，已补显式覆盖。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；受控 e2e 构造暂停→点击继续→倒数期间 `state=pause` 且显示 3→3 秒后 `state=play`，再构造精英角兽接触 + 剑气命中 + 火爆炸致死，确认死因为 explosion、类型显示「火焰」、总结中无 DPS/BOSS/保命资源/physical/fire/HP，截图 `output/v142-resume-countdown.png` 与 `output/v142-death-summary.png`。
+- 未运行 Vitest / Playwright 测试套件；新增 DamageSource 键会使旧 `dmgBy` 严格快照与部分报告断言过期，留待授权测试批次处理。
