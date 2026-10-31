@@ -1,5 +1,10 @@
 import type { GameCore } from "../game/core/GameCore";
-import { UPGRADES } from "../game/data/talents";
+import {
+  UPGRADES,
+  chainDisplayLayer,
+  displayTalentTier,
+  TIER_COLOR,
+} from "../game/data/talents";
 import type { Talent } from "../game/core/types";
 
 /**
@@ -366,45 +371,73 @@ export class DevPanel {
     for (const g of GROUPS) {
       const cards = UPGRADES.filter((u) => (u.prof ?? "legacy") === g.key);
       if (!cards.length) continue;
-      body.appendChild(
-        el(
-          "div",
-          "margin:6px 0 2px;color:#7d8ec4;border-bottom:1px solid #23305a",
-          `${g.label} · ${cards.length}`,
-        ),
-      );
-      for (const u of cards) {
-        const lv = this.core.player.upCounts[u.n] || 0;
-        const maxed = lv >= u.max;
-        // 前置未满足：灰显 + 不可点，和正常游玩的链规则一致
-        const pre = this.prereq(u);
-        const locked = !maxed && !pre.ok;
-        const row = el(
-          "div",
-          "display:flex;gap:4px;align-items:center;padding:1px 2px;border-radius:2px;" +
-            (maxed || locked
-              ? "opacity:.4"
-              : "cursor:pointer") +
-            ";background:" +
-            (lv > 0 ? "rgba(87,230,255,.10)" : "transparent"),
-        );
-        row.appendChild(el("span", "flex:1", `${u.ico ? u.ico + " " : ""}${u.n}`));
-        if (locked)
-          row.appendChild(el("span", "color:#c8a06a", pre.hint));
-        else if (u.layer)
-          row.appendChild(el("span", "color:#6d7fb5", `L${u.layer}`));
-        row.appendChild(
+      const sections =
+        g.key === "warrior"
+          ? [
+              {
+                label: "太刀",
+                cards: cards.filter((u) => u.warriorStyle === "katana"),
+              },
+              {
+                label: "大剑",
+                cards: cards.filter((u) => u.warriorStyle === "greatsword"),
+              },
+              {
+                label: "公共",
+                cards: cards.filter((u) => !u.warriorStyle),
+              },
+            ].filter((s) => s.cards.length > 0)
+          : [{ label: g.label, cards }];
+      for (const section of sections) {
+        body.appendChild(
           el(
-            "span",
-            "color:" + (maxed ? "#6d7fb5" : "#9fe1ff") + ";min-width:26px;text-align:right",
-            `${lv}/${u.max}`,
+            "div",
+            "margin:6px 0 2px;color:#7d8ec4;border-bottom:1px solid #23305a",
+            `${g.label} · ${section.label} · ${section.cards.length}`,
           ),
         );
-        if (!maxed && !locked)
-          row.addEventListener("click", () => {
-            if (this.core.learnTalent(u)) this.render();
-          });
-        body.appendChild(row);
+        for (const u of section.cards) {
+          const lv = this.core.player.upCounts[u.n] || 0;
+          const maxed = lv >= u.max;
+          // 前置未满足：灰显 + 不可点，和正常游玩的链规则一致
+          const pre = this.prereq(u);
+          const locked = !maxed && !pre.ok;
+          const displayTier = displayTalentTier(u, UPGRADES);
+          const chainLayer = chainDisplayLayer(u, UPGRADES);
+          const frameColor =
+            displayTier === 0
+              ? "#3d4a7a"
+              : TIER_COLOR[displayTier] ?? "#3d4a7a";
+          const row = el(
+            "div",
+            "display:flex;gap:4px;align-items:center;padding:1px 2px;border-radius:2px;" +
+              `border:1px solid ${frameColor};` +
+              (maxed || locked
+                ? "opacity:.4"
+                : "cursor:pointer") +
+              ";background:" +
+              (lv > 0 ? "rgba(87,230,255,.10)" : "transparent"),
+          );
+          row.appendChild(el("span", "flex:1", `${u.ico ? u.ico + " " : ""}${u.n}`));
+          if (locked)
+            row.appendChild(el("span", "color:#c8a06a", pre.hint));
+          else if (chainLayer)
+            row.appendChild(el("span", "color:#6d7fb5", `L${chainLayer}`));
+          row.appendChild(
+            el(
+              "span",
+              "color:" +
+                (maxed ? "#6d7fb5" : "#9fe1ff") +
+                ";min-width:26px;text-align:right",
+              `${lv}/${u.max}`,
+            ),
+          );
+          if (!maxed && !locked)
+            row.addEventListener("click", () => {
+              if (this.core.learnTalent(u)) this.render();
+            });
+          body.appendChild(row);
+        }
       }
     }
   }

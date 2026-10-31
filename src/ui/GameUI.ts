@@ -1,7 +1,7 @@
 import type { GameCore } from "../game/core/GameCore";
 import { playerMoveSpeed } from "../game/core/PlayerSystem";
 import { tutorialGemStep, tutorialTotalSteps } from "../game/core/TutorialSystem";
-import type { Talent, WarriorStyle } from "../game/core/types";
+import type { WarriorStyle } from "../game/core/types";
 import { groupLabel, rarityLabel } from "../game/core/AttributeSystem";
 import { CHANGELOG, CURRENT_VERSION } from "../game/data/changelog";
 import { resolveDifficulty } from "../game/data/difficulty";
@@ -11,6 +11,8 @@ import {
   TIER_VAL,
   CAT_COLOR,
   CAT_ICO,
+  chainDisplayLayer,
+  displayTalentTier,
   mageElements,
 } from "../game/data/talents";
 import { fmtTime } from "../game/data/constants";
@@ -84,25 +86,6 @@ function lianShanDesc(style: WarriorStyle): string {
   return base + branch + "与「三段斩」互斥。";
 }
 
-/**
- * C 面板链层级：L1 被同槽 L2 以 req 承接（元素/循环/生存），
- * 或存在 requires 连线时才算链；孤立的 L1（如连闪、三段斩）不标。
- */
-function chainTagOf(u: Talent): string | null {
-  if (!u.layer) return null;
-  const group = UPGRADES.filter(
-    (x) =>
-      x.slot === u.slot &&
-      x.prof === u.prof &&
-      x.warriorStyle === u.warriorStyle,
-  );
-  const linked =
-    !!u.requires ||
-    UPGRADES.some((x) => x.requires === u.n) ||
-    (u.layer === 1 &&
-      group.some((x) => (x.layer ?? 0) > 1 && !x.requires && !!x.req));
-  return linked ? `L${u.layer}` : null;
-}
 
 /**
  * 置换（熔炉）入口开关。
@@ -454,13 +437,16 @@ export class GameUI {
             ? u.dyn(this.core.player)
             : u.d;
       const el = document.createElement("div");
+      const displayTier = displayTalentTier(u, UPGRADES);
       // Issue #35：本局首次选卡时全部标 NEW，之后仅机制型 Lv.0 标记
       const firstPick = this.core.player.picks.length === 0;
       el.className =
-        "card r" + u.t + (lv === 0 && (u.mech || firstPick) ? " new" : "");
+        "card r" +
+        displayTier +
+        (lv === 0 && (u.mech || firstPick) ? " new" : "");
       el.tabIndex = 0;
       el.setAttribute("role", "button");
-      el.setAttribute("aria-label", `${u.n}，${TIERS[u.t]}，${desc}`);
+      el.setAttribute("aria-label", `${u.n}，${TIERS[displayTier]}，${desc}`);
       el.onkeydown = (event) => {
         if (event.target === el && ["Enter", " "].includes(event.key)) {
           event.preventDefault();
@@ -474,12 +460,13 @@ export class GameUI {
       // S3：补上**链层级与前置**（设计文档 §3.4「变体与流派必须可见」）。
       // 玩家只有能看见「这是 L2、它的前置是速咏」，才知道自己在构筑一条链
       // 而不是随手拿一张卡。
-      const chainInfo = u.layer
-        ? `<div class="chain">L${u.layer}${u.requires ? ` · 需 ${u.requires}` : ""}</div>`
+      const chainLayer = chainDisplayLayer(u, UPGRADES);
+      const chainInfo = chainLayer
+        ? `<div class="chain">L${chainLayer}${u.requires ? ` · 需 ${u.requires}` : ""}</div>`
         : u.slot === "秘传"
           ? `<div class="chain">秘传${u.requires ? ` · 需 ${u.requires}` : ""}</div>`
           : "";
-      el.innerHTML = `${u.t > 0 ? `<div class="tier">${TIERS[u.t]}</div>` : ""}
+      el.innerHTML = `${displayTier > 0 ? `<div class="tier">${TIERS[displayTier]}</div>` : ""}
       <div class="cat" style="color:${CAT_COLOR[u.cat]}">${CAT_ICO[u.cat]} ${u.cat}</div>
       <div class="ico">${u.ico}</div><div class="nm">${u.n}${u.mech && lv === 0 ? " ✦NEW" : ""}</div>
       ${chainInfo}
@@ -614,6 +601,14 @@ export class GameUI {
                             ? ` · 下层 ${Math.ceil(p.shieldCd)}s`
                             : ""
                         }`,
+                      ],
+                    ] as [string, string][])
+                  : []),
+                ...(this.core.warriorBloodDebtStacks > 0
+                  ? ([
+                      [
+                        "🩸 血偿",
+                        `${this.core.warriorBloodDebtStacks}/${WARRIOR_BALANCE.counterChain.bloodDebtMaxStacks} · 剩 ${this.core.warriorBloodDebtT.toFixed(1)}s`,
                       ],
                     ] as [string, string][])
                   : []),
@@ -970,10 +965,15 @@ export class GameUI {
         html += `<div class="talent-cat-tags">`;
         for (const [n, lv] of inCat) {
           const u = UPGRADES.find((item) => item.n === n)!;
-          const chainTag = chainTagOf(u);
+          const chainLayer = chainDisplayLayer(u, UPGRADES);
+          const displayTier = displayTalentTier(u, UPGRADES);
           const suffix =
-            u.max > 1 ? ` Lv.${lv}` : chainTag ? ` ${chainTag}` : "";
-          html += `<span class="talent-tag t${u.t}" data-n="${n}">${u.ico} ${n}${suffix}</span>`;
+            u.max > 1
+              ? ` Lv.${lv}`
+              : chainLayer
+                ? ` L${chainLayer}`
+                : "";
+          html += `<span class="talent-tag t${displayTier}" data-n="${n}">${u.ico} ${n}${suffix}</span>`;
         }
         html += `</div></div>`;
       }
@@ -1025,20 +1025,21 @@ export class GameUI {
             ? u.cur(p)
             : desc;
       const catColor = CAT_COLOR[u.cat] || "#57e6ff";
-      const chainTag = chainTagOf(u);
+      const chainLayer = chainDisplayLayer(u, UPGRADES);
+      const displayTier = displayTalentTier(u, UPGRADES);
       // 一次性天赋（max 1）不显示等级与「当前等级生效效果」：
       // 二者对 max 1 的卡是重复信息，机制说明已包含全部内容。
       const showLevel = u.max > 1;
 
-      tooltip.className = `talent-tooltip tt-t${u.t}`;
+      tooltip.className = `talent-tooltip tt-t${displayTier}`;
       tooltip.innerHTML = `
         <div class="tt-header">
           <span class="tt-ico">${u.ico}</span>
           <div class="tt-title-wrap">
-            <div class="tt-name t${u.t}">${u.n}</div>
+            <div class="tt-name t${displayTier}">${u.n}</div>
             <div class="tt-sub">
-              <span class="tt-tier t${u.t}">${TIERS[u.t]}</span>
-              <span class="tt-cat" style="color:${catColor}">[${u.cat}${chainTag ? ` · ${chainTag}` : ""}]</span>
+              <span class="tt-tier t${displayTier}">${TIERS[displayTier]}</span>
+              <span class="tt-cat" style="color:${catColor}">[${u.cat}${chainLayer ? ` · L${chainLayer}` : ""}]</span>
               ${showLevel ? `<span class="tt-lvl">Lv.${lv} / ${u.max}</span>` : ""}
             </div>
           </div>
