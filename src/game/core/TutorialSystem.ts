@@ -72,10 +72,22 @@ export function startTutorial(
     this.player.upCounts[core] = 1;
     this.player.picks.push(core);
   }
+  // 法师教程临时给火元素：正式开局会重置并要求选择第一元素。
+  // 否则练习场没有可施放元素，命中/站定教学步骤永远无法完成。
+  if (prof === "mage") {
+    this.mageElements = ["fire"];
+    this.mageElementPickPending = null;
+    this.mageReactionIds = [];
+    this.mageSuit = null;
+    this.mageWheelIndex = 0;
+    this.mageCastsInPhase = 0;
+    this.mageStaffLevel = 1;
+    this.mageStaffXp = 0;
+  }
   this.view.started();
   const p = this.player;
   if (prof === "mage") {
-    // 三只木桩靠在一起，方便教「法阵自动落最密集处 + 站定」。
+    // 三只木桩靠在一起，方便教「法阵落最近目标 + 站定命中多个」。
     spawnDummy.call(this, p.x + 60, p.y);
     spawnDummy.call(this, p.x + 55, p.y - 16);
     spawnDummy.call(this, p.x + 55, p.y + 16);

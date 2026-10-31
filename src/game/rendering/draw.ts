@@ -5,8 +5,9 @@ import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
 import { W, H, VIEW, WORLD, fmtTime } from "../data/constants";
-import { isFrozen, isParalyzed } from "../core/ElementMath";
+import { isBrittle, isFrostLocked, isFrozen, isParalyzed, isShocked } from "../core/ElementMath";
 import { mageCircleRadius, mageIsSteady, mageWindup } from "../core/MageSystem";
+import { ELEMENTAL_MAGE, MAGE_CASTS_PER_ELEMENT, MAGE_ELEMENTS } from "../data/elementalMage";
 import { warriorIaiStep } from "../core/WarriorSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import {
@@ -345,11 +346,8 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     (this.castPhase === "windup" || this.castPhase === "cast")
   ) {
     const steady = mageIsSteady(this);
-    // 预览圈按「下一次施法会不会满充能」取半径，与 detonate 的实际半径一致
-    //（三连聚爆会让满充能发半径 +50%，预览偏小会让玩家误判落点）。
-    const R = Math.round(
-      mageCircleRadius(this, this.mageCharge + 1 >= MB.chargeFull),
-    );
+    // 预览圈与实际半径一致（法阵扩幅/广域符印都在 mageCircleRadius 内结算）。
+    const R = Math.round(mageCircleRadius(this));
     const total = Math.max(0.001, mageWindup(this));
     const castPart = total * (1 - MB.castWindupInterruptible / MB.castWindup);
     const remain =
@@ -406,67 +404,8 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       3,
     );
     ctx.globalAlpha = 1;
-  } else if (
-    // 星陨路线整体替换主施法：没有前摇，所以没有施法读条。
-    // 但玩家的节奏感知不能丢——同一条位置改为显示「下一次陨星」的冷却，
-    // 填满即落星（落点有独立的预警圈），紫色与施法读条区分。
-    // 只在战斗阶段显示：休整/收球/暂停/结算时隐藏（休整里一直充能是噪音）。
-    this.prof === "mage" &&
-    this.state === "play" &&
-    this.wavePhase === "fight" &&
-    (this.player.upCounts["星陨"] || 0) > 0
-  ) {
-    const prog = Math.max(
-      0,
-      Math.min(1, 1 - this.mageMeteorT / MB.meteorInterval),
-    );
-    const bw = 22;
-    // 取整基准必须与角色贴图一致：先 round 玩家坐标、再减一个**整数**偏移。
-    // 之前写 round(x - bw/2)，bw 为奇数时（冲刺格 5px）偏移是 ±2.5，
-    // 相邻帧会在 -2/-3 之间跳，表现为横移时小方块左右摆动。
-    const bx = Math.round(this.player.x) - Math.floor(bw / 2);
-    const by = Math.round(this.player.y) + 6;
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = "#3a4a7a";
-    ctx.fillRect(bx - 1, by, bw + 2, 3);
-    ctx.fillStyle = "#2a3560";
-    ctx.fillRect(bx, by + 1, bw, 1);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#c07bff";
-    ctx.fillRect(bx, by + 1, Math.max(1, Math.round(bw * prog)), 1);
   }
-  // ---- S3 法师：元素残域（持续伤害领域）----
-  for (const d of this.mageDomains) {
-    ctx.globalAlpha = 0.22 + Math.sin(this.time * 6) * 0.08;
-    ctx.strokeStyle =
-      d.element === "frost"
-        ? "#9fe1ff"
-        : d.element === "lightning"
-          ? "#c07bff"
-          : "#ff6a2b";
-    ctx.beginPath();
-    ctx.arc(Math.round(d.x), Math.round(d.y), d.R, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-  // ---- S3 法师：陨星预告（路线B）----
-  if (this.mageMeteors.length) {
-    const rings: number[] = [];
-    for (const m of this.mageMeteors)
-      rings.push(
-        Math.round(m.x),
-        Math.round(m.y),
-        Math.round((m.R * m.t) / MB.meteorFall + 8),
-      );
-    // 满充能波次的预警圈提亮，让玩家能看出这一发是加强版
-    const charged = this.mageMeteors.some((m) => m.charged);
-    ctx.meteorRing(
-      rings,
-      charged ? "#57e6ff" : "#c07bff",
-      0.5 + Math.sin(this.time * 20) * 0.3,
-    );
-  }
-  // ---- S3 法师：镜像残影（吸引仇恨的诱饵）----
+  // ---- 法师：镜像残影（吸引仇恨的诱饵）----
   // 用玩家的贴图半透明绘制，读作「一个假体」；缺贴图时退回紫色方块。
   for (const d of this.mageDecoys) {
     const r = spriteRect("player", d.x, d.y);
@@ -497,6 +436,86 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     }
   }
   ctx.globalAlpha = 1;
+
+  // 法师：回响法阵的延迟第二击（地面淡环，出伤前提示）
+  for (const echo of this.mageEchoes) {
+    const k = Math.max(0, Math.min(1, 1 - echo.t / echo.maxT));
+    ctx.globalAlpha = 0.16 + k * 0.28;
+    ctx.strokeStyle = MAGE_ELEMENTS[echo.element].color;
+    ctx.beginPath();
+    ctx.arc(
+      Math.round(echo.x),
+      Math.round(echo.y),
+      Math.max(1, Math.round(echo.R * (0.55 + 0.45 * k))),
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // 法师：元素棱镜（地面水晶，显示剩余时间与可折射次数）
+  if (this.magePrism) {
+    const prism = this.magePrism;
+    const color = MAGE_ELEMENTS[prism.element].color;
+    const px = Math.round(prism.x);
+    const py = Math.round(prism.y);
+    ctx.globalAlpha = 0.18 + Math.sin(this.time * 6) * 0.06;
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.arc(px, py, 9, 0, Math.PI * 2);
+    ctx.stroke();
+    // 剩余时间弧：从正上方顺时针缩短
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.arc(
+      px,
+      py,
+      9,
+      -Math.PI / 2,
+      -Math.PI / 2 + Math.PI * 2 * Math.max(0, prism.t / prism.maxT),
+    );
+    ctx.stroke();
+    ctx.globalAlpha = 0.95;
+    // 深色外轮廓 + 元素色内芯，形状固定 6×6 像素菱形
+    ctx.fillStyle = "#10131f";
+    ctx.fillRect(px - 1, py - 7, 2, 1);
+    ctx.fillRect(px - 2, py - 6, 4, 1);
+    ctx.fillRect(px - 3, py - 5, 6, 2);
+    ctx.fillRect(px - 2, py - 3, 4, 1);
+    ctx.fillRect(px - 1, py - 2, 2, 1);
+    ctx.fillStyle = color;
+    ctx.fillRect(px - 1, py - 6, 2, 1);
+    ctx.fillRect(px - 2, py - 5, 4, 1);
+    ctx.fillRect(px - 1, py - 4, 2, 1);
+    // 剩余折射次数
+    for (let i = 0; i < prism.charges; i++) {
+      ctx.fillStyle = color;
+      ctx.fillRect(px - (prism.charges - 1) + i * 3, py + 3, 2, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // 法师：分影齐射的左右残影（半透明本体 + 元素色环，不参与碰撞）
+  for (const shadow of this.mageShadows) {
+    const sx = Math.round(
+      this.player.x + shadow.side * ELEMENTAL_MAGE.shadow.offset,
+    );
+    const sy = Math.round(this.player.y);
+    const r = spriteRect("player", sx, sy);
+    ctx.globalAlpha = 0.32 + (shadow.t / shadow.maxT) * 0.18;
+    if (r) ctx.sprite(r.tex, r.x, r.y, r.w, r.h);
+    else {
+      ctx.fillStyle = MAGE_ELEMENTS[shadow.element].color;
+      ctx.fillRect(sx - 4, sy - 6, 8, 10);
+    }
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = MAGE_ELEMENTS[shadow.element].color;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 7, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 
   // 敌人
   for (const e of this.enemies) {
@@ -561,13 +580,38 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
     }
-    // 冻结冰壳（旧 frozenT 与法师凝冰满层共用，替代「冻结」飘字）
+    // 冻结冰壳（旧 frozenT 与法师冻结共用，替代「冻结」飘字）
     if (e.frozenT > 0 || isFrozen(e))
       drawFrozenOverlay(ctx, x, y, w, h);
+    // 霜牢：比冻结更重的冰壳 + 深蓝外框，表示锚定且优先级更高。
+    if (isFrostLocked(e)) {
+      drawFrozenOverlay(ctx, x, y, w, h);
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = "#57e6ff";
+      ctx.fillRect(x - 1, y - 1, w + 2, 1);
+      ctx.fillRect(x - 1, y + h, w + 2, 1);
+      ctx.fillRect(x - 1, y, 1, h);
+      ctx.fillRect(x + w, y, 1, h);
+      ctx.globalAlpha = 1;
+    }
     if (isParalyzed(e)) {
       ctx.globalAlpha = 0.4;
       ctx.fillStyle = "#c07bff";
       ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+    }
+    // 雷印：紫色电弧点；脆化：淡金裂纹色。都只做低强度提示，不遮挡血条。
+    if (isShocked(e)) {
+      ctx.globalAlpha = 0.35 + Math.sin(this.time * 18 + e.seed) * 0.12;
+      ctx.fillStyle = "#d9a6ff";
+      ctx.fillRect(x + 1, y - 1, Math.max(1, w - 2), 1);
+      ctx.globalAlpha = 1;
+    }
+    if (isBrittle(e)) {
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = "#ffd24a";
+      ctx.fillRect(x, y, w, 1);
+      ctx.fillRect(x, y + h - 1, w, 1);
       ctx.globalAlpha = 1;
     }
     if (e.flash > 0) {
@@ -967,20 +1011,36 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       }
     }
   }
-  // 法师充能点（P0-2）：仅当持有任一充能相关卡时显示，避免给不走循环轴的
-  // 玩家增加噪音。计数是 1→2→3 的实心小格：第 3 发落地/爆裂时三格全亮
-  // 0.35 秒，然后清零——不再用「空心提示下一发」，那种画法看起来像 3 个点。
-  // v63：高度 3→2；v64：格宽 3→2、间距 2→3——三格总宽 12 为偶数，
-  // 中格正好压在角色中轴线上（旧 3×3 + 2px 间距总宽 13，必然偏半像素）。
+  // 法师：元素轮盘（角色脚下 3 格，颜色 = 当前元素；实心 = 本阶段已完成施法）。
+  // 每 3 次成功施法切换元素，格数归零并换色，给玩家“下一次换元素”的节奏提示。
   if (
     this.prof === "mage" &&
     this.state === "play" &&
     this.wavePhase === "fight" &&
-    (this.player.upCounts["咏唱护壁"] ||
-      this.player.upCounts["回响"] ||
-      this.player.upCounts["元素蓄能"] ||
-      this.player.upCounts["过载"] ||
-      this.player.upCounts["三连聚爆"])
+    this.mageElements.length > 0
+  ) {
+    const el = this.mageElements[this.mageWheelIndex % this.mageElements.length];
+    const color = MAGE_ELEMENTS[el].color;
+    const total = MAGE_CASTS_PER_ELEMENT;
+    const cw = 2;
+    const chh = 2;
+    const gap = 3;
+    const pw = total * cw + (total - 1) * gap;
+    const px = Math.round(this.player.x) - Math.floor(pw / 2);
+    const py = Math.round(this.player.y) + 17;
+    for (let i = 0; i < total; i++) {
+      ctx.globalAlpha = i < this.mageCastsInPhase ? 1 : 0.32;
+      ctx.fillStyle = color;
+      ctx.fillRect(px + i * (cw + gap), py, cw, chh);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // 护咒壁：每 3 次成功施法的充能点（第 3 发爆裂时三格全亮后清零）。
+  if (
+    this.prof === "mage" &&
+    this.state === "play" &&
+    this.wavePhase === "fight" &&
+    (this.player.upCounts["护咒壁"] || 0) > 0
   ) {
     const total = MB.chargeFull;
     const cw = 2;
@@ -988,10 +1048,10 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const gap = 3;
     const pw = total * cw + (total - 1) * gap;
     const px = Math.round(this.player.x) - Math.floor(pw / 2);
-    const py = Math.round(this.player.y) + 17;
+    const py = Math.round(this.player.y) + 22;
     const shown = this.mageChargeFlashT > 0 ? total : this.mageCharge;
     for (let i = 0; i < total; i++) {
-      ctx.fillStyle = i < shown ? "#57e6ff" : "#1d2440";
+      ctx.fillStyle = i < shown ? "#ffd24a" : "#1d2440";
       ctx.fillRect(px + i * (cw + gap), py, cw, chh);
     }
   }
@@ -1355,19 +1415,21 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     }
   }
   for (const t of this.texts) {
-    const layers = t.iaiDmg || t.triDmg
-      ? 4
-      : t.trueDmg
-        ? t.big
-          ? 4
-          : 3
-        : t.specialDmg
-          ? t.critDmg
+    const layers = t.reactionName
+      ? 3
+      : t.iaiDmg || t.triDmg
+        ? 4
+        : t.trueDmg
+          ? t.big
             ? 4
             : 3
-          : t.critDmg
-            ? 3
-            : 2;
+          : t.specialDmg
+            ? t.critDmg
+              ? 4
+              : 3
+            : t.critDmg
+              ? 3
+              : 2;
     let slots = slotState.slots.get(t);
     if (!slots || slots.length !== layers) {
       if (slots) slotState.free.push(...slots);
@@ -1379,7 +1441,21 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     ctx.globalAlpha = Math.min(1, t.life * 3);
     const x = Math.round(t.x);
     const y = Math.round(t.y);
-    if (t.iaiDmg) {
+    if (t.reactionName) {
+      // 反应名：12px（伤害数字为 8px），只显示两字名称；深色描边保证在
+      // 火焰/冰霜染色与伤害数字上仍能看清。中文回退字形会比 font-size 更高，
+      // 额外留 4px 底部内边距，避免下半截被 Phaser Text 纹理裁掉。
+      ctx.textPaddingBottom = 4;
+      ctx.font = '13px "Press Start 2P", monospace';
+      ctx.fillStyle = "#10131f";
+      ctx.fillTextSlot(slots[0], t.s, x, y);
+      ctx.font = '12px "Press Start 2P", monospace';
+      ctx.fillStyle = "#10131f";
+      ctx.fillTextSlot(slots[1], t.s, x + 1, y + 1);
+      ctx.fillStyle = t.c;
+      ctx.fillTextSlot(slots[2], t.s, x, y);
+      ctx.textPaddingBottom = 0;
+    } else if (t.iaiDmg) {
       // 居合斩：全场最大字号 + 冰白主体。四层从外到内：
       // 深青粗外圈（16px）→ 亮青细边（14px）→ 深色落影 → 冰白主体（12px）。
       // 两层描边必须都比主体大一圈，同字号会被主体完全盖住。
