@@ -131,7 +131,7 @@ v137 桥接器在熔断后读取真实脉冲几何、种类和时刻，同时保
 | LaserVfxPlayer | 按模拟时间产生用户认可的连续细束、圆环和 0.24 秒释放指令 |
 | LaserVfxPainter | 在原 drawLaser 位置消费指令，复用 PixelPainter 的世界图像 / Graphics 池、相机和绘制深度 |
 | PixelPainter.spriteFrame | 图集帧、非等比缩放和裁切；普通 sprite / spriteRot 复用前也清除 crop，避免裁切状态污染其他精灵 |
-| LaserRenderer | 新动画就绪时只补原余辉 / 折光残像 / 紧急散射；跳过旧主束、旧脉冲、四角框和发射口，资源条照常保留 |
+| LaserRenderer | 新动画就绪时只补原余辉 / 折光残像 / 紧急散射；跳过旧主束、旧脉冲、四角框和发射口；资源条只保留照射 / 回充及经验，折光残像显示与伤害共用 1 秒寿命，前 0.1 秒低亮度保持、随后 0.9 秒平缓淡出 |
 
 本项目不使用固定 baseDepth 的独立 PhaserLaserVfxView，以免穿过现有动态世界 / HUD 层级；该类保留为其他场景的标准 Phaser 接入参考。实际游戏所有激光图像使用既有 PixelPainter 对象池，随现有顺序绘制于伤害飘字与 HUD 之前。
 

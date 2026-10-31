@@ -1,5 +1,7 @@
 import { PALETTE_HEX } from "../../../data/palette";
 import { MISSILE_CLIPS, MISSILE_GEOMETRY, type MissileClip } from "./missileAssets";
+import { MISSILE_VFX as FX } from "../../../data/missileVfx";
+import { ionArcLook, ionChargeLook, ionFlightLook, ionImpactLook } from "./IonVfx";
 
 export type MissileLook = "heavy" | "micro" | "ion";
 export interface MissileFlightPose {
@@ -16,15 +18,21 @@ export interface MissileLaunchPose {
 }
 export interface MissileImpactPose {
   x: number; y: number; age: number; radius: number; look: MissileLook;
+  kind?: "impact" | "resonance";
 }
 export interface MissileArcPose {
   x: number; y: number; x2: number; y2: number; age: number;
+  relay?: boolean;
+}
+export interface MissileChargePose {
+  x: number; y: number; radius: number; count: number; age: number; remaining: number;
 }
 export interface MissileVfxSnapshot {
   flights: readonly MissileFlightPose[];
   launches: readonly MissileLaunchPose[];
   impacts: readonly MissileImpactPose[];
   arcs: readonly MissileArcPose[];
+  charges?: readonly MissileChargePose[];
 }
 export type MissileVfxCommand = {
   kind: "sprite"; clip: MissileClip; frame: number;
@@ -58,8 +66,10 @@ export function missileVfxCommands(snapshot: MissileVfxSnapshot): MissileVfxComm
   // Low-contrast dust stays below projectiles and short bright impact cores.
   for (const impact of snapshot.impacts) {
     const scale = impact.radius / MISSILE_GEOMETRY.referenceBlastRadius;
-    sprite("smoke", impact.age - 0.1, impact.x, impact.y, 0, scale, 0.3 * Math.max(0, 1 - impact.age / 0.69));
+    const alpha = impact.kind === "resonance" ? 0.08 : impact.look === "ion" ? 0.14 : 0.3;
+    sprite("smoke", impact.age - 0.1, impact.x, impact.y, 0, scale, alpha * Math.max(0, 1 - impact.age / 0.69));
   }
+  for (const charge of snapshot.charges ?? []) ionChargeLook(commands, charge);
   for (const launch of snapshot.launches) {
     sprite("eject", launch.age, launch.x, launch.y, launch.angle, launch.micro ? 0.6 : 1, 0.45);
   }
@@ -88,21 +98,27 @@ export function missileVfxCommands(snapshot: MissileVfxSnapshot): MissileVfxComm
       sprite(clip, time, nx, ny, flight.angle, micro ? 0.65 : 1, charged && ignition ? progress : 1);
     }
     sprite(body, 0, flight.x, flight.y, flight.angle);
+    if (charged) ionFlightLook(commands, flight);
   }
   for (const impact of snapshot.impacts) {
     const micro = impact.look === "micro";
     const scale = impact.radius / (micro ? MISSILE_GEOMETRY.referenceMicroRadius : MISSILE_GEOMETRY.referenceBlastRadius);
+    const resonance = impact.kind === "resonance";
     sprite(micro ? "micro-blast" : impact.look === "ion" ? "ion-blast" : "blast",
-      impact.age, impact.x, impact.y, 0, scale, Math.min(1, Math.max(0, (0.52 - impact.age) / 0.12)));
-    if (!micro) sprite("debris", impact.age - 0.03, impact.x, impact.y, 0, scale, 0.75 * Math.max(0, 1 - impact.age / 0.5));
+      impact.age, impact.x, impact.y, 0, scale * (resonance ? 0.65 : 1),
+      Math.min(1, Math.max(0, (0.52 - impact.age) / 0.12)) * (resonance ? 0.6 : 1));
+    if (!micro && impact.look !== "ion") sprite("debris", impact.age - 0.03, impact.x, impact.y, 0, scale, 0.75 * Math.max(0, 1 - impact.age / 0.5));
+    if (impact.look === "ion") ionImpactLook(commands, impact);
   }
   for (const arc of snapshot.arcs) {
     const dx = arc.x2 - arc.x, dy = arc.y2 - arc.y, length = Math.hypot(dx, dy);
-    if (!length) continue;
+    if (!length || arc.age < 0 || arc.age >= FX.arcLife) continue;
     // Each link has one shared material phase; no separate timer per segment.
     const pieces = Math.max(1, Math.ceil(length / 24)), size = length / pieces;
-    for (let i = 0; i < pieces; i++) sprite("arc", arc.age, arc.x + dx * i / pieces, arc.y + dy * i / pieces,
-      Math.atan2(dy, dx), 0.65, Math.max(0, 1 - arc.age / MISSILE_CLIPS.arc.duration), size / MISSILE_CLIPS.arc.width);
+    const materialAge = arc.age - (arc.relay ? FX.relayReveal : 0);
+    for (let i = 0; i < pieces; i++) sprite("arc", materialAge, arc.x + dx * i / pieces, arc.y + dy * i / pieces,
+      Math.atan2(dy, dx), 0.9, 0.4 * Math.max(0, 1 - materialAge / MISSILE_CLIPS.arc.duration), size / MISSILE_CLIPS.arc.width);
+    ionArcLook(commands, arc);
   }
   return commands;
 }

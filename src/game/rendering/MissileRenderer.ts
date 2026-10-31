@@ -44,7 +44,8 @@ export function drawMissileResources(core: GameCore, ctx: PixelPainter) {
   ctx.fillRect(x, y, Math.max(0, Math.min(20, Math.round(20 * loaded))), 2);
   for (let i = 0; i < M.cycle; i++) {
     const flash = s.rounds > 0 && s.rounds % M.cycle === 0 && loaded < 0.15;
-    ctx.fillStyle = flash || i < s.rounds % M.cycle ? C.gold : C.steelDark; ctx.fillRect(x + 4 + i * 5, y + 4, 3, 1);
+    ctx.fillStyle = flash && s.lastVolley?.ion ? C.iceCyan : flash || i < s.rounds % M.cycle ? C.gold : C.steelDark;
+    ctx.fillRect(x + 4 + i * 5, y + 4, 3, 1);
   }
   const need = MISSILE_XP[s.level - 1];
   ctx.fillStyle = C.ink1; ctx.fillRect(x, y + 7, 20, 2);
@@ -54,9 +55,6 @@ export function drawMissileResources(core: GameCore, ctx: PixelPainter) {
     const e = s.beacon; ctx.strokeStyle = C.gold;
     ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 3, -Math.PI / 2, Math.PI * 1.5); ctx.stroke();
     for (let i = 0; i < s.decode; i++) { ctx.fillStyle = C.bone; ctx.fillRect(Math.round(e.x - 3 + i * 4), Math.round(e.y - e.r - 6), 2, 1); }
-  }
-  for (const [e, charge] of s.charges) if (!e.dead) {
-    for (let i = 0; i < charge.count; i++) { ctx.fillStyle = C.iceCyan; ctx.fillRect(Math.round(e.x - 3 + i * 4), Math.round(e.y + e.r + 2), 2, 1); }
   }
   ctx.globalAlpha = alpha;
 }

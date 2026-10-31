@@ -14,9 +14,12 @@ const moduleUrl = (path, imports = {}) => {
 };
 const paletteModule = moduleUrl("src/game/data/palette.ts");
 const assetsModule = moduleUrl("src/game/rendering/vfx/missile/missileAssets.ts");
-const playerModule = moduleUrl("src/game/rendering/vfx/missile/MissileVfxPlayer.ts", { "../../../data/palette": paletteModule, "./missileAssets": assetsModule });
+const timingModule = moduleUrl("src/game/data/missileVfx.ts");
+const ionModule = moduleUrl("src/game/rendering/vfx/missile/IonVfx.ts", { "../../../data/palette": paletteModule, "../../../data/missileVfx": timingModule });
+const playerModule = moduleUrl("src/game/rendering/vfx/missile/MissileVfxPlayer.ts", {
+  "../../../data/palette": paletteModule, "./missileAssets": assetsModule, "../../../data/missileVfx": timingModule, "./IonVfx": ionModule });
 const canvasModule = moduleUrl("src/game/rendering/vfx/missile/MissileVfxCanvas.ts", { "./missileAssets": assetsModule });
-const demoModule = moduleUrl("src/game/rendering/vfx/missile/MissileVfxDemo.ts");
+const demoModule = moduleUrl("src/game/rendering/vfx/missile/MissileVfxDemo.ts", { "../../../data/missileVfx": timingModule });
 const { missileVfxCommands } = await import(playerModule);
 const { sampleMissileDemo, MISSILE_DEMO_CASES, MISSILE_DEMO_SECONDS } = await import(demoModule);
 const { MISSILE_CLIPS } = await import(assetsModule);
@@ -44,9 +47,23 @@ function pixel(x, y, rgb, alpha = 1) {
   for (let c = 0; c < 3; c++) pixels[at + c] = Math.round(pixels[at + c] * (1 - alpha) + rgb[c] * alpha);
   pixels[at + 3] = 255;
 }
-function line(x, y, x2, y2, rgb, alpha = 1) {
+function line(x, y, x2, y2, rgb, alpha = 1, width = 1) {
   const steps = Math.max(1, Math.ceil(Math.hypot(x2 - x, y2 - y)));
-  for (let i = 0; i <= steps; i++) pixel(x + (x2 - x) * i / steps, y + (y2 - y) * i / steps, rgb, alpha);
+  if (width <= 1) {
+    for (let i = 0; i <= steps; i++) pixel(x + (x2 - x) * i / steps, y + (y2 - y) * i / steps, rgb, alpha);
+    return;
+  }
+  const size = Math.max(1, Math.round(width)), start = -Math.floor(size / 2), covered = new Set();
+  for (let i = 0; i <= steps; i++) {
+    const px = Math.round(x + (x2 - x) * i / steps), py = Math.round(y + (y2 - y) * i / steps);
+    for (let oy = start; oy < start + size; oy++) for (let ox = start; ox < start + size; ox++) {
+      const dx = px + ox, dy = py + oy;
+      if (dx < 0 || dy < 0 || dx >= W || dy >= H) continue;
+      const key = dy * W + dx;
+      if (covered.has(key)) continue;
+      covered.add(key); pixel(dx, dy, rgb, alpha);
+    }
+  }
 }
 function sprite(cmd) {
   const c = MISSILE_CLIPS[cmd.clip], r = atlas.frames[c.frames[cmd.frame]].frame;
@@ -80,7 +97,7 @@ function label(value, x, y) {
     x += 4;
   }
 }
-const titles = { heavy: "HEAVY - FULL CYCLE", turn: "GUIDANCE - TURN", twin: "TWIN LAUNCH", swarm: "SWARM - MICRO MISSILES", ion: "ION - CHAIN ARCS", combined: "COMBINED - VISUAL DENSITY" };
+const titles = { heavy: "HEAVY - FULL CYCLE", turn: "GUIDANCE - TURN", twin: "TWIN LAUNCH", swarm: "SWARM - MICRO MISSILES", ion: "ION - ARCS AND RESONANCE", combined: "COMBINED - VISUAL DENSITY" };
 function render(id, time) {
   pixels = Buffer.alloc(W * H * 4);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) pixels.set([...(x % 16 === 0 || y % 16 === 0 ? grid : bg), 255], (y * W + x) * 4);
@@ -95,7 +112,7 @@ function render(id, time) {
   const commands = missileVfxCommands(demo.snapshot);
   for (const cmd of commands) {
     if (cmd.kind === "sprite") sprite(cmd);
-    else line(cmd.x, cmd.y, cmd.x2, cmd.y2, hexToRgb(cmd.color), cmd.alpha);
+    else line(cmd.x, cmd.y, cmd.x2, cmd.y2, hexToRgb(cmd.color), cmd.alpha, cmd.width);
   }
   label(titles[id], 16, 16); label("OFFLINE ART PREVIEW - NO GAMEPLAY", 16, 250);
   return { pixels, commands };
@@ -160,17 +177,32 @@ const heavy = Array.from({ length: count }, (_, i) => render("heavy", i / fps).p
 gif("full-cycle-1x.gif", heavy); gif("full-cycle-2x.gif", heavy, 2);
 gif("combined-1x.gif", Array.from({ length: count }, (_, i) => render("combined", i / fps).pixels));
 gif("impact-025x.gif", Array.from({ length: 84 }, (_, i) => render("heavy", 1.14 + i / 120).pixels));
+const ionFrames = Array.from({ length: count }, (_, i) => render("ion", i / fps).pixels);
+gif("ion-cycle-1x.gif", ionFrames); gif("ion-cycle-2x.gif", ionFrames, 2);
+gif("ion-impact-025x.gif", Array.from({ length: 84 }, (_, i) => render("ion", 1.16 + i / 120).pixels));
 const posterW = W * 2, posterH = H * 3, poster = Buffer.alloc(posterW * posterH * 4);
 for (const [i, c] of MISSILE_DEMO_CASES.entries()) {
-  const frame = render(c.id, [1.28, 1.0, 0.96, 1.03, 1.28, 1.38][i]).pixels;
+  const frame = render(c.id, [1.28, 1.0, 0.96, 1.03, 1.32, 1.48][i]).pixels;
   for (let y = 0; y < H; y++) frame.copy(poster, ((Math.floor(i / 2) * H + y) * posterW + i % 2 * W) * 4, y * W * 4, (y + 1) * W * 4);
 }
 writeFileSync(new URL(art + "scenario-poster.png", root), encodePng(posterW, posterH, poster));
 const detail = render("heavy", 0.86).pixels;
 writeFileSync(new URL(art + "flight-2x.png", root), encodePng(W * 2, H * 2, enlarge(detail, 2)));
+const ionDetail = render("ion", 1.32).pixels, crop = { x: 290, y: 57, w: 112, h: 142, zoom: 4 };
+const cropPixels = Buffer.alloc(crop.w * crop.h * crop.zoom * crop.zoom * 4);
+for (let y = 0; y < crop.h * crop.zoom; y++) for (let x = 0; x < crop.w * crop.zoom; x++) {
+  const at = ((crop.y + Math.floor(y / crop.zoom)) * W + crop.x + Math.floor(x / crop.zoom)) * 4;
+  ionDetail.copy(cropPixels, (y * crop.w * crop.zoom + x) * 4, at, at + 4);
+}
+writeFileSync(new URL(art + "ion-impact-detail-4x.png", root), encodePng(crop.w * crop.zoom, crop.h * crop.zoom, cropPixels));
 const inspection = [1.2, 1.22, 1.245, 1.285, 1.34, 1.43, 1.55, 1.72, 1.89].map(t => ({ time: t, commands: render("heavy", t).commands }));
 writeFileSync(new URL(art + "preview-record.json", root), JSON.stringify({ fps, seconds: MISSILE_DEMO_SECONDS, cases: MISSILE_DEMO_CASES,
-  exports: ["full-cycle-1x.gif", "full-cycle-2x.gif", "combined-1x.gif", "impact-025x.gif", "scenario-poster.png", "flight-2x.png", "preview.html"],
-  inspection, source: "actual MissileVfxPlayer + atlas; deterministic offline choreography, not gameplay" }, null, 2) + "\n");
+  exports: ["full-cycle-1x.gif", "full-cycle-2x.gif", "combined-1x.gif", "impact-025x.gif", "scenario-poster.png", "flight-2x.png", "preview.html",
+    "ion-cycle-1x.gif", "ion-cycle-2x.gif", "ion-impact-025x.gif", "ion-impact-detail-4x.png"],
+  inspection, ionInspection: [0.85, 1.2, 1.24, 1.28, 1.36, 1.48, 1.58].map(t => {
+    const commands = render("ion", t).commands;
+    return { time: t, sprites: commands.filter(c => c.kind === "sprite").length, lines: commands.filter(c => c.kind === "line").length };
+  }),
+  source: "actual MissileVfxPlayer + atlas; deterministic offline choreography with preset charges, not gameplay" }, null, 2) + "\n");
 console.log(JSON.stringify({ html: art + "preview.html", clips: Object.keys(MISSILE_CLIPS).length, gifFrames: count,
   seconds: MISSILE_DEMO_SECONDS, cases: MISSILE_DEMO_CASES.length, scope: "offline asset preview; no gameplay acceptance" }));
