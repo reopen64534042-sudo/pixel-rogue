@@ -3609,3 +3609,17 @@ dmg = Math.ceil(e.hp - 1);
   - 截图：`output/v138-cpanel-katana-ranged.png`、`output/v138-cpanel-greatsword-counter.png`、`output/v138-chain-frames.png`、`output/v138-cheat-groups.png`、`output/v138-tri-damage-number.png`。
   - 测试影响：`tests/potion.test.ts` 的满血转上限、`s4c-c3a-life` / `s4c-c3c-runtime` 的 potionGrow 断言、旧 parity / balance 基线与新增卡条目、旧职业 HP/吸血/血瓶/不屈断言会过期；按项目裁定未修改测试，留待授权批次。
   - 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件。
+
+## 属性点与掉落重构（v139，2026-10-31）
+
+- 版本：v138 / PR #207 之后；本批实装已确认的属性方案，PR #207 随本批更新。
+- 属性来源：`GameCore.attributePoints` 为等级点池，Lv2 起每升 1 级 +2；`attrPicks` 保留为本次休整消费额度（波次 1/2 + 成长徽记，单波封顶 3）。升级只累加点数，不打开面板。
+- 面板：`openAttrPanel` 需要 `attributePoints>0 && attrPicks>0`；`chooseAttr` 同时扣点和额度；任一项耗尽即关闭。标题显示「升级点 / 本次可分配」。`enterRest` 在精英波（4/8/12/16/20/24/28）额外 +1 次消费额度（`attrMilestoneWave` 防重入，与 `eliteQuotaForWave` 共用判定），让前期升级点有出口；跃击充能额外冷却 0.8→1.2s。
+- 普通宝箱品质祝福：`attrQualityBoosts` 最多 2 层；`chooseAttr` 对非传奇选择提升一档并重算数值，消耗 1 层。
+- 白档：攻速 3.5%、暴击 2.5%、爆伤 10%、全局 4%、生命 9、护甲 5、闪避 4%、吸血 2.5%、生命回复 0.2/s、移速 3.5%、射程/法阵 4.5%；攻击保持 2。
+- 掉落：普通怪改为 `kind:"token"` 成长徽记，拾取 `grantAttrPicks(1)`；精英改为 `kind:"chest"` 普通宝箱，去皇冠，拾取 `attrQualityBoosts+1` 并保留 10 点回血；特殊宝箱/精英点数不再投放，`boxPicks` 旧强化面板保留给未来 Boss 强化宝箱。
+- 表现：`SPR.sigil` 成长徽记程序化贴图；宝箱不再绘制皇冠；图鉴精英说明改为普通宝箱 50%。法师星陨只有可锁定目标时才推进/出手；暂停按钮改为「返回主界面」；低血红边阈值 45% 并加强边缘辉光。
+- 30 波测量（无敌+高伤 harness，3 局）：均 Lv42；属性消费 82/82/82（旧版 74/75/76），升级点全部用完，剩余容量 15/9/7；等级节点与旧版一致。数据：`output/v139-30wave-measure.json`。测量只验证数量/节奏，不代表自然战斗手感。
+- 验证：`npm run typecheck` ✓、`npm run build` ✓；受控 e2e：大经验球 Lv23→属性点 44；成长徽记 +1 容量且不增加 boxPicks；普通宝箱不加容量、品质祝福 1 层；面板消费同时扣升级点/额度并消耗品质祝福。截图：`output/v139-attribute-panel.png`。
+- 测试影响：属性/宝箱/图鉴/parity/balance 旧断言会过期（含 `attributePicks` 发放语义、特殊宝箱、旧白档值），按裁定未修改测试，留待授权批次。
+- 按 2026-10-29 标准未运行 Vitest / Playwright 测试套件。
