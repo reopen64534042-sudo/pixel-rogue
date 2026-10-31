@@ -403,7 +403,7 @@ function updateWarriorWaves(this: GameCore, dt: number): void {
           ? 1 + WB.energyWaves.fissure.armorBonus
           : 1;
       this.hurtEnemy(e, w.dmg * armorBonus, cos * w.knock, sin * w.knock, {
-        src: "melee",
+        src: w.kind === "qi" ? "qi" : "fissure",
         type: "physical",
         form: "melee",
       });
