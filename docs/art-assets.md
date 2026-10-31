@@ -342,3 +342,9 @@
 - 用户后续明确允许美术升级，选择精致像素 / 卡通奇幻，以已合并 PR #220 的 C 方案太刀人物为参照。当前正式素材由内置生图工具生成，覆盖前一节六色矩阵版的正常绘制；矩阵仅保留 fallback，历史源图不删除。
 - build-boss-assets.mjs 现为 build-boss-generated-assets.mjs 的稳定入口：Boss 8 姿态 72×56；6 技能各 6 帧 128×128，汇入 boss-fx.atlas。记录 SHA-256、色板、原点平移、alpha 策略与参考提交，未新增依赖 / 修改全局色板。
 - 生成源图和完整提示词在 assets/boss-three/upgrade，太刀参照在 reference；正常游戏通过 BossArt 预载，BossGeneratedVfx 播放。伤害、判定与预警几何不因美术素材改变。
+
+## 11. 元素法师 VFX 概念源图（2026-11-01）
+
+- 法阵/灼烧/凝冰+冻结/雷印/六反应艺术字的透明源图与完整提示词，见 [元素法师 VFX 美术简报与提示词](mage-vfx-art-brief.md)。
+- 本批只交付概念源图与生产提示词，不改运行时渲染；正式接入时需按 1× 游戏分辨率切片、降采样并量化到 `palette.ts`。
+- 源图位于 `assets/vfx/mage/`，六反应单词切片位于 `assets/vfx/mage/wordmarks/`；绿幕抠图脚本为 `scripts/chroma-key-mage-vfx.mjs`。
