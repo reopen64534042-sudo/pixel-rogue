@@ -118,3 +118,11 @@ export const MISSILE_DAMAGE = {
   swarm: 0.35, recovered: 0.25, arc: 0.35, relay: 0.6, resonance: 0.4,
   burn: 0.12, lifesteal: 0.3, armor: 0.75,
 } as const;
+
+/** 三首巨兽：招式倍率、地面每 tick 伤害、冲锋硬直易伤。 */
+export const BOSS_DAMAGE = {
+  stomp: 0.95, charge: 1.35, breath: 0.85, nova: 1.05, spikes: 0.85,
+  marks: 1, chain: 1.15, chainJump: 0.6,
+  fireGround: 0.4, frostGround: 0,
+  vulnerability: 1.15,
+} as const;

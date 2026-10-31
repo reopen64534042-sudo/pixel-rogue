@@ -1,3 +1,4 @@
+import { bossDamageTakenMultiplier, bossInvulnerable, syncBossPhase } from "./BossSystem";
 import { MAGE_BALANCE as MB, type MageElement } from "../data/mageBalance";
 import { DAMAGE_TYPES } from "../data/damageTypes";
 import type { DamageTypeId } from "../data/damageTypes";
@@ -257,7 +258,7 @@ function applyElementStack(
     if (isFrozen(e)) return;
     const arr = e.elemFrost ?? (e.elemFrost = []);
     if (arr.length < MB.frostStackCap) arr.push(MB.frostDuration);
-    if (arr.length >= MB.frostStackCap) {
+    if (!e.boss && arr.length >= MB.frostStackCap) {
       // 满层冻结：移除全部凝冰
       arr.length = 0;
       e.elemFrozenT = MB.frostFreezeDuration;
@@ -268,7 +269,7 @@ function applyElementStack(
     return;
   }
   // 闪电：麻痹（可刷新，单值计时）
-  e.elemParaT = MB.paraDuration;
+  if (!e.boss) e.elemParaT = MB.paraDuration;
 }
 
 /**
@@ -439,8 +440,9 @@ export function applyDotDamage(
     attackerStats: getPlayerCombatStats(core.player),
     defenderStats: getEnemyCombatStats(e),
   });
-  const taken = calc.settledDamage * (e.damageTakenMul ?? 1);
+  const taken = bossInvulnerable(core, e) ? 0 : calc.settledDamage * (e.damageTakenMul ?? 1) * bossDamageTakenMultiplier(core, e);
   e.hp -= taken;
+  syncBossPhase(core, e);
   core.dmgBy.element += taken;
 }
 

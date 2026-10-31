@@ -1,3 +1,5 @@
+import { drawAnimatedBoss } from "./BossVfx";
+import { bossSpriteKey, drawBossGround, drawBossHead, drawBossHud } from "./BossRenderer";
 import { drawLaser, drawLaserResources } from "./LaserRenderer";
 import { drawMissile, drawMissileGround, drawMissileResources } from "./MissileRenderer";
 import type { GameCore } from "../core/GameCore";
@@ -256,6 +258,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   }
 
   // 织网蛛蛛网：预警时金色圈收缩，生效后画白色网纹；网只减速，不造成伤害。
+  drawBossGround(this, ctx);
   for (const z of this.webZones) {
     if (z.arm > 0) {
       const k = 1 - z.arm / WEB_ZONE.arm;
@@ -492,6 +495,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
 
   // 敌人
   for (const e of this.enemies) {
+    if (e.boss && drawAnimatedBoss(this, ctx)) continue;
     // 精英优先用独立贴图；没有时退回「同系列贴图 ×1.8」。
     // 命名统一为 `${spr}_elite`，与 sprites.ts 的注册键一致（如 brute_elite）。
     const eliteKey = `${e.spr}_elite`;
@@ -500,7 +504,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const puff = e.type === "bomber" && e.fuse > 0 ? 1.35 : 1;
     const rect = eliteEntry
       ? spriteRect(eliteKey, e.x, e.y, puff)
-      : spriteRect(e.spr, e.x, e.y, (e.elite ? 1.8 : 1) * puff);
+      : spriteRect(e.boss ? bossSpriteKey(this) : e.spr, e.x, e.y, (e.elite ? 1.8 : 1) * puff);
     if (!rect) continue;
     const { x, y, w, h } = rect;
     const burrowHidden =
@@ -528,6 +532,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.globalAlpha = 1;
     } else {
       ctx.sprite(rect.tex, x, y, w, h);
+      if (e.boss) drawBossHead(this, ctx);
     }
     if (e.type === "burrower" && e.burrowState === "dive")
       ctx.globalAlpha = 1;
@@ -1538,6 +1543,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     W / 2,
     24,
   );
+  drawBossHud(this, ctx);
   // 击杀
   ctx.textAlign = "right";
   ctx.fillStyle = "#9aa3c7";
