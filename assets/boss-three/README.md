@@ -7,7 +7,7 @@
 - upgrade/boss-source-v2.png：修正尾巴方向后的整张 4×2 八姿态 Boss 源图；boss-source.png 为修正前记录。
 - upgrade/fire-source.png / stomp-source.png / nova-source.png / spikes-source.png / marks-source.png / chain-source.png：6 套技能源图，每套 3×2、6 帧。
 - upgrade/*-prompt.txt：每次生成 / 编辑的完整提示词；asset-record.json：源图 SHA-256、尺寸、色板、锚点及处理参数。工具未返回模型版本或 seed，记录为 null，不承诺逐像素复现。
-- reference/：从已合并太刀提交提取的实际源图与生产图集，提取关系见该目录 README；仅作美术参照，未合入上游人物代码或 v152 玩法代码。
+- reference/：从已合并太刀提交提取的实际源图与生产图集，提取关系见该目录 README；美术生成阶段仅用作参照，v154 提交前已按授权同步 upstream/main，保留其人物与成长代码。
 
 正式资源：
 

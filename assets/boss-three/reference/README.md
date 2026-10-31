@@ -5,4 +5,4 @@
 - 合并记录：[上游 PR #220](https://github.com/reopen64534042-sudo/pixel-rogue/pull/220)，合并提交 `80b6df4`。
 - 参考原文件：`assets/characters/katana/katana-c-seed-source-v2.png`、`katana-c-seed-32x32.png`、`katana-c-contact-sheet-6x.png`，以及 `public/assets/characters/katana-ronin-64x64.png`。
 - 对齐项：方形像素颗粒、深紫描边、2–3 档明暗、清楚的眼睛与轮廓、卡通奇幻比例。Boss 与技能仍保持各自的火 / 冰 / 雷配色。
-- 本轮未合入上游人物代码或 v152 战斗成长代码。对照图中的浪人是实际合并素材的参照，不是本分支已实现新人物功能的证据。
+- 美术参照提取阶段只读取素材。v154 提交前已按用户授权合并 upstream/main，保留上游太刀人物与等级成长实现；对照图本身仍只属于素材参照，不是自然战斗验证证据。

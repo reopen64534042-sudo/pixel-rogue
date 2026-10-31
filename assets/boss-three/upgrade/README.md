@@ -18,4 +18,4 @@
 
 正式输出：`public/assets/boss-three/boss.atlas.png/.json`、`boss-fx.atlas.png/.json`、`public/assets/sprites/boss_three.png`。重建用 `node scripts/build-boss-assets.mjs`；素材预览用 `node scripts/build-boss-preview.mjs`。
 
-本轮只调整美术与绘制，招式、数值、范围和碰撞保持。预览复用正式图集 / 正式绘制代码，但不执行 Core 战斗，不作为实机或自然战斗验收。未合并其它上游代码，未新增依赖或测试。
+本轮美术调整保持招式、数值、范围和碰撞。预览复用正式图集 / 正式绘制代码，但不执行 Core 战斗，不作为实机或自然战斗验收。v154 提交前按用户授权同步 upstream/main，保留太刀人物、等级成长及实际掉血吸血实现；未新增依赖或测试。

@@ -300,6 +300,8 @@ export function hurtEnemy(
     e.markHits = 0;
   }
   const hpBefore = e.hp;
+  // v148：吸血按目标实际损失的生命结算，溢出伤害不回血。
+  const dealtHpLoss = Math.max(0, Math.min(hpBefore, dmg));
   e.hp -= dmg;
   syncBossPhase(this, e);
   e.flash = 0.08;
@@ -326,7 +328,7 @@ export function hurtEnemy(
   if (this.player.lifesteal && !opts.noLifesteal)
     this.player.hp = Math.min(
       this.player.maxhp,
-      this.player.hp + dmg * this.player.lifesteal * (opts.lifestealMul ?? 1),
+      this.player.hp + dealtHpLoss * this.player.lifesteal * (opts.lifestealMul ?? 1),
     );
   if ((kx || ky) && !e.noKnock && !e.boss) {
     e.x += kx;
@@ -426,7 +428,7 @@ export function hurtEnemy(
   return {
     ...calc,
     settledDamage: dmg,
-    effectiveHpLoss: Math.min(hpBefore, dmg),
+    effectiveHpLoss: dealtHpLoss,
     dodged: false,
     shieldUsed: "none",
     lethal: e.hp <= 0,

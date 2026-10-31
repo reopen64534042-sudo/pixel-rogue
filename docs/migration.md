@@ -3891,6 +3891,36 @@ dmg = Math.ceil(e.hp - 1);
 - 最终范围为移除脚下锁相条、折光步显示与伤害共用 1 秒寿命、35% DPS 与低亮淡出；不是仅视觉延长。已记录旧持续时间 / HUD 断言可能过期，按裁定不新增或修改测试 / parity 基线、不运行 Vitest / Playwright。创建 PR 不包含合并授权。
 - 提交前同步完成：冲突仅涉及双端更新日志与迁移记录，已完整保留上游 v147–v149；相对上游仅本任务 9 文件。同步后重新通过 typecheck / build / git diff --check，并经只读复核确认 1 秒寿命、35% DPS、0.1 秒保持 + 0.9 秒淡出及上游内容完整。保留既有大 chunk 提示；未新增最终一秒版本的实机伤害验收，未执行 Vitest / Playwright。
 
+## 人物美术升级：太刀造型候选（2026-10-31）
+
+- 用户认可人物升级方向并要求新建分支开展工作。从最新 upstream/main 5e34277（PR #219 已合并，v150）创建 codex/character-art-upgrade，使用独立工作树 E:\AllProjects\pixel-rogue-character-art，保留原目录与原分支；node_modules 通过 Junction 复用，不安装依赖。
+- 使用内置 imagegen 分别生成 A 蓝围巾轻装、B 短甲剑士、C 布衣浪人三张透明概念参考，保存于 assets/characters/katana/concepts。完整提示词、PNG 尺寸、alpha 统计与 SHA-256 已留档；工具没有提供模型版本 / seed，不宣称可逐像素复现。
+- 三张原图都含半透明像素且非正式 16×20 网格，仅供服装、比例与剪影选择。没有缩小后冒充正式像素帧，没有改 public/assets/sprites/manifest.json、运行时渲染、战斗规则、已有特效或更新日志版本。
+- 新增 docs/character-art-upgrade.md，记录造型差异、正式种子帧要求、动画 / 职业推广顺序与脚底锚点 / 判定分离约束；docs/art-assets.md 增加人物专项入口。后续从选定造型完成正式小尺寸种子帧，再开展整条动画制作和游戏接入。
+- 已目视检查三张完整造型，并通过现有 PNG 解码器检查透明背景与非空内容；npm run typecheck、npm run build 与 git diff --check 通过，仅保留既有的大 chunk 提示。未新增或修改测试、未运行 Vitest / Playwright、未做实机人物动画验收，尚未提交 / 推送 / 创建 PR。
+
+## 人物美术升级：C 布衣浪人接入（v151，2026-10-31）
+
+- 用户明确选择 C。继续在 codex/character-art-upgrade 独立工作树制作太刀样板，保留 A/B/C 概念与前轮记录，不修改其他会话目录。
+- 内置 imagegen 从 C 重制小尺寸参考，并修正缩小后丢失的眼睛；左右朝向分别整表生成待机 / 跑动 / 出刀 / 冲刺，每种 4 帧，共 32 帧。源图、完整提示词、编辑画布与 SHA-256 均保留。正式种子帧取处理后同表的 right-idle-0，不把不同画法的参考帧强行插入待机循环。
+- scripts/build-katana-character-assets.mjs 按透明间隔分帧，采用同一尺度的预乘 alpha 面积采样、现有色板 Lab 最近色、二值 alpha 与棕靴脚底锚点平移，拒绝空帧和裁断。源表并非严格等分网格，最初等分会混入相邻行；32 / 40 透明帧不足以保留前伸刀尖，因此最终使用 64×64 透明帧，可见主体约 24px 高，未放大模拟坐标或碰撞。
+- 正式图 public/assets/characters/katana-ronin-64x64.png 为 256×512，统一锚点 (32,59) 对应逻辑 (x,y+5)。新 KatanaCharacter 由 Scene 按固定步只读实际位移 / 模拟时间 / 冲刺余时 / 本体附近的真实 Slash 事件取帧，本体和斩浪残影共用姿态；无新增 RAF / 计时器 / RNG / Core 字段。
+- 太刀实际命中为即时结算，出刀帧顺序采用 [2,2,3,0]，从切斩开始，避免伤害后才抬手；暂停 / 属性页冻结帧与朝向，换局重置。只作用于太刀，其他职业与图片加载失败时沿用旧人物；未改生命、碰撞、伤害、索敌、冷却、位移、刀光素材或天赋规则。
+- 已导出透明接触表、48 帧离线 GIF 与 PNG（scripts/export-katana-character-preview.py），GIF 仅是正式素材 / 时序展示。AGENTS / 美术规格 / 专项说明 / 双端更新日志同步，暂记 v151。
+- 聚焦 CUA 画面检查：从开始游戏 → 战士 → 太刀正常进入教程，新角色纹理为 256×512，32 帧加 Phaser base 帧共 33；实际渲染 scaleX/scaleY 均为 1。左移与 Space 冲刺完成原有教程目标。暂停前后模拟时间同为 84.61666666666315、人物帧同为 17；页面 error / warn 日志为空。截图 output/katana-character-runtime.png 与记录 output/katana-character-runtime-check.json 留档。这是受控开发模式显示证据，不代表自然战斗、伤害或所有天赋组合验收；斩浪残影接线已静态复核，未单独实机触发。
+- DEV 启动的旧激光 preview-template 占位符会触发依赖预扫描警告，Vite 随后正常优化 Phaser 并运行游戏，未改旧模板。临时 5186 服务和浏览器已关闭，端口已释放。
+- npm run typecheck、npm run build 与 git diff --check 均通过，保留既有的大 chunk 提示。正式 PNG 尺寸 256×512、32 帧、半透明像素 0，SHA-256 与生成记录一致。不新增或修改测试，不运行 Vitest / Playwright；依赖旧玩家像素 / 截图的断言留待授权测试批次核查，未补写基线。尚未提交 / 推送 / 创建 PR。
+
+- 用户随后要求启动构建预览试玩，主页 / 构建脚本 / 新人物 PNG 均返回 200，脚本包含 v151。用户反馈「可以」并授权关闭服务、推送和创建 PR；已关闭该 5186 服务并确认无监听。用户最后取消文档分支合并要求，因此本批仅提交人物升级及其素材 / 文档，不合入 docs/boss-three-headed-beast 或 feat/monster-design，也不处理原目录未提交的 Boss 实现。提交前 fetch 确认 upstream/main 仍为 5e34277（v150），无需同步其他提交。
+
+## 吸血、血瓶与等级自动成长（v152–v153，2026-10-31）
+
+- 吸血：`CombatSystem.hurtEnemy` 原先使用扣血前的结算伤害 `dmg` 吸血，目标只剩 10 HP 时打出 1,000 伤害会按 1,000 回血。现改为 `dealtHpLoss = max(0, min(hpBefore, dmg))`，吸血与返回的 `effectiveHpLoss` 都按实际损失生命；溢出伤害仍显示和计入伤害统计，但不再转化治疗。激光与导弹原本已按实际损失结算。
+- 血瓶：满血时不再自动吸附，但踩上去仍会拾取并消耗、回复 0 且不显示飘字；不满血拾取与回血不变。受控 e2e 确认真实 GameCore：玩家 14/28、10% 吸血，对 10 HP 敌人打出 1,000，`settledDamage=1000`、`effectiveHpLoss=10`、实际回复 1；满血踩瓶后 potions=0、HP 28/28、无飘字；满血血瓶在 10px 内 12 帧不被吸走；半血踩瓶回复 +5。
+- 等级成长：新增 `data/levelGrowth.ts`，每升 1 级自动成长：生命 +0.5（当前生命同步 +0.5）；射手攻击 +0.3、暴击 +0.2%；法师元素伤害 +0.3、施法速度 +0.2%；战士护甲 +0.3、吸血 +0.15%。成长按 `player.lvl - 1` 转为 `StatModifier`，与天赋、属性在同一次 `applyTalentStatProjection` 解析，recompute/学习天赋不会抹掉；升级飘字与 C 面板显示每级/累计成长。
+- 星陨：`mageMeteorInterval` 除以 `castRate`，施法速度 +50% 时间隔 2→1.333 秒；`mageMeteorFall` 保持 0.8 秒，速咏/连咏仍乘算。射手的旧星陨不变。
+- 标定与验证：用户要求「25 波强度约等于改动前 30 波」。旧 30 波为 Lv42/82 次选择，25 波约 Lv40/76 次，差 6 次选择。初版满值成长经受控基准明显超标（射手清波 -44.7%、DPS +79.7%；战士物理有效生命约 3 倍），最终下调到上述值。`npm run typecheck`/`npm run build` 和快速 e2e（三职业升级成长、当前生命同步、C 面板、星陨间隔/预警）通过；按交付时间要求未再跑完整 25 波长测，未运行 Vitest / Playwright。
+
 ## 三首巨兽首领战（v151，2026-10-31）
 
 - 用户授权依 docs/boss-three-headed-beast.md 完整制作，从干净设计分支 27c89ae 新建 codex/boss-three-headed-beast；保留原设计提交，未提交 / 推送 / 创建 PR。
@@ -3934,3 +3964,5 @@ dmg = Math.ceil(e.hp - 1);
 - 用户本地试玩后认可当前版本，并明确授权「跟 Boss 设计文档分支合并后提交、推送并提 PR」。设计分支 docs/boss-three-headed-beast 与实现分支原 HEAD 同为 27c89ae，已确认设计提交为祖先，执行合并返回 Already up to date；设计文档随实现共同交付。
 - 上游 latest main 为 7305711，包含 v151 太刀人物及 v152 / v153 战斗成长。本批从未发布的开发标签 v151 顺延为 v154（2026-11-01）；双端更新日志按最终实现重写，避免把未发布草稿的参数变化当作已发布加强。先保留本任务提交，再通过正常 merge 同步上游，冲突处理和最终检查另行记录。
 - 基线影响须随提交信息保留：W10/20/30… 的配额和精英数、Boss 波末属性额度、ENEMY_TOTAL=13、真实 Boss 击杀统计、新 Boss 数值和多段招式。按 2026-10-29 裁定不新增或修改测试 / 基线，不运行 Vitest / Playwright。用户对本地试玩表现的认可不等于代理已完成全部职业 TTK / 平衡验收。
+- 同步结果：已合并 upstream/main 7305711，冲突仅在 AGENTS / CHANGELOG / TS 更新日志 / migration 四处，保留双方内容并将 v154 放在 v153 / v152 / v151 之前。自动合并的 CombatSystem 同时保留 dealtHpLoss 吸血口径与 Boss 转阶段保护；人物绘制和 Scene 生命周期同时保留太刀与 Boss 接线。
+- 合并后 typecheck / build 通过（121 模块，保留既有大 chunk 提示）；检查上游成长、星陨、血瓶、太刀人物文件无额外差异。测试文件和依赖未改，完整 Vitest / Playwright / 三职业平衡验收仍留待授权批次。

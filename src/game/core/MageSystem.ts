@@ -91,13 +91,13 @@ export function mageMeteorFall(core: GameCore): number {
   return MB.meteorFall * mul;
 }
 
-/** 陨星间隔（连咏 −20%，与施法间隔共用同一系数）。 */
+/** 陨星间隔（连咏 −20%，并随施法速度缩短；落地预警不缩放）。 */
 export function mageMeteorInterval(core: GameCore): number {
   const mul =
     (core.player.upCounts["连咏"] || 0) > 0
       ? MB.continuousCastIntervalMul
       : 1;
-  return MB.meteorInterval * mul;
+  return (MB.meteorInterval * mul) / castRate(core);
 }
 
 /** 陨星半径：属性范围、广域符印（+20%）、满充能三连聚爆（+50%）。 */

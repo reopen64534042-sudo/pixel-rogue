@@ -22,8 +22,10 @@ import {
   registerGreatswordSlash,
 } from "../rendering/vfx/greatswordSlash";
 import { KATANA_DASH, registerKatanaDash } from "../rendering/vfx/katanaDash";
+import { KatanaCharacter, KATANA_CHARACTER, registerKatanaCharacter } from "../rendering/characters/KatanaCharacter";
 import { W, H, WORLD, SHAKE_MAX, clamp } from "../data/constants";
 import { UPGRADES } from "../data/talents";
+import { LEVEL_GROWTH } from "../data/levelGrowth";
 import { SPECIAL_LEVELS, SPECIAL_UPGRADES } from "../data/specialShot";
 import type { Talent } from "../core/types";
 
@@ -33,6 +35,8 @@ declare global {
       core: GameCore;
       scene: GameScene;
       talents: readonly Talent[];
+      /** e2e：允许压测时把等级成长置零做 A/B，正式构建不暴露。 */
+      levelGrowth: typeof LEVEL_GROWTH;
       counts: () => { graphics: number; images: number; text: number };
     };
   }
@@ -71,6 +75,8 @@ export class GameScene extends Phaser.Scene {
   private clock = new FixedClock();
   private readonly laserBridge = new LaserV137Bridge();
   private readonly laserPlayer = new LaserVfxPlayer();
+  private readonly katanaCharacter = new KatanaCharacter();
+  private readonly drawCharacter = (x: number, y: number) => this.katanaCharacter.draw(this.painter, x, y);
   private laserCommands: readonly LaserVfxCommand[] = [];
   private readonly drawLaserAnimation = () => drawLaserVfxPainter(this.painter, this.laserCommands);
   private specialTest:
@@ -221,6 +227,7 @@ export class GameScene extends Phaser.Scene {
       this.laserBridge.reset();
       this.laserPlayer.reset();
       this.laserCommands = [];
+      this.katanaCharacter.reset();
       if (import.meta.env.DEV) delete window.__PIXEL_ROGUE__;
     });
     // Explicit test mode only; production bundles contain no control bridge.
@@ -229,6 +236,7 @@ export class GameScene extends Phaser.Scene {
         core: this.core,
         scene: this,
         talents: UPGRADES,
+        levelGrowth: LEVEL_GROWTH,
         counts: () => this.painter.counts,
       };
     void this.loadSpriteOverrides();
@@ -236,6 +244,7 @@ export class GameScene extends Phaser.Scene {
     void this.loadIaiSpinSlash();
     void this.loadGreatswordSlashes();
     void this.loadKatanaDash();
+    void this.loadKatanaCharacter();
     const testName = new URLSearchParams(window.location.search).get("test");
     this.specialTest =
       import.meta.env.DEV && import.meta.env.MODE === "e2e"
@@ -615,6 +624,17 @@ export class GameScene extends Phaser.Scene {
     this.laserCommands = this.laserPlayer.update(packet.frame, packet.releases);
   }
 
+  private async loadKatanaCharacter() {
+    try {
+      const image = await loadImageElement(KATANA_CHARACTER.image);
+      if (!this.sys.isActive()) return;
+      registerKatanaCharacter(this.textures, image);
+    } catch (error) {
+      if (import.meta.env.DEV)
+        console.warn("[assets] Katana character loading failed; using original sprite", error);
+    }
+  }
+
   update(_now: number, delta: number) {
     if (!this.painter) return;
     // Issue #95：输入在模拟推进前落盘，否则摇杆方向会晚一帧生效
@@ -622,12 +642,14 @@ export class GameScene extends Phaser.Scene {
     if (this.core.state === "play")
       this.clock.advance(delta / 1000, (dt) => {
         this.core.step(dt);
+        this.katanaCharacter.capture(this.core);
         this.captureLaserAnimation();
       });
     else this.clock.reset();
     if (this.specialTest) this.tickSpecialTest();
     // Also observe UI/DEV resets and paused states on frames without a fixed step.
     this.captureLaserAnimation();
+    this.katanaCharacter.capture(this.core);
     this.painter.begin();
     if (this.core.state === "start") {
       this.cameras.main.setScroll(0, 0);
@@ -650,7 +672,7 @@ export class GameScene extends Phaser.Scene {
         Math.round(this.core.cam.x + (shake ? (Math.random() - 0.5) * shake : 0)),
         Math.round(this.core.cam.y + (shake ? (Math.random() - 0.5) * shake : 0)),
       );
-      draw.call(this.core, this.painter, this.drawLaserAnimation);
+      draw.call(this.core, this.painter, this.drawLaserAnimation, this.drawCharacter);
     }
     // v77：低血量屏幕边缘提示（DOM 覆盖层；只改 opacity，不碰画布）
     this.ui.syncLowHp();

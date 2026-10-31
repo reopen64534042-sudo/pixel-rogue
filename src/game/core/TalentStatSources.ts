@@ -97,6 +97,7 @@ import { ATTRIBUTE_CAPS, lifestealCap } from "../data/attributeBalance";
 import { statBase } from "../data/stats";
 import { WARRIOR_BALANCE } from "../data/warriorBalance";
 import { resolveStats, type StatModifier } from "./StatModel";
+import { levelGrowthFor, levelGrowthSteps } from "../data/levelGrowth";
 import { resolveKeyedMap, type TypeDamageBonusModifier } from "./StatSheets";
 import type { Player, Profession, WarriorStyle } from "./types";
 
@@ -532,6 +533,53 @@ export function applyTalentStatProjection(
     persistent,
     warriorStyle,
   );
+  // v149：等级自动成长与属性点同一次解析，避免 recompute 覆盖或双写。
+  const growth = levelGrowthFor(prof);
+  const growthSteps = levelGrowthSteps(p.lvl);
+  const growthModifiers: StatModifier[] = [];
+  if (growth && growthSteps > 0) {
+    growthModifiers.push({
+      sourceId: "levelGrowth",
+      stat: "maxHp",
+      stage: "flat",
+      value: growth.maxHp * growthSteps,
+    });
+    if (growth.attack !== undefined)
+      growthModifiers.push({
+        sourceId: "levelGrowth",
+        stat: "attack",
+        stage: "flat",
+        value: growth.attack * growthSteps,
+      });
+    if (growth.critChance !== undefined)
+      growthModifiers.push({
+        sourceId: "levelGrowth",
+        stat: "critChance",
+        stage: "flat",
+        value: growth.critChance * growthSteps,
+      });
+    if (growth.fireRate !== undefined)
+      growthModifiers.push({
+        sourceId: "levelGrowth",
+        stat: "fireRate",
+        stage: "percent",
+        value: growth.fireRate * growthSteps,
+      });
+    if (growth.defense !== undefined)
+      growthModifiers.push({
+        sourceId: "levelGrowth",
+        stat: "defense",
+        stage: "flat",
+        value: growth.defense * growthSteps,
+      });
+    if (growth.lifesteal !== undefined)
+      growthModifiers.push({
+        sourceId: "levelGrowth",
+        stat: "lifesteal",
+        stage: "flat",
+        value: growth.lifesteal * growthSteps,
+      });
+  }
   const resolved = resolveStats({
     base: {
       attack: base.damage,
@@ -580,8 +628,8 @@ export function applyTalentStatProjection(
     },
     // S1：天赋修饰符在前、外部（属性）修饰符在后，同一次解析完成
     modifiers: externalModifiers.length
-      ? [...scalars, ...externalModifiers]
-      : scalars,
+      ? [...scalars, ...externalModifiers, ...growthModifiers]
+      : [...scalars, ...growthModifiers],
   });
   p.tough = resolved.tough ?? 0;
   p.dodge = resolved.dodge ?? base.dodge;
