@@ -80,6 +80,14 @@ function spriteRect(key: string, cx: number, cy: number, scale = 1) {
   };
 }
 
+type CharacterDrawing = (x: number, y: number) => boolean;
+
+function drawPlayerSprite(ctx: PixelPainter, character: CharacterDrawing | undefined, x: number, y: number) {
+  if (character?.(x, y)) return;
+  const rect = spriteRect("player", x, y);
+  if (rect) ctx.sprite(rect.tex, rect.x, rect.y, rect.w, rect.h);
+}
+
 /**
  * 冻结冰壳：低饱和青蓝冰面 + 顶部冷光 + 底部冰棱 + 侧面霜点。
  *
@@ -168,7 +176,7 @@ function drawChargeBar(
   }
 }
 
-export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean) {
+export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean, character?: CharacterDrawing) {
   const TS = 16,
     tw = WORLD.w / TS,
     th = WORLD.h / TS;
@@ -776,14 +784,10 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       for (let i = 3; i >= 1; i--) {
         const distance = i * 11;
         if (length <= distance) continue;
-        const ghost = spriteRect(
-          "player",
-          this.player.x - dx / length * distance,
-          this.player.y - dy / length * distance,
-        );
-        if (!ghost) continue;
         ctx.globalAlpha = (4 - i) * 0.08;
-        ctx.sprite(ghost.tex, ghost.x, ghost.y, ghost.w, ghost.h);
+        drawPlayerSprite(ctx, character,
+          this.player.x - dx / length * distance,
+          this.player.y - dy / length * distance);
       }
       ctx.globalAlpha = 1;
       drawKatanaDash(ctx, {
@@ -817,19 +821,8 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   )
     playerAlpha = Math.min(playerAlpha, 0.5);
   ctx.globalAlpha = playerAlpha;
-  const playerRect = spriteRect(
-    "player",
-    this.player.x,
-    this.player.y - leapPose.height,
-  );
-  if (playerRect && playerAlpha > 0.02)
-    ctx.sprite(
-      playerRect.tex,
-      playerRect.x,
-      playerRect.y,
-      playerRect.w,
-      playerRect.h,
-    );
+  if (playerAlpha > 0.02)
+    drawPlayerSprite(ctx, character, this.player.x, this.player.y - leapPose.height);
   ctx.globalAlpha = 1;
   // 护盾层数 + 充能环：每层一段圆弧，亮青=可用、暗蓝=空层。
   // 下一层按恢复进度从段首填亮，恢复中的一段用更浅的青色。

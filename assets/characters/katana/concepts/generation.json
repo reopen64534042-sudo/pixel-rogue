@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "date": "2026-10-31",
+  "branch": "codex/character-art-upgrade",
+  "base": "5e34277",
+  "status": "selected-concept",
+  "selectedCandidate": "C",
+  "tool": "built-in image_gen.imagegen",
+  "model": null,
+  "seed": null,
+  "reproducibility": "Tool did not return model version or seed. Prompts and source hashes are preserved; exact regeneration is not guaranteed.",
+  "runtimeReady": false,
+  "validation": "PNG dimensions, transparent background and nonempty contents checked with scripts/lib/png.mjs. Partial-alpha high-resolution sources are concept references only; no runtime manifest changes.",
+  "candidates": [
+    {
+      "id": "A",
+      "name": "蓝围巾轻装",
+      "image": "katana-a-blue-scarf-source.png",
+      "prompt": "katana-a-blue-scarf-prompt.txt",
+      "sourceFile": "exec-db04dc06-9d6f-444f-8e30-170c63a11899.png",
+      "width": 1312,
+      "height": 1199,
+      "sha256": "c1caaa0a7adc05c11b313e46ce411aff38dd733ed898fdf5b24abc1b5f95e196",
+      "alpha": {
+        "transparent": 1179794,
+        "partial": 391876,
+        "opaque": 1418
+      }
+    },
+    {
+      "id": "B",
+      "name": "短甲剑士",
+      "image": "katana-b-short-armor-source.png",
+      "prompt": "katana-b-short-armor-prompt.txt",
+      "sourceFile": "exec-d24feb6d-e097-4e6c-b3fe-3275843b456e.png",
+      "width": 1312,
+      "height": 1199,
+      "sha256": "1d2e08367826cd440f91dc8277a9911b3965b1af3d6f5b6b21f6fb43bb9ff339",
+      "alpha": {
+        "transparent": 1238137,
+        "partial": 333787,
+        "opaque": 1164
+      }
+    },
+    {
+      "id": "C",
+      "name": "布衣浪人",
+      "image": "katana-c-cloth-ronin-source.png",
+      "prompt": "katana-c-cloth-ronin-prompt.txt",
+      "sourceFile": "exec-a695f7d6-5f47-4ca1-b989-9350a447e659.png",
+      "width": 1122,
+      "height": 1402,
+      "sha256": "1f2e6a7874931978cc931103c724bed5a452efd39a74e782baa139b6b9107a70",
+      "alpha": {
+        "transparent": 1298518,
+        "partial": 272214,
+        "opaque": 2312
+      }
+    }
+  ]
+}
