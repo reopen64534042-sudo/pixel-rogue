@@ -52,6 +52,9 @@ export function startTutorial(
   this.bpMode = null;
   this.slots = [];
   this.attrPicks = 0;
+  this.attributePoints = 0;
+  this.attrQualityBoosts = 0;
+  this.attrMilestoneWave = 0;
   this.attrGrantedThisWave = 0;
   this.attrChoices = [];
   this.state = "play";

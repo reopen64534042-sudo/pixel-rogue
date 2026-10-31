@@ -16,6 +16,7 @@ import {
   updateSpecialMissiles,
 } from "./SpecialSystem";
 import { professionPierce } from "./AttributeSources";
+import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import {
   boltDamage,
   chargedShotDamage,
@@ -180,26 +181,44 @@ export function updateAttacks(this: GameCore, dt: number) {
 
   // ---- 环绕飞刃 ----
   if (p.orbit > 0) {
-    p.orbA += 4 * dt;
+    const warriorBlades =
+      this.prof === "warrior" && (p.upCounts["护刃"] || 0) > 0;
+    const cfg = WB.antiRanged;
+    p.orbA += (warriorBlades ? cfg.orbitSpeed : 4) * dt;
+    const orbitR = warriorBlades ? cfg.orbitRadius : 26 * p.area;
+    const hitBonus = warriorBlades
+      ? cfg.hitRadiusBonus
+      : 3 + 3 * p.area;
     for (let i = 0; i < p.orbit; i++) {
       const a = p.orbA + (i * Math.PI * 2) / p.orbit;
-      const bx = p.x + Math.cos(a) * 26 * p.area,
-        by = p.y + Math.sin(a) * 26 * p.area;
+      const bx = p.x + Math.cos(a) * orbitR,
+        by = p.y + Math.sin(a) * orbitR;
       for (const e of this.enemies) {
         if (e.dead || e.orbCd > 0) continue;
         const dx = e.x - bx,
           dy = e.y - by;
-        const orbR = e.r + 3 + 3 * p.area;
+        const orbR = e.r + hitBonus;
         if (dx * dx + dy * dy < orbR * orbR) {
           e.orbCd = 0.35;
           const kd = Math.hypot(e.x - p.x, e.y - p.y) || 1;
           this.hurtEnemy(
             e,
-            p.orbitDmg + p.damage * 0.3,
+            warriorBlades
+              ? p.damage * cfg.dmgMul
+              : p.orbitDmg + p.damage * 0.3,
             ((e.x - p.x) / kd) * KNOCK.orbit,
             ((e.y - p.y) / kd) * KNOCK.orbit,
-            { src: "orbit", type: "physical", form: "other" },
+            {
+              src: "orbit",
+              type: "physical",
+              form: warriorBlades ? "melee" : "other",
+            },
           );
+          if (warriorBlades && (p.upCounts["刃轮"] || 0) > 0)
+            p.hp = Math.min(
+              p.maxhp,
+              p.hp + p.maxhp * cfg.healPct,
+            );
         }
       }
     }

@@ -45,7 +45,7 @@ export function availTalents(this: GameCore, t: number) {
 export function legacyAvailTalents(this: GameCore, t: number) {
   return LEGACY_UPGRADES.filter(
     (u) =>
-      // 原版 `hidden`（如「不屈」）仍然排除；只有 S2 的 `retired` 被放行
+      // 原版 `hidden` 仍然排除；只有 S2 的 `retired` 被放行
       !u.hidden &&
       (this.player.upCounts[u.n] || 0) < u.max &&
       (!u.req || u.req(this.player)) &&

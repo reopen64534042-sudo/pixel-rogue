@@ -8,6 +8,11 @@ export function waveQuota(this: GameCore, n: number) {
   return Math.min(150, 20 + (n - 1) * 10);
 }
 
+/** 每波精英数量：4/8/12… 至少 1；12 波起 2、20 波起 3。 */
+export function eliteQuotaForWave(n: number): number {
+  return n >= 20 ? 3 : n >= 12 ? 2 : n % 4 === 0 ? 1 : 0;
+}
+
 export function startNextWave(this: GameCore) {
   this.ensurePlay(); // Issue #34
   if (
@@ -45,7 +50,9 @@ export function startNextWave(this: GameCore) {
     this.player.shield = Math.max(1, this.player.shield);
     this.player.shieldCd = shieldRebuildSeconds(this.player.upCounts);
   }
-  this.player.ndUsed = false; // 不屈: 每波重置
+  this.player.ndUsed = false; // 不屈战魂: 每波重置
+  this.warriorBloodDebtStacks = 0;
+  this.warriorBloodDebtT = 0;
   this.swapUsedThisRest = false;
   const difficulty = resolveDifficulty(
     this.prof,
@@ -112,9 +119,24 @@ export function enterRest(this: GameCore) {
     );
     this.boxPicks = 0;
   }
+  // v139：精英波（4/8/12/16/20/24/28）额外给 1 次属性消费额度，
+  // 让升级点有出口、不长期堆积；额度与精英刷新规则共用同一函数。
+  if (
+    eliteQuotaForWave(this.waveN) > 0 &&
+    this.attrMilestoneWave !== this.waveN
+  ) {
+    this.attrMilestoneWave = this.waveN;
+    this.attrPicks += 1;
+    this.addText(
+      this.player.x,
+      this.player.y - 24,
+      `精英波 · 属性额度 +1`,
+      "#ffd24a",
+    );
+  }
   // Issue #67：休整面板依次执行——升级 → 宝箱 → 报告/置换
   // S1：属性选择排在最前（高频低决策的先做，且它可能要连选多次）
-  if (this.attrPicks > 0) {
+  if (this.attributePoints > 0 && this.attrPicks > 0) {
     this.bpMode = null;
     this.openAttrPanel();
     return;
@@ -142,8 +164,7 @@ export function updateWave(this: GameCore, dt: number) {
       if (this.spawnCd <= 0 && this.enemies.length < 160) {
         this.spawnCd = Math.max(0.32, 1.2 - this.waveN * 0.07);
         // Issue #48：12 波起每波 2 只 BOSS，20 波起 3 只（此前每 4 波 1 只）
-        const eliteQuota =
-          this.waveN >= 20 ? 3 : this.waveN >= 12 ? 2 : this.waveN % 4 === 0 ? 1 : 0;
+        const eliteQuota = eliteQuotaForWave(this.waveN);
         const isElite = this.spawnedThisWave < eliteQuota;
         if (isElite) {
           this.spawnEnemy("brute", true);

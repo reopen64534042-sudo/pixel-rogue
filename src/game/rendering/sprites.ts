@@ -203,6 +203,11 @@ SPR.potion = makeSprite([".www.", "w...w", "wrrrw", "wrrrw", ".rrr."], {
   w: "#e8e8f0",
   r: "#ff4d6d",
 });
+/** 成长徽记（v139）：普通怪掉落，拾取 +1 本休整属性额度。 */
+SPR.sigil = makeSprite(
+  [".gGGg.", "gGWWGg", "GWWWWG", "gGWWGg", ".gGGg."],
+  { g: "#1a9fd4", G: "#7deeff", W: "#fff3b0" },
+);
 /** 宝箱（#15）：木纹箱体 + 铁边 + 金色锁扣 */
 SPR.box = makeSprite(
   [

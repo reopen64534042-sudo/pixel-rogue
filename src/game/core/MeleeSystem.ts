@@ -40,6 +40,8 @@ export interface MeleeSwingOptions {
   preciseSector?: boolean;
   /** 太刀「居合斩」：伤害数字用专属大字样式（见 FloatingText.iaiDmg） */
   iaiHit?: boolean;
+  /** 大剑三段斩：伤害数字用暗金大字样式（见 FloatingText.triDmg） */
+  triHit?: boolean;
   /** 居合·极 360° 旋斩：刀光改用全向回旋斩素材。 */
   spin?: boolean;
   /** 三段斩的冲刺斩：刀光追加后退残影，与普通平 A 区分。 */
@@ -108,6 +110,7 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
         ? { lifestealMul: opts.lifestealMul }
         : {}),
       ...(opts.iaiHit ? { iaiHit: true } : {}),
+      ...(opts.triHit ? { triHit: true } : {}),
     });
   }
 
