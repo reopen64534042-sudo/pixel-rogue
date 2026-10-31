@@ -63,8 +63,8 @@ export interface MissileWeaponState {
   groundTick: number; groundDamage: Map<Enemy, Map<Readonly<CombatStatsSnapshot>, number>>;
   heals: { at: number; amount: number }[]; lastVolley: MissileVolley | null;
   launches: { x: number; y: number; angle: number; at: number; micro: boolean }[];
-  impacts: { x: number; y: number; at: number; radius: number; look: MissileVisual }[];
-  arcs: { x: number; y: number; x2: number; y2: number; at: number }[];
+  impacts: { x: number; y: number; at: number; radius: number; look: MissileVisual; kind?: "impact" | "resonance" }[];
+  arcs: { x: number; y: number; x2: number; y2: number; at: number; relay?: boolean }[];
   escapes: { x: number; y: number; angle: number; at: number }[];
 }
 export function createMissileState(): MissileWeaponState {

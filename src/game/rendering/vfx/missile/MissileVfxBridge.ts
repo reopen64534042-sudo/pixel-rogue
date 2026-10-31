@@ -13,5 +13,9 @@ export function captureMissileVfx(core: GameCore): MissileVfxSnapshot {
     launches: s.launches.map(e => ({ ...e, age: core.time - e.at })),
     impacts: s.impacts.map(e => ({ ...e, age: core.time - e.at })),
     arcs: s.arcs.map(e => ({ ...e, age: core.time - e.at })),
+    charges: [...s.charges].filter(([e, c]) => !e.dead && c.until > core.time).map(([e, c]) => ({
+      x: e.x, y: e.y, radius: e.r, count: c.count,
+      age: Math.max(0, core.time - (c.until - MISSILE.chargeLife)), remaining: c.until - core.time,
+    })),
   };
 }
