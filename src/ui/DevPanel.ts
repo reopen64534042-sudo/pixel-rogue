@@ -11,11 +11,8 @@ import {
 } from "../game/data/talents";
 import {
   MAGE_ELEMENTS,
-  MAGE_EPIC_UPGRADES,
-  MAGE_NORMAL_UPGRADES,
-  MAGE_RARE_UPGRADES,
   MAGE_REACTIONS,
-  MAGE_ULTIMATE_UPGRADES,
+  MAGE_STAFF_UPGRADES,
 } from "../game/data/elementalMage";
 import type {
   MageElement,
@@ -360,9 +357,7 @@ export class DevPanel {
       const resetTransient = () => {
         c.magePrism = null;
         c.magePrismBeams = [];
-        c.mageEchoes = [];
         c.mageShadows = [];
-        c.mageShadowCd = 0;
         c.mageCharge = 0;
         c.mageChargeFlashT = 0;
         c.mageShield = 0;
@@ -512,12 +507,7 @@ export class DevPanel {
         (id) => MAGE_REACTIONS[id as MageReactionId].color,
       );
 
-      const upgradeEntries = [
-        ...MAGE_NORMAL_UPGRADES,
-        ...MAGE_RARE_UPGRADES,
-        ...MAGE_EPIC_UPGRADES,
-        ...MAGE_ULTIMATE_UPGRADES,
-      ];
+      const upgradeEntries = MAGE_STAFF_UPGRADES;
       addToggleGrid(
         "法杖强化（逐项开关）",
         upgradeEntries,

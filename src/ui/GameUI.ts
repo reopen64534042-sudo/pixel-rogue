@@ -1389,13 +1389,12 @@ export class GameUI {
         const prismTier = magePrismTier(this.core);
         const prism = this.core.magePrism;
         const prismLabel =
-          prismTier === 3
-            ? "终极"
-            : prismTier === 2
-              ? "史诗"
-              : prismTier === 1
-                ? "稀有"
-                : "未领悟";
+          prismTier === 2 ? "史诗" : prismTier === 1 ? "基础" : "未领悟";
+        const splitTier = this.core.mageUpgrades.includes("splitShadowPlus")
+          ? 2
+          : this.core.mageUpgrades.includes("splitShadow")
+            ? 1
+            : 0;
         const statusRows: [string, string | number][] = [
           [
             "🔮 棱镜",
@@ -1414,18 +1413,12 @@ export class GameUI {
               : "未领悟",
           ],
           [
-            "🔔 回响",
-            this.core.mageUpgrades.includes("echoCircle")
-              ? `已领悟 · ${this.core.mageEchoes.length} 待发`
-              : "未领悟",
-          ],
-          [
             "👥 分影",
-            this.core.mageUpgrades.includes("splitShadow")
-              ? this.core.mageShadowCd > 0
-                ? `冷却 ${this.core.mageShadowCd.toFixed(1)}s`
-                : "就绪"
-              : "未领悟",
+            splitTier === 2
+              ? "双影协奏 · 第2/4下"
+              : splitTier === 1
+                ? "分影 · 第4下"
+                : "未领悟",
           ],
           ["⏱ ICD", `${mageReactionIcd(this.core).toFixed(1)} 秒`],
           ...((this.core.player.upCounts["护咒壁"] || 0) > 0
@@ -1459,15 +1452,15 @@ export class GameUI {
             ],
             [
               "轮盘",
-              "每 4 次成功施法切换；获得新元素不重置当前阶段；Lv1/3/6 选择元素",
+              "每 4 次成功施法切换；获得新元素不重置当前阶段；Lv1/4/7 选择元素",
             ],
             [
               "成长",
-              "Lv2/4–5/7–9/10–12 自动发放普通/稀有/史诗/终极强化；三选一池 11 张（4 张生存/机动 + 1 张节律 + 1 张穿透 + 5 张构筑卡）",
+              "Lv2 调律 / Lv3 基础棱镜 / Lv4 第二元素 / Lv5 专精 / Lv6 棱镜史诗 / Lv7 第三元素 / Lv8–9 专精 / Lv10 分影 / Lv11 双影协奏 / Lv12 大法师觉醒占位；三选一池 8 张（4 张生存/机动 + 1 张节律 + 1 张穿透 + 2 张构筑卡）",
             ],
             [
               "反应触发",
-              "目标带匹配元素附着即可触发，不要求冻结/叠满；层数只提高反应强度；A/B 套装按当前元素唯一决定；只由本体法阵触发；每怪每发最多一次；未领悟/链/DoT/派生不触发",
+              "目标带匹配元素附着即可触发，不要求冻结/叠满；层数只提高反应强度；A/B 套装按当前元素唯一决定；本体与分影可触发，链/DoT/棱镜不触发；每怪每发最多一次",
             ],
             [
               "反应后",
@@ -1479,7 +1472,7 @@ export class GameUI {
             ],
             [
               "反应 ICD",
-              "每怪基础 0.5 秒；反应精通 0.4 秒；元素震爆不受 ICD",
+              "每怪基础 0.5 秒；残影反应无视 ICD 且每怪每拍最多一次；元素震爆已移除",
             ],
             [
               "双元素增伤",
@@ -1487,21 +1480,21 @@ export class GameUI {
             ],
             [
               "当前数值",
-              "法阵直伤 = 基准 ×0.65 × 元素倍率（咏唱调律再 ×1.1）；状态/链/反应使用完整基准",
+              "法阵直伤 = 基准 ×0.65 × 元素倍率；咏唱调律不再加直伤，只加施法速度与法阵范围；状态/链/反应使用完整基准",
             ],
             ...(prismTier > 0
               ? ([
                   [
                     "棱镜",
-                    "第 4 次成功施法留下 4 秒；A 分裂到两个目标点（稀有各 25%、史诗各 40%），B 集中主落点（50%/80%）；折射按当前法阵元素结算，记录元素用于终极震爆；不触发链/不吸血/不给经验",
+                    "第 4 次成功施法留下 6 秒；基础 60%/2 发、史诗 80%/2 发；A 分裂到两个目标点，B 集中主落点；折射按当前法阵元素结算；不触发链/不吸血/不给经验；棱镜终极已移除",
                   ],
                 ] as [string, string][])
               : []),
             ...(this.core.mageUpgrades.includes("splitShadow")
               ? ([
                   [
-                    "分影齐射",
-                    "本体反应后召唤左右残影，各 55% 法阵，6 秒冷却；只施加 60% 持续时间状态",
+                    "分影 / 双影协奏",
+                    "分影：第 4 下召唤左右残影，法阵 80%，只挂附着/触发反应，反应伤害 60%；双影协奏：双影常驻，第 2/4 下协同，法阵 100%，反应伤害 80%；独立反应预算、无视本体 ICD、不结算直伤",
                   ],
                 ] as [string, string][])
               : []),
@@ -1984,10 +1977,7 @@ export class GameUI {
       const direct = (
         [
           ["本体", detail.body],
-          ["回响", detail.echo],
           ["折射", detail.refract],
-          ["分影", detail.shadow],
-          ["碎裂", detail.shatter],
         ] as [string, number][]
       ).filter(([, v]) => v > 0.5);
       if (direct.length)

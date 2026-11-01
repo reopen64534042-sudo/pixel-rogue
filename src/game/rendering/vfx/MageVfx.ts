@@ -7,7 +7,7 @@ import type { PixelPainter } from "../PixelPainter";
 
 /** Proposed handoff packet; the production Core does not expose this field. */
 export interface MageVisualEvent {
-  readonly kind: "body" | "echo" | "refract" | "shadow" | "burst";
+  readonly kind: "body" | "refract" | "shadow" | "burst";
   readonly at: number;
   readonly element: MageElement;
   readonly x: number;
@@ -149,7 +149,7 @@ export class MageVfx {
     for (const v of this.impacts) {
       const age = this.time - v.at;
       const scale = Math.max(1, Math.floor(v.radius / MAGE_VFX.circleRadius));
-      const strength = v.kind === "echo" ? 0.5 : v.kind === "shadow" ? 0.6 : 1;
+      const strength = v.kind === "shadow" ? 0.6 : 1;
       stamp(ctx, ELEMENT_INDEX[v.element] * 4 + (age < 0.09 ? 2 : 3), v.x, v.y, scale,
         strength * (age < 0.09 ? 0.75 : 0.55 * sat((IMPACT_DURATION - age) / 0.15)));
       if (v.source && age < 0.12)

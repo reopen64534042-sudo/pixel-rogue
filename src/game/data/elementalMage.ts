@@ -8,8 +8,8 @@ export type { MageElement };
  * 这里只放**可被 UI 与 Core 共同读取的规则与系数**；伤害公式仍在
  * DamageMath / DamageSystem，系统文件只引用本表的键。
  *
- * 批次 1 范围：法杖等级、每 4 次施法轮盘、Lv1/3/6 元素、A/B 套装、
- * 六反应、普通池。稀有/史诗/终极池与棱镜/分影在后续批次接入。
+ * v185 P1：法杖等级、每 4 次施法轮盘、Lv1/4/7 元素、A/B 套装、
+ * 六反应与六专精、分影/双影协奏；回响/普通池/三环/反应终章/棱镜终极已移除。
  */
 
 export type MageSuit = "A" | "B";
@@ -22,21 +22,19 @@ export type MageReactionId =
   | "superconduct"
   | "frostbind";
 
-export type MageNormalUpgradeId = "elementFocus" | "circleWidth";
-export type MageRareUpgradeId = "echoCircle" | "tempo" | "prismRare";
-export type MageEpicUpgradeId =
-  | "missingReaction"
-  | "prismEpic"
-  | "reactionMastery";
-export type MageUltimateUpgradeId =
-  | "prismUltimate"
-  | "splitShadow"
-  | "reactionFinale";
 export type MageUpgradeId =
-  | MageNormalUpgradeId
-  | MageRareUpgradeId
-  | MageEpicUpgradeId
-  | MageUltimateUpgradeId;
+  | "tempo"
+  | "prismRare"
+  | "prismEpic"
+  | "specQuench"
+  | "specMelt"
+  | "specOverload"
+  | "specBlaze"
+  | "specSuperconduct"
+  | "specFrostbind"
+  | "splitShadow"
+  | "splitShadowPlus"
+  | "grandmasterPlaceholder";
 
 export interface MageElementDef {
   readonly id: MageElement;
@@ -188,12 +186,9 @@ export function elementOrderLabel(elements: readonly MageElement[]): string {
 /**
  * 法杖等级表。索引 = 等级 - 1；`xpToNext` 为升级所需经验，满级为 null。
  *
- * 批次 1 只有 Lv2 普通池与 Lv3/6 元素选择真正发放；Lv4–5、Lv7–9、
- * Lv10–12 的稀有/史诗/终极池留给批次 2/3，仍保留等级与经验节奏。
+ * v185 P1：元素在 Lv1/4/7；Lv2 固定咏唱调律，Lv3 基础棱镜，Lv5/8/9
+ * 反应专精，Lv10/11 分影/双影协奏，Lv12 为大法师觉醒占位。
  * 经验来源：每次本体法阵实际命中至少 1 个敌人 +1。
- *
- * 试玩反馈「第 2 波就有新元素、第 5 波就有三元素」：Lv1–6 的阈值约翻倍，
- * 让第二元素落在第 4 波左右、第三元素落在第 8–10 波；后续等级沿用占位曲线。
  */
 export interface StaffLevelDef {
   readonly xpToNext: number | null;
@@ -202,17 +197,17 @@ export interface StaffLevelDef {
 
 export const STAFF_LEVELS: readonly StaffLevelDef[] = [
   { xpToNext: 12, note: "选择第一元素" },
-  { xpToNext: 24, note: "普通池随机 1 项" },
-  { xpToNext: 32, note: "选择第二元素，领悟 A+B 反应" },
-  { xpToNext: 40, note: "稀有池：棱镜必得 + 回响/调律随机" },
-  { xpToNext: 48, note: "稀有池：补齐回响/调律" },
-  { xpToNext: 56, note: "选择第三元素，随机领悟一条新反应" },
-  { xpToNext: 64, note: "史诗池随机 1 项" },
-  { xpToNext: 72, note: "史诗池随机 1 项" },
-  { xpToNext: 80, note: "史诗池：补齐三项（三环共鸣保底）" },
-  { xpToNext: 88, note: "终极池随机 1 项" },
-  { xpToNext: 96, note: "终极池随机 1 项" },
-  { xpToNext: null, note: "终极池：补齐三项" },
+  { xpToNext: 24, note: "固定：咏唱调律" },
+  { xpToNext: 32, note: "元素棱镜（基础）" },
+  { xpToNext: 40, note: "选择第二元素，领悟 R1 反应" },
+  { xpToNext: 48, note: "R1 专精" },
+  { xpToNext: 56, note: "元素棱镜·史诗" },
+  { xpToNext: 64, note: "选择第三元素，补齐 R2/R3" },
+  { xpToNext: 72, note: "R2 专精（与 R3 随机顺序）" },
+  { xpToNext: 80, note: "R3 专精" },
+  { xpToNext: 88, note: "分影" },
+  { xpToNext: 96, note: "双影协奏" },
+  { xpToNext: null, note: "大法师觉醒占位（全元素伤害 +5%）" },
 ];
 
 /** 每次成功施法获得的法杖经验。 */
@@ -221,61 +216,96 @@ export const STAFF_XP_PER_CAST = 1;
 /** 每 4 次成功施法切换元素；反应触发条件不变。 */
 export const MAGE_CASTS_PER_ELEMENT = 4;
 
-export interface MageNormalUpgradeDef {
-  readonly id: MageNormalUpgradeId;
+export interface MageStaffUpgradeDef {
+  readonly id: MageUpgradeId;
   readonly name: string;
   readonly ico: string;
   readonly desc: string;
 }
 
-export interface MageRareUpgradeDef {
-  readonly id: MageRareUpgradeId;
-  readonly name: string;
-  readonly ico: string;
-  readonly desc: string;
+export interface MageSpecializationDef extends MageStaffUpgradeDef {
+  readonly reaction: MageReactionId;
 }
 
-export interface MageEpicUpgradeDef {
-  readonly id: MageEpicUpgradeId;
-  readonly name: string;
-  readonly ico: string;
-  readonly desc: string;
-}
-
-export interface MageUltimateUpgradeDef {
-  readonly id: MageUltimateUpgradeId;
-  readonly name: string;
-  readonly ico: string;
-  readonly desc: string;
-}
-
-export const MAGE_NORMAL_UPGRADES: readonly MageNormalUpgradeDef[] = [
-  {
-    id: "elementFocus",
-    name: "元素凝聚",
-    ico: "✹",
-    desc: "已拥有元素的状态持续时间 +1 秒",
+/** 六种反应专精：全部由法杖等级成长发放，不进三选一天赋池。 */
+export const MAGE_SPECIALIZATIONS: Record<
+  MageReactionId,
+  MageSpecializationDef
+> = {
+  quench: {
+    reaction: "quench",
+    id: "specQuench",
+    name: "余寒",
+    ico: "❄️",
+    desc: "急淬后脆化 4→6 秒；向 60px 内 1 个敌人传播 1 层凝冰（不触发反应）",
   },
-  {
-    id: "circleWidth",
-    name: "法阵扩幅",
-    ico: "◉",
-    desc: "法阵半径 +8%",
+  melt: {
+    reaction: "melt",
+    id: "specMelt",
+    name: "余炽",
+    ico: "♨️",
+    desc: "融化后额外施加 1 层灼烧；对冻结/霜牢目标，融化伤害 +20% 且控制延长 0.5 秒",
   },
-];
+  overload: {
+    reaction: "overload",
+    id: "specOverload",
+    name: "雷爆",
+    ico: "⚡",
+    desc: "超载后目标获得 1 层雷印；击杀时向 80px 内最多 2 个敌人传播 1 层灼烧（不触发反应）",
+  },
+  blaze: {
+    reaction: "blaze",
+    id: "specBlaze",
+    name: "焰尾扩散",
+    ico: "🔥",
+    desc: "裂焰小爆炸范围 +20%、目标 +1；溅射目标获得 1 层灼烧",
+  },
+  superconduct: {
+    reaction: "superconduct",
+    id: "specSuperconduct",
+    name: "霜雷共振",
+    ico: "❄⚡",
+    desc: "超导链额外 +1 跳、链伤害 +15%",
+  },
+  frostbind: {
+    reaction: "frostbind",
+    id: "specFrostbind",
+    name: "霜牢碎裂",
+    ico: "🧊",
+    desc: "霜牢自然结束或被融化时，向目标及附近 2 个敌人传播 2 层凝冰",
+  },
+};
 
-export const MAGE_RARE_UPGRADES: readonly MageRareUpgradeDef[] = [
-  {
-    id: "echoCircle",
-    name: "回响法阵",
-    ico: "🔔",
-    desc: "每次法阵延迟 0.3 秒再响一次，造成 37.5% 伤害；不施加元素状态、不触发反应、不给武器经验",
+/** 专精的数值配置；消费点在 ElementSystem。 */
+export const MAGE_SPEC_VALUES = {
+  quench: {
+    brittleBonus: 2,
+    spreadStacks: 1,
+    spreadRadius: 60,
+    spreadTargets: 1,
   },
+  melt: {
+    extraBurn: 1,
+    controlledBonus: 0.2,
+    controlExtend: 0.5,
+  },
+  overload: {
+    shockStacks: 1,
+    deathSpreadBurn: 1,
+    deathSpreadTargets: 2,
+    deathSpreadRadius: 80,
+  },
+  blaze: { radiusMul: 1.2, extraTargets: 1, burnStacks: 1 },
+  superconduct: { extraJumps: 1, damageBonus: 0.15 },
+  frostbind: { targets: 2, stacks: 2, radius: 80 },
+} as const;
+
+export const MAGE_STAFF_UPGRADES: readonly MageStaffUpgradeDef[] = [
   {
     id: "tempo",
     name: "咏唱调律",
     ico: "🎼",
-    desc: "施法速度 +4%；法阵直伤 +10%",
+    desc: "施法速度 +5%；法阵范围 +10%",
   },
   {
     id: "prismRare",
@@ -283,76 +313,47 @@ export const MAGE_RARE_UPGRADES: readonly MageRareUpgradeDef[] = [
     ico: "💠",
     desc: "每第 4 次成功施法留下棱镜 4 秒；下一次法阵从棱镜折射 50% 当前元素伤害。A 套装：分裂到棱镜周围两个分开的目标点，各 25%；B 套装：50% 集中折射到主落点",
   },
-];
-
-export const MAGE_EPIC_UPGRADES: readonly MageEpicUpgradeDef[] = [
-  {
-    id: "missingReaction",
-    name: "三环共鸣",
-    ico: "✴️",
-    desc: "补全所选三元素之间最后一条配对反应，使元素轮盘上的三条反应全部点亮",
-  },
   {
     id: "prismEpic",
     name: "元素棱镜·史诗",
     ico: "🔷",
     desc: "折射预算 50% → 80%，棱镜可存 2 发再碎裂；A 套装两个落点各 40%，B 套装集中 80% 到主落点",
   },
-  {
-    id: "reactionMastery",
-    name: "反应精通",
-    ico: "☯️",
-    desc: "元素反应伤害 +15%，反应 ICD −0.1 秒（基础 0.5 → 0.4 秒）",
-  },
-];
-
-export const MAGE_ULTIMATE_UPGRADES: readonly MageUltimateUpgradeDef[] = [
-  {
-    id: "prismUltimate",
-    name: "元素棱镜·终极",
-    ico: "🔮",
-    desc: "保留 80%/2 发；棱镜碎裂时追加 120% 范围冲击，并按记录元素与当前元素触发元素震爆",
-  },
+  ...Object.values(MAGE_SPECIALIZATIONS),
   {
     id: "splitShadow",
-    name: "分影齐射",
+    name: "分影",
     ico: "👥",
-    desc: "本体法阵触发元素反应后，召唤左右两个残影各释放一次 55% 法阵；6 秒冷却。残影只施加 60% 持续时间的元素状态，不触发反应、不给武器经验/吸血",
+    desc: "每个元素第 4 下攻击召唤左右 2 个残影，各持另外两种元素；法阵为主角 80%，不结算直伤，只挂附着/触发反应；反应伤害为正常的 60%",
   },
   {
-    id: "reactionFinale",
-    name: "反应终章",
-    ico: "☯️",
-    desc: "元素反应伤害 +25%；A 套装向附近 1 个敌人传播低伤害回响，B 套装对冻结/霜牢目标额外 +30%",
+    id: "splitShadowPlus",
+    name: "双影协奏",
+    ico: "👥",
+    desc: "左右 2 个残影常驻；每个元素第 2、第 4 下协同攻击；法阵与主角同大，不结算直伤，反应伤害为正常的 80%；残影独立反应预算、无视本体 ICD",
+  },
+  {
+    id: "grandmasterPlaceholder",
+    name: "大法师觉醒·占位",
+    ico: "✧",
+    desc: "Lv12 占位：全元素伤害 +5%；P2 由元素大法师替换",
   },
 ];
 
-/** 法杖强化最多可得项：普通 1 + 稀有 2 + 史诗 3 + 终极 3。 */
+/** 法杖等级成长最多可得项：Lv2–12 共 9 项（Lv4/7 为元素选择）。 */
 export const MAGE_UPGRADE_SLOTS = 9;
 
 /** 强化定义查询：C 面板展示名称与描述。 */
 export function mageUpgradeInfo(
   id: MageUpgradeId,
 ): { name: string; desc: string } | null {
-  const all = [
-    ...MAGE_NORMAL_UPGRADES,
-    ...MAGE_RARE_UPGRADES,
-    ...MAGE_EPIC_UPGRADES,
-    ...MAGE_ULTIMATE_UPGRADES,
-  ];
-  const def = all.find((u) => u.id === id);
+  const def = MAGE_STAFF_UPGRADES.find((u) => u.id === id);
   return def ? { name: def.name, desc: def.desc } : null;
 }
 
 /** 所有法杖强化 id → 显示名；UI 与提示共用。 */
 export function mageUpgradeName(id: MageUpgradeId): string {
-  const all = [
-    ...MAGE_NORMAL_UPGRADES,
-    ...MAGE_RARE_UPGRADES,
-    ...MAGE_EPIC_UPGRADES,
-    ...MAGE_ULTIMATE_UPGRADES,
-  ];
-  return all.find((u) => u.id === id)?.name ?? id;
+  return MAGE_STAFF_UPGRADES.find((u) => u.id === id)?.name ?? id;
 }
 
 export const ELEMENTAL_MAGE = {
@@ -417,50 +418,33 @@ export const ELEMENTAL_MAGE = {
     spreadTargets: 2,
     spreadStacks: 1,
   },
-  normal: {
-    elementFocusBonus: 1,
-    circleWidthMul: 1.08,
-  },
   prism: {
-    life: 4,
-    rareBudget: 0.5,
-    rareCharges: 1,
+    life: 6,
+    rareBudget: 0.6,
+    rareCharges: 2,
     epicBudget: 0.8,
     epicCharges: 2,
     /** A 套装在棱镜周围寻找两个怪群的范围。 */
     searchRange: 140,
     /** 两个折射落点之间的最小距离。 */
     minSep: 50,
-    /** 终极碎裂：120% 范围冲击半径。 */
-    ultimateShatterMul: 1.2,
-    ultimateShatterRadius: 90,
-  },
-  echo: {
-    delay: 0.3,
-    damageMul: 0.375,
   },
   tempo: {
-    castSpeed: 0.04,
-    /** 法阵直伤（含回响/分影/折射等派生直伤）倍率。 */
-    directDamage: 0.1,
+    castSpeed: 0.05,
+    /** 法阵范围（半径乘区）。 */
+    circleRange: 0.1,
   },
-  mastery: {
-    reactionDamage: 0.15,
-    icdReduction: 0.1,
-  },
-  finale: {
-    reactionDamage: 0.25,
-    /** A 套装反应回响：向附近 1 个敌人传播的伤害比例。 */
-    echoMul: 0.4,
-    echoRadius: 80,
-    /** B 套装：对冻结/霜牢目标的额外反应伤害。 */
-    controlledBonus: 0.3,
+  /** Lv12 占位：全元素伤害 +5%，P2 由元素大法师替换。 */
+  grandmasterPlaceholder: {
+    elementDamageBonus: 0.05,
   },
   shadow: {
-    damageMul: 0.55,
-    /** 残影施加的元素状态持续时间倍率。 */
-    statusDurationMul: 0.6,
-    cooldown: 6,
+    /** 基础分影：法阵半径 / 反应伤害倍率。 */
+    radiusMulBasic: 0.8,
+    reactionScaleBasic: 0.6,
+    /** 双影协奏：法阵半径 / 反应伤害倍率。 */
+    radiusMulPlus: 1,
+    reactionScalePlus: 0.8,
     lifetime: 0.35,
     /** 两个残影与主角的横向间距。 */
     offset: 12,
@@ -472,26 +456,9 @@ export const ELEMENTAL_MAGE = {
 
 /** v177–v180 元素使玩家三选一构筑卡的规则与初始占位数值。 */
 export const MAGE_BUILD = {
-  chainResonance: {
-    name: "霜雷共振",
-    extraJumps: 1,
-    damageBonus: 0.15,
-  },
-  blazeSpread: {
-    name: "焰尾扩散",
-    radiusMul: 1.2,
-    extraTargets: 1,
-    burnStacks: 1,
-  },
   rotation: {
     name: "轮转",
     reactionBonus: 0.2,
-  },
-  frostShatter: {
-    name: "霜牢碎裂",
-    radius: 80,
-    targets: 2,
-    frostStacks: 2,
   },
   charge: {
     name: "满印成势",
@@ -505,7 +472,7 @@ export const MAGE_BUILD = {
 } as const;
 
 /**
- * 元素选择面板的伪卡。它们**不进 UPGRADES**，只在法杖 Lv1/3/6 的
+ * 元素选择面板的伪卡。它们**不进 UPGRADES**，只在法杖 Lv1/4/7 的
  * 强制选择里作为 `slots` 展示；选择结果写入 GameCore.mageElements，
  * 不写 upCounts/picks。
  */

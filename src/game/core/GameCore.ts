@@ -131,10 +131,7 @@ import { cardsOfTier, enterRest, startNextWave, waveQuota } from "./WaveSystem";
 function emptyMageDamage() {
   return {
     body: 0,
-    echo: 0,
     refract: 0,
-    shadow: 0,
-    shatter: 0,
     reaction: {
       quench: 0,
       melt: 0,
@@ -473,10 +470,10 @@ export class GameCore {
   mageReactionUnlockLevels: number[] = [];
   /** 与 mageElements 对齐的元素选择等级；DEV 直接配装时为空。 */
   mageElementPickLevels: number[] = [];
-  /** 普通/稀有/史诗池已获得项。 */
+  /** 法杖等级成长已获得项。 */
   mageUpgrades: MageUpgradeId[] = [];
   /**
-   * 元素棱镜：第 4 次成功施法留下，下一次（或史诗下两次）本体法阵折射。
+   * 元素棱镜：第 4 次成功施法留下，下一次起可折射 2 发后消失。
    * 负责存储位置、剩余时间、记录元素、剩余折射次数与折射预算。
    */
   magePrism: {
@@ -490,7 +487,7 @@ export class GameCore {
   } | null = null;
   /** 技能 VFX 的只读表现事件；每个固定步重建，供渲染层采样。 */
   mageVisualEvents: {
-    kind: "body" | "echo" | "refract" | "shadow" | "burst";
+    kind: "body" | "refract" | "shadow" | "burst";
     at: number;
     element: MageElement;
     x: number;
@@ -508,23 +505,12 @@ export class GameCore {
     points: { x: number; y: number }[];
     /** 当前法阵元素（伤害/状态按它结算）。 */
     element: MageElement;
-    /** 棱镜记录元素（水晶颜色；终极震爆的标记）。 */
+    /** 棱镜记录元素（水晶颜色）。 */
     stored: MageElement;
     t: number;
     maxT: number;
   }[] = [];
-  /** 回响法阵：延迟 0.3 秒的第二次伤害，不施加状态/不触发反应。 */
-  mageEchoes: {
-    x: number;
-    y: number;
-    t: number;
-    maxT: number;
-    R: number;
-    damage: number;
-    element: MageElement;
-  }[] = [];
-  /** 分影齐射冷却与左右残影表现。 */
-  mageShadowCd = 0;
+  /** 分影/双影协奏的残影表现。 */
   mageShadows: {
     side: -1 | 1;
     t: number;
@@ -532,11 +518,11 @@ export class GameCore {
     element: MageElement;
   }[] = [];
   /**
-   * 法杖 Lv1/3/6 的强制元素选择：待选第几元素。
+   * 法杖 Lv1/4/7 的强制元素选择：待选第几元素。
    * 复用旧补选面板的 slots 展示，但不消耗天赋次数。
    */
   mageElementPickPending: "first" | "second" | "third" | null = null;
-  /** 一波内连升 Lv3/Lv6 时已触发的元素选择，休整时在 pending 之后依次处理。 */
+  /** 一波内连升 Lv4/Lv7 时已触发的元素选择，休整时在 pending 之后依次处理。 */
   mageElementPickQueue: ("second" | "third")[] = [];
   /**
    * S1/v139：本次休整可用的属性消费额度（波次 + 成长徽记）。为 0 时属性面板不出现。
@@ -652,7 +638,7 @@ export class GameCore {
   }
   waveMageDamage() {
     const result = emptyMageDamage();
-    for (const key of ["body", "echo", "refract", "shadow", "shatter"] as const)
+    for (const key of ["body", "refract"] as const)
       result[key] = this.mageDmgBy[key] - this.mageWaveStartDmgBy[key];
     for (const id of Object.keys(result.reaction) as MageReactionId[])
       result.reaction[id] =
@@ -910,8 +896,6 @@ export class GameCore {
     this.magePrism = null;
     this.magePrismBeams = [];
     this.mageVisualEvents = [];
-    this.mageEchoes = [];
-    this.mageShadowCd = 0;
     this.mageShadows = [];
     this.mageElementPickPending = prof === "mage" && this.mageWeapon === "arcane" ? "first" : null;
     this.mageElementPickQueue = [];
@@ -1152,8 +1136,6 @@ export class GameCore {
     this.mageDecoys = [];
     this.magePrism = null;
     this.magePrismBeams = [];
-    this.mageEchoes = [];
-    this.mageShadowCd = 0;
     this.mageShadows = [];
     this.parts = [];
     this.texts = [];
@@ -1215,8 +1197,6 @@ export class GameCore {
     this.magePhaseT = 0;
     this.magePrism = null;
     this.magePrismBeams = [];
-    this.mageEchoes = [];
-    this.mageShadowCd = 0;
     this.mageShadows = [];
     this.warriorFlowStacks = 0;
     this.warriorFlowT = 0;

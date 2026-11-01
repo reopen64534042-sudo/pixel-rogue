@@ -3,12 +3,12 @@ import { MAGE_BALANCE as MB } from "../mageBalance";
 import { MAGE_BUILD } from "../elementalMage";
 
 /**
- * 元素法师旧卡与 v177–v180 玩家三选一卡。
+ * 元素法师旧卡与 v177–v185 玩家三选一卡。
  *
  * 元素/反应/法杖成长由法杖等级发放（见 `data/elementalMage.ts` /
- * `core/MageProgressionSystem.ts`）。v177 新增 5 张构筑卡：霜雷共振、
- * 焰尾扩散、轮转、霜牢碎裂、满印成势；v178 重做生存/机动；v179 删除
- * 速咏/连咏，新增节律卡「第四拍」；v180 新增穿透卡「破法」。
+ * `core/MageProgressionSystem.ts`）。v177 新增 5 张构筑卡；v178 重做
+ * 生存/机动；v179 删除速咏/连咏并新增「第四拍」；v180 新增「破法」；
+ * v185 将霜雷共振/焰尾扩散/霜牢碎裂吸收进法杖专精，天赋池剩 8 张。
  *
  * 旧卡：
  * - 护咒壁（原「咏唱护壁」改名；仍消费充能条）
@@ -16,12 +16,13 @@ import { MAGE_BUILD } from "../elementalMage";
  *
  * v178 重做生存/机动：护咒壁护盾提高到 20% 最大生命/3 秒；相位与镜像
  * 均规避触发本次伤害；删除广域符印，新增机动卡「踏影」。
- * v179 节律重排：第四拍只强化每阶段第 4 发；咏唱调律仍由法杖稀有池发放。
+ * v179 节律重排：第四拍只强化每阶段第 4 发；咏唱调律改由 Lv2 固定发放。
  * v180 穿透：破法只削正元素抗性，不放大负抗性/弱点。
+ * v185：原有三张反应卡转为法杖等级专精，不再进入天赋池。
  *
  * 已删除：炽焰印记、霜寒之力、闪电连锁、元素共振、双修、三修、
  * 星陨、多重陨星、元素残域、三连聚爆、元素蓄能、过载、回响、广域符印、
- * 速咏、连咏。
+ * 速咏、连咏、霜雷共振、焰尾扩散、霜牢碎裂。
  */
 
 /** 脱离槽的变体组 id：相位 / 镜像二选一。 */
@@ -37,7 +38,7 @@ export const MAGE_TALENTS: Talent[] = [
     slot: "节律",
     layer: 1,
     prof: "mage",
-    d: `每个元素阶段的第 4 次施法：前摇 −${Math.round((1 - MB.fourthBeatWindupMul) * 100)}%，本体与回响直伤 +${Math.round((MB.fourthBeatDirectMul - 1) * 100)}%。`,
+    d: `每个元素阶段的第 4 次施法：前摇 −${Math.round((1 - MB.fourthBeatWindupMul) * 100)}%，本体直伤 +${Math.round((MB.fourthBeatDirectMul - 1) * 100)}%。`,
     max: 1,
     pv: () =>
       `第 4 发前摇 ${MB.castWindup.toFixed(2)}s → ${(MB.castWindup * MB.fourthBeatWindupMul).toFixed(3)}s · 直伤 +20%`,
@@ -111,37 +112,7 @@ export const MAGE_TALENTS: Talent[] = [
     cur: () => "受击时残影规避伤害",
   },
 
-  // ================= v177 玩家构筑卡（三选一池） =================
-  {
-    n: MAGE_BUILD.chainResonance.name,
-    ico: "❄⚡",
-    t: 0,
-    cat: "元素",
-    slot: "共鸣",
-    layer: 1,
-    prof: "mage",
-    mageRequiresReaction: "superconduct",
-    d: `超导的闪电链额外 +${MAGE_BUILD.chainResonance.extraJumps} 跳、链伤害 +${Math.round(MAGE_BUILD.chainResonance.damageBonus * 100)}%。`,
-    max: 1,
-    pv: () => "超导链 +1 跳 · 链伤 +15%",
-    f: () => {},
-    cur: () => "超导链共振",
-  },
-  {
-    n: MAGE_BUILD.blazeSpread.name,
-    ico: "🔥",
-    t: 0,
-    cat: "范围",
-    slot: "扩散",
-    layer: 1,
-    prof: "mage",
-    mageRequiresReaction: "blaze",
-    d: `裂焰小爆炸范围 +${Math.round((MAGE_BUILD.blazeSpread.radiusMul - 1) * 100)}%、目标 +${MAGE_BUILD.blazeSpread.extraTargets}；被小爆炸命中的目标获得 ${MAGE_BUILD.blazeSpread.burnStacks} 层灼烧。`,
-    max: 1,
-    pv: () => "裂焰溅射 +1 目标 · 灼烧",
-    f: () => {},
-    cur: () => "裂焰扩散",
-  },
+  // ================= v177–v185 玩家构筑卡（三选一池） =================
   {
     n: MAGE_BUILD.rotation.name,
     ico: "🔄",
@@ -156,21 +127,6 @@ export const MAGE_TALENTS: Talent[] = [
     pv: () => "换元素首反应 +20%",
     f: () => {},
     cur: () => "阶段首反应强化",
-  },
-  {
-    n: MAGE_BUILD.frostShatter.name,
-    ico: "🧊",
-    t: 0,
-    cat: "控制",
-    slot: "碎裂",
-    layer: 1,
-    prof: "mage",
-    mageRequiresReaction: "frostbind",
-    d: `霜牢自然结束或被融化时，向目标及附近 ${MAGE_BUILD.frostShatter.targets} 个敌人传播 ${MAGE_BUILD.frostShatter.frostStacks} 层凝冰。`,
-    max: 1,
-    pv: () => "霜牢结束 → 传播凝冰",
-    f: () => {},
-    cur: () => "霜牢碎裂控场",
   },
   {
     n: MAGE_BUILD.charge.name,

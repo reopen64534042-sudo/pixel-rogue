@@ -2,8 +2,7 @@ import type { CodexEntry } from "./codexData";
 import { SPECIAL_LEVELS, SPECIAL_UPGRADES } from "../data/specialShot";
 import { LASER, LASER_UPGRADES, LASER_XP } from "../data/laser";
 import { MISSILE, MISSILE_UPGRADES, MISSILE_XP } from "../data/missile";
-import { MAGE_ELEMENTS, MAGE_REACTIONS, MAGE_NORMAL_UPGRADES, MAGE_RARE_UPGRADES,
-  MAGE_EPIC_UPGRADES, MAGE_ULTIMATE_UPGRADES, STAFF_LEVELS, MAGE_CASTS_PER_ELEMENT,
+import { MAGE_ELEMENTS, MAGE_REACTIONS, MAGE_STAFF_UPGRADES, STAFF_LEVELS, MAGE_CASTS_PER_ELEMENT,
   reactionLabel } from "../data/elementalMage";
 import { MAGE_BALANCE } from "../data/mageBalance";
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
@@ -54,19 +53,14 @@ export const OTHER_WEAPON_ENTRIES: readonly CodexEntry[] = [
   ...MISSILE_UPGRADES.map(u => reference("missile", `upgrade-${u.id}`, u.name, u.desc, "upgrade", `Lv.${u.minLevel} 起进入升级池`)),
 
   reference("arcane", "", "元素使",
-    `自动法阵攻击最近目标，移动也能施法；每${MAGE_CASTS_PER_ELEMENT}次成功施法轮换元素。Lv.1/3/6选择第一、第二、第三元素，元素顺序决定A/B套装与反应方向。法杖升级、人物升级和专属天赋分别成长。`, "overview", "主武器"),
+    `自动法阵攻击最近目标，移动也能施法；每${MAGE_CASTS_PER_ELEMENT}次成功施法轮换元素。Lv.1/4/7选择第一、第二、第三元素，元素顺序决定A/B套装与反应方向。法杖升级、人物升级和专属天赋分别成长。`, "overview", "主武器"),
   reference("arcane", "growth", "法杖成长与反应",
-    `本体法阵实际命中至少一个敌人获得1点法杖经验，空放、打断、回响和派生攻击不给经验。每级所需：${xpText(STAFF_LEVELS.map(l => l.xpToNext))}。第二元素领悟第一条反应，第三元素随机领悟另一条；史诗成长补齐。反应需先领悟，只有本体施法触发；目标带对应元素附着即可触发，不要求冻结/叠满，层数只提高反应强度；反应后留 1 层触发附着，链与派生不递归。带附着的敌人死亡会向附近最多 2 个敌人传播 1 层附着（不触发反应）。`),
+    `本体法阵实际命中至少一个敌人获得1点法杖经验，空放、打断和派生攻击不给经验。每级所需：${xpText(STAFF_LEVELS.map(l => l.xpToNext))}。Lv.2固定咏唱调律，Lv.3基础棱镜，Lv.4第二元素与R1，Lv.5/8/9反应专精，Lv.6棱镜史诗，Lv.7第三元素并补齐R2/R3，Lv.10分影，Lv.11双影协奏，Lv.12大法师觉醒占位。反应需先领悟；本体法阵与分影残影可触发，链/DoT/棱镜折射不触发；目标带对应元素附着即可触发，层数只提高反应强度；反应后留 1 层触发附着。`),
   ...Object.values(MAGE_ELEMENTS).map(e => reference("arcane", `element-${e.id}`, `${e.name}元素 · ${e.statusName}`,
-    `${e.desc}。上述元素倍率以完整元素基准为单位；本体法阵直伤另乘${MAGE_BALANCE.directDamageMul}，状态与链使用完整基准。`, "mechanic", "Lv.1 / 3 / 6 可选择", e.ico)),
+    `${e.desc}。上述元素倍率以完整元素基准为单位；本体法阵直伤另乘${MAGE_BALANCE.directDamageMul}，状态与链使用完整基准。`, "mechanic", "Lv.1 / 4 / 7 可选择", e.ico)),
   ...Object.values(MAGE_REACTIONS).map(r => reference("arcane", `reaction-${r.id}`, reactionLabel(r.id),
     `${r.desc}。所属套装：${r.suit}；先领悟此反应后，目标带对应附着时由本体元素命中触发，不要求冻结/叠满。`, "mechanic", `元素反应 · 套装 ${r.suit}`, "☯️")),
-  ...[
-    { items: MAGE_NORMAL_UPGRADES, stage: "Lv.2 普通池随机1项" },
-    { items: MAGE_RARE_UPGRADES, stage: "Lv.4–5 稀有池" },
-    { items: MAGE_EPIC_UPGRADES, stage: "Lv.7–9 史诗池" },
-    { items: MAGE_ULTIMATE_UPGRADES, stage: "Lv.10–12 终极池" },
-  ].flatMap(pool => pool.items.map(u => reference("arcane", `upgrade-${u.id}`, u.name, u.desc, "upgrade", pool.stage, u.ico))),
+  ...MAGE_STAFF_UPGRADES.map(u => reference("arcane", `upgrade-${u.id}`, u.name, u.desc, "upgrade", "Lv.2–12 等级成长", u.ico)),
 
   reference("katana", "", "太刀",
     `战士快速近战流派，基础攻击${WB.styles.katana.damage}、攻速${WB.styles.katana.fireRate}/秒、范围${WB.styles.katana.range}px。通过居合、斩浪与连闪天赋发展蓄势爆发和冲刺攻击；武器没有独立经验等级，能力来自天赋。`, "overview", "近战流派"),
