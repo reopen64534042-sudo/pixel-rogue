@@ -1,6 +1,6 @@
 import { BOSS, BOSS_ATTACKS, BOSS_PHASES, BOSS_STOMP_RADIUS, THREE_HEADED_BEAST } from "../data/boss";
 import { WORLD, clamp } from "../data/constants";
-import type { DamageTypeId } from "../data/damageTypes";
+import { BOSS_ATTACK_PROFILES } from "../data/attackProfiles";
 import { bossAttackDamage, bossGroundTickDamage, bossRewardXp } from "./DamageMath";
 import { frostSlowFactor } from "./ElementMath";
 import { addHostileHazard } from "./HostileHazards";
@@ -125,7 +125,7 @@ function startAttack(core: GameCore, s: BossState, attack: BossAttackId): void {
       s.targets.push(target);
       const windup = s.actionT + (i - 1) * BOSS.spikes.stagger;
       core.bossStrikes.push({ ...target, attack: "spikes", windup, innerR: 0, r: BOSS.spikes.radius, t: windup,
-        dmg: bossAttackDamage(s.enemy.dmg, "spikes"), type: "frost" });
+        dmg: bossAttackDamage(s.enemy.dmg, "spikes"), type: BOSS_ATTACK_PROFILES.spikes.type });
     }
   } else if (attack === "marks") {
     queueMarks(core, s);
@@ -144,7 +144,7 @@ function queueMarks(core: GameCore, s: BossState): void {
     };
     s.targets.push(target);
     core.bossStrikes.push({ ...target, attack: "marks", windup: BOSS_ATTACKS.marks.windup, innerR: 0,
-      r: BOSS.marks.radius, t: BOSS_ATTACKS.marks.windup, dmg: bossAttackDamage(s.enemy.dmg, "marks"), type: "lightning" });
+      r: BOSS.marks.radius, t: BOSS_ATTACKS.marks.windup, dmg: bossAttackDamage(s.enemy.dmg, "marks"), type: BOSS_ATTACK_PROFILES.marks.type });
   }
 }
 
@@ -156,13 +156,14 @@ export function bossLineContains(origin: Point, angle: number, point: Point, len
 }
 
 /** 所有 Boss 伤害先通过同一受击门禁，再委托现有 damagePlayer。 */
-function hitPlayer(core: GameCore, s: BossState, damage: number, type: DamageTypeId, dot = false): boolean {
+function hitPlayer(core: GameCore, s: BossState, damage: number, attack: BossAttackId): boolean {
   const p = core.player;
   if (core.state !== "play" || core.bossState !== s || s.enemy.dead || s.action === "transition" || p.hurtCd > 0 || p.dashT > 0) return false;
+  const profile = BOSS_ATTACK_PROFILES[attack];
   const hit = core.damagePlayer(damage, {
-    src: s.enemy, type, form: type === "physical" ? "melee" : "other",
-    melee: type === "physical",
-    cause: dot ? "dot" : "explosion", kind: dot ? "dot" : "hit",
+    ...profile, src: s.enemy,
+    melee: profile.form === "melee",
+    cause: "explosion", kind: "hit",
   });
   return core.bossState === s && core.state === "play" && !s.enemy.dead &&
     !hit.dodged && !hit.preventedDeath && hit.effectiveHpLoss > 0;
@@ -205,7 +206,7 @@ function resolveBreath(core: GameCore, s: BossState): void {
   const dx = p.x - e.x, dy = p.y - e.y;
   const a = Math.atan2(Math.sin(Math.atan2(dy, dx) - s.angle), Math.cos(Math.atan2(dy, dx) - s.angle));
   if (Math.hypot(dx, dy) <= BOSS.breath.radius && Math.abs(a) <= BOSS.breath.arc / 2)
-    hitPlayer(core, s, bossAttackDamage(e.dmg, "breath"), "fire");
+    hitPlayer(core, s, bossAttackDamage(e.dmg, "breath"), "breath");
   impact(core, s, "breath", e, BOSS.breath.radius);
 }
 
@@ -221,7 +222,7 @@ function resolveAttack(core: GameCore, s: BossState): void {
     return;
   }
   if (attack === "stomp") {
-    if (circleContains(core, e, BOSS_STOMP_RADIUS)) hitPlayer(core, s, bossAttackDamage(e.dmg, "stomp"), "physical");
+    if (circleContains(core, e, BOSS_STOMP_RADIUS)) hitPlayer(core, s, bossAttackDamage(e.dmg, "stomp"), "stomp");
     impact(core, s, "stomp", e, BOSS_STOMP_RADIUS);
   }
   if (attack === "breath") {
@@ -233,27 +234,27 @@ function resolveAttack(core: GameCore, s: BossState): void {
   }
   if (attack === "nova") {
     const d = Math.hypot(p.x - e.x, p.y - e.y);
-    if (d >= BOSS.nova.innerRadius && d <= BOSS.nova.radius && hitPlayer(core, s, bossAttackDamage(e.dmg, "nova"), "frost"))
+    if (d >= BOSS.nova.innerRadius && d <= BOSS.nova.radius && hitPlayer(core, s, bossAttackDamage(e.dmg, "nova"), "nova"))
       core.bossSlowT = BOSS.slowDuration;
     impact(core, s, "nova", e, BOSS.nova.radius, BOSS.nova.innerRadius);
     if (core.bossState === s && s.action !== "transition") {
       core.bossStrikes.push({ x: e.x, y: e.y, attack: "nova", r: BOSS.nova.secondRadius,
         innerR: BOSS.nova.secondInnerRadius, windup: BOSS.nova.repeatDelay, t: BOSS.nova.repeatDelay,
-        dmg: bossAttackDamage(e.dmg, "nova"), type: "frost" });
+        dmg: bossAttackDamage(e.dmg, "nova"), type: BOSS_ATTACK_PROFILES.nova.type });
     }
   }
   if (attack === "chain") {
     // 随从作为导电节点：主线命中玩家 100%；主线命中随从时可向 100px 内玩家跳跃 60%。
     let points: Point[] = [];
     if (bossLineContains(e, s.angle, p, BOSS.chain.length, BOSS.chain.width)) {
-      hitPlayer(core, s, bossAttackDamage(e.dmg, "chain"), "lightning");
+      hitPlayer(core, s, bossAttackDamage(e.dmg, "chain"), "chain");
     } else {
       const relay = core.enemies.find((o) => !o.dead && o.bossSummon &&
         bossLineContains(e, s.angle, o, BOSS.chain.length, BOSS.chain.width + o.r * 2) &&
         Math.hypot(o.x - p.x, o.y - p.y) <= BOSS.chain.jumpRange);
       if (relay) {
         points = [{ x: relay.x, y: relay.y }, { x: p.x, y: p.y }];
-        hitPlayer(core, s, bossAttackDamage(e.dmg, "chainJump"), "lightning");
+        hitPlayer(core, s, bossAttackDamage(e.dmg, "chainJump"), "chain");
       }
     }
     impact(core, s, "chain", e, BOSS.chain.length, 0, points);
@@ -280,7 +281,7 @@ function updateHazards(core: GameCore, s: BossState, dt: number): void {
     if (strike.t <= 0) {
       const d = Math.hypot(core.player.x - strike.x, core.player.y - strike.y);
       if (d >= strike.innerR && d <= strike.r) {
-        const hit = hitPlayer(core, s, strike.dmg, strike.type);
+        const hit = hitPlayer(core, s, strike.dmg, strike.attack);
         if (hit && strike.attack === "nova") core.bossSlowT = BOSS.slowDuration;
       }
       impact(core, s, strike.attack, strike, strike.r, strike.innerR);
@@ -351,7 +352,7 @@ export function updateBosses(core: GameCore, dt: number): boolean {
     if (!s.dashHit && bossLineContains({ x: x0 - Math.cos(s.angle) * e.r, y: y0 - Math.sin(s.angle) * e.r },
       s.angle, core.player, step + e.r * 2, (e.r + core.player.r) * 2)) {
       s.dashHit = true;
-      hitPlayer(core, s, bossAttackDamage(e.dmg, "charge"), "physical");
+      hitPlayer(core, s, bossAttackDamage(e.dmg, "charge"), "charge");
     }
     if (core.bossState !== s || core.state !== "play") return true;
     if (s.action !== "dash") return false;

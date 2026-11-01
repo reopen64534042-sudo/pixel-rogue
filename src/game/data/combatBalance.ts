@@ -142,3 +142,26 @@ export const ENEMY_SKILL_DAMAGE = {
   lob: 1, fireGround: 0.25, thrust: 1, tether: 0.3,
   stomp: 1, gaze: 1, collapse: 0.8, sonic: 0.6,
 } as const;
+
+/** 既有条件命中修正从 CombatSystem 归集，数值保持 v172。 */
+export const CONDITIONAL_DAMAGE = {
+  specialMarkPerStack: 0.15,
+  executionCritBonus: 0.4,
+  gambleIncoming: 1.25,
+  armorBreakStackCap: 3,
+  armorBreakBurstMul: 1.8,
+  armorBreakPct: 0.2,
+  armorBreakDuration: 3,
+} as const;
+
+/** 旧路径原有系数归集，不改变 v172 数值。 */
+export const LEGACY_DAMAGE = {
+  orbitPerAttack: 0.3,
+  trail: 0.15,
+  chain: 0.7,
+  explodePerAttack: 0.5,
+  explodePerLevel: 2,
+  ricochet: 0.85,
+  counterShot: 1.5,
+  chargeContact: 1.3,
+} as const;

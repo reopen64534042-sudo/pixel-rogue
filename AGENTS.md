@@ -6,7 +6,7 @@
 ## 实际结构
 - src/main.ts：入口、缩放和 Phaser 配置。
 - src/game/scenes/GameScene.ts：唯一场景及其输入/更新/清理生命周期。
-- src/game/core/：GameCore 状态与命令，Simulation 按原顺序调度规则；Player/Combat/Attack/Projectile/Enemy/Wave/Progression/Talent/Swap/Effects 各有实际职责，BossSystem 管理三首巨兽的入场、三阶段、预警招式、危险区与随从（data/boss.ts 配置；每 10 波替代普通/精英）；LaserSystem 管理射手激光照射/回充、焦点与时间预算；MissileSystem 管理导弹装填/制导/扫掠，MissileCombat 经统一管线结算爆破/电弧/余烬。Mage/MageProgression/Element（元素法师 v2：法杖等级 1–12、每 4 次成功施法轮盘、Lv1/3/6 元素、A/B 套装、六反应与棱镜/分影/终章；ElementMath 为纯计算层）随职业池接入，Damage/CombatSystem 构成 Combat Foundation 统一伤害管线（S1 纯计算 + S2 全路径接入），CombatStats 为实体属性适配层（S3-A 接线 + S3-B 方案甲数值），StatModel 为纯属性解析模型（S4-A，未接入运行时），StatSheets 为 S4-B 只读 shadow 构建器（未接入运行时），FixedClock 固定步长。
+- src/game/core/：GameCore 状态与命令，Simulation 按原顺序调度规则；Player/Combat/Attack/Projectile/Enemy/Wave/Progression/Talent/Swap/Effects 各有实际职责，BossSystem 管理三首巨兽的入场、三阶段、预警招式、危险区与随从（data/boss.ts 配置；每 10 波替代普通/精英）；LaserSystem 管理射手激光照射/回充、焦点与时间预算；MissileSystem 管理导弹装填/制导/扫掠，MissileCombat 经统一管线结算爆破/电弧/余烬。Mage/MageProgression/Element（元素法师 v2：法杖等级 1–12、每 4 次成功施法轮盘、Lv1/3/6 元素、A/B 套装、六反应与棱镜/分影/终章；ElementMath 为纯计算层）随职业池接入，Damage/CombatSystem 构成 Combat Foundation 统一伤害管线（S1 纯计算 + S2 全路径接入），CombatStats 为实体属性适配层（S3-A 接线 + S3-B 方案甲数值），StatModel / StatKeyedMap 已用于玩家属性投影与敌人生成的运行时解析，StatSheets 仍为只读 shadow 对照工具，FixedClock 固定步长。
 - src/game/data/：常量、初始属性、射手/法师/战士职业池与通用卡（talents/ 分文件；旧表已于 v165 删除）、元素法师 v2 规则（elementalMage.ts）、首领配置（boss.ts）、敌人配置及伤害类型注册与战斗基准。
 - src/game/rendering/：像素纹理、Phaser绘制和对象复用；MonsterAnimation采样17套204帧，MonsterVfx使用MonsterFxRecipes，只读真实enemyVisualEvents及AI阶段。BossAnimation/BossArt/BossVfx/BossGeneratedVfx继续使用原版Boss八姿态和技能图集。动态预览见docs/monster-animation-and-vfx.md。vfx/laser桥接器与播放器由Scene按固定步采集；MissileRenderer只读飞行和引爆，复用PixelPainter深度与对象池。
 - src/game/rendering/characters/：职业人物表现；KatanaCharacter / GreatswordCharacter / ShooterCharacter / MageCharacter 由 Scene 只读模拟状态取帧，射手身体与独立瞄准的武器分层、折光剪影复用同套素材，法师接入魔女人物本体；MageVfx 按 Core 的只读 mageVisualEvents 绘制法阵/状态/棱镜/反应爆发，缺失素材回退原程序化表现，不修改战斗状态。
@@ -21,6 +21,12 @@
 
 ## 开发约束
 先 git status、阅读相关代码，保护用户修改；复用现有模块，不做无关重构、平衡变更或删除机制。禁止 any、吞关键异常、绕过真实逻辑或修改验收目标以通过测试；不引入无必要依赖、不做无关版本升级。Windows 执行前确认 PowerShell/Git Bash/CMD，使用匹配语法、UTF-8 和正确路径引号。
+
+### 战斗相关任务必须使用 skill
+
+涉及职业、武器、怪物、天赋、技能、伤害、防御、抗性、战斗属性、异常/控制、派生/触发规则或其数值展示说明的设计、实现、修复和重构，**开始前必须读取并使用 `.agents/skills/pixel-rogue-combat/SKILL.md`**，按其中的内容契约和来源→消费者链路执行；新增武器明确伤害属性与攻击形式，新增怪物明确护甲、抗性/弱点及控制规则。仅美术素材或纯布局改动按 skill 的触发边界判断。
+
+战斗代码交付前执行 `node scripts/audit-combat-contracts.mjs`，源路径变化后以 `--write` 刷新覆盖清单，再完成本文件规定的类型检查、构建与 diff 核对；静态核对不能代替玩法验收。提交、推送、PR 和合并仍各自需要用户对应授权。
 
 ## 游戏系统规范
 - 数据配置与运行状态、数值与表现分离；规则输入、输出和状态变化明确。
@@ -48,6 +54,7 @@
 - npm test：Vitest 规则及原版对照。
 - npm run typecheck：严格 TS、未使用声明检查。
 - npm run build：类型检查与 dist 构建。
+- node scripts/audit-combat-contracts.mjs：静态核对所有实际受击调用的 type/form/skillId、HP扣除位置和怪物/图鉴引用；不运行模拟。加 --write 更新 docs/combat-coverage.md，新增/修改战斗路径后执行。
 - npm run test:browser：先构建；自动占用 5174/4173，默认系统 Chrome。无 Chrome 时安装 Playwright Chromium 并设置 PLAYWRIGHT_CHANNEL=chromium。
 - npm run preview：127.0.0.1:4173 生产预览。
 - node scripts/build-laser-vfx-preview.mjs：导出正式激光动画的自包含预览；python scripts/export-laser-vfx-preview.py 可导出 GIF（已有 Python/Pillow，不代表实机验收）。
@@ -93,9 +100,10 @@
 
 ## 战斗数值开发资料
 
-- 面向非程序员的交互图解（优先阅读）：`docs/combat-numerics-explained.html`，离线浏览器直接打开，可动态演示属性、伤害、护甲与怪物成长。
-- 原始 Markdown 文字版：`docs/combat-numerics-explained.md`（保留供历史参考）。
-- 后续 Coding Agent 开发数值、伤害属性、天赋、怪物前必须先读：`docs/combat-numerics-agent-guide.md`（接口、数据所有权、修改入口与已知缺口）。
+- 当前伤害、防御与抗性总览：`docs/combat-system-current.md`；完整现有攻击与怪物防御清单：`docs/combat-coverage.md`（由源码生成）。公共应用在 `EnemyDamageApplication`，七武器/派生与全部敌方伤害分类在 `data/attackProfiles.ts`，玩家键控来源在 `PlayerCombatSources`；属性学习/重算使用 `attributeStatSources` 同时投影标量与映射。
+- 新增/修改职业、武器、怪物、战斗属性、伤害、防御、抗性、天赋与派生攻击，必须使用仓库 skill：`.agents/skills/pixel-rogue-combat/SKILL.md`，按其契约明确来源→解析→实体→攻击/快照→结算→死亡/统计/显示/重置；小改动只记录变化项，不强制新建文档。
+- 按任务查阅：`docs/combat-numerics-agent-guide.md`（权威文件、接线步骤与已知缺口）；完整怪物数值与成长见 `docs/monster-numerics.md`。
+- 交互图解 `docs/combat-numerics-explained.html` 与原始文字版 `docs/combat-numerics-explained.md` 保留作基础教学/历史参考；旧阶段、示例数值与未覆盖机制不作为当前完整规则。
 - 当前迭代按用户要求代码优先；除非另有授权，暂缓新增测试与自行完整验收，统一留待底层完成后进行。
 
 ## 文档维护

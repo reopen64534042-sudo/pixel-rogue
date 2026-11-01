@@ -19,7 +19,7 @@ import type {
   WarriorStyle,
 } from "../game/core/types";
 import { ENEMY_ENTRIES } from "../game/codex/codexData";
-import { DAMAGE_TYPES } from "../game/data/damageTypes";
+import { DAMAGE_TYPES, RESISTANCE_TYPES } from "../game/data/damageTypes";
 import { groupLabel, rarityLabel } from "../game/core/AttributeSystem";
 import { CHANGELOG, CURRENT_VERSION } from "../game/data/changelog";
 import { resolveDifficulty } from "../game/data/difficulty";
@@ -1098,30 +1098,17 @@ export class GameUI {
       // S3-C：护甲/元素抗性与战斗计算同公式（K/(K+DEF)，与减伤乘算）
       [
         "🪨 护甲",
-        p.defense ? `${p.defense}（物理 -${physMit(p.defense)}%）` : "—",
+        p.defense ? `${p.defense}（物理/引力 -${physMit(p.defense)}%）` : "—",
       ],
-      // 射手当前天赋/属性池没有三系抗性来源，隐藏这些空行；法师保留。
-      ...(isMage
-        ? ([
-            [
-              "🌋 火焰抗性",
-              resist.fire
-                ? pct(Math.min(resist.fire, COMBAT_BALANCE.resistanceCap))
-                : "—",
-            ],
-            [
-              "🌩️ 雷电抗性",
-              resist.lightning
-                ? pct(Math.min(resist.lightning, COMBAT_BALANCE.resistanceCap))
-                : "—",
-            ],
-            [
-              "❄️ 冰霜抗性",
-              resist.frost
-                ? pct(Math.min(resist.frost, COMBAT_BALANCE.resistanceCap))
-                : "—",
-            ],
-          ] as [string, string | number][])
+      // 从注册表派生；非元素使也在真正获得抗性/弱点后显示。
+      ...(isMage || RESISTANCE_TYPES.some((type) => (resist[type] ?? 0) !== 0)
+        ? RESISTANCE_TYPES.map((type): [string, string | number] => {
+            const icon = type === "fire" ? "🌋" : type === "frost" ? "❄️" : type === "lightning" ? "🌩️" : "🛡️";
+            const value = resist[type] ?? 0;
+            return [`${icon} ${DAMAGE_TYPES[type].label}抗性`, value
+              ? pct(Math.max(COMBAT_BALANCE.resistanceFloor, Math.min(value, COMBAT_BALANCE.resistanceCap)))
+              : "—"];
+          })
         : []),
       ["🌀 闪避", p.dodge ? (p.dodge * 100).toFixed(0) + "%" : "—"],
     ];

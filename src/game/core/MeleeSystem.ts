@@ -1,13 +1,15 @@
 import type { GameCore } from "./GameCore";
 import { KNOCK_DAMP } from "../data/knockback";
 import { isFrostLocked } from "./ElementMath";
-import type { Enemy } from "./types";
+import type { AttackProfile, Enemy } from "./types";
+import { PLAYER_ATTACK_PROFILES as PA } from "../data/attackProfiles";
 
 const FULL = Math.PI * 2;
 /** 角度比较容差，避免 2π 与 0 的浮点误差 */
 const EPS = 1e-6;
 
 export interface MeleeSwingOptions {
+  attackProfile?: Readonly<AttackProfile>;
   /**
    * 中心方向（弧度）。省略时自动朝最近敌人；
    * 全向（spread >= 2π）时省略则视为 0。
@@ -105,8 +107,8 @@ export function meleeSwing(this: GameCore, opts: MeleeSwingOptions): Enemy[] {
     }
     this.hurtEnemy(e, opts.dmg, 0, 0, {
       src: opts.iaiHit ? "iai" : opts.triHit ? "tri" : "melee",
-      type: "physical",
-      form: "melee",
+      ...(opts.attackProfile ?? (opts.iaiHit ? PA.warriorIai : opts.triHit ? PA.warriorTri
+        : this.warriorStyle === "katana" ? PA.katanaSwing : PA.greatswordSwing)),
       ...(opts.lifestealMul !== undefined
         ? { lifestealMul: opts.lifestealMul }
         : {}),

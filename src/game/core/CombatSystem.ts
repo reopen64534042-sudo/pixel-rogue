@@ -3,7 +3,10 @@ import { enemyCodexKey, ETYPES } from "../data/enemies";
 import { enemyGuardMultiplier } from "./DamageMath";
 import { interruptEnemyAction } from "./EnemyBehaviors";
 import { emitEnemyVisual } from "./EnemyVisualEvents";
-import { bossDamageTakenMultiplier, bossInvulnerable, clearBossTransient, syncBossPhase } from "./BossSystem";
+import { bossInvulnerable, clearBossTransient, syncBossPhase } from "./BossSystem";
+import { CONDITIONAL_DAMAGE as CD } from "../data/combatBalance";
+import { PLAYER_ATTACK_PROFILES as PA } from "../data/attackProfiles";
+import { applyEnemyDotDamage, applyEnemyHpDamage, resolveEnemyHitDamage } from "./EnemyDamageApplication";
 import type { GameCore } from "./GameCore";
 import {
   BOX_DROP_CAP,
@@ -22,15 +25,11 @@ import {
   shieldRebuildSeconds,
 } from "../data/warriorBalance";
 
-/** 战士「裂甲」：近战命中叠层，第 3 层引爆；共享卡数值集中在此。 */
-const LIE_JIA_MAX_STACKS = 3;
-const LIE_JIA_BURST_MUL = 1.8;
-const LIE_JIA_ARMOR_BREAK_PCT = 0.2;
-const LIE_JIA_ARMOR_BREAK_T = 3;
 import { calculateDamage } from "./DamageSystem";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { extendFrostLock, isFrostLocked } from "./ElementMath";
 import type {
+  AttackProfile,
   DamageCause,
   DamageResult,
   DamageTakenEvent,
@@ -40,7 +39,6 @@ import type {
 } from "./types";
 import { hasteCap } from "../data/talents";
 import {
-  FISSION_DAMAGE_MUL,
   FISSION_FRAGMENTS,
   FISSION_LIFE,
   FISSION_RANGE,
@@ -53,6 +51,14 @@ import {
   scorchVulnMultiplier,
   frostFreezeDuration,
   shieldShockDamage,
+  bloodDebtDamage,
+  markedShotDamage,
+  armorBreakBurstDamage,
+  gambleIncomingDamage,
+  legacyChainDamage,
+  fissionDamage,
+  killExplosionDamage,
+  thornsDamage,
 } from "./DamageMath";
 
 /** 真实伤害飘字：银白填色 + 冷蓝描边/外发光，优先于强化弹/暴击的金色 */
@@ -125,10 +131,7 @@ export function hurtEnemy(
     opts.form === "melee" &&
     this.warriorBloodDebtStacks > 0
   )
-    dmg *=
-      1 +
-      WARRIOR_BALANCE.counterChain.bloodDebtPerStack *
-        this.warriorBloodDebtStacks;
+    dmg = bloodDebtDamage(dmg, this.warriorBloodDebtStacks);
   // 冷读是「下一次命中」，命中即消费；赌命是窗口，不消费
   if (crit && this.dodgeNextCrit) this.dodgeNextCrit = false;
   // Issue #42 灼热易伤：灼烧目标受伤增加——条件天赋增伤折叠进 rawAmount
@@ -137,7 +140,7 @@ export function hurtEnemy(
   if (e.burnStacks > 0 && p.scorchVuln)
     dmg *= scorchVulnMultiplier(p);
   // 「贯穿标记」/「深痕」：标记只放大强化弹直接命中，每层 +15%。
-  if (opts.specialHit && e.markStacks > 0) dmg *= 1 + 0.15 * e.markStacks;
+  if (opts.specialHit && e.markStacks > 0) dmg = markedShotDamage(dmg, e.markStacks);
   // 「余韵」：闪避后的一次性强化弹伤害加成，命中强化弹时消费
   if (opts.specialHit && this.dodgeNextDmg > 1) {
     dmg *= this.dodgeNextDmg;
@@ -149,17 +152,17 @@ export function hurtEnemy(
     dmg > 0 &&
     (p.upCounts["裂甲"] || 0) > 0;
   const lieJiaNext = lieJiaOwned
-    ? Math.min(LIE_JIA_MAX_STACKS, (e.lieJiaStacks ?? 0) + 1)
+    ? Math.min(CD.armorBreakStackCap, (e.lieJiaStacks ?? 0) + 1)
     : 0;
   const lieJiaBurst =
-    lieJiaOwned && lieJiaNext >= LIE_JIA_MAX_STACKS;
-  if (lieJiaBurst) dmg *= LIE_JIA_BURST_MUL;
+    lieJiaOwned && lieJiaNext >= CD.armorBreakStackCap;
+  if (lieJiaBurst) dmg = armorBreakBurstDamage(dmg);
   // 处决的暴伤 +40% 走攻击方快照（与暴击率同源，避免第二次取属性）
   const baseStats = opts.attackerStats ?? getPlayerCombatStats(p);
   const attackerStats = executing
     ? {
         ...baseStats,
-        critMultiplier: baseStats.critMultiplier + 0.4,
+        critMultiplier: baseStats.critMultiplier + CD.executionCritBonus,
       }
     : baseStats;
   const effectiveAttackerStats = ruiShi
@@ -181,6 +184,7 @@ export function hurtEnemy(
     type: opts.type ?? "physical",
     form: opts.form ?? "other",
     origin: opts.src ?? "hit",
+    skillId: opts.skillId,
     kind: opts.kind ?? "hit",
     precision: opts.continuous ? "preserve-float" : "round-min-one",
     isCritical: crit,
@@ -192,12 +196,22 @@ export function hurtEnemy(
   let trueDamage = 0;
   for (const component of opts.components ?? []) {
     const extra = calculateDamage(DAMAGE_TYPES, {
-      rawAmount:component.rawAmount * enemyGuardMultiplier(e, opts.origin ?? p, component.type, opts.kind ?? "hit"), type:component.type, form:opts.form ?? 'other',
-      origin:opts.src ?? 'hit',kind:opts.kind ?? 'hit',precision:'preserve-float',isCritical:false,
-      attackerStats:component.inheritBonuses ? effectiveAttackerStats : {
-        ...effectiveAttackerStats,globalDamageBonus:0,typeDamageBonus:{},formDamageBonus:{},skillDamageBonus:undefined,
+      rawAmount: component.rawAmount * enemyGuardMultiplier(e, opts.origin ?? p, component.type, opts.kind ?? "hit"),
+      type: component.type,
+      form: opts.form ?? "other",
+      origin: opts.src ?? "hit",
+      skillId: component.inheritBonuses ? component.skillId ?? opts.skillId : undefined,
+      kind: opts.kind ?? "hit",
+      precision: "preserve-float",
+      isCritical: false,
+      attackerStats: component.inheritBonuses ? effectiveAttackerStats : {
+        ...effectiveAttackerStats,
+        globalDamageBonus: 0,
+        typeDamageBonus: {},
+        formDamageBonus: {},
+        skillDamageBonus: undefined,
       },
-      defenderStats:getEnemyCombatStats(e,armorPen),
+      defenderStats: getEnemyCombatStats(e, armorPen),
     });
     const amount=extra.settledDamage;
     settled+=amount;
@@ -210,6 +224,7 @@ export function hurtEnemy(
       type: "true",
       form: opts.form ?? "other",
       origin: opts.src ?? "hit",
+      skillId: opts.skillId,
       kind: opts.kind ?? "hit",
       precision: opts.continuous ? "preserve-float" : "round-min-one",
       isCritical: crit,
@@ -224,18 +239,9 @@ export function hurtEnemy(
     this.runHighestHit = { amount: dmg, source: opts.src ?? "melee" };
   // 动态难度：最终伤害层，连 true / 百分比生命伤害一起压。
   // 放在所有伤害修正之后、lethalCap 之前；主伤害与 +真实伤害分别按同一乘区取整。
-  const damageTakenMul = (e.damageTakenMul ?? 1) * bossDamageTakenMultiplier(this, e);
-  if (damageTakenMul !== 1) {
-    const mainPart = trueDamage > 0 ? Math.max(0, dmg - trueDamage) : dmg;
-    const taken = (v: number) =>
-      v <= 0 ? 0 : opts.continuous
-        ? v * damageTakenMul
-        : Math.max(1, Math.round(v * damageTakenMul));
-    const scaledMain = taken(mainPart);
-    const scaledTrue = taken(trueDamage);
-    dmg = scaledMain + scaledTrue;
-    trueDamage = scaledTrue;
-  }
+  const finalDamage = resolveEnemyHitDamage(this, e, dmg, trueDamage, opts.continuous === true);
+  dmg = finalDamage.settledDamage;
+  trueDamage = finalDamage.trueDamage;
   // v76 法师反应保护：目标满足反应条件、且这一发会击杀时，直伤最多留
   // 1 HP，让随后结算的反应完成击杀。只压低实际应用值；反应基数由调用方
   // 另行传入，不受本处影响（反应/连锁不得使用 lethalCap）。
@@ -328,10 +334,9 @@ export function hurtEnemy(
     e.markStacks = Math.min(cap, e.markStacks + 1);
     e.markHits = 0;
   }
-  const hpBefore = e.hp;
+  const hpBefore = applyEnemyHpDamage(e, dmg);
   // v148：吸血按目标实际损失的生命结算，溢出伤害不回血。
   const dealtHpLoss = Math.max(0, Math.min(hpBefore, dmg));
-  e.hp -= dmg;
   if (dmg > 0 && opts.kind !== "dot" && e.action?.kind === "tether") interruptEnemyAction(e);
   // 霜牢：受到直接伤害延长 0.4 秒（0.2 秒内最多一次，总时长至多 4.5 秒）。
   // DoT 不是直接伤害，不延长。
@@ -343,8 +348,8 @@ export function hurtEnemy(
   if (lieJiaOwned) {
     if (lieJiaBurst) {
       e.lieJiaStacks = 0;
-      e.armorBreakT = LIE_JIA_ARMOR_BREAK_T;
-      e.armorBreakPct = LIE_JIA_ARMOR_BREAK_PCT;
+      e.armorBreakT = CD.armorBreakDuration;
+      e.armorBreakPct = CD.armorBreakPct;
       this.addText(
         e.x,
         e.y - e.r - 12,
@@ -403,13 +408,12 @@ export function hurtEnemy(
       this.bolts.push({ x1: px, y1: py, x2: o.x, y2: o.y, life: 0.15 });
       px = o.x;
       py = o.y;
-      this.hurtEnemy(o, dmg * (0.7 + this.player.chainDmg), 0, 0, {
+      this.hurtEnemy(o, legacyChainDamage(dmg, this.player.chainDmg), 0, 0, {
         noChain: true,
         noCrit: true,
         src: "chain",
         origin: incoming,
-        type: "lightning",
-        form: "other",
+        ...PA.chain,
       });
     }
     if (near.length) this.audio.beep(1200, 0.08, "sawtooth", 0.04, -600);
@@ -429,11 +433,12 @@ export function hurtEnemy(
       for (const target of targets) {
         const a = Math.atan2(target.y - e.y, target.x - e.x);
         this.bullets.push({
+          attackProfile: PA.fission,
           x: e.x,
           y: e.y,
           vx: Math.cos(a) * FISSION_SPEED,
           vy: Math.sin(a) * FISSION_SPEED,
-          dmg: dmg * FISSION_DAMAGE_MUL,
+          dmg: fissionDamage(dmg),
           pierce: 0,
           falloff: 1,
           life: FISSION_LIFE,
@@ -624,7 +629,7 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
       if (dx * dx + dy * dy < R * R)
         this.hurtEnemy(
           o,
-          (p.damage * 0.5 + p.explode * 2) * (1 + p.explodeDmg),
+          killExplosionDamage(p),
           0,
           0,
           {
@@ -633,8 +638,7 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
             fromExplode: true,
             src: "explode",
             origin: e,
-            type: "fire",
-            form: "other",
+            ...PA.explode,
           },
         );
     }
@@ -770,7 +774,7 @@ export function damagePlayer(
     return blockedHit(dmg, { dodged: true, shieldUsed: "none" });
   }
   // S2「赌命」的代价：窗口内所有命中必暴，但受到的伤害 +25%
-  if (this.dodgeProcT > 0 && (p.upCounts["赌命"] || 0) > 0) dmg *= 1.25;
+  if (this.dodgeProcT > 0 && (p.upCounts["赌命"] || 0) > 0) dmg = gambleIncomingDamage(dmg);
   // 壁垒: 临时护盾优先消耗
   if (p.tempShield > 0) {
     p.tempShield--;
@@ -804,8 +808,7 @@ export function damagePlayer(
         this.hurtEnemy(o, shockDmg, 0, 0, {
           noCrit: true,
           src: "shock",
-          type: "physical",
-          form: "melee",
+          ...PA.shock,
         });
         if (!o.boss) o.stunT = Math.max(
           o.stunT ?? 0,
@@ -851,6 +854,7 @@ export function damagePlayer(
     type: opts.type ?? "physical",
     form: opts.form ?? "other",
     origin: opts.src ? "contact" : "enemy",
+    skillId: opts.skillId,
     kind: opts.kind ?? "hit",
     precision: "preserve-float",
     isCritical: false,
@@ -902,11 +906,7 @@ export function damagePlayer(
     killed,
     preventedDeath,
   });
-  const thornsDmg =
-    p.thorns +
-    ((p.upCounts["荆棘重铠"] || 0) > 0
-      ? p.damage * WARRIOR_BALANCE.counterChain.thornsMeleeMul
-      : 0);
+  const thornsDmg = thornsDamage(p);
   if (opts.melee && thornsDmg && opts.src) {
     const dx = p.x - opts.src.x,
       dy = p.y - opts.src.y,
@@ -919,8 +919,7 @@ export function damagePlayer(
       {
         noCrit: true,
         src: "thorns",
-        type: "physical",
-        form: "other",
+        ...PA.thorns,
       },
     );
   }
@@ -960,33 +959,11 @@ function applyFireDot(
   e: Enemy,
   dps: number,
   dt: number,
+  profile: Readonly<AttackProfile>,
 ): DamageResult {
-  const calc = calculateDamage(DAMAGE_TYPES, {
-    rawAmount: dps * dt,
-    type: "fire",
-    form: "other",
-    origin: "burn",
-    kind: "dot",
-    precision: "preserve-float",
-    isCritical: false,
-    attackerStats: getPlayerCombatStats(core.player),
-    defenderStats: getEnemyCombatStats(e),
+  return applyEnemyDotDamage(core, e, dps * dt, {
+    ...profile, src: "burn",
   });
-  const taken = bossInvulnerable(core, e) ? 0 : calc.settledDamage * (e.damageTakenMul ?? 1) * bossDamageTakenMultiplier(core, e);
-  const hpBefore = e.hp;
-  e.hp -= taken;
-  syncBossPhase(core, e);
-  core.dmgBy.burn += taken;
-  return {
-    ...calc,
-    settledDamage: taken,
-    effectiveHpLoss: Math.min(hpBefore, taken),
-    dodged: false,
-    shieldUsed: "none",
-    lethal: e.hp <= 0,
-    killed: false,
-    preventedDeath: false,
-  };
 }
 
 /** 灼烧 DoT（EnemySystem 每帧调用）：DPS 来自施加时定值的 e.burnDps */
@@ -995,7 +972,7 @@ export function applyBurnDot(
   e: Enemy,
   dt: number,
 ): DamageResult {
-  return applyFireDot(this, e, e.burnDps, dt);
+  return applyFireDot(this, e, e.burnDps, dt, PA.burn);
 }
 
 /**
@@ -1009,5 +986,5 @@ export function applyBurnGroundDot(
   dps: number,
   dt: number,
 ): DamageResult {
-  return applyFireDot(this, e, dps, dt);
+  return applyFireDot(this, e, dps, dt, PA.ground);
 }

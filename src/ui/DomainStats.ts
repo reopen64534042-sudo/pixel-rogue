@@ -3,7 +3,8 @@ import { domainSnapshot } from '../game/core/DomainSystem';
 import { domainDamage, domainFieldDamage, domainWeaponMultiplier, domainCurrentHpDamage } from '../game/core/DamageMath';
 import { playerMoveSpeed } from '../game/core/PlayerSystem';
 import { DOMAIN, DOMAIN_UPGRADES, DOMAIN_UNLOCK_LEVELS, domainXpNext, domainHas, domainUpgrade } from '../game/data/domain';
-import { DOMAIN_DAMAGE } from '../game/data/combatBalance';
+import { COMBAT_BALANCE, DOMAIN_DAMAGE } from '../game/data/combatBalance';
+import { DAMAGE_TYPES, RESISTANCE_TYPES } from '../game/data/damageTypes';
 import { levelGrowthSteps, levelGrowthSummary } from '../game/data/levelGrowth';
 import { DOMAIN_VALUE_GAINS, ATTRIBUTE_CAPS } from '../game/data/attributeBalance';
 import { DOMAIN_TALENTS } from '../game/data/talents/domain';
@@ -49,6 +50,10 @@ export function buildDomainStats(c:GameCore) {
   ]);
   put('stat-defense',[
     ['生命',fmtHp(p.hp,p.maxhp)],['护甲',f(p.defense??0)],['通用减伤',pct(p.tough)],['闪避',pct(p.dodge)],
+    ...RESISTANCE_TYPES.filter(type=>(p.resistances?.[type]??0)!==0).map((type):Row=>[
+      `${DAMAGE_TYPES[type].label}抗性`,
+      pct(Math.max(COMBAT_BALANCE.resistanceFloor,Math.min(COMBAT_BALANCE.resistanceCap,p.resistances?.[type]??0))),
+    ]),
     ['引力护盾',shield?`${f(d.shield)} / ${f(p.maxhp*DOMAIN.shieldCap)}`:'未学习'],
     ['护盾剩余',shield?`${f(Math.max(0,d.shieldUntil-c.time))} s`:'—'],
   ]);

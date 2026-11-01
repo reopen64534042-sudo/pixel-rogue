@@ -1,5 +1,35 @@
 # 迁移记录与验收基线
 
+## 全量现有攻击声明与公式收口（v173 续，2026-11-01）
+
+- AGENTS 在开发约束下单列“战斗相关任务必须使用 skill”，覆盖设计/实现/修复/重构及数值说明，明确武器属性、怪物防御/抗性、静态核对与验证入口。用户已授权本批提交、推送和创建 PR；合并不在本次授权范围。
+- 补齐此前公共结算批次未覆盖的现有内容：PLAYER_ATTACK_PROFILES 逐项登记七武器主/派生与旧兼容接口；HOSTILE_ATTACK_PROFILES 登记旧弹丸/接触/冲锋接触/自爆/词缀新星/三系地面。所有实际 hurtEnemy/damagePlayer/applyEnemyDotDamage 调用明确提供 type/form/skillId；时变元素/离子/真伤用 withDamageType 覆盖，统计 src 与触发权限沿原路径保留。
+- Bullet/EnemyBullet/敌方地面支持创建时携带只读 attackProfile；裂变、反击、普通/强化弹不混用技能身份。MeleeSwingOptions 同样支持攻击声明，跃击/三段斩/残影/居合/普通挥砍各有稳定键。旧手工构造仍有兼容缺省；现有玩家没有对应技能增伤来源，因此补齐身份不增加任何已获加成。领域真实分量明确自身键，生命压缩仍关闭增伤继承。
+- 将系统中的射手距离档位/发射/百分比生命/衰减/反射、旧激光导弹与灼烧地面、元素直伤/棱镜/反应/链/DoT、战士条件挥砍/波/跃击/三段/回响、通用连锁/击杀爆炸/反伤等纯伤害公式归入 DamageMath。既有职业数据继续拥有其参数，旧散落常数归集 LEGACY_DAMAGE；保持 IEEE-754 左结合顺序，不改变 RNG、状态触发、盾顺序、治疗或 XP 预算。
+- 新增 scripts/audit-combat-contracts.mjs，使用项目现有 TypeScript AST/类型检查来源元数据，默认只读，不导入游戏模块、不执行模拟。校验 src 中实际受击调用必填且非可选/非空字段、两个 HP 扣除收口、注册属性/形式、技能键唯一性与图鉴引用；--write 只更新 docs/combat-coverage.md。当前为 75 个声明、40 个调用点、17 份怪物配置/18 条图鉴，无未引用配置；brute 普通/精英共享基础配置，未添加中性字段或改抗性。
+- skill/AGENTS/指南接入静态命令与全量清单；同步双份 v173 最终日志。旧快照/弹丸与地面对象形状断言可能因新增 attackProfile 过期，后续授权批次核对；未新增/修改测试，不运行 Vitest/Playwright。此轮完成现有代码组织与声明覆盖，不宣称浏览器、自然玩法、性能或平衡验收。
+- 验证：npm run typecheck、npm run build（148 模块）、git diff --check 与 skill quick_validate 通过；静态核对/清单生成通过，75 声明、40 调用、17 配置/18 图鉴、2 处 HP 扣除，无缺失声明/非法引用。逐段核对公式搬迁与声明接线；仍有既有大 chunk 提示。未执行任何运行时/自然玩法验收，没有新增或修改测试。
+
+## 伤害防御系统公共应用与来源整理（v173，2026-11-01）
+
+- 用户确认继续整理现有实现。在 codex/combat-system-skill 保留前序文档/skill 改动，fetch 后 upstream/main 仍为 6c269e2；不动两条他人 autostash，不提交/推送/建或合并 PR。
+- EnemyDamageApplication 统一敌方 HP 写入、命中最终承伤及无普通命中触发的 DoT；CombatSystem 旧燃烧/焦土和 ElementSystem 元素 DoT 共同委托。主命中的主/真实分组取整与 DoT 左结合浮点乘法分开保留，Boss 转阶段归零、阶段同步、原调用侧死亡时序与来源统计维持；连续激光/导弹余烬/领域仍沿 hurtEnemy 保留各自触发预算。
+- HitOptions/PlayerHitOptions 增加 skillId 并透传，trueFraction 继承主键，components 在继承增伤时可覆写技能键，否则不吃增伤；公共 DoT 同样可显式指定技能键。现有未指定玩家攻击继续为中性技能乘区，没有给任何武器额外加成。
+- data/attackProfiles 以 Record 对怪物行动/Boss招式完整声明 type/form/skillId，替换按 type 推断 form 的帮助函数；保留原 v172 分类、伤害和命中门禁。血偿/标记/裂甲/赌命条件公式与数值归入 DamageMath/CONDITIONAL_DAMAGE，不改变数值与原先运算顺序。
+- PlayerCombatSources 为四类映射提供通用键所有权/解析投影；源内修饰符须属于声明键，伤害/形式键校验，拒绝未被消费的独立护甲类型抗性。ownedKeys 稳定、失效 modifiers 为空时删旧值，多来源同键只解析一次，未接管的外部键保留，所有映射计算成功后才写回。历史火/雷来源复用此入口；StatKeyedMap 拥有通用类型，StatSheets 保留兼容重导出且仍为 shadow。
+- AttributePoint/AttrDef 可携带 key，toAttributePoint/attributeStatSources/TalentSystem 学习与重算完整传递标量和映射，局末摘要有键时保留 key，旧摘要/战绩格式不改；当前候选/基础值/怪物抗性不变。RESISTANCE_TYPES 从注册表派生，通用与领域属性面板、敌人图鉴按此展示，护甲说明包含引力，图鉴参数读取 COMBAT_BALANCE。
+- 同步总览/接入指南/skill 和双份 v173 更新日志。现有版本号、图鉴抗性名称/顺序或面板文案断言可能需要在授权批次核对；未新增或修改测试，不运行 Vitest/Playwright。保留历史连锁继承已应用伤害、runHighestHit 原记录时点、领域主分量吸血等特例；未进行自然玩法、浏览器、性能或平衡验收。
+- 验证：最终 npm run typecheck、npm run build（148 模块）与 git diff --check 通过；skill quick_validate 通过。逐段核对公共应用、来源投影、分类声明和显示差异；敌方 HP 扣除仅余公共应用函数。构建仍有大 chunk 提示；没有运行 Vitest/Playwright 或任何新增规则测试，不能据此宣称运行时/自然玩法已验收。
+
+## 伤害防御系统梳理与仓库 skill（2026-11-01，文档批次）
+
+- 用户要求系统整理新增职业/武器/怪物时的属性、抗性与遗漏入口，并落实为 skill；先按用户补充要求 fetch upstream/origin，从 upstream/main@6c269e2（v172）创建 codex/combat-system-skill。原 Boss 分支与两条已有 autostash 保持原样；未提交、推送或创建/合并 PR。
+- 对照 damageTypes、DamageSystem、CombatStats、StatModel/来源投影、CombatSystem、七武器/流派、EnemyStatSources/行为、Boss、难度及 UI 消费者，新增 combat-system-current，重写 combat-numerics-agent-guide，修正 AGENTS 中 StatModel 尚未接运行时的过期说明。旧 Foundation 和文字图解加历史提示，交互 HTML 保留基础教学用途。
+- 明确六属性与 armor/resistance/none、负抗性、穿透/破甲、tough、数值/次数盾、最终难度/Boss易伤、控制状态及快照/触发预算；逐项记录 skillId 未透传、玩家键控来源不通用、部分帮助函数按 type 推断 form、条件公式散落及多 DoT 应用路径等边界，没有据此改变战斗行为。
+- 新增 .agents/skills/pixel-rogue-combat（SKILL.md、agents/openai.yaml、references/content-contract.md），AGENTS 设置必读入口。按来源→解析→实体→raw/快照→结算→死亡/统计/显示/重置闭合；新增内容逐分量声明，无关项明确不适用，小改动只留差异。
+- 本批仅文档与 skill，无生产代码/数值、依赖、测试或素材变更，不递增游戏版本；quick_validate 通过，9 个相关文件与 16 个本地链接核对通过，npm run typecheck、npm run build（146 模块）及 git diff --check 通过。构建保留大 chunk 提示；不运行 Vitest/Playwright，不补既有过期基线，未进行玩法/平衡验收。
+- 用户追问后补强 skill 与契约 §0：新武器逐攻击/分量明确伤害属性与形式；新怪物明确基础护甲、所有适用元素抗性/弱点（含明确中性）、tough、控制规则及各攻击属性。不强制物化中性字段，不臆造引力抗性；引力当前使用护甲策略，另受通用减伤与最终应用层修正。本次补充仅文档，未执行运行时系统重构。
+
 ## 同步怪物扩展并更新敌人图鉴（v170，2026-11-01）
 
 - 用户指出旧13条敌人图鉴落后于上游，明确要求同步。fetch后upstream/main为4d2d1af（PR #234，v169），本分支从ecb8c15快进到该提交，带入新增物种、精英分工及17套怪物动作/素材；没有改写上游提交。

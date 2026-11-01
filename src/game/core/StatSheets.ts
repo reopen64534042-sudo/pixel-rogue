@@ -17,10 +17,9 @@
  * 逐 key 构造以通用族为槽位的子属性表走 resolveStats（StatModel S4-B
  * 加性扩展 KEYED_STAT_FAMILIES），类型名永远只作为 key 存在。
  *
- * 纯函数：不改写任何输入、无持久缓存、无副作用。S4-C C1 起，通用解析件
- * resolveKeyedMap 与键控修饰符类型被权威路径（core/TalentStatSources.ts）
- * 复用；本模块的 shadow 构建器（playerShadowFromEntity/playerShadowFromPicks/
- * enemyShadow*）仍是独立重述的对照侧，不被任何运行时结算路径引用。
+ * 纯函数：不改写任何输入、无持久缓存、无副作用。通用解析与键控类型由
+ * StatKeyedMap 独立拥有，本模块保留历史重导出兼容；运行时不再从 shadow
+ * 模块导入。本模块的 shadow 构建器仍是独立重述的对照侧，不参与结算。
  */
 import { COMBAT_BALANCE } from "../data/combatBalance";
 import type { DamageTypeId } from "../data/damageTypes";
@@ -29,24 +28,15 @@ import { critMultiplier } from "./DamageMath";
 import { resolveKeyedMap } from "./StatKeyedMap";
 import {
   resolveStats,
-  type KeyedStatFamily,
   type StatModifier,
 } from "./StatModel";
+import type { TypeDamageBonusModifier } from "./StatKeyedMap";
 import type { Enemy, EnemyConfig, Player } from "./types";
 
 export { resolveKeyedMap } from "./StatKeyedMap";
 
-/** 键控修饰符：族槽位 + 结构化键（类型/形态名），构成类型化映射的来源 */
-export type KeyedModifier<F extends KeyedStatFamily> = StatModifier & {
-  stat: F;
-  key: string;
-};
-export type TypeDamageBonusModifier = KeyedModifier<"typeDamageBonus"> & {
-  key: DamageTypeId;
-};
-export type ResistanceModifier = KeyedModifier<"resistance"> & {
-  key: DamageTypeId;
-};
+/** 保留历史导出兼容；运行时通用类型由 StatKeyedMap 拥有。 */
+export type { KeyedModifier, TypeDamageBonusModifier, ResistanceModifier } from "./StatKeyedMap";
 
 /** shadow 首批字段（评审定基线：DEF/tough/暴击率暴伤/火雷增伤；不含 attack/maxHp） */
 export interface PlayerShadowStats {

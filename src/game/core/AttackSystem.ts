@@ -1,11 +1,10 @@
 import { updateLaser } from "./LaserSystem";
 import { updateMissile } from "./MissileSystem";
 import type { GameCore } from "./GameCore";
+import { PLAYER_ATTACK_PROFILES as PA } from "../data/attackProfiles";
 import { SPECIAL_SHOT_EVERY } from "../data/constants";
 import {
   DOUBLE_SHOT_DAMAGE_MUL,
-  ENHANCED_NORMAL_DAMAGE_FRACTION,
-  OVERLOAD_DAMAGE_MUL,
   OVERLOAD_EVERY,
   PIERCE_FLOOR_OVERLOAD,
   getSpecialLevelStats,
@@ -19,8 +18,12 @@ import {
 import { professionPierce } from "./AttributeSources";
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import {
-  boltDamage,
+  shooterBaseDamage,
+  shooterLaunchDamage,
   chargedShotDamage,
+  shooterShotDamage,
+  shooterDistanceBonus,
+  orbitDamage,
   meteorDamage,
   multishotSpread,
   burnGroundDps,
@@ -57,13 +60,10 @@ export function updateAttacks(this: GameCore, dt: number) {
       let specialRangePierce = 0;
       if (p.distanceDmg > 0) {
         const ratio = dist / p.attackRange;
-        if (ratio >= 0.92) {
-          distMul = 1.25;
-          critBonus = 0.1;
-          // 满档的额外收益只给强化弹，让「距离即收益」与核心循环直接挂钩。
-          specialRangePierce = 1;
-        } else if (ratio >= 0.75) distMul = 1.15;
-        else if (ratio >= 0.5) distMul = 1.05;
+        const bonus = shooterDistanceBonus(ratio);
+        distMul = bonus.damage;
+        critBonus = bonus.crit;
+        specialRangePierce = bonus.pierce;
       }
       // S2「贯穿轨迹」：弹道留下 0.6 秒能量线（机制在 ProjectileSystem 结算）
       // 强化弹专属触发，普通弹不再留轨迹。
@@ -79,7 +79,7 @@ export function updateAttacks(this: GameCore, dt: number) {
         naturalSpecial || this.specialLoaded || this.dodgeProcT > 0;
       if (this.specialLoaded) this.specialLoaded = false;
       const specialStats = getSpecialLevelStats(this.specialLevel);
-      const baseDmg = boltDamage(p) * distMul;
+      const baseDmg = shooterBaseDamage(p, distMul);
       const specialBaseDmg = chargedShotDamage(baseDmg, specialStats.mul);
       const enhancedNormal =
         !special && this.specialUpgrades.includes("enhancedNormal");
@@ -93,12 +93,7 @@ export function updateAttacks(this: GameCore, dt: number) {
       const volley =
         special && (p.upCounts["齐射"] || 0) > 0 ? 3 : 1;
       const volleyMul = volley > 1 ? 0.5 : 1;
-      let shotDmg = special ? specialBaseDmg : baseDmg;
-      if (enhancedNormal) {
-        shotDmg =
-          baseDmg + specialBaseDmg * ENHANCED_NORMAL_DAMAGE_FRACTION;
-      }
-      if (overloaded) shotDmg *= OVERLOAD_DAMAGE_MUL;
+      const shotDmg = shooterShotDamage(baseDmg, specialBaseDmg, special, enhancedNormal, overloaded);
       const copies =
         special && this.specialUpgrades.includes("doubleShot") ? 2 : 1;
       const copyDamageMul = copies > 1 ? DOUBLE_SHOT_DAMAGE_MUL : 1;
@@ -119,11 +114,12 @@ export function updateAttacks(this: GameCore, dt: number) {
             (i - (shots - 1) / 2) * 3;
           const sx = p.x + Math.cos(a + Math.PI / 2) * lateral;
           const sy = p.y - 3 + Math.sin(a + Math.PI / 2) * lateral;
-          const launchDmg = shotDmg * copyDamageMul * volleyMul;
+          const launchDmg = shooterLaunchDamage(shotDmg, copyDamageMul, volleyMul);
           const inheritsSpecial = special || enhancedNormal;
           const hasPierceFloor =
             inheritsSpecial && (p.upCounts["超载装填"] || 0) > 0;
           this.bullets.push({
+            attackProfile: special ? PA.chargedBullet : PA.bullet,
             x: sx,
             y: sy,
             vx: Math.cos(a) * p.projSpeed,
@@ -205,15 +201,12 @@ export function updateAttacks(this: GameCore, dt: number) {
           const kd = Math.hypot(e.x - p.x, e.y - p.y) || 1;
           this.hurtEnemy(
             e,
-            warriorBlades
-              ? p.damage * cfg.dmgMul
-              : p.orbitDmg + p.damage * 0.3,
+            orbitDamage(p, warriorBlades),
             ((e.x - p.x) / kd) * KNOCK.orbit,
             ((e.y - p.y) / kd) * KNOCK.orbit,
             {
               src: "orbit",
-              type: "physical",
-              form: warriorBlades ? "melee" : "other",
+              ...(warriorBlades ? PA.warriorOrbit : PA.orbit),
             },
           );
           if (warriorBlades && (p.upCounts["刃轮"] || 0) > 0)
@@ -306,8 +299,7 @@ export function updateAttacks(this: GameCore, dt: number) {
             noChain: true,
             fromExplode: true,
             src: "meteor",
-            type: "fire",
-            form: "other",
+            ...PA.meteor,
           });
       }
       // Issue #45 焦土燃烧：陨星落点燃烧地带

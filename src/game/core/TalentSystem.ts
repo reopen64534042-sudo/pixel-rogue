@@ -11,7 +11,7 @@ import {
   reconcileRuntimeToCaps,
   restoreRuntimeState,
 } from "./RuntimeStateProtection";
-import { attributeModifiers } from "./AttributeSources";
+import { attributeStatSources } from "./AttributeSources";
 import { applyTalentStatProjection } from "./TalentStatSources";
 import type { Talent } from "./types";
 export function tierWeights(this: GameCore) {
@@ -129,15 +129,17 @@ export function recompute(this: GameCore) {
   // C3-A（契约 v1.2 §10.8）：persistent **必传**当前实例的持久来源
   // （potionMaxHpGrow），杜绝漏传静默按 0 重建 maxHp 的 R-1 复活路径
   // S1：属性强化作为第二个来源并入同一次解析——另起一次投影会互相抹
+  const attributes = attributeStatSources(this.attributePicks);
   applyTalentStatProjection(
     this.player,
     {
       potionMaxHpGrow: this.potionMaxHpGrow,
     },
-    attributeModifiers(this.attributePicks),
+    attributes.scalars,
     this.prof,
     this.warriorStyle,
     this.mageWeapon,
+    attributes.keyed,
   );
   // C3-B/C3-C：属性重建完成后原样回写全部运行状态（不恢复资源、不刷新
   // 倒计时、不重放获得时效果），再按「上限降低」方向协调——置换移除层级
@@ -162,15 +164,17 @@ export function learnTalent(this: GameCore, u: Talent) {
   // S4-C C1/C2/C3-A：学习后同步已迁移卡的权威属性投影（幂等，只取决于 picks
   // 与实例持久来源；persistent 必传，理由同 recompute 处注释）
   // S1：同理必须带上属性来源，否则学一张卡就把属性加点抹掉
+  const attributes = attributeStatSources(this.attributePicks);
   applyTalentStatProjection(
     this.player,
     {
       potionMaxHpGrow: this.potionMaxHpGrow,
     },
-    attributeModifiers(this.attributePicks),
+    attributes.scalars,
     this.prof,
     this.warriorStyle,
     this.mageWeapon,
+    attributes.keyed,
   );
   // C3-A：获得时效果在投影**之后**执行（生命之泉回满依赖新有效 maxhp）；
   // 仅对已登记卡生效（未登记 no-op），melt 输出卡路径经本函数自动复用，

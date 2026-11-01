@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pixel Rogue 战斗内容接入"
+  short_description: "系统接入新职业、武器与怪物，核对伤害防御和属性来源的完整链路"
+  default_prompt: "使用 $pixel-rogue-combat 接入本次战斗内容，先明确属性、伤害分量与防御规则，再完成来源和消费者的闭合检查。"

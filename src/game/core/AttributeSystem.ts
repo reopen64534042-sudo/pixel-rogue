@@ -63,6 +63,8 @@ export interface AttrDef {
   /** 用于说明职业 / 武器口径下的实际收益。 */
   readonly hints?: Partial<Record<Profession | ShooterWeapon | MageWeapon, string>>;
   readonly stat: StatId;
+  /** 键控候选明确对应属性/形式/技能键，随选择一路传入来源投影。 */
+  readonly key?: string;
   readonly stage: ModifierStage;
   /** 白档数值：flat 为绝对值，percent 为小数（0.04 = +4%） */
   readonly base: number;
@@ -326,6 +328,7 @@ export function rollAttrChoices(
 export function toAttributePoint(choice: AttrChoice): AttributePoint {
   return {
     stat: choice.def.stat,
+    ...(choice.def.key !== undefined ? { key: choice.def.key } : {}),
     stage: choice.def.stage,
     value: choice.value,
   };
