@@ -4092,3 +4092,12 @@ dmg = Math.ceil(e.hp - 1);
 - 交付按 typecheck / build / diff 与聚焦人物检查；不新增 / 修改测试，不运行 Vitest / Playwright 测试套件。旧人物 / 版本截图断言可能过期，留待授权批次；自然长局、四 / 八向人物和独立受伤 / 死亡动作未制作。本次授权包含提交、推送与创建 PR，不包含合并。
 
 - 本体最终检查：typecheck / build / diff 通过（126 模块，保留既有大 chunk 提示）；受控观察吟唱 12–15、释放 16–19、行走 4–11，48 帧人物纹理加载。skillTextureLoaded / skillBridgePresent / skillEventFieldPresent 均为 false，技能图集网络请求 0；页面 error / warn 为空，临时页面与 5190 服务关闭。记录 output/mage-delivery-scope-check.json 与人物截图。
+
+## 元素法师技能素材交接（v161，2026-11-01）
+
+- 按用户要求独立于人物提交交付：29 帧技能图集、源处理 / 色板 / 锚点记录、重建脚本和离线 HTML / GIF；未接入正式技能运行时。人物提交为 0b4a788（v160）。
+- MageVfx 只保留为未启用采样器，使用模块自有 MageVisualEvent / MageVfxView 契约；没有在 Core 增加事件字段，也没有 Scene 加载 / 注册 / 调用或 draw / PixelPainter 改动。交接文档列明真实落点记录、轮盘颜色、雷印 / 麻痹、霜牢 / 冻结、残影和生命周期的后续责任。
+- 正式图 288×240、29 帧、13 色、二值 alpha，哈希 7dedc4979f68c8ff22c2cfc9f95b18b06e63e240aecc4d2c58da7a23f7755adb；源概念 / 提示词保持上游原样。离线图为编排展示，不作为技能接入证据。
+- 两次提交完成后共同推送 origin 并向上游 main 创建一个 PR；授权不包含合并。检查与最终 PR 状态以实际 Git / GitHub 记录为准，不新增 / 修改测试，不运行 Vitest / Playwright 测试套件。
+
+- 技能交接最终检查：重建 / 90 帧离线预览成功，typecheck / build / diff 通过（126 模块，仅既有大 chunk 提示）。正式入口未导入技能采样器，所有 Core / draw / PixelPainter 相对最新上游无差异；人物单独提交已确认技能纹理未加载、网络请求 0。没有扩大技能接入或测试范围。

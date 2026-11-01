@@ -53,6 +53,7 @@
 - node scripts/build-greatsword-character-assets.mjs：重建大剑人物 64 帧精灵表；python scripts/export-greatsword-character-preview.py 导出动作 / 跃击离线 GIF（不代表实机验收），见 docs/greatsword-character-art.md。
 - node scripts/build-shooter-character-assets.mjs：重建射手身体 / 武器精灵表；python scripts/export-shooter-character-preview.py 导出三武器合成 GIF 与瞄准方向示例，见 docs/shooter-character-art.md。
 - node scripts/build-mage-character-assets.mjs：重建 48 帧魔女帽人物；python scripts/export-mage-character-preview.py / scripts/export-mage-walk-preview.py 导出动作和步态对比，见 docs/mage-character-art.md。
+- node scripts/build-mage-vfx-assets.mjs：重建 29 帧技能交接素材；node scripts/build-mage-vfx-preview.mjs 导出离线预览。MageVfx 为未启用适配器，禁止将素材交付当作运行时已接入，见 docs/mage-vfx-runtime.md。
 - node scripts/preview-laser-vfx.mjs：旧程序化激光回退的离线预览。
 - npm run palette:export：从 src/game/data/palette.ts 导出 assets/palette.gpl（美术产线，改动色板后必跑）。
 - node scripts/pixelize.mjs <png> --key <assetKey>：贴图后处理（规格见 docs/art-assets.md 第 7 节）。
