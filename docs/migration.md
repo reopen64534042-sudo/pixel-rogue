@@ -4,7 +4,7 @@
 
 - 处理 #265：`draw.ts` 的 `mageDecoys` 循环优先调用 `character`（魔女图集/当前帧/脚底锚点），失败回退旧 `player` 贴图或紫色方块；镜像与踏影共用该数组。
 - 验证：typecheck/build；受控纹理计数 `character-mage-witch` 3、`player` 0（本体 + 两个假人）；未跑测试套件/自然长局。
-- 审计补正：`elemental-mage-rework` §19.1 旧卡处理补记 v179 删除速咏/连咏。
+- 审计补正：`elemental-mage-rework` §19.1 旧卡处理补记 v179 删除速咏/连咏；§19.2 天赋池兜底组成同步为 4 张生存/机动 + 1 张节律 + 1 张穿透 + 5 张构筑卡。
 
 ## 冻结冰壳整块填充清理（v182，2026-11-02）
 
