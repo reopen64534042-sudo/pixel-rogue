@@ -14,7 +14,7 @@ import { WARRIOR_TALENTS } from "./warrior";
  * - `common.ts`  公共常量与纯函数（稀有度、权重曲线、分类颜色、无副作用派生）
  * - `legacy.ts`  v165 已删除旧表全部卡牌，仅保留空导出供历史 parity / 熔炉代码编译
  * - `shooter.ts` 射手职业池（S2）
- * - `mage.ts`    法师保留卡（元素/反应/法杖成长已迁到 elementalMage + MageProgressionSystem）
+ * - `mage.ts`    法师保留卡 + v177 构筑卡（元素/反应/法杖成长迁到 elementalMage + MageProgressionSystem）
  * - `warrior.ts` 战士池（太刀/大剑核心、入场与共享卡）
  *
  * 外部一律从 `data/talents` 导入，不直接引用子文件。

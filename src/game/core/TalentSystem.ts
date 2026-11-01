@@ -67,6 +67,18 @@ export function canOffer(this: GameCore, u: Talent) {
     return false;
   if (u.prof === "shooter" && (u.shooterWeapon ?? "charged") !== this.shooterWeapon) return false;
   if (u.prof === "mage" && (u.mageWeapon ?? "arcane") !== this.mageWeapon) return false;
+  if (
+    u.mageRequiresReaction &&
+    (this.prof !== "mage" ||
+      !this.mageReactionIds.includes(u.mageRequiresReaction))
+  )
+    return false;
+  if (
+    u.mageMinElements &&
+    (this.prof !== "mage" ||
+      this.mageElements.length < u.mageMinElements)
+  )
+    return false;
   if (u.requiresDomainUpgrade && (this.prof!=='mage' || this.mageWeapon!=='domain' || !this.domain.upgrades.includes(u.requiresDomainUpgrade))) return false;
   const picks = this.player.picks;
   // S2 链式依赖（混合式抽取）：未持有前置时 L2/L3 不进池。

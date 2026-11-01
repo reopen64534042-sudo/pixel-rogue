@@ -1,13 +1,15 @@
 import type { Talent } from "../../core/types";
 import { MAGE_BALANCE as MB } from "../mageBalance";
+import { MAGE_BUILD } from "../elementalMage";
 
 /**
- * 元素法师保留的旧卡。
+ * 元素法师保留的旧卡 + v177 玩家三选一构筑卡。
  *
- * 元素法师 v2 的元素、反应与池子改由法杖等级发放（见
- * `data/elementalMage.ts` / `core/MageProgressionSystem.ts`）。这里只保留
- * 文档 §16.3 明确「暂保留」的旧卡，等法师池重排时统一处理：
+ * 元素/反应/法杖成长由法杖等级发放（见 `data/elementalMage.ts` /
+ * `core/MageProgressionSystem.ts`）。旧卡是 §16.3 暂保留的 6 张通用卡；
+ * v177 新增 5 张构筑卡：霜雷共振、焰尾扩散、轮转、霜牢碎裂、满印成势。
  *
+ * 旧卡：
  * - 速咏 / 连咏（节律）
  * - 广域符印（范围）
  * - 护咒壁（原「咏唱护壁」改名；仍消费充能条）
@@ -119,6 +121,83 @@ export const MAGE_TALENTS: Talent[] = [
     pv: () => `虚影 ${MB.mirrorDuration} 秒 · 冷却 ${MB.mirrorCooldown} 秒`,
     f: () => {},
     cur: () => "受击时留下残影",
+  },
+
+  // ================= v177 玩家构筑卡（三选一池） =================
+  {
+    n: MAGE_BUILD.chainResonance.name,
+    ico: "❄⚡",
+    t: 0,
+    cat: "元素",
+    slot: "共鸣",
+    layer: 1,
+    prof: "mage",
+    mageRequiresReaction: "superconduct",
+    d: `超导的闪电链额外 +${MAGE_BUILD.chainResonance.extraJumps} 跳、链伤害 +${Math.round(MAGE_BUILD.chainResonance.damageBonus * 100)}%。`,
+    max: 1,
+    pv: () => "超导链 +1 跳 · 链伤 +15%",
+    f: () => {},
+    cur: () => "超导链共振",
+  },
+  {
+    n: MAGE_BUILD.blazeSpread.name,
+    ico: "🔥",
+    t: 0,
+    cat: "范围",
+    slot: "扩散",
+    layer: 1,
+    prof: "mage",
+    mageRequiresReaction: "blaze",
+    d: `裂焰小爆炸范围 +${Math.round((MAGE_BUILD.blazeSpread.radiusMul - 1) * 100)}%、目标 +${MAGE_BUILD.blazeSpread.extraTargets}；被小爆炸命中的目标获得 ${MAGE_BUILD.blazeSpread.burnStacks} 层灼烧。`,
+    max: 1,
+    pv: () => "裂焰溅射 +1 目标 · 灼烧",
+    f: () => {},
+    cur: () => "裂焰扩散",
+  },
+  {
+    n: MAGE_BUILD.rotation.name,
+    ico: "🔄",
+    t: 0,
+    cat: "节律",
+    slot: "轮转",
+    layer: 1,
+    prof: "mage",
+    mageMinElements: 2,
+    d: `每个元素阶段的第一发反应伤害 +${Math.round(MAGE_BUILD.rotation.reactionBonus * 100)}%。`,
+    max: 1,
+    pv: () => "换元素首反应 +20%",
+    f: () => {},
+    cur: () => "阶段首反应强化",
+  },
+  {
+    n: MAGE_BUILD.frostShatter.name,
+    ico: "🧊",
+    t: 0,
+    cat: "控制",
+    slot: "碎裂",
+    layer: 1,
+    prof: "mage",
+    mageRequiresReaction: "frostbind",
+    d: `霜牢自然结束或被融化时，向目标及附近 ${MAGE_BUILD.frostShatter.targets} 个敌人传播 ${MAGE_BUILD.frostShatter.frostStacks} 层凝冰。`,
+    max: 1,
+    pv: () => "霜牢结束 → 传播凝冰",
+    f: () => {},
+    cur: () => "霜牢碎裂控场",
+  },
+  {
+    n: MAGE_BUILD.charge.name,
+    ico: "⚡",
+    t: 0,
+    cat: "元素",
+    slot: "满印",
+    layer: 1,
+    prof: "mage",
+    mageMinElements: 2,
+    d: `反应消耗 ${MAGE_BUILD.charge.layers} 层附着时，反应伤害 +${Math.round(MAGE_BUILD.charge.reactionBonus * 100)}%。`,
+    max: 1,
+    pv: () => "3 层反应 +20%",
+    f: () => {},
+    cur: () => "满层反应强化",
   },
 
   // v165：旧元素 / 反应 / 星陨 / 蓄能等 14 张退役卡已按用户要求删除，

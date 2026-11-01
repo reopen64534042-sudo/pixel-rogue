@@ -2,6 +2,7 @@ import { applyEnemyDotDamage } from "./EnemyDamageApplication";
 import { PLAYER_ATTACK_PROFILES as PA, withDamageType } from "../data/attackProfiles";
 import {
   ELEMENTAL_MAGE,
+  MAGE_BUILD,
   MAGE_REACTIONS,
   reactionForPair,
 } from "../data/elementalMage";
@@ -19,6 +20,7 @@ import {
   reactionDamageMultiplier,
 } from "./ElementMath";
 import {
+  hasMageCard,
   hasMageUpgrade,
   mageStatusDurationBonus,
   mageReactionDamageMul,
@@ -135,12 +137,22 @@ function reactionDamage(
   finaleEcho = true,
   controlled = false,
   secondary: MageElement,
+  consumedLayers = 1,
 ): number {
+  let cardMul = 1;
+  if (hasMageCard(core, MAGE_BUILD.rotation.name) && core.mageCastsInPhase === 0)
+    cardMul *= 1 + MAGE_BUILD.rotation.reactionBonus;
+  if (
+    hasMageCard(core, MAGE_BUILD.charge.name) &&
+    consumedLayers >= MAGE_BUILD.charge.layers
+  )
+    cardMul *= 1 + MAGE_BUILD.charge.reactionBonus;
   // 双元素增伤：触发元素由 hurtEnemy 结算；配对的另一元素在此补上
   // typeDamageBonus。抗性方向仍按触发元素（见 docs §19）。
   const amount = mageReactionRawDamage(base, mul, reactionDamageMultiplier(e), mageReactionDamageMul(core),
     secondary !== element ? typeBonusMultiplier(core.player.typeDamageBonus, secondary) : undefined,
-    hasMageUpgrade(core, "reactionFinale") && core.mageSuit === "B" && controlled);
+    hasMageUpgrade(core, "reactionFinale") && core.mageSuit === "B" && controlled,
+    cardMul);
   if (amount <= 0) return 0;
   const reactionId = reactionForPair(secondary, element) ?? undefined;
   const hit = core.hurtEnemy(e, amount, 0, 0, {
@@ -344,11 +356,31 @@ function clearFrost(e: Enemy, keepStacks = false): void {
   if (!keepStacks && e.elemFrost) delete e.elemFrost;
 }
 
-/** 退出霜牢并清空凝冰（融化/自然结束）。 */
-function clearFrostLock(e: Enemy): void {
+/** 退出霜牢并清空凝冰（融化/自然结束）；霜牢碎裂卡在此补脆化。 */
+function clearFrostLock(core: GameCore, e: Enemy, shatter = true): void {
   if (e.elemFrostLockT !== undefined) delete e.elemFrostLockT;
   if (e.elemFrostLockTotal !== undefined) delete e.elemFrostLockTotal;
   if (e.elemFrostLockExtendAt !== undefined) delete e.elemFrostLockExtendAt;
+  if (!shatter || !hasMageCard(core, MAGE_BUILD.frostShatter.name)) return;
+  const applyShatterFrost = (o: Enemy) => {
+    if (o.dead) return;
+    applyFrost(core, o, MAGE_BUILD.frostShatter.frostStacks);
+  };
+  if (!e.dead) applyShatterFrost(e);
+  const near = core.enemies
+    .filter(
+      (o) =>
+        o !== e &&
+        !o.dead &&
+        Math.hypot(o.x - e.x, o.y - e.y) <= MAGE_BUILD.frostShatter.radius,
+    )
+    .sort(
+      (a, b) =>
+        Math.hypot(a.x - e.x, a.y - e.y) -
+        Math.hypot(b.x - e.x, b.y - e.y),
+    )
+    .slice(0, MAGE_BUILD.frostShatter.targets);
+  for (const o of near) applyShatterFrost(o);
 }
 
 /** 闪电链：只施加雷印/麻痹，不触发反应、不递归。 */
@@ -358,6 +390,7 @@ function triggerChain(
   base: number,
   jumps: number,
   guaranteed: boolean,
+  damageBonus = 0,
 ): void {
   if (!guaranteed && Math.random() >= ELEMENTAL_MAGE.chain.chance) return;
   const near = core.enemies
@@ -383,7 +416,7 @@ function triggerChain(
     py = o.y;
     core.hurtEnemy(
       o,
-      mageChainDamage(base),
+      mageChainDamage(base, 1 + damageBonus),
       0,
       0,
       {
@@ -450,6 +483,7 @@ function resolveReaction(
         true,
         false,
         partner,
+        layers,
       );
       spawnReactionFx(core, e, id);
       if (!e.dead)
@@ -462,7 +496,7 @@ function resolveReaction(
       if (!snapshotHasFrostAttachment(snap)) return result;
       const layers = Math.max(1, snap.frost);
       clearFrost(e);
-      clearFrostLock(e);
+      clearFrostLock(core, e, snap.frostLock);
       reactionDamage(
         core,
         e,
@@ -473,6 +507,7 @@ function resolveReaction(
         true,
         snap.frozen || snap.frostLock,
         partner,
+        layers,
       );
       spawnReactionFx(core, e, id);
       if (!e.dead) applyBurn(core, e, ELEMENTAL_MAGE.reaction.carryOverStacks);
@@ -495,6 +530,7 @@ function resolveReaction(
         true,
         snap.frozen || snap.frostLock,
         partner,
+        layers,
       );
       spawnReactionFx(core, e, id);
       result.triggered = true;
@@ -515,13 +551,19 @@ function resolveReaction(
         partner,
       );
       if (!e.dead) applyBurn(core, e, ELEMENTAL_MAGE.reaction.carryOverStacks);
+      const spread = hasMageCard(core, MAGE_BUILD.blazeSpread.name);
+      const splashRadius =
+        ELEMENTAL_MAGE.reaction.blazeSplashRadius *
+        (spread ? MAGE_BUILD.blazeSpread.radiusMul : 1);
+      const splashCount =
+        ELEMENTAL_MAGE.reaction.blazeSplashCount +
+        (spread ? MAGE_BUILD.blazeSpread.extraTargets : 0);
       const splash = core.enemies
         .filter(
           (o) =>
             o !== e &&
             !o.dead &&
-            Math.hypot(o.x - e.x, o.y - e.y) <=
-              ELEMENTAL_MAGE.reaction.blazeSplashRadius,
+            Math.hypot(o.x - e.x, o.y - e.y) <= splashRadius,
         )
         .sort((a, b) => {
           const sa = isShocked(a) ? 0 : 1;
@@ -532,7 +574,7 @@ function resolveReaction(
             Math.hypot(b.x - e.x, b.y - e.y)
           );
         })
-        .slice(0, ELEMENTAL_MAGE.reaction.blazeSplashCount);
+        .slice(0, splashCount);
       for (const o of splash) {
         core.mageVisualEvents.push({
           kind: "burst",
@@ -553,6 +595,8 @@ function resolveReaction(
           false,
           partner,
         );
+        if (spread && !o.dead)
+          applyBurn(core, o, MAGE_BUILD.blazeSpread.burnStacks);
       }
       spawnReactionFx(core, e, id);
       result.triggered = true;
@@ -573,6 +617,7 @@ function resolveReaction(
         true,
         snap.frozen || snap.frostLock,
         partner,
+        layers,
       );
       result.triggered = true;
       result.forceChain = true;
@@ -670,7 +715,18 @@ export function applyElementalBodyHit(
     element === "lightning" &&
     (result.forceChain || !e.dead)
   ) {
-    triggerChain(core, e, base, result.chainJumps, result.forceChain);
+    const chainResonance =
+      result.forceChain &&
+      hasMageCard(core, MAGE_BUILD.chainResonance.name);
+    triggerChain(
+      core,
+      e,
+      base,
+      result.chainJumps +
+        (chainResonance ? MAGE_BUILD.chainResonance.extraJumps : 0),
+      result.forceChain,
+      chainResonance ? MAGE_BUILD.chainResonance.damageBonus : 0,
+    );
   }
   return result.triggered;
 }
@@ -860,10 +916,7 @@ export function updateMageElements(this: GameCore, dt: number): void {
     if (e.elemFrostLockT !== undefined) {
       e.elemFrostLockT = Math.max(0, e.elemFrostLockT - dt);
       if (e.elemFrostLockT === 0) {
-        delete e.elemFrostLockT;
-        delete e.elemFrostLockTotal;
-        delete e.elemFrostLockExtendAt;
-        // v176：霜牢自然结束只解除控制；凝冰附着保留到被反应消耗或过期。
+        clearFrostLock(this, e, true);
       }
     }
     if (e.elemFrost?.length && !isFrozen(e) && !isFrostLocked(e)) {
