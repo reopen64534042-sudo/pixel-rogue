@@ -1,5 +1,11 @@
 # 迁移记录与验收基线
 
+## 镜像/踏影假人贴图修复（v183，2026-11-02）
+
+- 处理 #265：`draw.ts` 的 `mageDecoys` 循环优先调用 `character`（魔女图集/当前帧/脚底锚点），失败回退旧 `player` 贴图或紫色方块；镜像与踏影共用该数组。
+- 验证：typecheck/build；受控纹理计数 `character-mage-witch` 3、`player` 0（本体 + 两个假人）；未跑测试套件/自然长局。
+- 审计补正：`elemental-mage-rework` §19.1 旧卡处理补记 v179 删除速咏/连咏。
+
 ## 冻结冰壳整块填充清理（v182，2026-11-02）
 
 - 用户确认 #267：只删除 `drawFrozenOverlay` 的整块 28% 淡蓝 `#9fe1ff` `fillRect`，保留顶部冷光/底部冰棱/两侧霜点与 MageVfx 冻结素材。

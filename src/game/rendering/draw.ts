@@ -401,15 +401,17 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       );
     }
   }
-  // ---- 法师：镜像残影（吸引仇恨的诱饵）----
-  // 用玩家的贴图半透明绘制，读作「一个假体」；缺贴图时退回紫色方块。
+  // ---- 法师：镜像/踏影假人（吸引仇恨的诱饵）----
+  // 优先复用本体角色绘制（魔女图集/当前帧/脚底锚点）；缺图回退旧 player 或紫色方块。
   for (const d of this.mageDecoys) {
-    const r = spriteRect("player", d.x, d.y);
     ctx.globalAlpha = 0.45;
-    if (r) ctx.sprite(r.tex, r.x, r.y, r.w, r.h);
-    else {
-      ctx.fillStyle = "#c07bff";
-      ctx.fillRect(Math.round(d.x - 4), Math.round(d.y - 6), 8, 10);
+    if (!character?.(d.x, d.y)) {
+      const r = spriteRect("player", d.x, d.y);
+      if (r) ctx.sprite(r.tex, r.x, r.y, r.w, r.h);
+      else {
+        ctx.fillStyle = "#c07bff";
+        ctx.fillRect(Math.round(d.x - 4), Math.round(d.y - 6), 8, 10);
+      }
     }
     ctx.globalAlpha = 1;
   }
