@@ -10,7 +10,7 @@ import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { Enemy, FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
 import type { ShooterEchoDrawing } from "./characters/ShooterCharacter";
-import type { MageVfx } from "./vfx/MageVfx";
+import { MAGE_STATUS, type MageVfx } from "./vfx/MageVfx";
 import { W, H, VIEW, WORLD, fmtTime, fmtHp } from "../data/constants";
 import { isBrittle, isFrostLocked, isFrozen, isParalyzed, isShocked } from "../core/ElementMath";
 import { mageCircleRadius, mageWindup } from "../core/MageSystem";
@@ -44,6 +44,13 @@ function hash(x: number, y: number) {
   h = (h ^ (h >> 13)) * 1274126177;
   return ((h ^ (h >> 16)) >>> 0) / 4294967295;
 }
+
+/** 四段施法条：4×5px 段 + 3×1px 间隔，共 23px；经验条复用同宽。 */
+const MAGE_BAR_SEG_W = 5;
+const MAGE_BAR_GAP_W = 1;
+const MAGE_BAR_W =
+  MAGE_CASTS_PER_ELEMENT * MAGE_BAR_SEG_W +
+  (MAGE_CASTS_PER_ELEMENT - 1) * MAGE_BAR_GAP_W;
 
 interface FloatingTextSlotState {
   /** 每条飘字绑定的固定 label 槽位组；普通 2 层、真实 1 层、真实暴击 3 层 */
@@ -303,8 +310,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   }
 
   // ---- S3 法师：法阵（施法落点）----
-  // 抬手段是半透明圆环（可被打断），收束段更亮（已经成形、不可打断）。
-  // v163 移除站定后圆环保持紫色，不再随移动状态变色。
+  // 正常加载素材时由 MageVfx 中心图案表现；缺图才回退旧圆环/中心方块。
   if (
     this.prof === "mage" && this.mageWeapon === "arcane" &&
     (this.castPhase === "windup" || this.castPhase === "cast")
@@ -316,31 +322,38 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const remain =
       this.castPhase === "windup" ? this.castT + castPart : this.castT;
     const prog = Math.max(0, Math.min(1, 1 - remain / total));
-    // v80：法阵预览从中心缓动扩大，避免整圈突然出现；结束时正好等于实际半径。
-    const grow = 1 - (1 - prog) * (1 - prog);
-    const drawR = Math.max(1, Math.round(R * grow));
     const castEl = this.mageElements.length
       ? this.mageElements[this.mageWheelIndex % this.mageElements.length]
       : null;
-    // 新素材法阵贴图垫在程序化范围圈下方；缺图时 MageVfx 内部返回 false。
-    mageVfx?.drawCast(ctx, this.castX, this.castY, R, prog, castEl);
-    // 透明度随进度缓慢加深，避免 windup→cast 切换时整圈闪一下。
-    ctx.globalAlpha = 0.2 + 0.3 * prog;
-    ctx.strokeStyle = "#c07bff";
-    ctx.beginPath();
-    ctx.arc(
-      Math.round(this.castX),
-      Math.round(this.castY),
-      drawR,
-      0,
-      Math.PI * 2,
-    );
-    ctx.stroke();
-    ctx.fillStyle = "#7a4fd0";
-    ctx.fillRect(Math.round(this.castX - 2), Math.round(this.castY - 2), 4, 4);
-    ctx.globalAlpha = 1;
+    const atlasDrawn =
+      mageVfx?.drawCast(ctx, this.castX, this.castY, R, prog, castEl) ?? false;
+    if (!atlasDrawn) {
+      // v80：缺图时保留旧预览，从中心缓动扩大；结束时正好等于实际半径。
+      const grow = 1 - (1 - prog) * (1 - prog);
+      const drawR = Math.max(1, Math.round(R * grow));
+      // 透明度随进度缓慢加深，避免 windup→cast 切换时整圈闪一下。
+      ctx.globalAlpha = 0.2 + 0.3 * prog;
+      ctx.strokeStyle = "#c07bff";
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(this.castX),
+        Math.round(this.castY),
+        drawR,
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.fillStyle = "#7a4fd0";
+      ctx.fillRect(
+        Math.round(this.castX - 2),
+        Math.round(this.castY - 2),
+        4,
+        4,
+      );
+      ctx.globalAlpha = 1;
+    }
   }
-  // 法师：脚下施法条 = 元素相位条（20×1，4 段，每段 5px）。
+  // 法师：脚下施法条 = 元素相位条（23×1：4×5px 段 + 3×1px 间隔）。
   // 已完成段填当前元素色；当前施法段用白线填充；第 4 段完成后换色并归零。
   // 顺序：冲刺点 → 元素相位/施法条 → 法杖经验条；不再画三点轮盘。
   if (
@@ -363,32 +376,34 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const color = el ? MAGE_ELEMENTS[el].color : "#57e6ff";
     const total = MAGE_CASTS_PER_ELEMENT;
     const completed = Math.max(0, Math.min(total, this.mageCastsInPhase));
-    // 宽度必须能被 4 整除，否则像素取整会让四段变成 5/4/5/4。
-    const bw = 20;
-    const bx = Math.round(this.player.x - bw / 2);
+    const bw = MAGE_BAR_W;
+    const bx = Math.round(this.player.x) - Math.floor(bw / 2);
     const by = Math.round(this.player.y) + 16;
+    // 先画底槽；段间 1px 底槽就是分隔，不再覆盖式画线改变可见宽度。
     ctx.fillStyle = "#1d2440";
     ctx.fillRect(bx, by, bw, 1);
-    const done = Math.round((bw * completed) / total);
-    if (done > 0) {
+    for (let i = 0; i < completed; i++) {
       ctx.fillStyle = color;
-      ctx.fillRect(bx, by, done, 1);
-    }
-    if (casting && prog > 0 && completed < total) {
-      const start = (bw * completed) / total;
-      const width = (bw / total) * prog;
-      ctx.fillStyle = "#f4fbff";
       ctx.fillRect(
-        bx + Math.round(start),
+        bx + i * (MAGE_BAR_SEG_W + MAGE_BAR_GAP_W),
         by,
-        Math.max(1, Math.round(width)),
+        MAGE_BAR_SEG_W,
         1,
       );
     }
-    // 1/4、2/4、3/4 刻度；画在填充之上，空隙保持可读。
-    ctx.fillStyle = "#1d2440";
-    for (let i = 1; i < total; i++)
-      ctx.fillRect(bx + Math.round((bw * i) / total), by, 1, 1);
+    if (casting && prog > 0 && completed < total) {
+      const width = Math.max(
+        1,
+        Math.min(MAGE_BAR_SEG_W, Math.round(MAGE_BAR_SEG_W * prog)),
+      );
+      ctx.fillStyle = "#f4fbff";
+      ctx.fillRect(
+        bx + completed * (MAGE_BAR_SEG_W + MAGE_BAR_GAP_W),
+        by,
+        width,
+        1,
+      );
+    }
   }
   // ---- 法师：镜像残影（吸引仇恨的诱饵）----
   // 用玩家的贴图半透明绘制，读作「一个假体」；缺贴图时退回紫色方块。
@@ -594,12 +609,16 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       this.player.x + shadow.side * ELEMENTAL_MAGE.shadow.offset,
     );
     const sy = Math.round(this.player.y);
-    const r = spriteRect("player", sx, sy);
     ctx.globalAlpha = 0.32 + (shadow.t / shadow.maxT) * 0.18;
-    if (r) ctx.sprite(r.tex, r.x, r.y, r.w, r.h);
-    else {
-      ctx.fillStyle = MAGE_ELEMENTS[shadow.element].color;
-      ctx.fillRect(sx - 4, sy - 6, 8, 10);
+    // 优先复用本体角色绘制（魔女图集/当前帧/朝向/脚底锚点）；
+    // 缺图时回退旧 player 贴图或色块。
+    if (!character?.(sx, sy)) {
+      const r = spriteRect("player", sx, sy);
+      if (r) ctx.sprite(r.tex, r.x, r.y, r.w, r.h);
+      else {
+        ctx.fillStyle = MAGE_ELEMENTS[shadow.element].color;
+        ctx.fillRect(sx - 4, sy - 6, 8, 10);
+      }
     }
     ctx.globalAlpha = 0.55;
     ctx.strokeStyle = MAGE_ELEMENTS[shadow.element].color;
@@ -634,6 +653,8 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     }
     ctx.globalAlpha = 1;
 
+    // S3 法师：新素材状态先画，旧全身方框只作缺图兜底。
+    const mageStatus = mageVfx?.drawEnemy(ctx, e, w, h) ?? 0;
     if (e.slowT > 0) {
       ctx.globalAlpha = 0.35;
       ctx.fillStyle = "#57e6ff";
@@ -641,15 +662,19 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.globalAlpha = 1;
     }
     // Issue #38：冰冻泛蓝（旧表 frozenT 与法师冻结统一由下方冰壳表现）
-    // S3 法师：元素印记染色。层数只体现在浓度上（§3.6：不做逐层特效，
-    // 只在关键节点给反馈），冰/雷/火三色互斥，先判定顺序即显示优先级。
-    if (e.elemFire?.length) {
+    // S3 法师：元素印记旧染色仅在新素材缺失时兜底；层数只体现在浓度上。
+    if (e.elemFire?.length && !(mageStatus & MAGE_STATUS.fire)) {
       ctx.globalAlpha = Math.min(0.55, 0.18 + e.elemFire.length * 0.1);
       ctx.fillStyle = "#ff6a2b";
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
     }
-    if (e.elemFrost?.length) {
+    if (
+      e.elemFrost?.length &&
+      !(mageStatus & (MAGE_STATUS.frost | MAGE_STATUS.freeze)) &&
+      !isFrozen(e) &&
+      !isFrostLocked(e)
+    ) {
       ctx.globalAlpha = Math.min(0.5, 0.16 + e.elemFrost.length * 0.11);
       ctx.fillStyle = "#9fe1ff";
       ctx.fillRect(x, y, w, h);
@@ -669,7 +694,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.fillRect(x + w, y, 1, h);
       ctx.globalAlpha = 1;
     }
-    if (isParalyzed(e)) {
+    if (isParalyzed(e) && !(mageStatus & MAGE_STATUS.shock)) {
       ctx.globalAlpha = 0.4;
       ctx.fillStyle = "#c07bff";
       ctx.fillRect(x, y, w, h);
@@ -689,7 +714,6 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.fillRect(x, y + h - 1, w, 1);
       ctx.globalAlpha = 1;
     }
-    mageVfx?.drawEnemy(ctx, e, w, h);
     if (e.flash > 0) {
       ctx.globalAlpha = 0.7;
       ctx.fillStyle = "#ffffff";
@@ -940,7 +964,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       }
     }
   }
-  // 法师：法杖经验条（角色脚下 20×1，与 4 段施法条等长）。
+  // 法师：法杖经验条（角色脚下 23×1，与 4 段施法条等长）。
   // 位于常驻施法条下方；成功本体施法 +1，满级或满经验整条金色。
   if (
     this.prof === "mage" && this.mageWeapon === "arcane" &&
@@ -951,8 +975,8 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const ratio = need
       ? Math.min(1, this.mageStaffXp / need)
       : 1;
-    const sw = 20;
-    const sx = Math.round(this.player.x - sw / 2);
+    const sw = MAGE_BAR_W;
+    const sx = Math.round(this.player.x) - Math.floor(sw / 2);
     const sy = Math.round(this.player.y) + 20;
     ctx.fillStyle = "#1d2440";
     ctx.fillRect(sx, sy, sw, 1);
