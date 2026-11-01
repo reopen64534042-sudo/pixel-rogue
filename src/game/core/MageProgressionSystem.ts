@@ -134,6 +134,7 @@ export function chooseMageElement(
   const el = elementOfChoice(cardName);
   if (!el || core.mageElements.includes(el)) return false;
   core.mageElements.push(el);
+  core.mageElementPickLevels.push(core.mageStaffLevel);
   // 一波内连升触发的下一次元素选择已排队 → 选完当前这个立刻接着选。
   core.mageElementPickPending = core.mageElementPickQueue.shift() ?? null;
 
@@ -156,6 +157,7 @@ export function chooseMageElement(
     const reaction = reactionForPair(prev, el);
     if (reaction) {
       core.mageReactionIds.push(reaction);
+      core.mageReactionUnlockLevels.push(core.mageStaffLevel);
       core.addText(
         core.player.x,
         core.player.y - 30,
@@ -191,6 +193,7 @@ export function chooseMageElement(
         : null;
     if (extra) {
       core.mageReactionIds.push(extra);
+      core.mageReactionUnlockLevels.push(core.mageStaffLevel);
       core.addText(
         core.player.x,
         core.player.y - 44,
@@ -353,6 +356,7 @@ function grantEpicItem(
     const reaction = missingReactionId(core);
     if (!reaction) return;
     core.mageReactionIds.push(reaction);
+    core.mageReactionUnlockLevels.push(level);
     core.mageUpgrades.push("missingReaction");
     core.addText(
       p.x,
@@ -447,6 +451,8 @@ export function devConfigureElementalMage(
   core.mageElementPickQueue = [];
   core.mageUpgrades = MAGE_NORMAL_UPGRADES.map((u) => u.id);
   core.mageReactionIds = [];
+  core.mageReactionUnlockLevels = [];
+  core.mageElementPickLevels = [];
   core.mageSuit = unique.length >= 2 ? suitOfPair(unique[0], unique[1]) : null;
   for (let i = 0; i < unique.length; i++) {
     const from = unique[(i - 1 + unique.length) % unique.length];
@@ -457,9 +463,10 @@ export function devConfigureElementalMage(
   }
 }
 
-/** DEV：把法杖设到指定等级，并按默认 火→冰→雷 重建成长。 */
+/** DEV：把法杖设到指定等级，并按默认 火→冰→雷 重建成长与对应强化。 */
 export function devSetStaffLevel(this: GameCore, level: number): void {
   const core = this;
+  if (core.prof !== "mage" || core.mageWeapon === "domain") return;
   const target = Math.max(
     1,
     Math.min(STAFF_LEVELS.length, Math.floor(level) || 1),
@@ -471,4 +478,33 @@ export function devSetStaffLevel(this: GameCore, level: number): void {
         ? ["fire", "frost"]
         : ["fire"];
   devConfigureElementalMage.call(core, elements, target);
+  // 作弊服要能直接测试“这个等级应有的能力”，所以按等级补齐全部强化；
+  // 正式成长仍按随机/错过池抽取，不经过这里。
+  const upgrades: MageUpgradeId[] =
+    target >= 2 ? MAGE_NORMAL_UPGRADES.map((u) => u.id) : [];
+  if (target >= 4) upgrades.push("prismRare");
+  if (target >= 5) upgrades.push("echoCircle", "tempo");
+  if (target >= 7) upgrades.push("prismEpic");
+  if (target >= 8) upgrades.push("reactionMastery");
+  if (target >= 9) upgrades.push("missingReaction");
+  if (target >= 10) upgrades.push("prismUltimate");
+  if (target >= 11) upgrades.push("splitShadow");
+  if (target >= 12) upgrades.push("reactionFinale");
+  core.mageUpgrades = upgrades;
+  // 切等级时清掉旧等级的瞬态表现，避免残留棱镜/回响/护盾。
+  core.magePrism = null;
+  core.magePrismBeams = [];
+  core.mageEchoes = [];
+  core.mageShadows = [];
+  core.mageShadowCd = 0;
+  core.mageCharge = 0;
+  core.mageChargeFlashT = 0;
+  core.mageShield = 0;
+  core.mageShieldT = 0;
+  core.mageShieldMaxT = 0;
+  core.mageDecoys = [];
+  core.mageVisualEvents = [];
+  core.castPhase = "idle";
+  core.castT = 0;
+  core.castCd = 0;
 }

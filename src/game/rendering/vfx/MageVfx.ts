@@ -124,9 +124,21 @@ export class MageVfx {
     return stamp(ctx, ELEMENT_INDEX[element] * 4 + (progress < 0.6 ? 0 : 1), x, y, scale, 0.3 + sat(progress) * 0.3);
   }
 
-  drawPrism(ctx: PixelPainter, prism: NonNullable<GameCore["magePrism"]>): boolean {
-    // v165：棱镜整体放大到 2×，底边保持在原地面锚点，视觉更醒目。
-    return stamp(ctx, START.prism + ELEMENT_INDEX[prism.element], prism.x, prism.y - 24, 2, 0.9);
+  drawPrism(
+    ctx: PixelPainter,
+    prism: NonNullable<GameCore["magePrism"]>,
+    offsetY = 0,
+    alpha = 0.9,
+  ): boolean {
+    // 2× 棱镜；offsetY 用于生成时的短距离下落动画。
+    return stamp(
+      ctx,
+      START.prism + ELEMENT_INDEX[prism.element],
+      prism.x,
+      prism.y - 24 + offsetY,
+      2,
+      alpha,
+    );
   }
 
   shadowPosition(shadow: Shadow): { x: number; y: number } | undefined {

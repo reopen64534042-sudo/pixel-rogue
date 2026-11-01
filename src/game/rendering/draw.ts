@@ -340,9 +340,9 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     ctx.fillRect(Math.round(this.castX - 2), Math.round(this.castY - 2), 4, 4);
     ctx.globalAlpha = 1;
   }
-  // 法师：脚下施法条（常驻，18px 与法杖经验条等长，3px 高度沿用原读条）。
-  // 顺序（自上而下）：冲刺点 → 施法条 → 法杖经验条 → 三格元素轮盘。
-  // v163 移除站定后不再画急停线，条只表示本次施法进度。
+  // 法师：脚下施法条 = 元素相位条（18×1，4 段）。
+  // 已完成段填当前元素色；当前施法段用白线填充；第 4 段完成后换色并归零。
+  // 顺序：冲刺点 → 元素相位/施法条 → 法杖经验条；不再画三点轮盘。
   if (
     this.prof === "mage" && this.mageWeapon === "arcane" &&
     this.state === "play" &&
@@ -357,17 +357,37 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
         this.castPhase === "windup" ? this.castT + castPart : this.castT;
       prog = Math.max(0, Math.min(1, 1 - remain / total));
     }
+    const el = this.mageElements.length
+      ? this.mageElements[this.mageWheelIndex % this.mageElements.length]
+      : null;
+    const color = el ? MAGE_ELEMENTS[el].color : "#57e6ff";
+    const total = MAGE_CASTS_PER_ELEMENT;
+    const completed = Math.max(0, Math.min(total, this.mageCastsInPhase));
     const bw = 18;
-    // 与经验条同一取整基准（偶数宽，不会出现半像素横移抖动）。
     const bx = Math.round(this.player.x - bw / 2);
     const by = Math.round(this.player.y) + 16;
-    // v165：去掉 3px 半透明外框，只留 1px 底槽与进度线。
     ctx.fillStyle = "#1d2440";
     ctx.fillRect(bx, by, bw, 1);
-    if (prog > 0) {
-      ctx.fillStyle = "#57e6ff";
-      ctx.fillRect(bx, by, Math.max(1, Math.round(bw * prog)), 1);
+    const done = Math.round((bw * completed) / total);
+    if (done > 0) {
+      ctx.fillStyle = color;
+      ctx.fillRect(bx, by, done, 1);
     }
+    if (casting && prog > 0 && completed < total) {
+      const start = (bw * completed) / total;
+      const width = (bw / total) * prog;
+      ctx.fillStyle = "#f4fbff";
+      ctx.fillRect(
+        bx + Math.round(start),
+        by,
+        Math.max(1, Math.round(width)),
+        1,
+      );
+    }
+    // 1/4、2/4、3/4 刻度；画在填充之上，空隙保持可读。
+    ctx.fillStyle = "#1d2440";
+    for (let i = 1; i < total; i++)
+      ctx.fillRect(bx + Math.round((bw * i) / total), by, 1, 1);
   }
   // ---- 法师：镜像残影（吸引仇恨的诱饵）----
   // 用玩家的贴图半透明绘制，读作「一个假体」；缺贴图时退回紫色方块。
@@ -459,20 +479,28 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   // 法师：元素棱镜（新素材垫底；缺图时由下方程序化水晶回退）
   if (this.magePrism) {
     const prism = this.magePrism;
-    const assetPrism = mageVfx?.drawPrism(ctx, prism) ?? false;
+    // 生成动画：短距离下落 + 淡入；不是从屏幕顶部坠落。
+    const age =
+      prism.t > prism.maxT ? prism.maxT : Math.max(0, prism.maxT - prism.t);
+    const spawn = Math.min(1, age / 0.32);
+    const ease = 1 - Math.pow(1 - spawn, 3);
+    const drop = Math.round((1 - ease) * 10);
+    const appear = 0.12 + 0.88 * ease;
+    const assetPrism =
+      mageVfx?.drawPrism(ctx, prism, -drop, 0.9 * appear) ?? false;
     const color = MAGE_ELEMENTS[prism.element].color;
     const px = Math.round(prism.x);
     const py = Math.round(prism.y);
     const bob = Math.round(Math.sin(this.time * 3 + prism.x * 0.05));
     const pulse = 0.5 + Math.sin(this.time * 5) * 0.5;
     // 地面法环：短刻线随剩余时间缩短，避免整圈圆形读成敌方预警圈
-    const life = Math.max(0, prism.t / prism.maxT);
-    ctx.globalAlpha = 0.1 + pulse * 0.05;
+    const life = Math.min(1, Math.max(0, prism.t / prism.maxT));
+    ctx.globalAlpha = (0.1 + pulse * 0.05) * appear;
     ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.arc(px, py, 6, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.globalAlpha = 0.4;
+    ctx.globalAlpha = 0.4 * appear;
     const rot = this.time * 1.8;
     for (let i = 0; i < 3; i++) {
       const a0 = rot + (i * Math.PI * 2) / 3;
@@ -483,7 +511,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
 
     // 悬浮水晶（12×12）：暗轮廓 + 元素色晶面 + 左上高光 + 右下暗面 + 白芯
     const cx = px;
-    const cy = py - 16 + bob;
+    const cy = py - 16 + bob - drop;
     const rows = [
       [-6, 2],
       [-5, 4],
@@ -499,13 +527,13 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       [5, 2],
     ] as const;
     // 地面投影与悬浮光柱
-    ctx.globalAlpha = 0.32;
+    ctx.globalAlpha = 0.32 * appear;
     ctx.fillStyle = "#10131f";
     ctx.fillRect(px - 2, py + 2, 5, 1);
-    ctx.globalAlpha = 0.14 + pulse * 0.06;
+    ctx.globalAlpha = (0.14 + pulse * 0.06) * appear;
     ctx.fillStyle = color;
     ctx.fillRect(cx, cy + 6, 1, py - cy - 5);
-    ctx.globalAlpha = 0.12 + pulse * 0.08;
+    ctx.globalAlpha = (0.12 + pulse * 0.08) * appear;
     ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.arc(cx, cy, 9, 0, Math.PI * 2);
@@ -513,7 +541,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     // 新素材已画出水晶时不再叠程序化水晶；缺图才回退。
     if (!assetPrism) {
       // 外轮廓
-      ctx.globalAlpha = 0.95;
+      ctx.globalAlpha = 0.95 * appear;
       ctx.fillStyle = "#0b0e18";
       for (const [dy, w] of rows)
         ctx.fillRect(cx - Math.floor(w / 2), cy + dy, w, 1);
@@ -523,7 +551,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
         if (w > 2) ctx.fillRect(cx - Math.floor(w / 2) + 1, cy + dy, w - 2, 1);
       // 左上高光
       ctx.fillStyle = "#f4fbff";
-      ctx.globalAlpha = 0.9;
+      ctx.globalAlpha = 0.9 * appear;
       ctx.fillRect(cx - 1, cy - 5, 1, 1);
       ctx.fillRect(cx - 2, cy - 4, 1, 1);
       ctx.fillRect(cx - 3, cy - 3, 1, 1);
@@ -531,25 +559,25 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.fillRect(cx - 5, cy - 1, 1, 1);
       // 右下暗面
       ctx.fillStyle = "#0b0e18";
-      ctx.globalAlpha = 0.32;
+      ctx.globalAlpha = 0.32 * appear;
       ctx.fillRect(cx + 2, cy - 1, 4, 2);
       ctx.fillRect(cx + 1, cy + 1, 3, 1);
       // 白芯
       ctx.fillStyle = "#ffffff";
-      ctx.globalAlpha = 0.7 + pulse * 0.3;
+      ctx.globalAlpha = (0.7 + pulse * 0.3) * appear;
       ctx.fillRect(cx - 1, cy, 2, 1);
       // 环绕的星点
       const sparkX = cx + Math.round(Math.cos(this.time * 2.2) * 8);
       const sparkY = cy + Math.round(Math.sin(this.time * 2.2) * 7);
       ctx.fillRect(sparkX, sparkY, 1, 1);
-      ctx.globalAlpha = 0.25 + pulse * 0.25;
+      ctx.globalAlpha = (0.25 + pulse * 0.25) * appear;
       ctx.fillRect(sparkX - 1, sparkY, 3, 1);
       ctx.fillRect(sparkX, sparkY - 1, 1, 3);
     }
     // 剩余折射次数
     const pipX = px - Math.floor((prism.charges * 4 - 2) / 2);
     for (let i = 0; i < prism.charges; i++) {
-      ctx.globalAlpha = 0.9;
+      ctx.globalAlpha = 0.9 * appear;
       ctx.fillStyle = "#10131f";
       ctx.fillRect(pipX + i * 4 - 1, py + 4, 4, 4);
       ctx.fillStyle = color;
@@ -929,30 +957,6 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     ctx.fillRect(sx, sy, sw, 1);
     ctx.fillStyle = "#ffd24a";
     ctx.fillRect(sx, sy, Math.round(sw * ratio), 1);
-  }
-  // 法师：元素轮盘（经验条下方 3 格，颜色 = 当前元素；实心 = 本阶段已完成施法）。
-  // 每 3 次成功施法切换元素，格数归零并换色，给玩家“下一次换元素”的节奏提示。
-  if (
-    this.prof === "mage" && this.mageWeapon === "arcane" &&
-    this.state === "play" &&
-    this.wavePhase === "fight" &&
-    this.mageElements.length > 0
-  ) {
-    const el = this.mageElements[this.mageWheelIndex % this.mageElements.length];
-    const color = MAGE_ELEMENTS[el].color;
-    const total = MAGE_CASTS_PER_ELEMENT;
-    const cw = 2;
-    const chh = 2;
-    const gap = 3;
-    const pw = total * cw + (total - 1) * gap;
-    const px = Math.round(this.player.x) - Math.floor(pw / 2);
-    const py = Math.round(this.player.y) + 22;
-    for (let i = 0; i < total; i++) {
-      ctx.globalAlpha = i < this.mageCastsInPhase ? 1 : 0.32;
-      ctx.fillStyle = color;
-      ctx.fillRect(px + i * (cw + gap), py, cw, chh);
-    }
-    ctx.globalAlpha = 1;
   }
   // 战士「流 / 势」两条分段充能条（角色脚下，紧贴排列）。
   // 各 3 段、每段 5 层；未解锁的段压暗保留，升级后自然点亮。
