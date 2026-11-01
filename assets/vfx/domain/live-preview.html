@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>领域效果 · 全域连斩与无量展开</title>
+  <style>
+    body{margin:0;padding:24px;background:#0b0c14;color:#e8e8f0;font:15px/1.7 system-ui,sans-serif}
+    main{max-width:1040px;margin:auto}h1{font-size:24px;margin:0 0 8px}p{color:#aeb7d6;margin:8px 0 20px}
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}
+    button,select{background:#22233e;border:1px solid #716091;color:#e8e8f0;padding:8px 14px;border-radius:5px;font:inherit;cursor:pointer}
+    .panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.panel{border:1px solid #393956;background:#141725;border-radius:8px;overflow:hidden}
+    h2{font-size:16px;margin:12px 16px}.stage{aspect-ratio:4/3}canvas{display:block;width:100%!important;height:100%!important;image-rendering:pixelated}
+    output{display:block;min-height:28px;padding:10px 16px;color:#9fe1ff;font-size:13px}.note{font-size:13px}
+    @media(max-width:780px){.panels{grid-template-columns:1fr}body{padding:14px}}
+  </style>
+</head>
+<body><main>
+  <h1>全域连斩 · 无量展开</h1>
+  <p>每个被命中的怪物身上连续出刀；右侧展开黑蓝星空，信息灌满后停止行动与领域牵引，恢复后继续吸入。</p>
+  <div class="controls"><button id="pause">暂停</button><button id="frame">前进一帧</button><button id="restart">重新播放</button>
+    <label>速度 <select id="speed"><option value="1">原速</option><option value="0.25">四分之一慢放</option><option value="0.5">半速</option></select></label>
+    <button id="save" disabled>保存当前对比图</button><button id="record" disabled>录制三秒对比</button>
+  </div>
+  <div class="panels">
+    <section class="panel"><h2 id="slash-title">每个目标反复受斩</h2><div class="stage" id="slash"></div><output id="slash-state">正在加载…</output></section>
+    <section class="panel"><h2 id="void-title">连斩 + 无量空处</h2><div class="stage" id="void"></div><output id="void-state">正在加载…</output></section>
+  </div>
+  <p class="note">这是开发环境的受控效果对照，使用正式 Core、Phaser、特效绘制器和人物素材。目标提高生命以便反复观察，保留实际 AI/牵引/过载；每 3.2 秒重播。默认静音，不写入战绩，也不替代完整自然对局验收。</p>
+  <p id="error" role="alert"></p>
+</main><script type="module" src="./live-preview.mjs"></script></body></html>

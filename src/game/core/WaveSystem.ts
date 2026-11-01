@@ -2,6 +2,7 @@ import { BOSS, isBossWave } from "../data/boss";
 import { clearBossTransient, spawnBoss } from "./BossSystem";
 import { UPGRADES } from "../data/talents";
 import { clearMissileTransient } from "./MissileSystem";
+import { clearDomainTransient } from './DomainSystem';
 import { waveTheme } from "../data/enemies";
 import { shieldRebuildSeconds } from "../data/warriorBalance";
 import { resolveDifficulty } from "../data/difficulty";
@@ -204,6 +205,7 @@ export function updateWave(this: GameCore, dt: number) {
       clearBossTransient(this);
       // 本波怪清空 → 收尾: 先吸经验球、选完升级，再收宝箱，最后休整
       this.wavePhase = "collect";
+      if (this.prof==='mage' && this.mageWeapon==='domain') clearDomainTransient(this,true);
       if (this.prof === "shooter" && this.shooterWeapon === "missile") clearMissileTransient(this, false, true);
       this.gems.forEach((g) => (g.auto = true));
       this.boxes.forEach((b) => (b.auto = true)); // 未拾取的宝箱自动飞向玩家

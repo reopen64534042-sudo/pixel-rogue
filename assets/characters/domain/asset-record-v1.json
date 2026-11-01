@@ -1,0 +1,1776 @@
+{
+  "status": "B character body/prop assets completed; runtime wired; natural gameplay acceptance pending",
+  "selected": "b-boundary-warden",
+  "selectionDate": "2026-11-01",
+  "selectionResponse": "B · 结界执律者（半面具、三枚封印牌）",
+  "canvas": [
+    64,
+    64
+  ],
+  "columns": 4,
+  "rows": 16,
+  "anchor": [
+    32,
+    59
+  ],
+  "footOffsetY": 5,
+  "directions": [
+    "right",
+    "left"
+  ],
+  "actions": [
+    "idle",
+    "run",
+    "deploy",
+    "run-deploy",
+    "collapse",
+    "run-collapse",
+    "dash",
+    "hurt"
+  ],
+  "frameCount": 64,
+  "paletteKeys": [
+    "ink0",
+    "ink1",
+    "steelDark",
+    "steelMid",
+    "bone",
+    "sand",
+    "pBrown",
+    "pBlueDk",
+    "pBlue",
+    "psiPurple",
+    "psiViolet",
+    "iceCyan"
+  ],
+  "alpha": "0/255",
+  "bodyImage": "public/assets/characters/domain-warden-64x64.png",
+  "bodyHash": "d6b95f04ec5acfd2b6f8315754f6efc2743c2775ab4999004a368454a3ef606b",
+  "sourceReferenceScale": 0.10256410256410256,
+  "sources": [
+    {
+      "file": "warden-right-base-source.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "9a4ff5d48ddf1a238917a41b4891466ee23e11c9fc8e059faa139a9d7dd5e249"
+    },
+    {
+      "file": "warden-right-skills-source.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "b3c385de43170b3707dc15bb96b63fca8def8d9c935bb72ce36a1124c9416cfa"
+    },
+    {
+      "file": "warden-left-base-source.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "ca1ea712edd99ff2cc6b963055f5624e393106479a4c6f6fc4f9b721fc71b190"
+    },
+    {
+      "file": "warden-left-skills-source.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "084064598119befb616604f69fed76c50fb9fcd7f480f933f735c8691ea08779"
+    }
+  ],
+  "prop": {
+    "image": "public/assets/characters/domain-seal-8x10.png",
+    "size": [
+      8,
+      10
+    ],
+    "anchor": [
+      4,
+      5
+    ],
+    "count": 3,
+    "source": "warden-seal-prop-source.png",
+    "sourceHash": "6133636b10b6335e03cf3cb6c8ccaefdd3795bf34e388c5f7ef0a9544666cbf6",
+    "sha256": "b852db3bfeb4adf48449e2b85d3e6916cd46a3cbc6a0344c7a4fc3becb5669e6",
+    "bounds": {
+      "x": 2,
+      "y": 2,
+      "w": 4,
+      "h": 6,
+      "count": 17
+    }
+  },
+  "generator": "built-in image_gen",
+  "model": null,
+  "randomSeed": null,
+  "note": "Whole 16-frame source sheets, one common reference scale across sheets, foot-band X and bottom Y translations only; no runtime image mirroring or combat changes.",
+  "frames": [
+    {
+      "index": 0,
+      "direction": "right",
+      "action": "idle",
+      "phase": 0,
+      "bounds": {
+        "x": 25,
+        "y": 35,
+        "w": 15,
+        "h": 24,
+        "count": 234
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 82,
+        "y": 81,
+        "w": 161,
+        "h": 241
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 75.5,
+        "y": 239
+      },
+      "sha256": "fd02685b1adc2728713f8b8209c74dd2ce6b5431cfeb66c81e1199a3b86e7230"
+    },
+    {
+      "index": 1,
+      "direction": "right",
+      "action": "idle",
+      "phase": 1,
+      "bounds": {
+        "x": 24,
+        "y": 35,
+        "w": 17,
+        "h": 24,
+        "count": 241
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 393,
+        "y": 81,
+        "w": 167,
+        "h": 241
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 78,
+        "y": 239
+      },
+      "sha256": "db5abece83f5078674d78e51ead4f1a1ee74c5edf24cf123251ce9435b29fdea"
+    },
+    {
+      "index": 2,
+      "direction": "right",
+      "action": "idle",
+      "phase": 2,
+      "bounds": {
+        "x": 24,
+        "y": 35,
+        "w": 16,
+        "h": 24,
+        "count": 238
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 706,
+        "y": 81,
+        "w": 163,
+        "h": 241
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 78.5,
+        "y": 239
+      },
+      "sha256": "1ff8579aa440ae7d6da1c4cfad85368b61a0ed2538f0bd3c278a93bcd404992b"
+    },
+    {
+      "index": 3,
+      "direction": "right",
+      "action": "idle",
+      "phase": 3,
+      "bounds": {
+        "x": 24,
+        "y": 35,
+        "w": 16,
+        "h": 24,
+        "count": 238
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 1020,
+        "y": 81,
+        "w": 163,
+        "h": 241
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 78,
+        "y": 239
+      },
+      "sha256": "abb88e131696a2801aa83add8bf3932e1b9616158ba4a49f3c56eef1b85ae397"
+    },
+    {
+      "index": 4,
+      "direction": "right",
+      "action": "run",
+      "phase": 0,
+      "bounds": {
+        "x": 24,
+        "y": 33,
+        "w": 19,
+        "h": 26,
+        "count": 280
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 72,
+        "y": 373,
+        "w": 191,
+        "h": 257
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 85,
+        "y": 255
+      },
+      "sha256": "303707e77c423698e61aa665a423f6936e6c9e34cc5a9d01682117440dc259a1"
+    },
+    {
+      "index": 5,
+      "direction": "right",
+      "action": "run",
+      "phase": 1,
+      "bounds": {
+        "x": 23,
+        "y": 33,
+        "w": 21,
+        "h": 26,
+        "count": 283
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 380,
+        "y": 373,
+        "w": 210,
+        "h": 257
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 90,
+        "y": 255
+      },
+      "sha256": "c1a843b3f38f0a050cc37e6e1d9c412b12b70db9d4378eb1377184a7945769a3"
+    },
+    {
+      "index": 6,
+      "direction": "right",
+      "action": "run",
+      "phase": 2,
+      "bounds": {
+        "x": 22,
+        "y": 34,
+        "w": 19,
+        "h": 25,
+        "count": 274
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 694,
+        "y": 373,
+        "w": 198,
+        "h": 257
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 103.5,
+        "y": 255
+      },
+      "sha256": "6b3544c7642e9a08eaa22eb61a02a588ffcacd0616fefbf8f792d3b0aaed170a"
+    },
+    {
+      "index": 7,
+      "direction": "right",
+      "action": "run",
+      "phase": 3,
+      "bounds": {
+        "x": 24,
+        "y": 33,
+        "w": 19,
+        "h": 26,
+        "count": 276
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 1015,
+        "y": 373,
+        "w": 194,
+        "h": 257
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 84,
+        "y": 255
+      },
+      "sha256": "985c1309cc1082dcda932349549685059ac35272939e8634f623a99d20397096"
+    },
+    {
+      "index": 8,
+      "direction": "right",
+      "action": "deploy",
+      "phase": 0,
+      "bounds": {
+        "x": 24,
+        "y": 35,
+        "w": 16,
+        "h": 24,
+        "count": 243
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 76,
+        "y": 685,
+        "w": 167,
+        "h": 239
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 81.5,
+        "y": 236
+      },
+      "sha256": "086fa6265f0e9962ccd545eae45a1bb0962d35941eecd2dd2c302068833afeb9"
+    },
+    {
+      "index": 9,
+      "direction": "right",
+      "action": "deploy",
+      "phase": 1,
+      "bounds": {
+        "x": 23,
+        "y": 35,
+        "w": 20,
+        "h": 24,
+        "count": 259
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 381,
+        "y": 685,
+        "w": 200,
+        "h": 239
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 90,
+        "y": 237
+      },
+      "sha256": "3d684383865ae8afdd163e2d18a15ce69d5db1b3d50a1346d0ae456b0eb86780"
+    },
+    {
+      "index": 10,
+      "direction": "right",
+      "action": "deploy",
+      "phase": 2,
+      "bounds": {
+        "x": 23,
+        "y": 35,
+        "w": 21,
+        "h": 24,
+        "count": 263
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 694,
+        "y": 685,
+        "w": 212,
+        "h": 239
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 93.5,
+        "y": 236
+      },
+      "sha256": "435550ffdf8da64786679eeb27f5be007c9f2c66c2280f289b5b90122bbbaaff"
+    },
+    {
+      "index": 11,
+      "direction": "right",
+      "action": "deploy",
+      "phase": 3,
+      "bounds": {
+        "x": 24,
+        "y": 35,
+        "w": 16,
+        "h": 24,
+        "count": 238
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 1016,
+        "y": 685,
+        "w": 167,
+        "h": 239
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 81.5,
+        "y": 236
+      },
+      "sha256": "30bd2a873b3c8257583c1f8b4981d07c17c3b4e04f0d0f316ea488f5a050a538"
+    },
+    {
+      "index": 12,
+      "direction": "right",
+      "action": "run-deploy",
+      "phase": 0,
+      "bounds": {
+        "x": 24,
+        "y": 34,
+        "w": 21,
+        "h": 25,
+        "count": 283
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 72,
+        "y": 964,
+        "w": 218,
+        "h": 256
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 85,
+        "y": 254
+      },
+      "sha256": "9c691f2d4102e36d7b4a2795944ec8572ce8f3a6dfb296a6fc893638ad4f9f2e"
+    },
+    {
+      "index": 13,
+      "direction": "right",
+      "action": "run-deploy",
+      "phase": 1,
+      "bounds": {
+        "x": 23,
+        "y": 33,
+        "w": 24,
+        "h": 26,
+        "count": 290
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 380,
+        "y": 964,
+        "w": 238,
+        "h": 256
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 90,
+        "y": 254
+      },
+      "sha256": "6667da345fd5195871c5ce33e8ffb379246caab85f7c1e30145440cf5b48e478"
+    },
+    {
+      "index": 14,
+      "direction": "right",
+      "action": "run-deploy",
+      "phase": 2,
+      "bounds": {
+        "x": 22,
+        "y": 34,
+        "w": 23,
+        "h": 25,
+        "count": 290
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 694,
+        "y": 964,
+        "w": 235,
+        "h": 256
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 104,
+        "y": 254
+      },
+      "sha256": "14447c1b4ecee64a559ac56a895dfbef768fe2244db72fe1f3b105286d63292f"
+    },
+    {
+      "index": 15,
+      "direction": "right",
+      "action": "run-deploy",
+      "phase": 3,
+      "bounds": {
+        "x": 24,
+        "y": 33,
+        "w": 22,
+        "h": 26,
+        "count": 282
+      },
+      "source": "warden-right-base-source.png",
+      "region": {
+        "x": 1015,
+        "y": 964,
+        "w": 226,
+        "h": 256
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 85.5,
+        "y": 254
+      },
+      "sha256": "c401abe2ae35a18c4a3071a5c8267a7008e26fc78f9f1f0948903ed7fb4d5250"
+    },
+    {
+      "index": 16,
+      "direction": "right",
+      "action": "collapse",
+      "phase": 0,
+      "bounds": {
+        "x": 23,
+        "y": 36,
+        "w": 19,
+        "h": 23,
+        "count": 247
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 78,
+        "y": 82,
+        "w": 183,
+        "h": 234
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 86,
+        "y": 232
+      },
+      "sha256": "19455e22e7b3ec76d61b9070e35fcf75af34eeaf515b859cb3e23fe325480ce4"
+    },
+    {
+      "index": 17,
+      "direction": "right",
+      "action": "collapse",
+      "phase": 1,
+      "bounds": {
+        "x": 25,
+        "y": 36,
+        "w": 14,
+        "h": 23,
+        "count": 231
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 406,
+        "y": 82,
+        "w": 145,
+        "h": 234
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 72,
+        "y": 232
+      },
+      "sha256": "6f71bd726c3567d7943dd4a14a3212cfdd8b8737625e6e83bd2cbf70e8c8069e"
+    },
+    {
+      "index": 18,
+      "direction": "right",
+      "action": "collapse",
+      "phase": 2,
+      "bounds": {
+        "x": 25,
+        "y": 36,
+        "w": 14,
+        "h": 23,
+        "count": 222
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 718,
+        "y": 82,
+        "w": 145,
+        "h": 234
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 72.5,
+        "y": 232
+      },
+      "sha256": "579ea3c6815e6e741474569ddbb14f632b84e5a436631209d6a596c9f663578a"
+    },
+    {
+      "index": 19,
+      "direction": "right",
+      "action": "collapse",
+      "phase": 3,
+      "bounds": {
+        "x": 24,
+        "y": 35,
+        "w": 19,
+        "h": 24,
+        "count": 260
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 1021,
+        "y": 82,
+        "w": 189,
+        "h": 234
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 81.5,
+        "y": 232
+      },
+      "sha256": "f5a0bf6c3366f9158334d331aaf35b3f94d9f969953fc77c862bb9fe22ac3b7f"
+    },
+    {
+      "index": 20,
+      "direction": "right",
+      "action": "run-collapse",
+      "phase": 0,
+      "bounds": {
+        "x": 23,
+        "y": 34,
+        "w": 22,
+        "h": 25,
+        "count": 302
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 60,
+        "y": 384,
+        "w": 222,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 91.5,
+        "y": 244
+      },
+      "sha256": "e1071253a06baa908e88dab05435871e72eace98c67722a85bfb29daa93fe3b7"
+    },
+    {
+      "index": 21,
+      "direction": "right",
+      "action": "run-collapse",
+      "phase": 1,
+      "bounds": {
+        "x": 23,
+        "y": 34,
+        "w": 20,
+        "h": 25,
+        "count": 262
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 389,
+        "y": 384,
+        "w": 194,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 85.5,
+        "y": 244
+      },
+      "sha256": "f590bb6d4f8f66ef52f60809147a15302408266322a1c63d3099de34d9d2dfb8"
+    },
+    {
+      "index": 22,
+      "direction": "right",
+      "action": "run-collapse",
+      "phase": 2,
+      "bounds": {
+        "x": 23,
+        "y": 35,
+        "w": 19,
+        "h": 24,
+        "count": 265
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 694,
+        "y": 384,
+        "w": 186,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 90.5,
+        "y": 244
+      },
+      "sha256": "ecfda72fbdd209d1311e4a71b7d2711d0ca42ada615ce97de84ddb4a0aa033d9"
+    },
+    {
+      "index": 23,
+      "direction": "right",
+      "action": "run-collapse",
+      "phase": 3,
+      "bounds": {
+        "x": 23,
+        "y": 35,
+        "w": 22,
+        "h": 24,
+        "count": 287
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 1006,
+        "y": 384,
+        "w": 224,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 89.5,
+        "y": 244
+      },
+      "sha256": "073b735d8b89c69e558b69744d078293b3a68bcd40d68f6c70f088916f8cb820"
+    },
+    {
+      "index": 24,
+      "direction": "right",
+      "action": "dash",
+      "phase": 0,
+      "bounds": {
+        "x": 23,
+        "y": 39,
+        "w": 18,
+        "h": 20,
+        "count": 255
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 68,
+        "y": 689,
+        "w": 186,
+        "h": 234
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 95,
+        "y": 232
+      },
+      "sha256": "7bf9fb88c8245c1fc093fc990265b0922bf1a8d815998db4fce267f6ad9dfe8b"
+    },
+    {
+      "index": 25,
+      "direction": "right",
+      "action": "dash",
+      "phase": 1,
+      "bounds": {
+        "x": 25,
+        "y": 37,
+        "w": 23,
+        "h": 22,
+        "count": 284
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 382,
+        "y": 689,
+        "w": 228,
+        "h": 234
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 68.5,
+        "y": 230
+      },
+      "sha256": "80da9c264143a164fbf6fd038e58b6ae166063cf4c72335e523c6b56342b8321"
+    },
+    {
+      "index": 26,
+      "direction": "right",
+      "action": "dash",
+      "phase": 2,
+      "bounds": {
+        "x": 24,
+        "y": 38,
+        "w": 22,
+        "h": 21,
+        "count": 289
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 698,
+        "y": 689,
+        "w": 228,
+        "h": 234
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 84.5,
+        "y": 230
+      },
+      "sha256": "6409f2a4424c47b3af2884de9a0bb1f1be0192a84cc5c48692d25ef8bae4204d"
+    },
+    {
+      "index": 27,
+      "direction": "right",
+      "action": "dash",
+      "phase": 3,
+      "bounds": {
+        "x": 23,
+        "y": 35,
+        "w": 18,
+        "h": 24,
+        "count": 255
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 1021,
+        "y": 689,
+        "w": 177,
+        "h": 234
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 86,
+        "y": 232
+      },
+      "sha256": "24dfccd50f55e561105fedabfbbb55955179d8982b8b33aafa35f1ba8b2e2cae"
+    },
+    {
+      "index": 28,
+      "direction": "right",
+      "action": "hurt",
+      "phase": 0,
+      "bounds": {
+        "x": 23,
+        "y": 35,
+        "w": 19,
+        "h": 24,
+        "count": 270
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 79,
+        "y": 974,
+        "w": 189,
+        "h": 240
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 88,
+        "y": 238
+      },
+      "sha256": "7a1117d46070e633d8f5339b5dc7a26a9e669b73d13549749f0af4f907e0854b"
+    },
+    {
+      "index": 29,
+      "direction": "right",
+      "action": "hurt",
+      "phase": 1,
+      "bounds": {
+        "x": 21,
+        "y": 36,
+        "w": 19,
+        "h": 23,
+        "count": 278
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 388,
+        "y": 974,
+        "w": 189,
+        "h": 240
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 108.5,
+        "y": 238
+      },
+      "sha256": "8aac0027de6a05e87a9bd1eb74875b0597a3cd6dde94527ee064b7b2cdca0f4b"
+    },
+    {
+      "index": 30,
+      "direction": "right",
+      "action": "hurt",
+      "phase": 2,
+      "bounds": {
+        "x": 24,
+        "y": 36,
+        "w": 19,
+        "h": 23,
+        "count": 247
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 715,
+        "y": 974,
+        "w": 185,
+        "h": 240
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 79,
+        "y": 238
+      },
+      "sha256": "50b93bde605315af4bf5230a87c049b6f0326751d4675acc58ad733d04721e23"
+    },
+    {
+      "index": 31,
+      "direction": "right",
+      "action": "hurt",
+      "phase": 3,
+      "bounds": {
+        "x": 23,
+        "y": 36,
+        "w": 19,
+        "h": 23,
+        "count": 260
+      },
+      "source": "warden-right-skills-source.png",
+      "region": {
+        "x": 1021,
+        "y": 974,
+        "w": 194,
+        "h": 240
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 91,
+        "y": 238
+      },
+      "sha256": "42e60ef8c57f6d23e8513819f7b3efaa695f6ebdf0f2da3cc61d76b5b512fe5d"
+    },
+    {
+      "index": 32,
+      "direction": "left",
+      "action": "idle",
+      "phase": 0,
+      "bounds": {
+        "x": 23,
+        "y": 35,
+        "w": 17,
+        "h": 24,
+        "count": 263
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 72,
+        "y": 81,
+        "w": 175,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 95,
+        "y": 243
+      },
+      "sha256": "b24cc59d1420eb3f63e40c395769724cddfdc551c63ffb9fa5fa8f3593e7d8ae"
+    },
+    {
+      "index": 33,
+      "direction": "left",
+      "action": "idle",
+      "phase": 1,
+      "bounds": {
+        "x": 23,
+        "y": 34,
+        "w": 17,
+        "h": 25,
+        "count": 265
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 389,
+        "y": 81,
+        "w": 177,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 91,
+        "y": 244
+      },
+      "sha256": "f831b36a9a95c3a592ba55750849e82c49678324b57e1e23c16711f9ea3269c3"
+    },
+    {
+      "index": 34,
+      "direction": "left",
+      "action": "idle",
+      "phase": 2,
+      "bounds": {
+        "x": 23,
+        "y": 34,
+        "w": 17,
+        "h": 25,
+        "count": 268
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 699,
+        "y": 81,
+        "w": 178,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 93.5,
+        "y": 244
+      },
+      "sha256": "8673091d110f2a6d329cd8976078e268267d3b1529bb73b0bf1e70ac633242bc"
+    },
+    {
+      "index": 35,
+      "direction": "left",
+      "action": "idle",
+      "phase": 3,
+      "bounds": {
+        "x": 22,
+        "y": 34,
+        "w": 18,
+        "h": 25,
+        "count": 267
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 1011,
+        "y": 81,
+        "w": 176,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 95.5,
+        "y": 244
+      },
+      "sha256": "c60ee888da7f6b316deb2eafa8daad0c29ccd655ba7b6d2d755692828efdc044"
+    },
+    {
+      "index": 36,
+      "direction": "left",
+      "action": "run",
+      "phase": 0,
+      "bounds": {
+        "x": 21,
+        "y": 34,
+        "w": 21,
+        "h": 25,
+        "count": 305
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 71,
+        "y": 374,
+        "w": 207,
+        "h": 261
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 109.5,
+        "y": 255
+      },
+      "sha256": "6d495779b3e1173d98703a13cdf871492fc1dc44f774d2b9463206e2f877cb78"
+    },
+    {
+      "index": 37,
+      "direction": "left",
+      "action": "run",
+      "phase": 1,
+      "bounds": {
+        "x": 21,
+        "y": 33,
+        "w": 21,
+        "h": 26,
+        "count": 303
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 396,
+        "y": 374,
+        "w": 204,
+        "h": 261
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 108,
+        "y": 259
+      },
+      "sha256": "30b2cc1b770d1621fc16d5685c97bfc818c082fb86b3a8a9114b1c7b6244a7fe"
+    },
+    {
+      "index": 38,
+      "direction": "left",
+      "action": "run",
+      "phase": 2,
+      "bounds": {
+        "x": 22,
+        "y": 33,
+        "w": 20,
+        "h": 26,
+        "count": 302
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 707,
+        "y": 374,
+        "w": 210,
+        "h": 261
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 104,
+        "y": 259
+      },
+      "sha256": "5465e09185f6f1abf484ff736d97026d4fa66731a37fe0b5b8ac6f13af87ab6c"
+    },
+    {
+      "index": 39,
+      "direction": "left",
+      "action": "run",
+      "phase": 3,
+      "bounds": {
+        "x": 21,
+        "y": 34,
+        "w": 20,
+        "h": 25,
+        "count": 290
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 1019,
+        "y": 374,
+        "w": 205,
+        "h": 261
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 114,
+        "y": 255
+      },
+      "sha256": "704c31ede09e9d78a7dd7048319a74fc660f59bcfefd2de05a5ea7b0bf97ae9e"
+    },
+    {
+      "index": 40,
+      "direction": "left",
+      "action": "deploy",
+      "phase": 0,
+      "bounds": {
+        "x": 23,
+        "y": 34,
+        "w": 17,
+        "h": 25,
+        "count": 268
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 71,
+        "y": 677,
+        "w": 178,
+        "h": 255
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 95.5,
+        "y": 253
+      },
+      "sha256": "907fa1a2214a31e95af440015a8c64f7877d7e4b17abd1b97c84ec4f9b845ea8"
+    },
+    {
+      "index": 41,
+      "direction": "left",
+      "action": "deploy",
+      "phase": 1,
+      "bounds": {
+        "x": 19,
+        "y": 33,
+        "w": 22,
+        "h": 26,
+        "count": 319
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 358,
+        "y": 677,
+        "w": 223,
+        "h": 255
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 131.5,
+        "y": 253
+      },
+      "sha256": "b708fa86c0420e09a36764bbb4c843579df8684aedb84477c6765578b21c105a"
+    },
+    {
+      "index": 42,
+      "direction": "left",
+      "action": "deploy",
+      "phase": 2,
+      "bounds": {
+        "x": 19,
+        "y": 34,
+        "w": 23,
+        "h": 25,
+        "count": 315
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 671,
+        "y": 677,
+        "w": 226,
+        "h": 255
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 129,
+        "y": 253
+      },
+      "sha256": "1a289d5a92c9c234fe265412a5de866294a5fff120a85e4f89e8074df3b2e55e"
+    },
+    {
+      "index": 43,
+      "direction": "left",
+      "action": "deploy",
+      "phase": 3,
+      "bounds": {
+        "x": 24,
+        "y": 34,
+        "w": 16,
+        "h": 25,
+        "count": 271
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 1026,
+        "y": 677,
+        "w": 168,
+        "h": 255
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 84,
+        "y": 253
+      },
+      "sha256": "54c4362490ad767da71c526d1fc41f92963f26b102d60e25e7c2ca4988813e4a"
+    },
+    {
+      "index": 44,
+      "direction": "left",
+      "action": "run-deploy",
+      "phase": 0,
+      "bounds": {
+        "x": 19,
+        "y": 34,
+        "w": 23,
+        "h": 25,
+        "count": 307
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 42,
+        "y": 966,
+        "w": 229,
+        "h": 252
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 133,
+        "y": 250
+      },
+      "sha256": "a9c3aff7a0dc5b2f147a78704112098c613fb550019a87a82017aa1c2ef63323"
+    },
+    {
+      "index": 45,
+      "direction": "left",
+      "action": "run-deploy",
+      "phase": 1,
+      "bounds": {
+        "x": 18,
+        "y": 34,
+        "w": 25,
+        "h": 25,
+        "count": 313
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 356,
+        "y": 966,
+        "w": 248,
+        "h": 252
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 140.5,
+        "y": 250
+      },
+      "sha256": "14208e0d9468454c92bca83561eec0037dd08e45a6fddb3ca8de6ee5bb6b35b1"
+    },
+    {
+      "index": 46,
+      "direction": "left",
+      "action": "run-deploy",
+      "phase": 2,
+      "bounds": {
+        "x": 17,
+        "y": 34,
+        "w": 24,
+        "h": 25,
+        "count": 318
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 672,
+        "y": 966,
+        "w": 241,
+        "h": 252
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 147.5,
+        "y": 250
+      },
+      "sha256": "3dd33cf3fa9eab1e70a85a17697107bb6962aa2b1797d9df8c30cacc4659de4a"
+    },
+    {
+      "index": 47,
+      "direction": "left",
+      "action": "run-deploy",
+      "phase": 3,
+      "bounds": {
+        "x": 19,
+        "y": 35,
+        "w": 22,
+        "h": 24,
+        "count": 299
+      },
+      "source": "warden-left-base-source.png",
+      "region": {
+        "x": 1010,
+        "y": 966,
+        "w": 214,
+        "h": 252
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 125.5,
+        "y": 246
+      },
+      "sha256": "f18b685c370ecfb58355970e18020c34071be1ae6e9fffb61aea38b875efe223"
+    },
+    {
+      "index": 48,
+      "direction": "left",
+      "action": "collapse",
+      "phase": 0,
+      "bounds": {
+        "x": 19,
+        "y": 33,
+        "w": 23,
+        "h": 26,
+        "count": 322
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 40,
+        "y": 79,
+        "w": 229,
+        "h": 256
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 125.5,
+        "y": 254
+      },
+      "sha256": "d3ae3ac805bf41673aab51b82194c34ae55c3efed952d5fe6a71cea9442b6ff6"
+    },
+    {
+      "index": 49,
+      "direction": "left",
+      "action": "collapse",
+      "phase": 1,
+      "bounds": {
+        "x": 22,
+        "y": 33,
+        "w": 18,
+        "h": 26,
+        "count": 287
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 384,
+        "y": 79,
+        "w": 182,
+        "h": 256
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 99,
+        "y": 254
+      },
+      "sha256": "c8f3700b87de4423ac1e8e9bb361436ca78a7573c9f3686735acd07e76d716ce"
+    },
+    {
+      "index": 50,
+      "direction": "left",
+      "action": "collapse",
+      "phase": 2,
+      "bounds": {
+        "x": 24,
+        "y": 33,
+        "w": 16,
+        "h": 26,
+        "count": 278
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 703,
+        "y": 79,
+        "w": 170,
+        "h": 256
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 85,
+        "y": 253
+      },
+      "sha256": "5770b72b53cc1902422d61ca6204e22778892a4310fbc255727334c311752cef"
+    },
+    {
+      "index": 51,
+      "direction": "left",
+      "action": "collapse",
+      "phase": 3,
+      "bounds": {
+        "x": 18,
+        "y": 33,
+        "w": 23,
+        "h": 26,
+        "count": 325
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 981,
+        "y": 79,
+        "w": 231,
+        "h": 256
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 139.5,
+        "y": 253
+      },
+      "sha256": "eb043c356087cb720299369e7e955b8f4cb614b621588fff7bec7cc8fd2a15e6"
+    },
+    {
+      "index": 52,
+      "direction": "left",
+      "action": "run-collapse",
+      "phase": 0,
+      "bounds": {
+        "x": 18,
+        "y": 33,
+        "w": 26,
+        "h": 26,
+        "count": 360
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 43,
+        "y": 389,
+        "w": 257,
+        "h": 268
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 135.5,
+        "y": 266
+      },
+      "sha256": "53cb4a606e665a31593b13a8e3561b525d754da0b25a2bc10b53c8de71c82a25"
+    },
+    {
+      "index": 53,
+      "direction": "left",
+      "action": "run-collapse",
+      "phase": 1,
+      "bounds": {
+        "x": 19,
+        "y": 32,
+        "w": 23,
+        "h": 27,
+        "count": 331
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 374,
+        "y": 389,
+        "w": 228,
+        "h": 268
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 128,
+        "y": 266
+      },
+      "sha256": "75d8319b49e43e34b2926176a703403e0616c126adcd573a5d14c1840daf369d"
+    },
+    {
+      "index": 54,
+      "direction": "left",
+      "action": "run-collapse",
+      "phase": 2,
+      "bounds": {
+        "x": 22,
+        "y": 32,
+        "w": 21,
+        "h": 27,
+        "count": 310
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 707,
+        "y": 389,
+        "w": 215,
+        "h": 268
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 104,
+        "y": 266
+      },
+      "sha256": "7a2f11eb84e90dfebe9cc28c122f985090a8963594d6f15a2dd71a688b2f1c45"
+    },
+    {
+      "index": 55,
+      "direction": "left",
+      "action": "run-collapse",
+      "phase": 3,
+      "bounds": {
+        "x": 17,
+        "y": 33,
+        "w": 25,
+        "h": 26,
+        "count": 355
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 981,
+        "y": 389,
+        "w": 254,
+        "h": 268
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 152.5,
+        "y": 263
+      },
+      "sha256": "74e331b159c5bf16a91170a488faef3ed242b3c67f7653ec36075d65418437a2"
+    },
+    {
+      "index": 56,
+      "direction": "left",
+      "action": "dash",
+      "phase": 0,
+      "bounds": {
+        "x": 19,
+        "y": 39,
+        "w": 27,
+        "h": 20,
+        "count": 331
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 41,
+        "y": 685,
+        "w": 260,
+        "h": 244
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 124.5,
+        "y": 236
+      },
+      "sha256": "913f277dd12fc10db71f0b004c0f1e1b66c9d1b36e53b5be5c78e9a7d551d89e"
+    },
+    {
+      "index": 57,
+      "direction": "left",
+      "action": "dash",
+      "phase": 1,
+      "bounds": {
+        "x": 15,
+        "y": 40,
+        "w": 27,
+        "h": 19,
+        "count": 288
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 344,
+        "y": 685,
+        "w": 271,
+        "h": 244
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 167,
+        "y": 236
+      },
+      "sha256": "c957eea87b7ee0dc3fcc790c3bc364c0d3c804190a0db4fe1f586e1e4e742fb1"
+    },
+    {
+      "index": 58,
+      "direction": "left",
+      "action": "dash",
+      "phase": 2,
+      "bounds": {
+        "x": 16,
+        "y": 40,
+        "w": 28,
+        "h": 19,
+        "count": 314
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 643,
+        "y": 685,
+        "w": 287,
+        "h": 244
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 161,
+        "y": 236
+      },
+      "sha256": "c1d9037e0c45662b737faffc0042234f5f95d879fa9e1bbd83298524be4d80e9"
+    },
+    {
+      "index": 59,
+      "direction": "left",
+      "action": "dash",
+      "phase": 3,
+      "bounds": {
+        "x": 20,
+        "y": 34,
+        "w": 21,
+        "h": 25,
+        "count": 322
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 994,
+        "y": 685,
+        "w": 213,
+        "h": 244
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 121,
+        "y": 242
+      },
+      "sha256": "6fe0595b9bb22531334688eaca062339bd36ecb8c04b6fc98b40932340937278"
+    },
+    {
+      "index": 60,
+      "direction": "left",
+      "action": "hurt",
+      "phase": 0,
+      "bounds": {
+        "x": 21,
+        "y": 35,
+        "w": 21,
+        "h": 24,
+        "count": 285
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 70,
+        "y": 971,
+        "w": 207,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 110.5,
+        "y": 244
+      },
+      "sha256": "6e304e26c605694722034acf7406eb0df5d930d307b6ec87b220c5567a29763f"
+    },
+    {
+      "index": 61,
+      "direction": "left",
+      "action": "hurt",
+      "phase": 1,
+      "bounds": {
+        "x": 21,
+        "y": 34,
+        "w": 21,
+        "h": 25,
+        "count": 332
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 361,
+        "y": 971,
+        "w": 212,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 111,
+        "y": 244
+      },
+      "sha256": "38b4e892f37ec9b27c3eecca1374c265d9d7869ff1a5efcf9e62f1c99efa7228"
+    },
+    {
+      "index": 62,
+      "direction": "left",
+      "action": "hurt",
+      "phase": 2,
+      "bounds": {
+        "x": 21,
+        "y": 36,
+        "w": 20,
+        "h": 23,
+        "count": 273
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 688,
+        "y": 971,
+        "w": 204,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 113.5,
+        "y": 244
+      },
+      "sha256": "3e6cdd7f9dc86c59210f431f23988645f5570f818cb9e715143493bf26cdf709"
+    },
+    {
+      "index": 63,
+      "direction": "left",
+      "action": "hurt",
+      "phase": 3,
+      "bounds": {
+        "x": 19,
+        "y": 34,
+        "w": 22,
+        "h": 25,
+        "count": 313
+      },
+      "source": "warden-left-skills-source.png",
+      "region": {
+        "x": 994,
+        "y": 971,
+        "w": 221,
+        "h": 246
+      },
+      "sourceScale": 0.10256410256410256,
+      "foot": {
+        "x": 126,
+        "y": 244
+      },
+      "sha256": "2721f10dd5379fe1388cdf4f4d92db1441b5c63639a0fd7c84e1e5144c2de086"
+    }
+  ]
+}

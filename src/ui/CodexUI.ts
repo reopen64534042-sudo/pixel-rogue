@@ -3,6 +3,7 @@ import {
   CODEX_ENTRIES,
   ENEMY_ENTRIES,
   TALENT_ENTRIES,
+  WEAPON_ENTRIES,
   type CodexEntry,
 } from "../game/codex/codexData";
 import { ETYPES } from "../game/data/enemies";
@@ -13,11 +14,12 @@ import { element } from "./dom";
 
 const ALL = "全部" as const;
 const ENEMY = "敌人" as const;
+const WEAPON = '武器' as const;
 // v165：旧表已删除，图鉴只保留当前职业池分区。
 // 槽位轴不进分区——16 个 tab 会让图鉴变成噪音；槽位在条目详情里显示。
 const GROUPS = ["射手", "法师", "战士"] as const;
-type Filter = typeof ALL | typeof ENEMY | (typeof GROUPS)[number];
-const FILTERS: readonly Filter[] = [ALL, ...GROUPS, ENEMY];
+type Filter = typeof ALL | typeof ENEMY | typeof WEAPON | (typeof GROUPS)[number];
+const FILTERS: readonly Filter[] = [ALL, ...GROUPS, WEAPON, ENEMY];
 
 function tierName(entry: CodexEntry): string {
   return TIERS[entry.tier ?? 0] ?? "普通";
@@ -54,7 +56,7 @@ function enemyStatsHtml(entry: CodexEntry): string {
   const def = cfg.defense ?? 0;
   const armorNote =
     def > 0
-      ? `物理承伤 ${Math.round((50 / (50 + def)) * 100)}%（减伤 ${Math.round((def / (50 + def)) * 100)}%）；元素与真实伤害无视护甲`
+      ? `物理/引力承伤 ${Math.round((50 / (50 + def)) * 100)}%（减伤 ${Math.round((def / (50 + def)) * 100)}%）；元素与真实伤害无视护甲`
       : "无物理护甲";
   const resText = (["fire", "frost", "lightning"] as const)
     .map((k) => {
@@ -171,6 +173,7 @@ export class CodexUI {
   private visibleEntries(): readonly CodexEntry[] {
     if (this.filter === ALL) return CODEX_ENTRIES;
     if (this.filter === ENEMY) return ENEMY_ENTRIES;
+    if (this.filter === WEAPON) return WEAPON_ENTRIES;
     return TALENT_ENTRIES.filter((entry) => entry.group === this.filter);
   }
 
@@ -180,10 +183,11 @@ export class CodexUI {
   ): { unlocked: number; total: number } {
     if (group === ALL)
       return {
-        unlocked: progress.unlocked + progress.enemies.unlocked,
-        total: progress.total + progress.enemies.total,
+        unlocked: progress.unlocked + progress.enemies.unlocked + WEAPON_ENTRIES.length,
+        total: progress.total + progress.enemies.total + WEAPON_ENTRIES.length,
       };
     if (group === ENEMY) return progress.enemies;
+    if (group === WEAPON) return {unlocked:WEAPON_ENTRIES.length,total:WEAPON_ENTRIES.length};
     return progress.byGroup[group] ?? { unlocked: 0, total: 0 };
   }
 
@@ -199,7 +203,7 @@ export class CodexUI {
       </button>`;
     }
     const meta =
-      entry.cat === "enemy"
+      entry.cat==='weapon' ? entry.slot??'武器资料' : entry.cat === "enemy"
         ? `击杀 ${codex.killCount(entry.id)}`
         : `${tierName(entry)} · Lv.${codex.maxLevel(entry.id)}`;
     return `<button class="cx-cell" data-id="${entry.id}" style="border-color:${accentColor(entry)}">
@@ -256,7 +260,7 @@ export class CodexUI {
     }
 
     const meta =
-      entry.cat === "enemy"
+      entry.cat==='weapon' ? entry.slot??'武器资料' : entry.cat === "enemy"
         ? `${entry.boss ? "首领" : "敌人"} · 累计击杀 ${codex.killCount(entry.id)}`
         : `${tierName(entry)} · ${entry.group ?? ""}${chainMeta(entry) ? ` · ${chainMeta(entry)}` : ""} · 历史最高 Lv.${codex.maxLevel(entry.id)}`;
     detail.innerHTML = `

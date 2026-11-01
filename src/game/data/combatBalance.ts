@@ -109,6 +109,17 @@ export const LASER_DAMAGE = {
   highFocus: 0.75,
 } as const;
 
+/** Domain: original formation baseline plus 2026-11-01 field/level rework; W and M each apply once. */
+export const DOMAIN_DAMAGE = {
+  field:.3, information:.08, levelGain:.12, overlap:.6, confluenceOverlap:.8, birth:2, true:.4, currentHp:.04, currentHpCap:1,
+  earlyPowerPenalty:.2, earlyPowerRecoveryLevel:5,
+  holeTick:.12, fieldSlashDps:1.4, holeSlashDps:7/6, terminal:1.2, ember:.4,
+  coreBase:.08, corePerTarget:.02, coreCap:.30, projection:1.2,
+  boss:1.1, focus:1.25, armorPen:.30, lifesteal:.30, lifestealCap:.02,
+  siphonBase:.01, siphonTarget:.002, healingCap:.05,
+  slashEnhance:1.25, stasisEnhance:1.2,
+} as const;
+
 /** v141: approved missile design; damage factors stay out of system orchestration. */
 export const MISSILE_DAMAGE = {
   base: 3.6, perLevel: 0.06, liner: 1.12, twin: 0.65, pressure: 1.35,

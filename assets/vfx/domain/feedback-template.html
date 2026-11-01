@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>坍缩领域 · 裂界数字与专属音效</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,"Microsoft YaHei",sans-serif;background:#10121d;color:#e8e8f0}*{box-sizing:border-box}body{max-width:1100px;margin:auto;padding:24px}h1{font-size:24px;margin:0 0 8px}h2{font-size:18px;margin-top:28px}p{color:#b2b5c8;line-height:1.65}.stage,.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0}.stage{justify-content:space-between}.canvas-wrap{background:#141725;border:1px solid #35304d}canvas,.number-sheet{display:block;width:100%;height:auto;image-rendering:pixelated}button,select{font:inherit;color:inherit;background:#28243b;border:1px solid #5c497b;padding:9px 13px;border-radius:6px}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #57e6ff;outline-offset:3px}#seek{width:100%;accent-color:#b05cff}#volume{width:140px;accent-color:#b05cff}small{color:#b2b5c8}.number-labels{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;gap:8px;font-size:13px}#sound-list{max-width:100%;min-width:220px}#error{color:#ffb3ab}audio{width:100%;margin:8px 0}@media(max-width:560px){body{padding:12px}h1{font-size:20px}.number-labels{font-size:11px}#sound-list{min-width:0;width:100%}}
+</style></head><body>
+<h1>坍缩领域 · 裂界数字与专属音效</h1>
+<p>点击播放观看声画同步预览，或在下方逐个试听。声音由抽空、压缩、裂响与低频回响组成，数字保持骨白字芯、紫黑描边与冷蓝真伤附字。</p>
+<div class="stage"><strong id="stage-name">准备播放</strong><span>480 × 270 · 6.2 秒</span></div>
+<div class="canvas-wrap"><canvas id="preview" width="480" height="270" aria-label="裂界数字与技能音效同步预览"></canvas></div>
+<div class="controls"><button id="play" type="button">播放声画预览</button><button id="restart" type="button">从头播放</button><label><input id="sound" type="checkbox" checked> 音效</label><label>音量 <input id="volume" type="range" min="0" max="1" step="0.01" value="0.45"></label><label>速度 <select id="speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label><label><input id="loop" type="checkbox" checked> 循环</label><output id="time">0.00 / 6.20s</output></div>
+<input id="seek" type="range" min="0" max="6.199" step="0.033333" value="0" aria-label="声画时间轴">
+<div id="error" role="alert"></div>
+<h2>裂界数字</h2><img class="number-sheet" id="number-sheet" alt="普通坍缩、暴击、斩击、终末数字样式">
+<div class="number-labels"><span>普通坍缩＋真伤</span><span>暴击坍缩＋真伤</span><span>引力斩击</span><span>终末爆发</span></div>
+<h2>独立音效试听</h2>
+<div class="controls"><label>类别 <select id="sound-group"><option value="effect">技能与循环</option><option value="talent-learn">15 张天赋获得</option><option value="weapon-upgrade">9 条武器升级</option></select></label><select id="sound-list" aria-label="选择音效"></select><button id="audition" type="button">试听</button><button id="stop-audition" type="button">停止</button><output id="clip-info"></output></div>
+<audio id="audition-player" controls preload="none"></audio>
+<p><small>离线素材预览，不运行伤害、控制或战斗逻辑。被动卡有独立获得声及条件音色层，正式触发不会按每个敌人或每跳伤害叠加。慢放会随速率改变音高；判断音色请使用 1×。</small></p>
+<script>
+const data=/*__DOMAIN_PREVIEW_DATA__*/;
+const canvas=document.getElementById('preview'),ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas unavailable');ctx.imageSmoothingEnabled=false;
+const atlas=new Image(),track=new Audio(data.audio.demo),audition=document.getElementById('audition-player');track.preload='auto';track.volume=.45;track.preservesPitch=false;
+const play=document.getElementById('play'),seek=document.getElementById('seek'),speed=document.getElementById('speed'),sound=document.getElementById('sound'),loop=document.getElementById('loop'),volume=document.getElementById('volume'),errorBox=document.getElementById('error');
+const names={deploy:'领域部署',hunt:'三领域围猎',collapse:'向心收拢',impact:'黑洞形成 · 裂界数字',blackhole:'旋流与技能造型',terminal:'终末爆发',remnant:'余烬领域',clear:'消散'};
+let t=0,playing=false,last=null,request=0;
+function draw(){if(!atlas.complete||!atlas.naturalWidth)return;const f=data.frames[Math.min(data.frameCount-1,Math.floor(t*data.fps))];ctx.drawImage(atlas,f.x,f.y,f.w,f.h,0,0,480,270);document.getElementById('stage-name').textContent=names[f.stage];document.getElementById('time').textContent=t.toFixed(2)+' / '+data.duration.toFixed(2)+'s';seek.value=String(t);play.textContent=playing?'暂停':'播放声画预览'}
+function stopMain(){request++;track.pause();playing=false;last=null;draw()}
+async function startMain(){const token=++request;audition.pause();errorBox.textContent='';playing=true;last=null;try{track.loop=loop.checked;track.playbackRate=Number(speed.value);track.volume=Number(volume.value);track.currentTime=t;if(sound.checked)await track.play();if(token!==request)return;draw()}catch(error){if(token===request){playing=false;errorBox.textContent='音频未能播放：'+String(error);draw()}}}
+play.addEventListener('click',()=>{if(playing)stopMain();else void startMain()});document.getElementById('restart').addEventListener('click',()=>{stopMain();t=0;void startMain()});seek.addEventListener('input',()=>{stopMain();t=Number(seek.value);track.currentTime=t;draw()});speed.addEventListener('change',()=>{track.playbackRate=Number(speed.value)});loop.addEventListener('change',()=>{track.loop=loop.checked});volume.addEventListener('input',()=>{track.volume=Number(volume.value);audition.volume=Number(volume.value)});sound.addEventListener('change',()=>{if(playing){request++;track.pause();last=null;if(sound.checked)void startMain();else draw()}});
+track.addEventListener('ended',()=>{if(!loop.checked){t=data.duration-1/data.fps;playing=false;draw()}});track.addEventListener('error',()=>{stopMain();errorBox.textContent='组合音轨加载失败'});
+const group=document.getElementById('sound-group'),list=document.getElementById('sound-list');
+function selectedClip(){return data.audio.clips.find(c=>c.id===list.value)}
+function updateClip(){const c=selectedClip();if(!c)return;audition.pause();audition.src=c.src;audition.volume=Number(volume.value);document.getElementById('clip-info').textContent=c.duration.toFixed(2)+'s'+(c.loop?' · 循环源，单次试听':'')}
+function populate(){list.replaceChildren();data.audio.clips.filter(c=>c.group===group.value).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.label;list.append(o)});updateClip()}
+group.addEventListener('change',populate);list.addEventListener('change',updateClip);document.getElementById('audition').addEventListener('click',()=>{stopMain();audition.currentTime=0;void audition.play().catch(error=>{errorBox.textContent='试听未能播放：'+String(error)})});document.getElementById('stop-audition').addEventListener('click',()=>{audition.pause();audition.currentTime=0});populate();document.getElementById('number-sheet').src=data.numbers.sheet;
+audition.addEventListener('play',()=>{if(playing)stopMain()});
+atlas.addEventListener('load',()=>{draw();requestAnimationFrame(function tick(now){if(playing){if(sound.checked){if(!track.paused)t=track.currentTime}else if(last!==null){t+=(now-last)/1000*Number(speed.value);if(t>=data.duration){if(loop.checked)t%=data.duration;else{t=data.duration-1/data.fps;playing=false}}}draw()}last=now;requestAnimationFrame(tick)})});atlas.addEventListener('error',()=>{errorBox.textContent='特效图集加载失败'});atlas.src=data.atlas;
+</script></body></html>

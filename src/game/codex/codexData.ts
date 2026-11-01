@@ -1,4 +1,5 @@
 import { UPGRADES } from "../data/talents";
+import { DOMAIN_UPGRADES, DOMAIN_UNLOCK_LEVELS } from '../data/domain';
 
 /**
  * 图鉴条目模型与静态数据。
@@ -16,7 +17,7 @@ import { UPGRADES } from "../data/talents";
  *
  * 本模块不依赖 DOM / Phaser，可被纯逻辑测试直接引用。
  */
-export type CodexCategory = "talent" | "enemy";
+export type CodexCategory = "talent" | "enemy" | 'weapon';
 
 export interface CodexEntry {
   id: string;
@@ -96,7 +97,7 @@ export const TALENT_ENTRIES: readonly CodexEntry[] = UPGRADES.filter(
     tier: u.t,
     group: (u.prof && PROF_GROUP[u.prof]) || u.cat,
     prof: u.prof,
-    slot: u.shooterWeapon === "laser" ? "激光 · " + u.slot : u.shooterWeapon === "missile" ? "导弹 · " + u.slot : u.slot,
+    slot: u.mageWeapon==='domain' ? '坍缩领域 · '+u.slot : u.shooterWeapon === "laser" ? "激光 · " + u.slot : u.shooterWeapon === "missile" ? "导弹 · " + u.slot : u.slot,
     layer: u.layer,
     variant: u.variant,
     status: "live",
@@ -236,9 +237,18 @@ export const ENEMY_ENTRIES: readonly CodexEntry[] = [
   },
 ];
 
+/** Readable reference entries; do not add weapon references to saved talent progress. */
+export const WEAPON_ENTRIES:readonly CodexEntry[]=[
+  {id:'w:domain',cat:'weapon',name:'坍缩领域',icon:'✦',group:'法师',slot:'领域武器',status:'live',
+    desc:`向最近敌人部署领域，落地首跳后每0.25秒持续伤害。三领域合成优先锁定范围内可攻击Boss，0.35秒收拢跟随目标。武器仅在黑洞形成落地的爆发实际命中至少一个目标后+1经验；同次多人仍只计1点，空落、普通领域、后续跳伤或斩击不给经验。Lv.1–4伤害倍率0.80/0.97/1.14/1.31，Lv.5起回原曲线，满级×2.32。Lv.${DOMAIN_UNLOCK_LEVELS.slash}固定连斩、Lv.${DOMAIN_UNLOCK_LEVELS.void}固定无量；Lv.2–3先取得基础升级，满级全拿。人物每级基础伤害+0.4/领域值+0.5，领域值强化+6/+9/+12/+18、上限200。`},
+  {id:'w:domain-hole',cat:'weapon',name:'黑洞',icon:'🌀',group:'法师',slot:'领域技能',status:'live',
+    desc:'形成时 2DW 引力主爆发（可暴击）+0.4DW 非暴击真伤+min(4%伤前生命,1DW) 非暴击引力生命压缩，再各乘一次领域倍率M；W为武器等级倍率。基础持续1秒，每0.2秒造成0.12DWM。黑洞以24px/s缓慢巡游，优先追向240px内较密集的敌群；引力增幅后30px/s。实际伤害/牵引/全域空间斩跟随当前位置，不重复形成爆发，不刷新寿命；无目标停留。生命压缩比例保持4%，仅攻击上限随W成长，不吃B/F/暴击或全局增伤。'},
+  ...DOMAIN_UPGRADES.map(u=>({id:`w:domain-${u.id}`,cat:'weapon' as const,name:u.name,icon:'🔮',group:'法师',slot:`领域升级 · Lv.${u.minLevel} 起`,desc:u.desc,status:'live' as const})),
+];
 export const CODEX_ENTRIES: readonly CodexEntry[] = [
   ...TALENT_ENTRIES,
   ...ENEMY_ENTRIES,
+  ...WEAPON_ENTRIES,
 ];
 
 const ENTRIES_BY_ID = new Map(CODEX_ENTRIES.map((e) => [e.id, e]));

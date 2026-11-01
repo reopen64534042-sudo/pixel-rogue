@@ -6,6 +6,8 @@ import type { LaserLane } from "../data/laser";
 import type { Player } from "./types";
 import { LASER_DAMAGE as LD, MISSILE_DAMAGE as MD } from "../data/combatBalance";
 import { COMBAT_BALANCE as CB } from "../data/combatBalance";
+import { DOMAIN_DAMAGE as DD } from "../data/combatBalance";
+import { DOMAIN, domainHas, domainUpgrade, type DomainSnapshot } from "../data/domain";
 
 /**
  * DamageMath —— 伤害数值的纯函数计算层（S1 DamageSystem 的前身适配层）。
@@ -176,3 +178,44 @@ export function bossRewardXp(wave: number, xpMul: number): number {
 export function bossGroundTickDamage(attack: number, kind: "fire" | "frost"): number {
   return bossAttackDamage(attack, kind === "fire" ? "fireGround" : "frostGround") * BOSS.hazard.tick;
 }
+
+export const domainProjectionMultiplier=(s:DomainSnapshot)=>domainUpgrade(s,'projection')?DD.projection:1;
+export function domainBlackHoleMultiplier(s:DomainSnapshot,captured:number,boss=false) {
+  return (domainHas(s,'引力核心') ? 1+Math.min(DD.coreCap,DD.coreBase+DD.corePerTarget*captured) : 1)
+    * domainProjectionMultiplier(s)
+    * (boss && domainHas(s,'绝对引力') ? DD.boss : 1);
+}
+export function domainWeaponMultiplier(level:number) {
+  const levels=Math.max(0,Math.min(DOMAIN.maxLevel,level)-1);
+  const earlyPenalty=DD.earlyPowerPenalty*Math.max(0,1-levels/(DD.earlyPowerRecoveryLevel-1));
+  return 1+levels*DD.levelGain-earlyPenalty;
+}
+export const domainStasisMultiplier=(s:DomainSnapshot,stunned:boolean)=>stunned && domainHas(s,'静滞增幅')?DD.stasisEnhance:1;
+export function domainFieldDamage(s:DomainSnapshot,stunned=false) {
+  return s.damage*s.power*s.M*(DD.field+(domainUpgrade(s,'void')?DD.information:0))*domainProjectionMultiplier(s)*domainStasisMultiplier(s,stunned);
+}
+export function domainDamage(s:DomainSnapshot,kind:'birth'|'true'|'holeTick'|'fieldSlash'|'holeSlash'|'terminal',boss=false,stunned=false) {
+  const bonus=kind==='fieldSlash'?domainProjectionMultiplier(s):s.B*(boss && domainHas(s,'绝对引力')?DD.boss:1);
+  const slash=(kind==='fieldSlash'||kind==='holeSlash') && domainHas(s,'裂界增幅')?DD.slashEnhance:1;
+  const coefficient=kind==='fieldSlash'?DD.fieldSlashDps*DOMAIN.fieldSlash
+    :kind==='holeSlash'?DD.holeSlashDps*DOMAIN.holeSlash:DD[kind];
+  return s.damage*s.power*s.M*coefficient*bonus*(kind==='birth'?s.F:1)*slash*domainStasisMultiplier(s,stunned);
+}
+/** HP ratio stays 4%; the attack-based ceiling grows with weapon power. */
+export const domainCurrentHpDamage=(s:DomainSnapshot,hp:number)=>Math.min(hp*DD.currentHp,s.damage*s.power*DD.currentHpCap)*s.M;
+export const domainOverlapDamage=(first:number,second:number,confluence=false)=>first+second*(confluence?DD.confluenceOverlap:DD.overlap);
+export const domainEmberDamage=(damage:number)=>damage*DD.ember;
+export function domainTickDamage(s:DomainSnapshot,seconds:number,boss=false,remnant=false,stunned=false) {
+  const raw=domainDamage(s,'holeTick',boss,stunned)*seconds/DOMAIN.holeTick;
+  return remnant?domainEmberDamage(raw):raw;
+}
+export function domainFieldPower(s:DomainSnapshot,stunned=false) {
+  return domainAttackPower(s,domainFieldDamage(s,stunned));
+}
+export function domainAttackPower(s:DomainSnapshot,raw:number) {
+  return raw*(1+s.attacker.globalDamageBonus)*(1+(s.attacker.typeDamageBonus.gravity??0))
+    *(1+(s.attacker.formDamageBonus.other??0));
+}
+export const domainPrimaryHealing=(loss:number,lifesteal:number,maxhp:number)=>Math.min(loss*lifesteal*DD.lifesteal,maxhp*DD.lifestealCap);
+export const domainSiphonHealing=(s:DomainSnapshot,count:number,maxhp:number)=>Math.min(DD.healingCap,DD.siphonBase+DD.siphonTarget*count)*s.M*maxhp;
+export const domainHealingCap=(maxhp:number)=>maxhp*DD.healingCap;

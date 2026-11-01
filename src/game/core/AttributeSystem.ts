@@ -1,7 +1,7 @@
-import { ATTRIBUTE_CAPS, lifestealCap } from "../data/attributeBalance";
+import { ATTRIBUTE_CAPS, DOMAIN_VALUE_GAINS, lifestealCap } from "../data/attributeBalance";
 import { statBase } from "../data/stats";
 import { TIERS } from "../data/talents";
-import type { Player, Profession, ShooterWeapon, WarriorStyle } from "./types";
+import type { MageWeapon, Player, Profession, ShooterWeapon, WarriorStyle } from "./types";
 import type { GameCore } from "./GameCore";
 import type { AttributePoint } from "./AttributeSources";
 import type { ModifierStage, StatId } from "./StatModel";
@@ -53,14 +53,15 @@ export interface AttrDef {
   readonly prof?: Profession;
   /** 射手武器专属候选；省略表示不按主武器过滤。 */
   readonly shooterWeapon?: ShooterWeapon;
+  readonly mageWeapon?: MageWeapon;
   /**
    * 职业专属显示名。底层的 stat 不变，只换玩家看到的名字——
    * 法师的「攻击/攻速/射程」实际驱动的是元素伤害、施法速度、施法距离，
    * 沿用射手口径会让玩家以为自己在加物理攻击。
    */
-  readonly labels?: Partial<Record<Profession | ShooterWeapon, string>>;
+  readonly labels?: Partial<Record<Profession | ShooterWeapon | MageWeapon, string>>;
   /** 用于说明职业 / 武器口径下的实际收益。 */
-  readonly hints?: Partial<Record<Profession | ShooterWeapon, string>>;
+  readonly hints?: Partial<Record<Profession | ShooterWeapon | MageWeapon, string>>;
   readonly stat: StatId;
   readonly stage: ModifierStage;
   /** 白档数值：flat 为绝对值，percent 为小数（0.04 = +4%） */
@@ -79,6 +80,7 @@ export interface AttrDef {
     p: Player,
     prof: Profession,
     warriorStyle: WarriorStyle,
+    mageWeapon?: MageWeapon,
   ) => boolean;
 }
 
@@ -92,8 +94,10 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   // #134 方案 B：攻击 +5 → +2。
   // 原值对基础攻击 11 是 **+45%/次**，配上每波 5-7 次，30 波能把攻击堆到数百，
   // 天赋的机制收益完全被淹没。+2 约等于 +18%/次，与「一次选择 = 一个小台阶」相称。
-  { group: "offense", label: "攻击", labels: { mage: "元素伤害" }, stat: "attack", stage: "flat", base: 2, kind: "int" },
-  { group: "offense", label: "攻速", labels: { mage: "施法速度", laser: "光束输出", missile: "装填速率" }, hints: { laser: "提高光束每秒伤害", missile: "缩短导弹装填间隔，不加快爆炸动画" }, stat: "fireRate", stage: "percent", base: 0.035, kind: "pct", capped: (p, prof, style) => p.fireRate >= statBase(prof, style).fireRate * ATTRIBUTE_CAPS.fireRateMul },
+  { group: "offense", label: "攻击", labels: { mage: "元素伤害", domain:'基础伤害' }, hints:{domain:'提高领域、连斩与黑洞的攻击力伤害，并提高生命压缩的伤害上限'}, stat: "attack", stage: "flat", base: 2, kind: "int" },
+  { group:'offense',label:'领域值',prof:'mage',mageWeapon:'domain',stat:'domainValue',stage:'flat',base:DOMAIN_VALUE_GAINS[0],kind:'int',
+    hints:{domain:'独立提高伤害、牵引、控制与辅助效果；与人物升级合计上限 200'},capped:p=>(p.domainValue??100)>=ATTRIBUTE_CAPS.domainValue },
+  { group: "offense", label: "攻速", labels: { mage: "施法速度", laser: "光束输出", missile: "装填速率" }, hints: { laser: "提高光束每秒伤害", missile: "缩短导弹装填间隔，不加快爆炸动画", domain:'加快领域施放；连斩仍为每秒 10 轮，收拢时间与坍缩锁不变' }, stat: "fireRate", stage: "percent", base: 0.035, kind: "pct", capped: (p, prof, style, mageWeapon) => p.fireRate >= statBase(prof, style, mageWeapon).fireRate * ATTRIBUTE_CAPS.fireRateMul },
   {
     group: "offense",
     label: "暴击",
@@ -168,7 +172,7 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   { group: "utility", label: "射程", labels: { mage: "施法距离", warrior: "近战范围" }, hints: { missile: "延长导弹索敌与可追踪距离" }, stat: "attackRange", stage: "percent", base: 0.045, kind: "pct" },
   // 法阵范围：S2（#135）因射手零感知被移出面板，S3 法师的法阵半径直接读
   // `p.area`（mageCircleRadius），因此只对法师投放。
-  { group: "utility", label: "法阵范围", prof: "mage", stat: "area", stage: "percent", base: 0.045, kind: "pct" },
+  { group: "utility", label: "法阵范围", labels:{domain:'领域范围'}, prof: "mage", stat: "area", stage: "percent", base: 0.045, kind: "pct" },
   // 回充效率独立累加，不借用范围属性；白档约提高 3.1% 的基础周期输出。
   { group: "utility", label: "回充效率", prof: "shooter", shooterWeapon: "laser", hints: { laser: "缩短两轮激光之间的回充时间，不加快聚焦；上限 +300%" }, stat: "laserRechargeEfficiency", stage: "flat", base: 0.15, kind: "pct", capped: (p) => (p.laserRechargeEfficiency ?? 0) >= ATTRIBUTE_CAPS.laserRechargeEfficiency },
   { group: "utility", label: "爆炸半径", prof: "shooter", shooterWeapon: "missile", hints: { missile: "扩大主弹、小弹与共振范围，不提高单目标伤害" }, stat: "area", stage: "percent", base: 0.045, kind: "pct" },
@@ -265,10 +269,11 @@ function makeChoice(
   p: Player,
   prof: Profession = "shooter",
   shooterWeapon: ShooterWeapon = "charged",
+  mageWeapon: MageWeapon = 'arcane',
 ): AttrChoice {
   const rarity = pickRarity(p.lvl);
-  const value = quantize(def, def.base * RARITY_MUL[rarity]);
-  const presentation = prof === "shooter" ? shooterWeapon : prof;
+  const value = def.stat==='domainValue' ? Math.min(DOMAIN_VALUE_GAINS[rarity],ATTRIBUTE_CAPS.domainValue-(p.domainValue??100)) : quantize(def, def.base * RARITY_MUL[rarity]);
+  const presentation = prof === "shooter" ? shooterWeapon : prof==='mage'?mageWeapon:prof;
   const hint = def.hints?.[presentation] ?? def.hints?.[prof];
   return {
     def,
@@ -294,6 +299,7 @@ export function rollAttrChoices(
   prof: Profession = "shooter",
   warriorStyle: WarriorStyle = "katana",
   shooterWeapon: ShooterWeapon = "charged",
+  mageWeapon: MageWeapon = 'arcane',
 ): AttrChoice[] {
   const choices = ATTR_GROUPS.map((group) => {
     const pool = ATTR_DEFS.filter(
@@ -301,11 +307,12 @@ export function rollAttrChoices(
         d.group === group.key &&
         (!d.prof || d.prof === prof) &&
         (!d.shooterWeapon || (prof === "shooter" && d.shooterWeapon === shooterWeapon)) &&
-        !(d.capped?.(p, prof, warriorStyle) ?? false),
+        (!d.mageWeapon || (prof==='mage' && d.mageWeapon===mageWeapon)) &&
+        !(d.capped?.(p, prof, warriorStyle, mageWeapon) ?? false),
     );
     const usable = pool.length ? pool : ATTR_DEFS.filter((d) => d.stat === "attack");
     const def = usable[Math.floor(Math.random() * usable.length)];
-    return makeChoice(def, p, prof, shooterWeapon);
+    return makeChoice(def, p, prof, shooterWeapon, mageWeapon);
   });
   // v79：四格顺序随机，避免输出类永远在第一张。键盘 1-4 跟随显示顺序。
   for (let i = choices.length - 1; i > 0; i--) {
@@ -328,7 +335,7 @@ export function toAttributePoint(choice: AttrChoice): AttributePoint {
 export function boostAttrChoice(choice: AttrChoice): AttrChoice {
   if (choice.rarity >= 3) return choice;
   const rarity = choice.rarity + 1;
-  const value = quantize(choice.def, choice.def.base * RARITY_MUL[rarity]);
+  const value = choice.def.stat==='domainValue' ? DOMAIN_VALUE_GAINS[rarity] : quantize(choice.def, choice.def.base * RARITY_MUL[rarity]);
   return { ...choice, rarity, value, text: textOf(choice.def, value) };
 }
 
@@ -372,7 +379,7 @@ export function openAttrPanel(this: GameCore) {
   if (this.bpMode) return;
   if (this.attributePoints <= 0 || this.attrPicks <= 0) return;
   this.bpMode = "attr";
-  this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle, this.shooterWeapon);
+  this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle, this.shooterWeapon, this.mageWeapon);
   this.attrRefreshUsed = false;
   this.view.attr();
 }
@@ -381,7 +388,7 @@ export function refreshAttr(this: GameCore) {
   this.ensurePlay(); // Issue #34：与天赋刷新一致，先收掉属性覆盖层
   if (this.state !== "play" || this.bpMode !== "attr" || this.attrRefreshUsed)
     return false;
-  this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle, this.shooterWeapon);
+  this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle, this.shooterWeapon, this.mageWeapon);
   this.attrRefreshUsed = true;
   this.view.attr();
   return true;
@@ -398,6 +405,10 @@ export function chooseAttr(this: GameCore, index: number) {
     this.addText(this.player.x, this.player.y - 16, "宝箱祝福!", "#ffd24a");
   }
   // 动态难度：只把战斗属性计入品质偏离；功能属性不提高难度。
+  if (choice.def.stat==='domainValue') {
+    const value=Math.min(choice.value,ATTRIBUTE_CAPS.domainValue-(this.player.domainValue??100));
+    choice={...choice,value,text:textOf(choice.def,value)};
+  }
   const qualityWeight = choice.def.group === "utility" ? 0 : 1;
   this.qualityScore +=
     qualityWeight *
@@ -421,7 +432,7 @@ export function chooseAttr(this: GameCore, index: number) {
   }
   if (this.attrPicks > 0 && this.attributePoints > 0) {
     // 还有额度与升级点：就地换一组新的，刷新额度重置
-    this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle, this.shooterWeapon);
+    this.attrChoices = rollAttrChoices(this.player, this.prof, this.warriorStyle, this.shooterWeapon, this.mageWeapon);
     this.attrRefreshUsed = false;
   } else {
     this.attrChoices = [];

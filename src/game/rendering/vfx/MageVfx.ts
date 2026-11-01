@@ -15,7 +15,7 @@ export interface MageVisualEvent {
   readonly radius: number;
   readonly source?: Readonly<{ x: number; y: number }>;
 }
-export type MageVfxView = Readonly<Pick<GameCore, "player" | "prof" | "state" | "time" | "enemies" | "mageShadows"> & {
+export type MageVfxView = Readonly<Pick<GameCore, "player" | "prof" | "mageWeapon" | "state" | "time" | "enemies" | "mageShadows"> & {
   mageVisualEvents: readonly MageVisualEvent[];
 }>;
 
@@ -76,7 +76,7 @@ export class MageVfx {
   }
 
   capture(core: MageVfxView): void {
-    if (core.prof !== "mage" || core.state === "start" || core.state === "over") { this.reset(); return; }
+    if (core.prof !== "mage" || core.mageWeapon === "domain" || core.state === "start" || core.state === "over") { this.reset(); return; }
     if (this.player !== core.player || core.time < this.time) {
       this.reset();
       this.player = core.player;

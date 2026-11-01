@@ -20,6 +20,7 @@ import { frostSlowFactor, isFrostLocked, isFrozen, isParalyzed } from "./Element
 import { resolveEnemyAttackBonuses, resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
+import { constrainDomainWalking } from './DomainSystem';
 import type { Enemy, MageDecoy } from "./types";
 
 /**
@@ -216,6 +217,7 @@ export function updateEnemies(this: GameCore, dt: number) {
     }
     const moveX0 = e.x;
     const moveY0 = e.y;
+    const committedCharge=e.chargeState==='dash';
     // 表现层：精英滴熔岩、火囊虫奔袭掉火星。
     // 刻意用确定性相位而非 Math.random —— 后者会错开随机序列，破坏 parity 对照。
     if (e.elite && Math.sin(this.time * 7 + e.seed * 13) > 0.97) {
@@ -282,6 +284,7 @@ export function updateEnemies(this: GameCore, dt: number) {
       delete e.stunT;
     }
     // S3 法师「镜像」残影：存在残影时敌人改攻残影（吸引仇恨）。
+    if ((e.domainStunUntil??0)>this.time) continue;
     // 残影不存在时下面的目标点仍是玩家，射手路径逐位不变。
     let targetX = p.x;
     let targetY = p.y;
@@ -369,12 +372,13 @@ export function updateEnemies(this: GameCore, dt: number) {
     }
     // 元素法师：凝冰每层减速、麻痹降低移速。
     // 射手路径上两个因子恒为 1 → 乘 1 精确，数值逐位不变。
+    const domainMove=(e.domainRootUntil??0)>this.time ? 0 : 1-(e.domainSlowF??0);
     const spd =
       e.speed *
       aura.speed *
       (e.slowT > 0 ? 1 - e.slowF : 1) *
       (1 - frostSlowFactor(e)) *
-      (isParalyzed(e) ? 1 - ELEMENTAL_MAGE.paralyze.moveSlow : 1);
+      (isParalyzed(e) ? 1 - ELEMENTAL_MAGE.paralyze.moveSlow : 1) * domainMove;
     if (e.type === "shooter") {
       // 远程: 远则靠近、近则后撤、中距离横向游走并射击
       // S3：距离改用当前目标（默认玩家；存在镜像残影时是残影），
@@ -519,8 +523,8 @@ export function updateEnemies(this: GameCore, dt: number) {
       } else if (e.burrowState === "under") {
         const d = Math.hypot(targetX - e.x, targetY - e.y);
         if (d > 1) {
-          e.x += ((targetX - e.x) / d) * BURROWER.underSpeed * dt;
-          e.y += ((targetY - e.y) / d) * BURROWER.underSpeed * dt;
+          e.x += ((targetX - e.x) / d) * BURROWER.underSpeed * dt * domainMove;
+          e.y += ((targetY - e.y) / d) * BURROWER.underSpeed * dt * domainMove;
         }
         e.burrowT = (e.burrowT ?? 0) - dt;
         if (Math.random() < dt * 12)
@@ -620,7 +624,7 @@ export function updateEnemies(this: GameCore, dt: number) {
       } else if (e.chargeState === "dash") {
         const dx = e.chargeDx ?? 0;
         const dy = e.chargeDy ?? 0;
-        const step = CHARGER_CHARGE.speed * dt;
+        const step = CHARGER_CHARGE.speed * dt * domainMove;
         const nx = e.x + dx * step;
         const ny = e.y + dy * step;
         e.chargeT = (e.chargeT ?? 0) - dt;
@@ -672,6 +676,7 @@ export function updateEnemies(this: GameCore, dt: number) {
     }
     e.x = clamp(e.x, 20, WORLD.w - 20);
     e.y = clamp(e.y, 20, WORLD.h - 20);
+    if (!committedCharge) constrainDomainWalking(this,e,moveX0,moveY0);
     if (this.prof === "mage") {
       e.vx = (e.x - moveX0) / dt;
       e.vy = (e.y - moveY0) / dt;

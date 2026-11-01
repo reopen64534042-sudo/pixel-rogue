@@ -1,6 +1,7 @@
+import { DOMAIN } from "./domain";
 import { MAGE_BALANCE } from "./mageBalance";
 import { WARRIOR_BALANCE } from "./warriorBalance";
-import type { Profession, WarriorStyle } from "../core/types";
+import type { Profession, WarriorStyle, MageWeapon } from "../core/types";
 
 /**
  * 职业基础形态（S3）。
@@ -19,11 +20,13 @@ import type { Profession, WarriorStyle } from "../core/types";
 export function statBase(
   prof: Profession = "shooter",
   warriorStyle: WarriorStyle = "katana",
+  mageWeapon: MageWeapon = "arcane",
 ) {
   const mage = prof === "mage";
   const warrior = prof === "warrior";
   const wstyle = WARRIOR_BALANCE.styles[warriorStyle];
   return {
+    ...(mage && mageWeapon === "domain" ? { domainValue: 100 } : {}),
     // v138：射手/法师 20 HP；战士按流派 太刀 25 / 大剑 28。
     maxhp: warrior ? wstyle.maxhp : 20,
     speed: warrior ? wstyle.speed : mage ? 62 : 70,
@@ -42,11 +45,11 @@ export function statBase(
     meteorGuided: 0,
     burnGround: 0,
     bladeReflect: 0,
-    // 法师：1 / 0.75s 施法周期 ≈ 1.33 次/秒（MageSystem 按此值缩放前摇与间隔）
+    // 法杖与领域独立归一化施法速度，避免一方调速影响另一方。
     fireRate: warrior
       ? wstyle.fireRate
       : mage
-        ? 1 / MAGE_BALANCE.castCycle
+        ? mageWeapon === "domain" ? DOMAIN.baseFireRate : 1 / MAGE_BALANCE.castCycle
         : 2.2,
     multishot: 1,
     pierce: 0,

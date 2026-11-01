@@ -52,7 +52,7 @@ export class MageCharacter {
   }
 
   capture(core: GameCore): void {
-    if (core.prof !== "mage" || core.state === "start") { this.reset(); return; }
+    if (core.prof !== "mage" || core.mageWeapon === "domain" || core.state === "start") { this.reset(); return; }
     const p = core.player;
     if (this.player !== p || core.time < this.time) {
       this.reset(); this.player = p;

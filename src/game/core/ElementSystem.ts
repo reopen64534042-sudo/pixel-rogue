@@ -754,6 +754,7 @@ export function applyDotDamage(
 
 /** 推进元素状态（每帧）。 */
 export function updateMageElements(this: GameCore, dt: number): void {
+  if (this.prof === "mage" && this.mageWeapon === "domain") return;
   const burnBase = this.player.damage * MB.elementBaseMul;
   for (const e of this.enemies) {
     if (e.dead) continue;

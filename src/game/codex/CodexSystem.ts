@@ -152,7 +152,7 @@ export class CodexSystem {
 
   /** 天赋与敌人共用：任一分类有记录即视为已解锁。 */
   isUnlocked(id: string): boolean {
-    return Boolean(this.state.talents[id] || this.state.enemies[id]?.kills);
+    return codexEntry(id)?.cat==='weapon' || Boolean(this.state.talents[id] || this.state.enemies[id]?.kills);
   }
 
   maxLevel(id: string): number {

@@ -1,0 +1,24 @@
+{
+  "source_frames": 186,
+  "duration_ms": 6200,
+  "outputs": [
+    {
+      "file": "domain-concept-1x.gif",
+      "frames": 175,
+      "duration_ms": 6200,
+      "size": [
+        480,
+        270
+      ]
+    },
+    {
+      "file": "domain-concept-2x.gif",
+      "frames": 175,
+      "duration_ms": 6200,
+      "size": [
+        960,
+        540
+      ]
+    }
+  ]
+}

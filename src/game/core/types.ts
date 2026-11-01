@@ -27,8 +27,10 @@ export type DamageSource =
   | "laser"
   | "missileMain" | "missileSwarm" | "missileArc" | "missileBurn"
   // 战士技能拆分：让死亡总结能区分平A、居合、剑气、裂地、三段斩。
-  | "iai" | "qi" | "fissure" | "tri";
-export type DamageTotals = Record<DamageSource, number>;
+  | "iai" | "qi" | "fissure" | "tri"
+  | "domain";
+/** Older v1 records/fixtures have no domain key; new runs initialize it to zero. */
+export type DamageTotals = Record<Exclude<DamageSource, "domain">, number> & { domain?: number };
 export type DamageCause =
   | "contact"
   | "projectile"
@@ -133,6 +135,8 @@ export interface DamageCalculation {
  * 不能由纯 DamageSystem 推断（§3.5）。
  */
 export interface DamageResult extends DamageCalculation {
+  /** Compound hit's primary component share of actual HP loss (domain lifesteal). */
+  primaryHpLoss?: number;
   /**
    * 按伤害封顶的实际损失量 = min(受击前 HP, max(0, settledDamage))；被闪避/
    * 次数盾抵挡时为 0。注意这是封顶后的伤害口径，不是不屈、治疗等保命/回复
@@ -201,6 +205,8 @@ export interface Player extends Point {
   area: number;
   /** 激光专属回充效率；缺省为 0，0.15 表示 +15%。 */
   laserRechargeEfficiency?: number;
+  /** Independent domain-effect points; present only for the domain mage weapon. */
+  domainValue?: number;
   crit: number;
   critMul: number;
   ricochet: number;
@@ -299,6 +305,9 @@ export interface Talent {
   warriorStyle?: WarriorStyle;
   /** 射手主武器归属；旧射手卡缺省为 charged。 */
   shooterWeapon?: ShooterWeapon;
+  mageWeapon?: MageWeapon;
+  /** Offer a Domain enhancement only after its weapon ability is unlocked. */
+  requiresDomainUpgrade?: 'slash' | 'void';
   /** 变体组：同一组在一局内只能取一张。与 excludes 的区别是组合规模可变（N 选 1）。 */
   variant?: string;
   /**
@@ -317,6 +326,7 @@ export type EliteAffix = "split" | "summon" | "nova";
 
 /** 射手开局主武器；未指定时沿用强化弹。 */
 export type ShooterWeapon = "charged" | "laser" | "missile";
+export type MageWeapon = "arcane" | "domain";
 /** 战士开局流派：太刀（快、近、弱击退）/ 大剑（慢、远、强击退）。 */
 export type WarriorStyle = "katana" | "greatsword";
 
@@ -403,6 +413,21 @@ export interface Enemy extends Point {
    * 保持 parity 的逐字段对象形状对照。
    */
   stunT?: number;
+  /** Domain-only control state, measured in frozen simulation-clock seconds. */
+  domainStunUntil?: number;
+  domainRootUntil?: number;
+  domainCcLevel?: 0 | 1 | 2;
+  domainCcResetAt?: number;
+  domainImmuneUntil?: number;
+  domainPulseAt?: number;
+  domainInside?: boolean;
+  domainSlowF?: number;
+  /** Ordinary-field damage feedback is only raised by actual HP loss. */
+  domainDamageAt?: number;
+  domainDamageUntil?: number;
+  /** Information load [0,1] and the recovery deadline after a successful overload. */
+  domainInfo?: number;
+  domainOverloadReadyAt?: number;
   /* —— 元素法师 v2：元素状态/标记（全部为**可选字段**）——
    *
    * 为什么是可选而不是初始化：敌人实体的对象形状会被 parity 逐字段对照，
@@ -621,6 +646,9 @@ export interface FloatingText extends Point {
   iaiDmg?: boolean;
   /** 大剑三段斩专属样式：与居合同级的四层大字，但改为暗金/暖白。 */
   triDmg?: boolean;
+  domainDmg?: "collapse" | "slash" | "terminal";
+  domainTrue?: number;
+  domainMaxLife?: number;
   /** 元素反应专属样式：前元素外圈、后元素主体、反应强调色内圈。 */
   reactionId?: MageReactionId;
   /** 元素反应名称：只显示反应名，不带元素方向。 */
@@ -680,6 +708,13 @@ export interface Slash extends Point {
   impact?: boolean;
 }
 export interface HitOptions {
+  /** Extra components settle atomically with the primary hit, never as recursive hits. */
+  components?: readonly { rawAmount: number; type: DamageTypeId; inheritBonuses: boolean }[];
+  armorPen?: number;
+  domainHit?: "collapse" | "slash" | "terminal";
+  silentSound?: boolean;
+  /** Rapid domain cuts use their own trails; avoid keeping the whole enemy solid white. */
+  noFlash?: boolean;
   /** Discrete weapon fields may settle true DoT through the same orchestration. */
   kind?: "hit" | "dot";
   /** 持续束采用浮点结算，避免高频最少 1 点伤害放大。 */

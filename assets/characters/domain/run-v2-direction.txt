@@ -1,0 +1,6 @@
+Correct the original one-sided hop into a compact four-phase alternating jog.
+Keep the B boundary warden identity, mask, palette, proportions, and separate three seal props.
+Whole sheet edits only: four columns, idle calibration / run / run-deploy / run-collapse rows.
+Contact A -> passing A -> contact B (opposite near/far legs) -> passing B.
+Preserve all existing non-locomotion atlas frames; use one scale and a stable upper-body X anchor.
+Runtime: shared distance-based gait across moving actions, no aim-driven facing reversal while moving vertically, no dash travel counted as walking steps.

@@ -35,6 +35,7 @@ export type DamageTypeRegistry = Readonly<Record<string, DamageTypeInfo>>;
  */
 export const DAMAGE_TYPES = {
   physical: { mitigation: "armor", label: "物理" },
+  gravity: { mitigation: "armor", label: "引力" },
   fire: { mitigation: "resistance", label: "火焰" },
   frost: { mitigation: "resistance", label: "冰霜" },
   lightning: { mitigation: "resistance", label: "雷电" },

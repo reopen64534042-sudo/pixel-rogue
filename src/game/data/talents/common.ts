@@ -81,6 +81,7 @@ export const RAMP = [
 ];
 
 export const CAT_COLOR: Record<string, string> = {
+  控制:'#b05cff',输出:'#e8e8f0',破甲:'#a98cff',续航:'#57e6ff',
   猎杀: "#ffd24a", 蜂群: "#ff9a3d", 离子: "#57e6ff", 区域: "#ff9a3d", 防守: "#8b8f9a",
   攻击: "#ff6b9d",
   增幅: "#4dff88",
@@ -104,6 +105,7 @@ export const CAT_COLOR: Record<string, string> = {
   循环: "#ff6b9d",
 };
 export const CAT_ICO: Record<string, string> = {
+  控制:'✦',输出:'⚔',破甲:'⬇',续航:'💠',
   猎杀: "◎", 蜂群: "➤", 离子: "⚡", 区域: "◉", 防守: "◇",
   攻击: "⚔",
   增幅: "📈",

@@ -24,6 +24,12 @@
 
 游戏工程规则在 [AGENTS.md](AGENTS.md)，迁移过程和验证证据在 [docs/migration.md](docs/migration.md)。让 AI 接手时应先读这两份文档中的相关内容。
 
+法师坍缩领域首版：开始游戏 → 法师 → 坍缩领域。三领域收拢时Boss优先锁定目标，0.35秒跟随并在目标处形成黑洞。仅黑洞形成落地的爆发实际命中至少一个目标才+1武器经验，同次多人仍只计一次，普通领域和后续持续命中不给经验。Lv.2–3先拿基础升级，Lv.4连斩、Lv.5无量。前四级伤害倍率0.80/0.97/1.14/1.31，Lv.5起回原曲线、满级×2.32。人物每级基础伤害+0.4/领域值+0.5，领域值强化+6/+9/+12/+18、上限200。12级、11项升级、15张天赋，C面板显示有效黑洞命中进度。见[成长说明](docs/domain-growth-balance.md)、[领域设计](docs/domain-weapon-design.md)与[领域师人物](docs/domain-character-art.md)。
+
+领域效果对照（开发服务启动后）：打开 `/assets/vfx/domain/live-preview.html`，可查看每个命中目标身上每0.1秒连续出刀，以及无量的黑蓝星空展开/信息灌注/过载停滞。过载期间暂停自主行动和领域牵引，恢复后继续吸入；支持慢放、逐帧和导出对比。使用正式Core/Phaser/Renderer的高生命目标，作为受控视觉证据，不替代自然对局验收；[录制GIF](assets/vfx/domain/domain-hit-slash-void.gif)与[高清MP4](assets/vfx/domain/domain-hit-slash-void.mp4)保留在素材目录。
+
+可播放预览按当前解锁等级运行；上述既有录制保留旧等级/数值作为美术参考。
+
 ## 1. 准备环境与项目
 
 ### 1.1 安装哪些软件

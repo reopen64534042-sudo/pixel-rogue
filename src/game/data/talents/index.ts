@@ -1,5 +1,6 @@
 import { LASER_TALENTS } from "./laser";
 import { MISSILE_TALENTS } from "./missile";
+import { DOMAIN_TALENTS } from "./domain";
 import type { Talent } from "../../core/types";
 import { MAGE_TALENTS } from "./mage";
 import { SHOOTER_TALENTS } from "./shooter";
@@ -36,4 +37,5 @@ export const UPGRADES: Talent[] = [
   ...WARRIOR_TALENTS,
   ...LASER_TALENTS,
   ...MISSILE_TALENTS,
+  ...DOMAIN_TALENTS,
 ];

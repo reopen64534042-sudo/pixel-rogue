@@ -130,7 +130,7 @@ export function chooseMageElement(
   cardName: string,
 ): boolean {
   const pending = core.mageElementPickPending;
-  if (!pending) return false;
+  if (core.prof !== "mage" || core.mageWeapon === "domain" || !pending) return false;
   const el = elementOfChoice(cardName);
   if (!el || core.mageElements.includes(el)) return false;
   core.mageElements.push(el);
@@ -213,7 +213,7 @@ export function gainStaffXp(
   core: GameCore,
   amount = STAFF_XP_PER_CAST,
 ): void {
-  if (core.prof !== "mage" || !core.mageElements.length) return;
+  if (core.prof !== "mage" || core.mageWeapon === "domain" || !core.mageElements.length) return;
   // 教程只教基础施法，不推进法杖等级（避免练习场弹出成长提示/待选面板）。
   if (core.tutorialMode) return;
   if (!Number.isFinite(amount) || amount <= 0) return;
@@ -433,6 +433,7 @@ export function devConfigureElementalMage(
   level = 12,
 ): void {
   const core = this;
+  if (core.prof !== "mage" || core.mageWeapon === "domain") return;
   const unique = [...new Set(elements)].slice(0, 3);
   core.mageElements = unique;
   core.mageStaffLevel = Math.max(

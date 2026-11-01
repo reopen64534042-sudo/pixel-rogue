@@ -680,7 +680,7 @@ export function triggerMirrorDecoy(this: GameCore): boolean {
  */
 export function updateMageCasting(this: GameCore, dt: number) {
   const p = this.player;
-  if (this.prof !== "mage") return;
+  if (this.prof !== "mage" || this.mageWeapon === "domain") return;
   // 值型限时护盾
   if (this.mageShieldT > 0) {
     this.mageShieldT -= dt;

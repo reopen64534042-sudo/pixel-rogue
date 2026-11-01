@@ -49,7 +49,7 @@ export function updateProgression(this: GameCore, dt: number) {
         this.recompute();
         p.hp = Math.min(
           p.maxhp,
-          p.hp + (levelGrowthFor(this.prof)?.maxHp ?? 0) * gained,
+          p.hp + (levelGrowthFor(this.prof, this.mageWeapon)?.maxHp ?? 0) * gained,
         );
         this.addText(
           p.x,
@@ -60,7 +60,7 @@ export function updateProgression(this: GameCore, dt: number) {
         this.addText(
           p.x,
           p.y - 34,
-          `等级成长 · ${levelGrowthSummary(this.prof, gained)}`,
+          `等级成长 · ${levelGrowthSummary(this.prof, gained, this.mageWeapon)}`,
           "#57e6ff",
           false,
           false,
