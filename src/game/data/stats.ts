@@ -1,3 +1,4 @@
+import { DOMAIN } from "./domain";
 import { MAGE_BALANCE } from "./mageBalance";
 import { WARRIOR_BALANCE } from "./warriorBalance";
 import type { Profession, WarriorStyle, MageWeapon } from "../core/types";
@@ -44,11 +45,11 @@ export function statBase(
     meteorGuided: 0,
     burnGround: 0,
     bladeReflect: 0,
-    // 法师：1 / 0.55s 施法周期 ≈ 1.82 次/秒（MageSystem 按此值缩放前摇与间隔）
+    // 法杖与领域独立归一化施法速度，避免一方调速影响另一方。
     fireRate: warrior
       ? wstyle.fireRate
       : mage
-        ? 1 / MAGE_BALANCE.castCycle
+        ? mageWeapon === "domain" ? DOMAIN.baseFireRate : 1 / MAGE_BALANCE.castCycle
         : 2.2,
     multishot: 1,
     pierce: 0,

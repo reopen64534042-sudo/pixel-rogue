@@ -8,6 +8,7 @@ interface AtlasSpritePose {
   readonly scaleY: number;
   readonly originX: number;
   readonly originY: number;
+  readonly silhouette?: number;
   readonly crop?: { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
 }
 
@@ -18,6 +19,8 @@ interface TextDrawState {
   depth: number;
   scrollFactor: number;
   textAlign: CanvasTextAlign;
+  /** 额外底部留白：中文在像素字体下可能超出 font-size 高度，避免下半截被纹理裁掉。 */
+  paddingBottom: number;
 }
 
 /**
@@ -32,6 +35,7 @@ class TextLabelPool {
   private labelVal: string[] = [];
   private labelSize: number[] = [];
   private labelColor: string[] = [];
+  private labelPadding: number[] = [];
   constructor(private scene: Phaser.Scene) {}
   begin() {
     for (const label of this.labels) label.setVisible(false);
@@ -57,6 +61,10 @@ class TextLabelPool {
     if (this.labelColor[index] !== state.fillStyle) {
       label.setColor(state.fillStyle);
       this.labelColor[index] = state.fillStyle;
+    }
+    if (this.labelPadding[index] !== state.paddingBottom) {
+      label.setPadding(0, 0, 0, state.paddingBottom);
+      this.labelPadding[index] = state.paddingBottom;
     }
     label.setOrigin(
       state.textAlign === "center"
@@ -85,6 +93,8 @@ export class PixelPainter {
   globalAlpha = 1;
   font = "8px monospace";
   textAlign: CanvasTextAlign = "left";
+  /** 浮动文字的额外底部留白（中文非像素字体时防裁切）。 */
+  textPaddingBottom = 0;
   private graphics: Phaser.GameObjects.Graphics[] = [];
   private images: Phaser.GameObjects.Image[] = [];
   private hudLabels: TextLabelPool;
@@ -216,6 +226,7 @@ export class PixelPainter {
     this.images[this.ii++] = img;
     img
       .setTexture(key)
+      .clearTint()
       .setCrop()
       .setPosition(x, y)
       .setVisible(true)
@@ -244,6 +255,7 @@ export class PixelPainter {
     this.images[this.ii++] = img;
     img
       .setTexture(key)
+      .clearTint()
       .setCrop()
       .setVisible(true)
       .setAlpha(this.globalAlpha)
@@ -259,11 +271,12 @@ export class PixelPainter {
     this.active = null;
     const img = this.images[this.ii] ?? this.scene.add.image(0, 0, key, frame);
     this.images[this.ii++] = img;
-    img.setTexture(key, frame).setCrop().setVisible(true)
+    img.setTexture(key, frame).clearTint().setCrop().setVisible(true)
       .setOrigin(pose.originX, pose.originY).setPosition(pose.x, pose.y)
       .setRotation(pose.angle).setScale(pose.scaleX, pose.scaleY)
       .setAlpha(this.globalAlpha).setDepth(this.depth++)
       .setScrollFactor(this.hud ? 0 : 1);
+    if (pose.silhouette !== undefined) img.setTint(pose.silhouette).setTintMode(Phaser.TintModes.FILL);
     if (pose.crop) img.setCrop(pose.crop.x, pose.crop.y, pose.crop.width, pose.crop.height);
   }
   private textState(): TextDrawState {
@@ -274,6 +287,7 @@ export class PixelPainter {
       depth: this.depth++,
       scrollFactor: this.hud ? 0 : 1,
       textAlign: this.textAlign,
+      paddingBottom: this.textPaddingBottom,
     };
   }
   fillText(value: string, x: number, y: number) {

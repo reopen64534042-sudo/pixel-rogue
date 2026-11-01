@@ -80,6 +80,7 @@ export interface AttrDef {
     p: Player,
     prof: Profession,
     warriorStyle: WarriorStyle,
+    mageWeapon?: MageWeapon,
   ) => boolean;
 }
 
@@ -96,7 +97,7 @@ export const ATTR_DEFS: readonly AttrDef[] = [
   { group: "offense", label: "攻击", labels: { mage: "元素伤害", domain:'基础伤害' }, hints:{domain:'提高领域、连斩与黑洞的攻击力伤害，并提高生命压缩的伤害上限'}, stat: "attack", stage: "flat", base: 2, kind: "int" },
   { group:'offense',label:'领域值',prof:'mage',mageWeapon:'domain',stat:'domainValue',stage:'flat',base:DOMAIN_VALUE_GAINS[0],kind:'int',
     hints:{domain:'独立提高伤害、牵引、控制与辅助效果；与人物升级合计上限 200'},capped:p=>(p.domainValue??100)>=ATTRIBUTE_CAPS.domainValue },
-  { group: "offense", label: "攻速", labels: { mage: "施法速度", laser: "光束输出", missile: "装填速率" }, hints: { laser: "提高光束每秒伤害", missile: "缩短导弹装填间隔，不加快爆炸动画", domain:'加快领域施放；连斩仍为每秒 10 轮，收拢时间与坍缩锁不变' }, stat: "fireRate", stage: "percent", base: 0.035, kind: "pct", capped: (p, prof, style) => p.fireRate >= statBase(prof, style).fireRate * ATTRIBUTE_CAPS.fireRateMul },
+  { group: "offense", label: "攻速", labels: { mage: "施法速度", laser: "光束输出", missile: "装填速率" }, hints: { laser: "提高光束每秒伤害", missile: "缩短导弹装填间隔，不加快爆炸动画", domain:'加快领域施放；连斩仍为每秒 10 轮，收拢时间与坍缩锁不变' }, stat: "fireRate", stage: "percent", base: 0.035, kind: "pct", capped: (p, prof, style, mageWeapon) => p.fireRate >= statBase(prof, style, mageWeapon).fireRate * ATTRIBUTE_CAPS.fireRateMul },
   {
     group: "offense",
     label: "暴击",
@@ -307,7 +308,7 @@ export function rollAttrChoices(
         (!d.prof || d.prof === prof) &&
         (!d.shooterWeapon || (prof === "shooter" && d.shooterWeapon === shooterWeapon)) &&
         (!d.mageWeapon || (prof==='mage' && d.mageWeapon===mageWeapon)) &&
-        !(d.capped?.(p, prof, warriorStyle) ?? false),
+        !(d.capped?.(p, prof, warriorStyle, mageWeapon) ?? false),
     );
     const usable = pool.length ? pool : ATTR_DEFS.filter((d) => d.stat === "attack");
     const def = usable[Math.floor(Math.random() * usable.length)];

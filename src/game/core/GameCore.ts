@@ -13,6 +13,12 @@ import { WORLD } from "../data/constants";
 import { DEFAULT_KEYBINDS, type KeyBindings } from "../data/keybindings";
 import { statBase } from "../data/stats";
 import type { SpecialUpgradeId } from "../data/specialShot";
+import type {
+  MageElement,
+  MageUpgradeId,
+  MageReactionId,
+  MageSuit,
+} from "../data/elementalMage";
 import {
   addText,
   applyBurnDot,
@@ -32,6 +38,10 @@ import {
 } from "./AttributeSystem";
 import { nearestEnemy, spawnEnemy } from "./EnemySystem";
 import { updateMageElements } from "./ElementSystem";
+import {
+  devConfigureElementalMage,
+  devSetStaffLevel,
+} from "./MageProgressionSystem";
 import {
   interruptMageCast,
   triggerMirrorDecoy,
@@ -96,8 +106,6 @@ import type {
   Gem,
   MageCastPhase,
   MageDecoy,
-  MageDomain,
-  MageMeteor,
   Meteor,
   Missile,
   Mode,
@@ -116,6 +124,24 @@ import type {
 } from "./types";
 import { silentView } from "./types";
 import { cardsOfTier, enterRest, startNextWave, waveQuota } from "./WaveSystem";
+function emptyMageDamage() {
+  return {
+    body: 0,
+    echo: 0,
+    refract: 0,
+    shadow: 0,
+    shatter: 0,
+    reaction: {
+      quench: 0,
+      melt: 0,
+      overload: 0,
+      blaze: 0,
+      superconduct: 0,
+      frostbind: 0,
+    } as Record<MageReactionId, number>,
+  };
+}
+
 export class GameCore {
   state: Mode = "start";
   player!: Player;
@@ -381,16 +407,6 @@ export class GameCore {
   castX = 0;
   castY = 0;
   /**
-   * 站定判定：最后一次「玩家位置发生变化」的时刻（秒）。
-   *
-   * 判定看的是前摇**最后一段**（`steadyHoldRatio × 前摇总长`）是否静止，
-   * 而不是整段前摇——玩家可以边跑边施法，在读数临近完成时急停吃加成。
-   */
-  mageLastMoveAt = -1e9;
-  /** 上一帧玩家位置：用来检测「这一帧有没有移动」。 */
-  magePrevX = 0;
-  magePrevY = 0;
-  /**
    * 开发者无敌（仅 DEV 作弊面板使用）。
    *
    * 消费点在 `damagePlayer` 的最前面，并用 `import.meta.env.DEV` 门控：
@@ -421,17 +437,91 @@ export class GameCore {
   magePhaseT = 0;
   /** 「镜像」残影（吸引仇恨的诱饵）。 */
   mageDecoys: MageDecoy[] = [];
-  /** 路线B「星陨」：待爆裂的陨星。 */
-  mageMeteors: MageMeteor[] = [];
-  /** 路线B「元素残域」：持续伤害领域。 */
-  mageDomains: MageDomain[] = [];
-  /** 路线B「星陨」的下一次落下倒计时（秒）。 */
-  mageMeteorT = 0;
-  /**
-   * 双修/三修的元素补选期：选到卡后强制补选第二/第三个元素，
-   * 选完才继续剩余的升级/宝箱链。
+  /* —— 元素法师 v2：法杖成长与轮盘 ——
+   *
+   * 元素/反应/法杖等级是**职业成长**，不放 Player.upCounts：upCounts 是
+   * 每 4 波三选一的天赋卡计数器，混用会让旧卡与元素进度互相污染。
+   * 全部放 GameCore，与充能/相位/镜像一致，且 recompute 不会抹掉。
    */
-  mageElementPickPending: "second" | "third" | null = null;
+  /** 已获得元素，按获得顺序（最多 3 个）。 */
+  mageElements: MageElement[] = [];
+  /** 法杖等级 1–12（独立于玩家等级）。 */
+  mageStaffLevel = 1;
+  /** 当前法杖等级已累计经验。 */
+  mageStaffXp = 0;
+  /** 当前轮盘索引（指向 mageElements）。 */
+  mageWheelIndex = 0;
+  /** 当前元素阶段内已完成成功施法次数（0–2）。 */
+  mageCastsInPhase = 0;
+  /** 本局套装：第二元素获得后确定。 */
+  mageSuit: MageSuit | null = null;
+  /** 已领悟的配对反应（Lv3 一条，Lv6 随机一条）。 */
+  mageReactionIds: MageReactionId[] = [];
+  /** 普通/稀有/史诗池已获得项。 */
+  mageUpgrades: MageUpgradeId[] = [];
+  /**
+   * 元素棱镜：第 3 次成功施法留下，下一次（或史诗下两次）本体法阵折射。
+   * 负责存储位置、剩余时间、记录元素、剩余折射次数与折射预算。
+   */
+  magePrism: {
+    x: number;
+    y: number;
+    t: number;
+    maxT: number;
+    element: MageElement;
+    charges: number;
+    budget: number;
+  } | null = null;
+  /** 技能 VFX 的只读表现事件；每个固定步重建，供渲染层采样。 */
+  mageVisualEvents: {
+    kind: "body" | "echo" | "refract" | "shadow" | "burst";
+    at: number;
+    element: MageElement;
+    x: number;
+    y: number;
+    radius: number;
+    source?: { x: number; y: number };
+  }[] = [];
+  /** 休整面板的法师细分伤害；不并入通用 dmgBy，避免双重计数。 */
+  mageDmgBy = emptyMageDamage();
+  private mageWaveStartDmgBy = emptyMageDamage();
+  /** 棱镜折射的纯表现事件：从棱镜射向落点的光束与命中闪光。 */
+  magePrismBeams: {
+    x: number;
+    y: number;
+    points: { x: number; y: number }[];
+    /** 当前法阵元素（伤害/状态按它结算）。 */
+    element: MageElement;
+    /** 棱镜记录元素（水晶颜色；终极震爆的标记）。 */
+    stored: MageElement;
+    t: number;
+    maxT: number;
+  }[] = [];
+  /** 回响法阵：延迟 0.3 秒的第二次伤害，不施加状态/不触发反应。 */
+  mageEchoes: {
+    x: number;
+    y: number;
+    t: number;
+    maxT: number;
+    R: number;
+    damage: number;
+    element: MageElement;
+  }[] = [];
+  /** 分影齐射冷却与左右残影表现。 */
+  mageShadowCd = 0;
+  mageShadows: {
+    side: -1 | 1;
+    t: number;
+    maxT: number;
+    element: MageElement;
+  }[] = [];
+  /**
+   * 法杖 Lv1/3/6 的强制元素选择：待选第几元素。
+   * 复用旧补选面板的 slots 展示，但不消耗天赋次数。
+   */
+  mageElementPickPending: "first" | "second" | "third" | null = null;
+  /** 一波内连升 Lv3/Lv6 时已触发的元素选择，休整时在 pending 之后依次处理。 */
+  mageElementPickQueue: ("second" | "third")[] = [];
   /**
    * S1/v139：本次休整可用的属性消费额度（波次 + 成长徽记）。为 0 时属性面板不出现。
    * 不进 parity 快照白名单：它只驱动面板流程，不参与任何数值计算。
@@ -533,11 +623,24 @@ export class GameCore {
   };
   beginWaveReport() {
     this.waveStartDamage = { ...this.dmgBy };
+    this.mageWaveStartDmgBy = {
+      ...this.mageDmgBy,
+      reaction: { ...this.mageDmgBy.reaction },
+    };
   }
   waveDamage(): DamageTotals {
     const result = { ...this.dmgBy };
     for (const source of Object.keys(result) as (keyof DamageTotals)[])
       result[source] = (result[source] ?? 0) - (this.waveStartDamage[source] ?? 0);
+    return result;
+  }
+  waveMageDamage() {
+    const result = emptyMageDamage();
+    for (const key of ["body", "echo", "refract", "shadow", "shatter"] as const)
+      result[key] = this.mageDmgBy[key] - this.mageWaveStartDmgBy[key];
+    for (const id of Object.keys(result.reaction) as MageReactionId[])
+      result.reaction[id] =
+        this.mageDmgBy.reaction[id] - this.mageWaveStartDmgBy.reaction[id];
     return result;
   }
   bpMode: Panel = null;
@@ -633,6 +736,8 @@ export class GameCore {
   // MageSystem（避免运行时循环），统一走 GameCore 上的方法引用。
   updateMageCasting = updateMageCasting.bind(this);
   updateMageElements = updateMageElements.bind(this);
+  devSetStaffLevel = devSetStaffLevel.bind(this);
+  devConfigureElementalMage = devConfigureElementalMage.bind(this);
   interruptMageCast = interruptMageCast.bind(this);
   triggerPhaseEscape = triggerPhaseEscape.bind(this);
   triggerMirrorDecoy = triggerMirrorDecoy.bind(this);
@@ -763,9 +868,6 @@ export class GameCore {
     this.castCd = 0;
     this.castX = 0;
     this.castY = 0;
-    this.mageLastMoveAt = -1e9;
-    this.magePrevX = this.player.x;
-    this.magePrevY = this.player.y;
     this.mageCharge = 0;
     this.mageChargeFlashT = 0;
     this.mageShield = 0;
@@ -775,10 +877,22 @@ export class GameCore {
     this.mageMirrorCd = 0;
     this.magePhaseT = 0;
     this.mageDecoys = [];
-    this.mageMeteors = [];
-    this.mageDomains = [];
-    this.mageMeteorT = 0;
-    this.mageElementPickPending = null;
+    this.mageElements = [];
+    this.mageStaffLevel = 1;
+    this.mageStaffXp = 0;
+    this.mageWheelIndex = 0;
+    this.mageCastsInPhase = 0;
+    this.mageSuit = null;
+    this.mageReactionIds = [];
+    this.mageUpgrades = [];
+    this.magePrism = null;
+    this.magePrismBeams = [];
+    this.mageVisualEvents = [];
+    this.mageEchoes = [];
+    this.mageShadowCd = 0;
+    this.mageShadows = [];
+    this.mageElementPickPending = prof === "mage" && this.mageWeapon === "arcane" ? "first" : null;
+    this.mageElementPickQueue = [];
     this.warriorFlowStacks = 0;
     this.warriorFlowT = 0;
     this.warriorSwingCount = 0;
@@ -854,6 +968,7 @@ export class GameCore {
       laser: 0,
       missileMain: 0, missileSwarm: 0, missileArc: 0, missileBurn: 0,
     };
+    this.mageDmgBy = emptyMageDamage();
     this.beginWaveReport();
     this.bpMode = null;
     this.swapUsedThisRest = false;
@@ -975,6 +1090,8 @@ export class GameCore {
     return "play";
   }
   step(dt: number) {
+    // 每个固定步换新数组，渲染层按引用去重，不会重播上一帧事件。
+    this.mageVisualEvents = [];
     // #136：开局天赋未选定时冻结整个模拟——选完天赋才开始游戏。
     // 局中升级/报告/熔炉面板的「非暂停」语义不变（v14 设计）。
     if (
@@ -1007,9 +1124,12 @@ export class GameCore {
     this.burnZones = [];
     this.trailZones = [];
     this.webZones = [];
-    this.mageMeteors = [];
-    this.mageDomains = [];
     this.mageDecoys = [];
+    this.magePrism = null;
+    this.magePrismBeams = [];
+    this.mageEchoes = [];
+    this.mageShadowCd = 0;
+    this.mageShadows = [];
     this.parts = [];
     this.texts = [];
     this.slashes = [];
@@ -1017,7 +1137,6 @@ export class GameCore {
     this.castPhase = "idle";
     this.castT = 0;
     this.castCd = 0;
-    this.mageMeteorT = 0;
     this.magePhaseT = 0;
     this.pendingLevels = 0;
     this.startTalentPending = false;
@@ -1064,14 +1183,16 @@ export class GameCore {
     this.castCd = 0;
     this.mageCharge = 0;
     this.mageChargeFlashT = 0;
-    this.mageMeteors = [];
-    this.mageDomains = [];
     this.mageShield = 0;
     this.mageShieldT = 0;
     this.mageShieldMaxT = 0;
     this.mageDecoys = [];
     this.magePhaseT = 0;
-    this.mageElementPickPending = null;
+    this.magePrism = null;
+    this.magePrismBeams = [];
+    this.mageEchoes = [];
+    this.mageShadowCd = 0;
+    this.mageShadows = [];
     this.warriorFlowStacks = 0;
     this.warriorFlowT = 0;
     this.warriorSwingCount = 0;

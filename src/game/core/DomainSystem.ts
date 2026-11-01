@@ -475,7 +475,7 @@ export function updateDomain(this:GameCore,dt:number) {
     if (!d.deployment && d.fields.length===3 && this.time>=d.collapseLockedUntil) startCollapse(this,cc);
     if (!d.collapse && !d.deployment && d.castCd<=0) {
       const point=selectLanding(this);
-      if (point) {d.deployment={...point,age:0};d.castCd=Math.max(C.deploy,C.castInterval/(this.player.fireRate*.55));domainSound(this,'field-deploy');}
+      if (point) {d.deployment={...point,age:0};d.castCd=Math.max(C.deploy,C.castInterval/(this.player.fireRate/C.baseFireRate));domainSound(this,'field-deploy');}
     }
     pullEnemies(this,dt);
   }

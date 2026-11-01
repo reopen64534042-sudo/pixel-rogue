@@ -10,17 +10,16 @@ import {
   enemyWeight,
   ETYPES,
 } from "../data/enemies";
-import { MAGE_BALANCE as MB } from "../data/mageBalance";
+import { ELEMENTAL_MAGE } from "../data/elementalMage";
 import { resolveDifficulty } from "../data/difficulty";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { professionPierce } from "./AttributeSources";
 import { boltDamage, chargedShotDamage } from "./DamageMath";
 import { getSpecialLevelStats } from "../data/specialShot";
-import { frostSlowFactor, isFrozen, isParalyzed } from "./ElementMath";
+import { frostSlowFactor, isFrostLocked, isFrozen, isParalyzed } from "./ElementMath";
 import { resolveEnemyAttackBonuses, resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
 import { applyKnockback } from "./MeleeSystem";
-import { mageDomainSlowFactor } from "./MageSystem";
 import { constrainDomainWalking } from './DomainSystem';
 import type { Enemy, MageDecoy } from "./types";
 
@@ -40,6 +39,11 @@ function drummerAura(
       return { speed: DRUMMER_AURA.speedMul, dmg: DRUMMER_AURA.dmgMul };
   }
   return { speed: 1, dmg: 1 };
+}
+
+/** 麻痹：敌人下一次行动冷却 ×1.3（攻击间隔 +30%）。 */
+function paraActionMul(e: Enemy): number {
+  return isParalyzed(e) ? 1 + ELEMENTAL_MAGE.paralyze.attackSlow : 1;
 }
 
 export function spawnEnemy(
@@ -185,7 +189,8 @@ export function updateEnemies(this: GameCore, dt: number) {
       d.type === "drummer" &&
       !d.dead &&
       d.frozenT <= 0 &&
-      !isFrozen(d),
+      !isFrozen(d) &&
+      !isFrostLocked(d),
   );
   // ---- 敌人 AI ----
   for (let i = this.enemies.length - 1; i >= 0; i--) {
@@ -265,10 +270,10 @@ export function updateEnemies(this: GameCore, dt: number) {
       e.frozenT -= dt;
       continue;
     }
-    // S3 法师：冻结（凝冰满层）定身。与上面的旧 frozenT 是两套独立状态——
-    // 旧状态属于已退役的「冰霜之力」，新状态属于法师池的「霜寒之力」。
-    // 计时由 ElementSystem.updateMageElements 推进，这里只判定。
+    // 元素法师：冻结（凝冰满层）与霜牢都定身。计时由
+    // ElementSystem.updateMageElements 推进，这里只判定。
     if (isFrozen(e)) continue;
+    if (isFrostLocked(e)) continue;
     // v128 大剑三段斩：通用眩晕。可选字段只在被震地命中时物化，
     // 射手/法师路径不出现该键；眩晕期间跳过整段 AI（仍可受击）。
     if (e.stunT !== undefined) {
@@ -323,7 +328,7 @@ export function updateEnemies(this: GameCore, dt: number) {
             this.addText(e.x, e.y - e.r - 12, "召唤", "#b05cff");
             this.audio.beep(520, 0.12, "triangle", 0.05, 120);
           }
-          e.affixT = 5;
+          e.affixT = 5 * paraActionMul(e);
         }
       } else if (e.affix === "nova") {
         if ((e.novaT ?? 0) > 0) {
@@ -359,13 +364,13 @@ export function updateEnemies(this: GameCore, dt: number) {
             Math.hypot(p.x - e.x, p.y - e.y) < ELITE_NOVA.triggerRange
           ) {
             e.novaT = ELITE_NOVA.windup;
-            e.affixT = ELITE_NOVA.cooldown;
+            e.affixT = ELITE_NOVA.cooldown * paraActionMul(e);
             this.audio.beep(320, 0.1, "square", 0.04, 40);
           }
         }
       }
     }
-    // S3 法师元素：凝冰每层减速、麻痹降低移速。
+    // 元素法师：凝冰每层减速、麻痹降低移速。
     // 射手路径上两个因子恒为 1 → 乘 1 精确，数值逐位不变。
     const domainMove=(e.domainRootUntil??0)>this.time ? 0 : 1-(e.domainSlowF??0);
     const spd =
@@ -373,8 +378,7 @@ export function updateEnemies(this: GameCore, dt: number) {
       aura.speed *
       (e.slowT > 0 ? 1 - e.slowF : 1) *
       (1 - frostSlowFactor(e)) *
-      (isParalyzed(e) ? 1 - MB.paraMoveSlow : 1) *
-      (this.prof === "mage" ? mageDomainSlowFactor(this, e) : 1) * domainMove;
+      (isParalyzed(e) ? 1 - ELEMENTAL_MAGE.paralyze.moveSlow : 1) * domainMove;
     if (e.type === "shooter") {
       // 远程: 远则靠近、近则后撤、中距离横向游走并射击
       // S3：距离改用当前目标（默认玩家；存在镜像残影时是残影），
@@ -410,8 +414,8 @@ export function updateEnemies(this: GameCore, dt: number) {
       e.y += mvy * spd * dt;
       e.shootCd -= dt;
       if (e.shootCd <= 0 && d < 210) {
-        // S3 法师「闪电连锁」的麻痹：攻击间隔 +30%。
-        e.shootCd = 2.0 * (isParalyzed(e) ? 1 + MB.paraAttackSlow : 1);
+        // 元素法师：麻痹使攻击间隔 +30%。
+        e.shootCd = 2.0 * paraActionMul(e);
         this.ebullets.push({
           x: e.x,
           y: e.y,
@@ -542,7 +546,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         if (e.burrowT <= 0) {
           e.burrowState = undefined;
           e.burrowT = 0;
-          e.burrowCd = BURROWER.cooldown;
+          e.burrowCd = BURROWER.cooldown * paraActionMul(e);
           this.audio.beep(90, 0.12, "sawtooth", 0.04, 20);
           for (let i = 0; i < 8; i++) {
             const dustA = (i / 8) * Math.PI * 2;
@@ -603,7 +607,7 @@ export function updateEnemies(this: GameCore, dt: number) {
           t: WEB_ZONE.arm + WEB_ZONE.duration,
           arm: WEB_ZONE.arm,
         });
-        e.webCd = WEB_ZONE.cooldown;
+        e.webCd = WEB_ZONE.cooldown * paraActionMul(e);
         this.audio.beep(260, 0.08, "triangle", 0.03, -30);
       }
     } else if (e.type === "charger") {
@@ -631,7 +635,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         if (hitWall || e.chargeT <= 0) {
           e.chargeState = "stun";
           e.chargeT = CHARGER_CHARGE.stun;
-          e.chargeCd = CHARGER_CHARGE.cooldown;
+          e.chargeCd = CHARGER_CHARGE.cooldown * paraActionMul(e);
           this.shake = Math.min(this.shake + 1.5, 6);
           this.audio.beep(70, 0.2, "square", 0.05, -40);
           for (let i = 0; i < 6; i++) {
@@ -765,11 +769,11 @@ export function updateEnemies(this: GameCore, dt: number) {
       if (d2 > 0.01 && d2 < rr * rr) {
         const d = Math.sqrt(d2),
           push = ((rr - d) / d) * 0.3;
-        if (!a.noKnock) {
+        if (!a.noKnock && !isFrostLocked(a)) {
           a.x -= dx * push;
           a.y -= dy * push;
         }
-        if (!b.noKnock) {
+        if (!b.noKnock && !isFrostLocked(b)) {
           b.x += dx * push;
           b.y += dy * push;
         }

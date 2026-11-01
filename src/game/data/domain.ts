@@ -3,6 +3,8 @@ import type {DomainSoundId} from './domainAudio';
 import {ATTRIBUTE_CAPS} from './attributeBalance';
 
 export const DOMAIN={
+  // Independent normalization: staff balance changes must not alter domain cadence.
+  baseFireRate:1/.55,
   castInterval:.9,deploy:.25,collapse:.35,collapseLock:2.5,
   fieldRadius:50,fieldLife:3,fieldTick:.25,fieldSlow:.30,fieldPull:40,
   holeRadius:55,holeLife:1,holeTick:.2,holeSlow:.50,holePullMul:2.2,

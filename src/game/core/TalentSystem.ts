@@ -1,8 +1,9 @@
 import { hash01 } from "../data/constants";
 import { DOMAIN_TALENT_AUDIO } from '../data/domainAudio';
 import { statBase } from "../data/stats";
-import { LEGACY_UPGRADES, MAGE_ELEMENT_CARDS, MAGE_VARIANT_ELEMENT, RAMP, UPGRADES, mageElements } from "../data/talents";
+import { LEGACY_UPGRADES, RAMP, UPGRADES } from "../data/talents";
 import type { GameCore } from "./GameCore";
+import { chooseMageElement, mageElementPickSlots } from "./MageProgressionSystem";
 import { applyOnAcquireEffect } from "./OnAcquireEffects";
 import {
   captureRuntimeState,
@@ -34,19 +35,15 @@ export function availTalents(this: GameCore, t: number) {
 }
 
 /**
- * 熔炉专用候选池（S2 过渡）。
+ * 熔炉专用候选池（历史兼容）。
  *
- * 熔炉的语义是「2 张同档 → 1 张高一档」，它的产出必须是**已存在于本局成长线**
- * 的卡。S2 让旧表整体 `hidden` 后，`availTalents` 只剩 18 张射手卡，而它们
- * 大多需要前置（L2 需 L1、L3 需 L2），三档池经常为空 → `melt()` 直接返回 null。
- *
- * 所以 S2 期间熔炉继续只处理旧表（`hidden` 不参与判定），保持 v40 行为；
- * 熔炉的最终去向（关闭入口 / 改为只推进已拥有的链）在 S4 决定。
+ * v165 旧表已全部删除，本池为空；熔炉入口（`SWAP_ENTRY_ENABLED`）自 v60 关闭，
+ * 保留函数只为既有 SwapSystem / melt 调用链与测试编译，不再提供可产出的旧卡。
  */
 export function legacyAvailTalents(this: GameCore, t: number) {
   return LEGACY_UPGRADES.filter(
     (u) =>
-      // 原版 `hidden` 仍然排除；只有 S2 的 `retired` 被放行
+      // v165 后 LEGACY_UPGRADES 为空；保留过滤逻辑供未来池复用
       !u.hidden &&
       (this.player.upCounts[u.n] || 0) < u.max &&
       (!u.req || u.req(this.player)) &&
@@ -55,7 +52,7 @@ export function legacyAvailTalents(this: GameCore, t: number) {
 }
 
 export function canOffer(this: GameCore, u: Talent) {
-  // retired：S2 起整体退役的旧表（不进抽取池，但仍在表内供 parity/图鉴使用）
+  // retired / hidden：v165 已删除旧表与退役卡，保留判定防御异常数据。
   if (u.hidden || u.retired) return false;
   if ((this.player.upCounts[u.n] || 0) >= u.max) return false;
   if (u.req && !u.req(this.player)) return false;
@@ -85,16 +82,7 @@ export function canOffer(this: GameCore, u: Talent) {
   // S2 变体组（N 选 1）：同组已取过任意一张则本卡不进池。
   // 与 excludes 的差别是规模可变，且语义上不是「相互排斥」而是「同一格位的不同实现」。
   // S3 豁免：若玩家持有某张卡的 `variantBypass` 指向本组，则该组不再排他
-  //（法师「双修」必须让玩家同时持有两个元素 L1）。
-  //
-  // 元素组例外：双修豁免后最多两种元素；持有秘传「三修」后上限升到三种。
-  // 三元素混合形态只通过三修开放，普通双修仍然不能抽第三张元素卡。
-  const elementCap = picks.includes("三修") ? 3 : 2;
-  if (
-    u.variant === MAGE_VARIANT_ELEMENT &&
-    mageElements(this.player).length >= elementCap
-  )
-    return false;
+  //（旧法师元素/双修已退役，通用逻辑保留给未来职业池）。
   if (
     u.variant &&
     !picks.some((n) => {
@@ -197,7 +185,43 @@ export function learnTalent(this: GameCore, u: Talent) {
 export function openLevelPanel(this: GameCore) {
   if (this.bpMode) return;
   this.bpMode = "level";
-  this.slots = this.rollPicks().map((u) => ({ u, used: false }));
+  // 法杖 Lv1/3/6：强制元素选择优先于普通三选一。
+  if (this.mageElementPickPending) {
+    const slots = mageElementPickSlots(this);
+    if (slots.length) {
+      this.slots = slots;
+      this.view.level();
+      return;
+    }
+    // 兜底：三个元素都已持有却仍挂着待选（异常状态）→ 清掉标记继续普通流程。
+    this.mageElementPickPending = null;
+  }
+  const picks = this.rollPicks();
+  if (!picks.length) {
+    if (this.pendingLevels <= 0) {
+      this.bpMode = null;
+      this.slots = [];
+      this.view.level();
+      return;
+    }
+    // 法师旧卡池耗尽（删除旧元素/反应卡后只剩 6 张保留卡）。
+    // 把剩余天赋次数转成属性点，避免空面板卡死。
+    const n = this.pendingLevels;
+    this.pendingLevels = 0;
+    this.attributePoints += n * 2;
+    this.bpMode = null;
+    this.slots = [];
+    this.addText(
+      this.player.x,
+      this.player.y - 22,
+      `天赋已尽 · 属性点 +${n * 2}`,
+      "#ffd24a",
+    );
+    if (this.boxPicks > 0) this.openBoxPanel();
+    else this.view.rest();
+    return;
+  }
+  this.slots = picks.map((u) => ({ u, used: false }));
   this.view.level();
 }
 export function refreshSlot(this: GameCore, index: number) {
@@ -225,7 +249,7 @@ export function refreshSlot(this: GameCore, index: number) {
 export function rollBoxPicks(this: GameCore) {
   const pool = UPGRADES.filter((u) => {
     const lv = this.player.upCounts[u.n] || 0;
-    return lv > 0 && lv < u.max;
+    return !u.retired && lv > 0 && lv < u.max;
   });
   const picks: Talent[] = [];
   const seed = this.kills * 7.77 + this.waveN * 3.13;
@@ -247,33 +271,6 @@ export function openBoxPanel(this: GameCore) {
   this.bpMode = "box";
   this.slots = picks.map((u) => ({ u, used: false }));
   this.view.level();
-}
-/**
- * 双修/三修的补选：选到卡后强制补第二/第三个元素。
- *
- * - 双修：当前只有 1 个元素时，补第二个（列出另外两个）；
- * - 三修：当前有 2 个元素时，补第三个（列出剩下那个）。
- *
- * 补选不消耗额外升级次数，只列未持有的元素，且不可刷新。
- */
-function openMageElementPick(this: GameCore, card: Talent): boolean {
-  const owned = mageElements(this.player);
-  const pending: "second" | "third" | null =
-    card.n === "双修" && owned.length === 1
-      ? "second"
-      : card.n === "三修" && owned.length === 2
-        ? "third"
-        : null;
-  if (!pending) return false;
-  const candidates = MAGE_ELEMENT_CARDS.filter(
-    (c) => !owned.includes(c.element),
-  )
-    .map((c) => UPGRADES.find((u) => u.n === c.card))
-    .filter((u): u is Talent => !!u);
-  if (!candidates.length) return false;
-  this.mageElementPickPending = pending;
-  this.slots = candidates.map((u) => ({ u, used: true }));
-  return true;
 }
 export function chooseSlot(this: GameCore, index: number) {
   this.ensurePlay(); // Issue #34
@@ -301,18 +298,17 @@ export function chooseSlot(this: GameCore, index: number) {
     return true;
   }
 
-  // ---- 双修/三修补选：先补第二/第三个元素 ----
+  // ---- 法杖 Lv1/3/6：元素选择（不消耗天赋次数）----
   if (this.mageElementPickPending) {
-    if (this.bpMode !== "level" || !this.learnTalent(slot.u)) return false;
-    this.mageElementPickPending = null;
+    if (this.bpMode !== "level" || !chooseMageElement(this, slot.u.n))
+      return false;
     this.audio.beep(880, 0.12, "square", 0.07, 300);
-    if (this.pendingLevels > 0)
-      this.slots = this.rollPicks().map((u) => ({ u, used: false }));
-    else {
-      this.bpMode = null;
-      this.slots = [];
-    }
-    this.view.level();
+    this.bpMode = null;
+    this.slots = [];
+    // 一波内连升时，选完当前元素后还有排队的下一次元素选择。
+    if (this.mageElementPickPending || this.pendingLevels > 0)
+      this.openLevelPanel();
+    else this.view.level();
     return true;
   }
 
@@ -327,18 +323,10 @@ export function chooseSlot(this: GameCore, index: number) {
   // #136：开局天赋选完即解除模拟冻结（对局中升级此标记本就为 false，无副作用）
   this.startTalentPending = false;
   this.audio.beep(880, 0.12, "square", 0.07, 300);
-  // 双修/三修：选到后强制补第二/第三个元素，再继续剩余升级/宝箱链。
-  if (openMageElementPick.call(this, slot.u)) {
-    this.view.level();
-    return true;
-  }
-  if (this.pendingLevels > 0)
-    this.slots = this.rollPicks().map((u) => ({ u, used: false }));
-  else {
-    this.bpMode = null;
-    this.slots = [];
-  }
-  this.view.level();
+  this.bpMode = null;
+  this.slots = [];
+  if (this.pendingLevels > 0) this.openLevelPanel();
+  else this.view.level();
   return true;
 }
 
@@ -366,18 +354,6 @@ export function rollPicks(this: GameCore) {
       cand = rest[Math.floor(Math.random() * rest.length)];
     }
     picks.push(cand);
-  }
-  // v88 秘传保底：前置满足后，双修/三修必在下一轮三选一出现。
-  // 只替换最后一个槽位、不额外消耗随机数；玩家仍可用刷新放弃它。
-  if (this.prof === "mage") {
-    for (const name of ["双修", "三修"] as const) {
-      const card = UPGRADES.find((u) => u.n === name);
-      if (!card || !this.canOffer(card)) continue;
-      if (picks.some((u) => u.n === name)) break;
-      if (picks.length >= 3) picks[picks.length - 1] = card;
-      else picks.push(card);
-      break;
-    }
   }
   // 射手首抽保底：第一次三选一必含「快速装填」（核心穿透/衰减起点）；
   // 特殊弹节奏固定每 4 发，快速/超载不再改变计数。

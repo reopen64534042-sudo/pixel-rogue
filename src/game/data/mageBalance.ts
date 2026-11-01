@@ -1,17 +1,9 @@
 /**
- * 法师池系数（S3）—— **全部为占位值**。
+ * 法师节奏与保留旧卡的系数。
  *
- * 设计来源：docs/talent-pool-design-rules.md 附录 B（法师池定稿）。
- * 该文档明确标注「数值全部为占位，只表达机制方向，未配平」，因此本文件
- * 只负责把设计文档里的数字**落成可被代码消费的常量**，不承担平衡结论。
- *
- * 为什么独立成文件而不是并入 data/combatBalance.ts：
- * - combatBalance 是**全职业共享**的战斗数值底座（护甲 K、抗性上限、陨星系数），
- *   它的任何一个系数都同时影响射手与（未来的）战士；
- * - 法师的施法节奏、元素层数、反应系数目前只在法师路径上被消费，
- *   放进共享底座会让「哪些数值是三职业共同底线」变得不可读；
- * - 配平批次应把这里的关键项并入 combatBalance 或按职业分表重排——
- *   到那时再改文件归属，而不是现在就提前合并。
+ * 元素法师 v2 的元素、状态、反应与法杖成长数值已迁到
+ * `data/elementalMage.ts`；本文件只保留**施法节奏、法阵几何、
+ * 充能护盾与脱离卡**等仍被运行时消费的键。
  *
  * 纪律（沿用 AGENTS.md）：
  * - 伤害公式的**计算**放 core/DamageMath.ts 的纯函数，系数从这里读；
@@ -23,7 +15,10 @@ export type MageElement = "fire" | "frost" | "lightning";
 
 export interface MageBalance {
   // —— 施法节奏（时间门控）——
-  /** 施法周期（秒）。与「攻速 1.82/s」互为倒数：1 / 1.82 ≈ 0.55。 */
+  /**
+   * 施法速率归一化系数（不是周期本身）：stats.ts 用它反推法师基础 fireRate = 1 / 本值。
+   * 实际周期 = castWindup + castInterval；v163 从 0.75 拉到 0.80 秒（约 −6% 频率）。
+   */
   castCycle: number;
   /** 前摇总时长（秒）：抬手（可打断） + 法阵收束（不可打断）。 */
   castWindup: number;
@@ -31,192 +26,49 @@ export interface MageBalance {
   castWindupInterruptible: number;
   /** 施法间隔（秒）：一次爆裂结束到下一次起手。 */
   castInterval: number;
-  /**
-   * 施法距离（px）：落点法阵的最远施法距离。
-   *
-   * v68：260 → 150。旧值超过 480×270 视野的纵向半高（135），第一波怪还没进
-   * 屏幕就被锁定；150 让 0.35s 前摇结束时敌人已进入屏幕（基础移速 55px/s
-   * 约前进 19px）。属性「施法距离」仍可继续成长。
-   */
+  /** 施法距离（px）：落点法阵的最远施法距离。 */
   castRange: number;
   /** 法阵半径（px，base）：随 area 乘区缩放。 */
   circleRadius: number;
-  /** 法阵单次伤害系数（× 玩家 damage）。v74：1.2 → 0.9，降低本体直伤。 */
-  castDamageMul: number;
   /**
-   * 反应伤害基数（× 玩家 damage）。
+   * 元素伤害基准（× 玩家 damage），用于状态 DoT、闪电链与反应伤害。
    *
-   * 融化 / 超导 / 闪电链按「命中伤害」折算；v74 下调法阵直伤后，若继续
-   * 用新的直伤，反应数字也会跟着降。这里保留旧的 1.2 系数，让反应伤害
-   * 与 v73 完全一致——玩家感知到的是「本体变轻、反应不变」。
-   * 灼烧 / 超载 / 残域本来就用 p.damage，不经过本系数。
+   * 文档里的火 60% / 冰 100% / 雷 80% 都相对这个基准；基准本身是
+   * 占位配平值。法阵直伤另乘 `directDamageMul`，避免纯法阵压过元素效果。
+   * v163 移除站定：原站定 1.5× 折入基准（0.9 → 1.35），
+   * 移动施法不再掉伤害。
    */
-  reactionBaseMul: number;
+  elementBaseMul: number;
+  /**
+   * 法阵直伤相对元素基准的倍率。
+   *
+   * 试玩反馈：纯法阵直伤过高，前期只看到法阵数字、体会不到灼烧/凝冰/反应。
+   * 直伤降低后，状态 DoT、闪电链与反应仍按 `elementBaseMul` 结算。
+   */
+  directDamageMul: number;
   /** 无目标时的重试间隔（秒）：避免每帧空转找目标。 */
   castIdleRetry: number;
-  /**
-   * 站定施法：前摇最后 `steadyHoldRatio × 前摇总长` 的时间内保持静止，
-   * 本发伤害 ×`steadyDamageMul`。判的是**最后一段**而不是整段前摇——
-   * 玩家可以边跑边施法，在读数临近完成时急停吃加成。
-   *
-   * 站定**不再改变法阵半径**：半径只由天赋/属性（广域符印、范围）决定，
-   * 否则移动/站定的范围不一致，看起来像「范围天赋时灵时不灵」。
-   */
-  steadyDamageMul: number;
-  /**
-   * 站定所需的「静止窗口」占前摇总长的比例（0.4 = 最后 40% 不许动）。
-   * 基础前摇 0.35s → 最后 0.14s；速咏后 0.245s → 最后 0.098s。
-   */
-  steadyHoldRatio: number;
-
-  // —— 元素印记 ——
-  /** 灼烧层数上限。 */
-  burnStackCap: number;
-  /** 灼烧每层每秒伤害（× 玩家 damage）。 */
-  burnDpsPerStack: number;
-  /** 灼烧每层独立持续时间（秒）。 */
-  burnDuration: number;
-  /** 凝冰层数上限。 */
-  frostStackCap: number;
-  /** 凝冰每层减速比例（0.06 = 6%）。 */
-  frostSlowPerStack: number;
-  /** 凝冰每层独立持续时间（秒）。 */
-  frostDuration: number;
-  /** 对携带凝冰的目标，元素伤害加成。 */
-  frostElementBonus: number;
-  /** 凝冰满层时的冻结时长（秒）。 */
-  frostFreezeDuration: number;
-  /** 冻结目标受到的任意伤害加成。 */
-  frozenVuln: number;
-  /** 麻痹持续时间（秒），可刷新。 */
-  paraDuration: number;
-  /** 麻痹造成的攻击间隔增加比例。 */
-  paraAttackSlow: number;
-  /** 麻痹造成的移速降低比例。 */
-  paraMoveSlow: number;
-  /** 麻痹目标受到闪电链伤害的加成。 */
-  paraChainVuln: number;
-  /** 闪电链触发概率（0-1）。 */
-  chainChance: number;
-  /** 闪电链最大跳跃目标数。 */
-  chainJumps: number;
-  /** 闪电链每个目标的伤害比例（× 本次命中伤害）。 */
-  chainDamageMul: number;
-  /** 闪电链跳跃距离（px）。 */
-  chainRange: number;
-
-  // —— 元素共振 —
-  /** 共振影响半径（px）：印记触发时周围的敌人。 */
-  resonanceRadius: number;
-
-  // —— 双修/三修反应 —
-  /** 超载最低灼烧层数（用命中前快照判定）。 */
-  overloadMinStacks: number;
-  /** 超载：引燃全部灼烧层数的即时伤害折算秒数。 */
-  overloadSeconds: number;
-  /** 融化：本次命中伤害（hitDamage）的倍数。 */
-  meltDamageMul: number;
-  /** 融化反应内置冷却（秒）。 */
-  reactionIcdMelt: number;
-  /** 超载反应内置冷却（秒）。 */
-  reactionIcdOverload: number;
-  /** 超导反应内置冷却（秒）。 */
-  reactionIcdSuper: number;
-  /** 超导：直接雷伤（× 本次 hitDamage）。 */
-  superDamageMul: number;
-  /** 超导：雷电易伤持续时间（秒）。 */
-  superVulnDuration: number;
-  /** 超导：闪电链额外跳跃目标数。 */
-  superChainBonusJumps: number;
-  /** 超导状态下敌人受到的雷电伤害加成。 */
-  superChainVuln: number;
-
-  // —— 充能条（循环轴共用）——
+  // —— 充能护盾（保留旧卡「护咒壁」）——
   /** 满充能所需的成功施法次数。 */
   chargeFull: number;
-  /** 满充能触发后三格全亮的持续时间（秒），随后清零——用来做 1→2→3 的计数反馈。 */
+  /** 满充能触发后三格全亮的持续时间（秒）。 */
   chargeFlash: number;
-
-  // —— 护盾（值型 + 限时，与既有层数制护盾是两套模型）——
-  /** 咏唱护壁：最大生命百分比。 */
+  /** 护咒壁：最大生命百分比。 */
   wardShieldPct: number;
-  /** 咏唱护壁持续时间（秒）。 */
+  /** 护咒壁持续时间（秒）。 */
   wardShieldDuration: number;
-  /** 回响：最大生命百分比。 */
-  echoShieldPct: number;
-  /** 回响持续时间（秒）。 */
-  echoShieldDuration: number;
-  /** 回响护盾的总上限（最大生命百分比）——防止高频施法把护盾堆成无敌。 */
-  echoShieldCapPct: number;
 
-  // —— 路线B：星陨 / 多重陨星 / 元素残域 ——
-  /** 陨星落下周期（秒）。 */
-  meteorInterval: number;
-  /** 陨星从预警到落地的时长（秒）：落点提前量按这段时间计算。 */
-  meteorFall: number;
-  /** 陨星半径（px）。 */
-  meteorRadius: number;
-  /**
-   * 陨星伤害系数（× 玩家 damage）。
-   *
-   * 配平依据：星陨**整体替换**主施法，L1 必须与基础法阵同量级。
-   * v73：基础法阵 = 11 × 1.2 / 0.55 ≈ 24 DPS；陨星 = 11 × 4.0 / 2.0 = 22 DPS
-   *（旧值 2.5 / 3.0s = 9.2 DPS，选到星陨反而变弱）。
-   * v74 法阵直伤下调至 0.9（≈18 DPS）后，陨星暂保持 4.0（≈22 DPS）；
-   * 是否跟随下调到 ~3.0（≈16.5 DPS）待试玩决定——本次只改法阵本体。
-   */
-  meteorDamageMul: number;
-  /**
-   * 多重陨星每颗的伤害倍率（0.8 = 每颗 −20%）。
-   *
-   * 多重陨星始终落 2 颗，对单目标会双份命中：若每颗全额，L2 单体 = 44 DPS
-   *（L1 的 2 倍）。这里只降低多重陨星的每颗伤害，L1 仍为 4.0——
-   * 目标 L1 22 DPS、L2 单体 2 × 22 × 0.8 ≈ 35 DPS；群怪时每个敌群
-   * 只吃 0.8 倍，但覆盖两个敌群，总收益仍高于 L1。
-   */
-  meteorMultiDamageMul: number;
-  /** 多重陨星同时落下的颗数。 */
-  meteorCount: number;
-  /** 多颗陨星之间的最小间距（px）：优先砸向不同敌群，避免同一目标双份伤害。 */
-  meteorMinSep: number;
-  /**
-   * 敌群不足时，补足颗数用的落点偏移（px）。
-   * 多重陨星必须「始终落下 meteorCount 颗」——面对单个敌人时围绕它铺开，
-   * 不能因为是单目标就少落一颗。
-   */
-  meteorSpread: number;
-  /** 元素残域持续时间（秒）。 */
-  domainDuration: number;
-  /** 元素残域半径（px）。 */
-  domainRadius: number;
-  /** 元素残域每秒伤害系数（× 玩家 damage）。 */
-  domainDpsMul: number;
-  /** 元素残域的 DoT 结算间隔（秒）。按 tick 结算，避免逐帧取整成 1 点伤害。 */
-  domainTick: number;
-  /** 元素残域的元素状态节拍（秒）：每秒给领域内敌人补一次对应元素状态。 */
-  domainStatusInterval: number;
-  /** 引力残域：领域内敌人的移速降低比例（0.25 = −25%）。 */
-  domainSlow: number;
-
-  // —— 节律 —
+  // —— 节律（保留旧卡）——
   /** 速咏：前摇倍率（0.7 = 前摇 −30%）。 */
   quickCastWindupMul: number;
   /** 连咏：施法间隔倍率（0.8 = 间隔 −20%）。 */
   continuousCastIntervalMul: number;
 
-  // —— 范围 —
+  // —— 范围（保留旧卡）——
   /** 广域符印：作用范围倍率（1.2 = +20%）。 */
   wideSealAreaMul: number;
-  /** 三连聚爆：满充能发的伤害倍率。 */
-  burstDamageMul: number;
-  /** 三连聚爆：满充能发的法阵半径倍率。 */
-  burstRadiusMul: number;
 
-  // —— 循环 —
-  /** 元素蓄能：满充能发的伤害倍率。 */
-  chargeDamageMul: number;
-
-  // —— 脱离 —
+  // —— 脱离（保留旧卡）——
   /** 相位：传送搜索半径（px）。 */
   phaseRange: number;
   /** 相位：冷却（秒）。 */
@@ -232,81 +84,26 @@ export interface MageBalance {
 }
 
 export const MAGE_BALANCE: MageBalance = {
-  castCycle: 0.55,
-  castWindup: 0.35,
+  castCycle: 0.75,
+  castWindup: 0.48,
   castWindupInterruptible: 0.15,
-  castInterval: 0.2,
+  castInterval: 0.32,
   castRange: 150,
   circleRadius: 34,
-  castDamageMul: 0.9,
-  reactionBaseMul: 1.2,
+  elementBaseMul: 1.35,
+  directDamageMul: 0.65,
   castIdleRetry: 0.1,
-  steadyDamageMul: 1.5,
-  steadyHoldRatio: 0.4,
-
-  burnStackCap: 4,
-  burnDpsPerStack: 0.15,
-  burnDuration: 5,
-  frostStackCap: 3,
-  frostSlowPerStack: 0.06,
-  frostDuration: 5,
-  frostElementBonus: 0.08,
-  frostFreezeDuration: 1,
-  frozenVuln: 0.1,
-  paraDuration: 3,
-  paraAttackSlow: 0.3,
-  paraMoveSlow: 0.1,
-  paraChainVuln: 0.1,
-  chainChance: 0.3,
-  chainJumps: 3,
-  chainDamageMul: 0.4,
-  chainRange: 90,
-
-  resonanceRadius: 60,
-
-  overloadMinStacks: 2,
-  overloadSeconds: 3,
-  meltDamageMul: 2.5,
-  reactionIcdMelt: 0.8,
-  reactionIcdOverload: 0.8,
-  reactionIcdSuper: 1.0,
-  superDamageMul: 1.0,
-  superVulnDuration: 3,
-  superChainBonusJumps: 2,
-  superChainVuln: 0.15,
 
   chargeFull: 3,
   chargeFlash: 0.35,
 
   wardShieldPct: 0.12,
   wardShieldDuration: 1.2,
-  echoShieldPct: 0.04,
-  echoShieldDuration: 3,
-  echoShieldCapPct: 0.25,
-
-  meteorInterval: 2,
-  meteorFall: 0.8,
-  meteorRadius: 42,
-  meteorDamageMul: 4,
-  meteorMultiDamageMul: 0.8,
-  meteorCount: 2,
-  meteorMinSep: 70,
-  meteorSpread: 26,
-  domainDuration: 4,
-  domainRadius: 46,
-  domainDpsMul: 0.5,
-  domainTick: 0.25,
-  domainStatusInterval: 1,
-  domainSlow: 0.25,
 
   quickCastWindupMul: 0.7,
   continuousCastIntervalMul: 0.8,
 
   wideSealAreaMul: 1.2,
-  burstDamageMul: 1.15,
-  burstRadiusMul: 1.5,
-
-  chargeDamageMul: 1.4,
 
   phaseRange: 80,
   phaseCooldown: 10,

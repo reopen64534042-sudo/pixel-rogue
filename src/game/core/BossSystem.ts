@@ -1,5 +1,4 @@
 import { BOSS, BOSS_ATTACKS, BOSS_PHASES, BOSS_STOMP_RADIUS, THREE_HEADED_BEAST } from "../data/boss";
-import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import { WORLD, clamp } from "../data/constants";
 import type { DamageTypeId } from "../data/damageTypes";
 import { bossAttackDamage, bossGroundTickDamage, bossRewardXp } from "./DamageMath";
@@ -383,9 +382,8 @@ export function updateBosses(core: GameCore, dt: number): boolean {
     else if (distance > e.r + core.player.r) {
       s.angle = Math.atan2(core.player.y - e.y, core.player.x - e.x);
       const slow = (1 - (e.slowT > 0 ? e.slowF : 0) * BOSS.slowEffectMul) *
-        (1 - frostSlowFactor(e) * BOSS.slowEffectMul) *
-        (1 - (core.mageDomains.some((d) => Math.hypot(e.x - d.x, e.y - d.y) <= d.R) ? MB.domainSlow : 0) * BOSS.slowEffectMul);
-      const speed = e.speed * slow * (1-(e.domainSlowF??0)) * (s.phase === 3 ? BOSS.finalSpeedMul : 1) * (s.enraged ? BOSS.enrageSpeedMul : 1);
+        (1 - frostSlowFactor(e) * BOSS.slowEffectMul);
+      const speed = e.speed * slow * (1 - (e.domainSlowF ?? 0)) * (s.phase === 3 ? BOSS.finalSpeedMul : 1) * (s.enraged ? BOSS.enrageSpeedMul : 1);
       e.x = clamp(e.x + Math.cos(s.angle) * speed * dt, BOSS.margin, WORLD.w - BOSS.margin);
       e.y = clamp(e.y + Math.sin(s.angle) * speed * dt, BOSS.margin, WORLD.h - BOSS.margin);
     }

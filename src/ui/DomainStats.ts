@@ -39,7 +39,7 @@ export function buildDomainStats(c:GameCore) {
   put('stat-combat',[
     ['基础伤害',f(p.damage)],['领域值',p.domainValue??DOMAIN.valueBase],
     ['领域效果倍率',`×${next.M.toFixed(2)}`],['武器伤害倍率',`×${next.power.toFixed(2)}`],
-    ['全局增伤',pct(p.globalDamageBonus??0)],['施法间隔',`${Math.max(DOMAIN.deploy,DOMAIN.castInterval/(p.fireRate*.55)).toFixed(2)} s`],
+    ['全局增伤',pct(p.globalDamageBonus??0)],['施法间隔',`${Math.max(DOMAIN.deploy,DOMAIN.castInterval/(p.fireRate/DOMAIN.baseFireRate)).toFixed(2)} s`],
     ['暴击率',pct(p.crit)],['暴击伤害',`×${p.critMul.toFixed(2)}`],
   ]);
   put('stat-knockback',[

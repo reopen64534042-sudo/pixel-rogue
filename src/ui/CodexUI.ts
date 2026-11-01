@@ -14,18 +14,10 @@ import { element } from "./dom";
 
 const ALL = "全部" as const;
 const ENEMY = "敌人" as const;
-const WEAPON='武器' as const;
-// S3：旧表按旧四类分，职业池按职业分（射手 / 法师 / 战士）。
+const WEAPON = '武器' as const;
+// v165：旧表已删除，图鉴只保留当前职业池分区。
 // 槽位轴不进分区——16 个 tab 会让图鉴变成噪音；槽位在条目详情里显示。
-const GROUPS = [
-  "攻击",
-  "增幅",
-  "技能",
-  "防御",
-  "射手",
-  "法师",
-  "战士",
-] as const;
+const GROUPS = ["射手", "法师", "战士"] as const;
 type Filter = typeof ALL | typeof ENEMY | typeof WEAPON | (typeof GROUPS)[number];
 const FILTERS: readonly Filter[] = [ALL, ...GROUPS, WEAPON, ENEMY];
 

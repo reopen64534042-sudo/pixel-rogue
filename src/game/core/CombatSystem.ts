@@ -11,6 +11,7 @@ import {
   hash01,
 } from "../data/constants";
 import { DAMAGE_TYPES } from "../data/damageTypes";
+import { MAGE_ELEMENTS } from "../data/elementalMage";
 import { KNOCK } from "../data/knockback";
 import {
   WARRIOR_BALANCE,
@@ -24,7 +25,7 @@ const LIE_JIA_ARMOR_BREAK_PCT = 0.2;
 const LIE_JIA_ARMOR_BREAK_T = 3;
 import { calculateDamage } from "./DamageSystem";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
-import { elementDamageMultiplier } from "./ElementMath";
+import { extendFrostLock, isFrostLocked } from "./ElementMath";
 import type {
   DamageCause,
   DamageResult,
@@ -133,11 +134,6 @@ export function hurtEnemy(
     dmg *= scorchVulnMultiplier(p);
   // 「贯穿标记」/「深痕」：标记只放大强化弹直接命中，每层 +15%。
   if (opts.specialHit && e.markStacks > 0) dmg *= 1 + 0.15 * e.markStacks;
-  // S3 法师元素：受击方身上的元素状态带来的受击加成
-  // （冻结 +10% 任意伤害 / 带凝冰 +8% 元素伤害 / 超导 +15% 雷电伤害）。
-  // 射手路径上敌人永远没有元素状态 → 倍率为 1 → 不参与运算，逐位不变。
-  const elemMul = elementDamageMultiplier(e, opts.type ?? "physical");
-  if (elemMul !== 1) dmg *= elemMul;
   // 「余韵」：闪避后的一次性强化弹伤害加成，命中强化弹时消费
   if (opts.specialHit && this.dodgeNextDmg > 1) {
     dmg *= this.dodgeNextDmg;
@@ -199,7 +195,7 @@ export function hurtEnemy(
       },
       defenderStats:getEnemyCombatStats(e,armorPen),
     });
-    const amount=extra.settledDamage*elementDamageMultiplier(e,component.type);
+    const amount=extra.settledDamage;
     settled+=amount;
     if (component.type==='true') trueDamage+=amount;
   }
@@ -266,7 +262,11 @@ export function hurtEnemy(
             ? TRUE_DAMAGE_COLOR
             : opts.specialHit || crit
               ? "#ffd24a"
-              : "#ffffff",
+              : opts.type === "fire" ||
+                  opts.type === "frost" ||
+                  opts.type === "lightning"
+                ? MAGE_ELEMENTS[opts.type].color
+                : "#ffffff",
       crit,
       mainIsTrue,
       false,
@@ -281,6 +281,10 @@ export function hurtEnemy(
       mainText.life=opts.domainHit==='collapse'?(crit?.82:.68):opts.domainHit==='slash'?.32:.48;
       mainText.domainMaxLife=mainText.life;
       mainText.s=String(Math.max(1,Math.round(mainDamage)));
+    }
+    if (opts.reactionId) {
+      mainText.reactionId = opts.reactionId;
+      mainText.life = 0.82;
     }
     if (crit) {
       // 暴击火花：不推进随机数，按敌人 seed 给四向金色/白色短粒子。
@@ -324,6 +328,10 @@ export function hurtEnemy(
   // v148：吸血按目标实际损失的生命结算，溢出伤害不回血。
   const dealtHpLoss = Math.max(0, Math.min(hpBefore, dmg));
   e.hp -= dmg;
+  // 霜牢：受到直接伤害延长 0.4 秒（0.2 秒内最多一次，总时长至多 4.5 秒）。
+  // DoT 不是直接伤害，不延长。
+  if (e.hp > 0 && (opts.kind ?? "hit") !== "dot" && isFrostLocked(e))
+    extendFrostLock(e, this.time);
   syncBossPhase(this, e);
   if (opts.kind !== 'dot' && !opts.noFlash) e.flash = 0.08;
   // 裂甲：非引爆命中叠层；第 3 层命中已在上方加伤，这里清空并破甲。
@@ -351,7 +359,7 @@ export function hurtEnemy(
       this.player.maxhp,
       this.player.hp + dealtHpLoss * this.player.lifesteal * (opts.lifestealMul ?? 1),
     );
-  if ((kx || ky) && !e.noKnock && !e.boss) {
+  if ((kx || ky) && !e.noKnock && !e.boss && !isFrostLocked(e)) {
     e.x += kx;
     e.y += ky;
   }

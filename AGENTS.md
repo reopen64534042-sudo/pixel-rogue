@@ -1,15 +1,15 @@
 # Pixel Rogue Coding Agent Guide
 
 ## 项目定位与技术
-像素秘境是 PC Web 优先的 2D 像素动作 Roguelike，目标是可静态发布、持续开发的独立游戏。初始迁移原件为 legacy/original.html（v7），当前规则对照基线为 legacy/upstream-v8.html（上游 27565b4），实际包含 39 种旧表天赋（v138 删除能量护盾与旧不屈后）。采用 TypeScript 6.0.3、Vite 8.3.5、Phaser 4.2.1、Vitest 5、Playwright；无需后端或 React/Vue。Phaser 管理世界、相机、输入和表现，DOM 管理复杂 UI。
+像素秘境是 PC Web 优先的 2D 像素动作 Roguelike，目标是可静态发布、持续开发的独立游戏。初始迁移原件为 legacy/original.html（v7），当前规则对照基线为 legacy/upstream-v8.html（上游 27565b4）；旧表 39 张通用天赋已于 v165 按用户要求删除（v138 曾删除能量护盾与旧不屈）。采用 TypeScript 6.0.3、Vite 8.3.5、Phaser 4.2.1、Vitest 5、Playwright；无需后端或 React/Vue。Phaser 管理世界、相机、输入和表现，DOM 管理复杂 UI。
 
 ## 实际结构
 - src/main.ts：入口、缩放和 Phaser 配置。
 - src/game/scenes/GameScene.ts：唯一场景及其输入/更新/清理生命周期。
-- src/game/core/：GameCore 状态与命令，Simulation 按原顺序调度规则；Player/Combat/Attack/Projectile/Enemy/Wave/Progression/Talent/Swap/Effects 各有实际职责，BossSystem 管理三首巨兽的入场、三阶段、预警招式、危险区与随从（data/boss.ts 配置；每 10 波替代普通/精英）；LaserSystem 管理射手激光照射/回充、焦点与时间预算；MissileSystem 管理导弹装填/制导/扫掠，MissileCombat 经统一管线结算爆破/电弧/余烬。Mage/Element（S3 法师施法状态机与元素印记，ElementMath 为纯计算层）随职业池接入，Damage/CombatSystem 构成 Combat Foundation 统一伤害管线（S1 纯计算 + S2 全路径接入），CombatStats 为实体属性适配层（S3-A 接线 + S3-B 方案甲数值），StatModel 为纯属性解析模型（S4-A，未接入运行时），StatSheets 为 S4-B 只读 shadow 构建器（未接入运行时），FixedClock 固定步长。
-- src/game/data/：常量、初始属性、旧表 39 张通用卡与射手/法师职业池（talents/ 分文件）、敌人配置及伤害类型注册与战斗基准。
+- src/game/core/：GameCore 状态与命令，Simulation 按原顺序调度规则；Player/Combat/Attack/Projectile/Enemy/Wave/Progression/Talent/Swap/Effects 各有实际职责，BossSystem 管理三首巨兽的入场、三阶段、预警招式、危险区与随从（data/boss.ts 配置；每 10 波替代普通/精英）；LaserSystem 管理射手激光照射/回充、焦点与时间预算；MissileSystem 管理导弹装填/制导/扫掠，MissileCombat 经统一管线结算爆破/电弧/余烬。Mage/MageProgression/Element（元素法师 v2：法杖等级 1–12、每 3 次成功施法轮盘、Lv1/3/6 元素、A/B 套装、六反应与棱镜/分影/终章；ElementMath 为纯计算层）随职业池接入，Damage/CombatSystem 构成 Combat Foundation 统一伤害管线（S1 纯计算 + S2 全路径接入），CombatStats 为实体属性适配层（S3-A 接线 + S3-B 方案甲数值），StatModel 为纯属性解析模型（S4-A，未接入运行时），StatSheets 为 S4-B 只读 shadow 构建器（未接入运行时），FixedClock 固定步长。
+- src/game/data/：常量、初始属性、射手/法师/战士职业池与通用卡（talents/ 分文件；旧表已于 v165 删除）、元素法师 v2 规则（elementalMage.ts）、首领配置（boss.ts）、敌人配置及伤害类型注册与战斗基准。
 - src/game/rendering/：原像素纹理、Phaser 绘制和对象复用；BossAnimation / BossArt / BossVfx / BossGeneratedVfx 采样三首巨兽的八姿态图集与招式表现，离线预览用 scripts/build-boss-preview.mjs；vfx/laser 的桥接器与播放器由 Scene 按固定步采集，LaserVfxPainter 复用原绘制顺序。MissileRenderer 与 vfx/missile 只读实际飞行和引爆事件，复用 PixelPainter 的深度与对象池。
-- src/game/rendering/characters/：职业人物表现；KatanaCharacter / GreatswordCharacter 由 Scene 按模拟时间、实际位移与攻击 / 跃击状态取帧，素材缺失回退原图，不修改战斗状态。
+- src/game/rendering/characters/：职业人物表现；KatanaCharacter / GreatswordCharacter / ShooterCharacter / MageCharacter 由 Scene 只读模拟状态取帧，射手身体与独立瞄准的武器分层、折光剪影复用同套素材，法师接入魔女人物本体；MageVfx 按 Core 的只读 mageVisualEvents 绘制法阵/状态/棱镜/反应爆发，缺失素材回退原程序化表现，不修改战斗状态。
 - DomainSystem / data/domain 管理法师独立坍缩领域武器；Simulation 调度，DamageMath 形成分量，CombatSystem 同次应用主爆发/真伤/生命压缩。DomainRenderer / DomainCharacter 只读实际状态；AudioService 缓存领域 WAV 并在暂停/清理时停播，见 docs/domain-weapon-design.md 与 docs/domain-character-art.md。
 - 领域保留三场合成，收拢中心锁定并跟随目标（范围内可攻击Boss→捕获目标→最近敌人），仅失效重选、无目标保留最后位置；捕获名单仍独立快照。W/M独立增强场/洞伤害，全域连斩去重，无量真实过载，形成后黑洞按实际位置向怪群巡游。V2四次强化已撤回。
 - src/ui/：DOM 显示及命令适配；src/services/：音频、战绩；src/styles/：样式。
@@ -55,13 +55,16 @@
 - node scripts/build-greatsword-character-assets.mjs：重建大剑人物 64 帧精灵表；python scripts/export-greatsword-character-preview.py 导出动作 / 跃击离线 GIF（不代表实机验收），见 docs/greatsword-character-art.md。
 - node scripts/build-domain-character-assets.mjs：重建领域师B的64帧身体与独立牌；node scripts/publish-domain-assets.mjs发布领域纹理/字形/56WAV；人物GIF为离线预览。武器Lv.4固定斩击、Lv.5固定无量，其余九项在Lv.2–3/6–12获得；DOMAIN_UNLOCK_LEVELS拥有解锁等级。经验仅由黑洞形成爆发实际命中发放，每次黑洞最多1点，普通场和后续伤害不提供；本次黑洞保留结算前快照。
 - 领域实际绘制器对照（仅DEV）：`/assets/vfx/domain/live-preview.html`，左连斩/右叠加无量，可慢放/逐帧/导出图与WebM；`python assets/vfx/domain/export-live-preview.py` 转为GIF/MP4。使用正式Core/Phaser/Renderer的受控高生命目标，不写战绩，不作为自然玩法验收。
+- node scripts/build-shooter-character-assets.mjs：重建射手身体 / 武器精灵表；python scripts/export-shooter-character-preview.py 导出三武器合成 GIF 与瞄准方向示例，见 docs/shooter-character-art.md。
+- node scripts/build-mage-character-assets.mjs：重建 48 帧魔女帽人物；python scripts/export-mage-character-preview.py / scripts/export-mage-walk-preview.py 导出动作和步态对比，见 docs/mage-character-art.md。
+- node scripts/build-mage-vfx-assets.mjs：重建 29 帧技能素材；node scripts/build-mage-vfx-preview.mjs 导出离线预览。MageVfx 已在 Scene 接入运行时（v164），加载失败回退程序化表现，见 docs/mage-vfx-runtime.md。
 - node scripts/preview-laser-vfx.mjs：旧程序化激光回退的离线预览。
 - npm run palette:export：从 src/game/data/palette.ts 导出 assets/palette.gpl（美术产线，改动色板后必跑）。
 - node scripts/pixelize.mjs <png> --key <assetKey>：贴图后处理（规格见 docs/art-assets.md 第 7 节）。
 **验证标准（2026-10-29 用户裁定，覆盖本节及「验收」中与此冲突的旧要求）**：改动以**编译通过、无报错**（`npm run typecheck` + `npm run build`）为交付线；**默认不运行 Vitest / Playwright，不主动新增/扩展测试或补写基线**，用户点名才做。若改动会使既有测试断言过期，在提交信息与 docs/migration.md 中留痕说明，留待用户授权的测试批次统一处理。
 
 ## 验收
-核心不可回归：480×270 视野、1392×1040 世界、完整敌人图鉴（10 种普通 / 特殊怪 + 子体 + 精英 + 三首巨兽首领）与精英刷新规则（4/8 波各 1 只、12–19 波每波 2 只、20 波起每波 3 只，第 8 波起带词缀）、完整自动攻击/伤害/掉落/经验、39 旧表天赋及独立刷新、清场→收球→选卡→报告→下一波、死亡和完整重置、最近 50 战绩兼容。非首领波配额 min(150,20+(n-1)×10)，每 10 波为首领波（配额 1、不刷普通怪/精英，详见 docs/boss-three-headed-beast.md）；第 5 波起普通敌人双只生成、精英单独生成；初始经验 6、阈值 ceil(×1.13)。熔炉入口自 v60 关闭（core 实现与单元测试保留，不再作为可玩验收项）；整局伤害与本波报告分开。
+核心不可回归：480×270 视野、1392×1040 世界、完整敌人图鉴（10 种普通 / 特殊怪 + 子体 + 精英 + 三首巨兽首领）与精英刷新规则（4/8 波各 1 只、12–19 波每波 2 只、20 波起每波 3 只，第 8 波起带词缀）、完整自动攻击/伤害/掉落/经验、职业池与通用卡刷新（旧表已于 v165 删除）、清场→收球→选卡→报告→下一波、死亡和完整重置、最近 50 战绩兼容。非首领波配额 min(150,20+(n-1)×10)，每 10 波为首领波（配额 1、不刷普通怪/精英，详见 docs/boss-three-headed-beast.md）；第 5 波起普通敌人双只生成、精英单独生成；初始经验 6、阈值 ceil(×1.13)。熔炉入口自 v60 关闭（core 实现与单元测试保留，不再作为可玩验收项）；整局伤害与本波报告分开。
 规则改动运行相关 Vitest、类型检查和构建；场景/UI 改动再做浏览器检查及截图，区分受控状态验证、自然生产试玩、截图视觉证据和未验证项。构建成功不能代替玩法验证。
 
 ## Git 与文件安全

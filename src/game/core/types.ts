@@ -1,4 +1,5 @@
 import type { DamageTypeId } from "../data/damageTypes";
+import type { MageReactionId } from "../data/elementalMage";
 export type Mode = "start" | "play" | "stats" | "pause" | "over";
 export type Panel = "level" | "rest" | "box" | "attr" | null;
 export type GameState = Mode | "levelup" | "report" | "swap";
@@ -21,7 +22,7 @@ export type DamageSource =
   // （沿用 takeMelee 先例），登记在 docs/migration.md。
   | "cast"
   | "element"
-  /** 双修三法印反应（融化/超载/超导）的独立伤害分项。 */
+  /** 元素法师六种配对反应的独立伤害分项。 */
   | "reaction"
   | "laser"
   | "missileMain" | "missileSwarm" | "missileArc" | "missileBurn"
@@ -277,7 +278,7 @@ export interface Talent {
   cat: string;
   d: string;
   /**
-   * 动态说明：需要按当前构筑变化的卡面文字（如「元素共振」只列已持有元素）。
+   * 动态说明：需要按当前构筑变化的卡面文字。
    * 显示时优先于 `d`；图鉴等全局列表仍用 `d`，避免依赖某一局的玩家状态。
    */
   dyn?: (p: Player) => string;
@@ -310,15 +311,11 @@ export interface Talent {
   /** 变体组：同一组在一局内只能取一张。与 excludes 的区别是组合规模可变（N 选 1）。 */
   variant?: string;
   /**
-   * 变体组豁免（S3 法师池「双修」用）。
+   * 变体组豁免。
    *
-   * 变体组是「N 选 1」，但有些机制卡**本身就要打破这个排他**：
-   * 法师的元素槽是三变体组（火/冰/雷），而「双修」的机制是
-   * 「同时施加两种元素状态」——玩家必须能同时持有两个元素 L1，
-   * 否则这张卡无对象可作用；「三修」再把上限升到三种。
-   *
-   * 因此持有本卡的玩家，不再受 `variant` 组的排他限制。
-   * 值为**被豁免的变体组 id**（不是卡名）。
+   * 变体组是「N 选 1」，但有些机制卡**本身就要打破这个排他**。
+   * 值为**被豁免的变体组 id**（不是卡名）。旧法师「双修」曾使用，
+   * 当前保留通用能力供未来职业池复用。
    */
   variantBypass?: string;
 }
@@ -431,31 +428,40 @@ export interface Enemy extends Point {
   /** Information load [0,1] and the recovery deadline after a successful overload. */
   domainInfo?: number;
   domainOverloadReadyAt?: number;
-  /* —— S3 法师池：元素印记（全部为**可选字段**）——
+  /* —— 元素法师 v2：元素状态/标记（全部为**可选字段**）——
    *
    * 为什么是可选而不是初始化：敌人实体的对象形状会被 parity 逐字段对照，
-   * v8 没有元素概念。可选 + 「施加时才物化」保证**射手路径下这些键永不存在**，
-   * 对照不会因为新增字段而失败（先例：Enemy.kx 击退速度）。
+   * v8 没有元素概念。可选 + 「施加时才物化」保证**射手路径下这些键永不存在**。
    *
-   * 计时语义（docs/talent-pool-design-rules.md §4.1 独立计时）：
-   * - elemFire / elemFrost 是**每层一个剩余秒数**的数组，
-   *   每层独立过期（灼烧 5 秒、凝冰 5 秒）；
-   * - elemParaT 是单值计时（麻痹可刷新，不叠层）。
+   * 计时语义：
+   * - elemFire / elemFrost 是**每层一个剩余秒数**的数组，每层独立过期；
+   * - 其余为单值计时，施加时物化、归零后删除。
    */
-  /** 灼烧：每层的剩余秒数（独立计时）。 */
+  /** 灼烧：每层的剩余秒数（独立计时，最多 3 层）。 */
   elemFire?: number[];
-  /** 凝冰：每层的剩余秒数（独立计时）。 */
+  /** 灼烧跳伤计时：每 0.5 秒按当前层数结算一次。 */
+  elemFireTickT?: number;
+  /** 凝冰：每层的剩余秒数（独立计时，最多 3 层）。 */
   elemFrost?: number[];
-  /** 麻痹：剩余秒数（可刷新）。 */
+  /** 麻痹：剩余秒数（不刷新、不覆盖）。 */
   elemParaT?: number;
-  /** 法师冻结：剩余秒数（凝冰满层触发，与旧 frozenT 是两套状态）。 */
+  /** 冻结：剩余秒数（凝冰满 3 层触发）。 */
   elemFrozenT?: number;
-  /** 超导：剩余秒数（冰+雷反应标记）。 */
-  elemSuperT?: number;
-  /** 双修/三修反应内置冷却（秒，各自独立）：防止同一目标每次命中都触发。 */
-  elemMeltCd?: number;
-  elemOverloadCd?: number;
-  elemSuperCd?: number;
+  /** 雷印：剩余秒数（任何雷元素伤害施加，不增伤）。 */
+  elemShockT?: number;
+  /** 脆化：剩余秒数（急淬施加，提高受到的元素反应伤害）。 */
+  elemBrittleT?: number;
+  /** 霜牢：剩余秒数（霜缚施加，锚定并停止行动）。 */
+  elemFrostLockT?: number;
+  /** 霜牢自施加以来累计的总时长：受击延长至多 4.5 秒。 */
+  elemFrostLockTotal?: number;
+  /** 上一次霜牢延长的时间点：0.2 秒内最多延长一次。 */
+  elemFrostLockExtendAt?: number;
+  /**
+   * 元素反应内置冷却：每只敌人两次普通反应之间的剩余秒数。
+   * 基础 0.8 秒，反应精通降为 0.7 秒；元素震爆不受此限制。
+   */
+  elemReactionCd?: number;
   seed: number;
   shootCd: number;
   fuse: number;
@@ -643,43 +649,17 @@ export interface FloatingText extends Point {
   domainDmg?: "collapse" | "slash" | "terminal";
   domainTrue?: number;
   domainMaxLife?: number;
+  /** 元素反应专属样式：前元素外圈、后元素主体、反应强调色内圈。 */
+  reactionId?: MageReactionId;
+  /** 元素反应名称：只显示反应名，不带元素方向。 */
+  reactionName?: boolean;
 }
 export interface Meteor extends Point {
   t: number;
   R: number;
 }
 
-/* —— S3 法师池：路线B（星陨 / 多重陨星 / 元素残域）—— */
-
-/** 法师陨星：继承施法者的元素类型，落点预警后爆裂。 */
-export interface MageMeteor extends Point {
-  /** 倒计时：归零时爆裂。 */
-  t: number;
-  /** 爆裂半径（px）。 */
-  R: number;
-  /** 继承的元素类型。 */
-  element: DamageTypeId;
-  /** 生成时固化的伤害（含满充能加成）；落地只结算，不再读玩家当前属性。 */
-  dmg: number;
-  /** 是否为满充能波次（表现用：预警圈提亮）。 */
-  charged: boolean;
-  /** 是否携带本波次的充能标记（一波只有第一颗为 true，落地时推进一次点数）。 */
-  chargeMarker: boolean;
-}
-
-/** 元素残域：落点留下的持续伤害区域。 */
-export interface MageDomain extends Point {
-  /** 爆裂半径（px）。 */
-  R: number;
-  /** 剩余时间（秒）。 */
-  t: number;
-  /** 距离下一次 DoT 结算的时间（秒）；领域按固定 tick 结算，不逐帧出伤。 */
-  tick: number;
-  /** 距离下一次元素状态结算的时间（秒）；每秒一次，与 DoT tick 独立。 */
-  statusT: number;
-  /** 领域元素类型。 */
-  element: DamageTypeId;
-}
+/* —— 法师镜像残影（保留旧卡「镜像」）—— */
 
 /** 镜像残影：吸引仇恨的诱饵（限时存在，不因接触破碎）。 */
 export interface MageDecoy extends Point {
@@ -759,6 +739,8 @@ export interface HitOptions {
   iaiHit?: boolean;
   /** 大剑三段斩：伤害数字用暗金大字样式（见 FloatingText.triDmg） */
   triHit?: boolean;
+  /** 元素反应伤害：用六反应专属四层配色（见 FloatingText.reactionId） */
+  reactionId?: MageReactionId;
   src?: DamageSource;
   fromExplode?: boolean;
   /** Combat Foundation S2（§5）：伤害属性，缺省 physical；所有既有调用点均已显式声明 */

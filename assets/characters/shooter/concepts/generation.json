@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "date": "2026-11-01",
+  "branch": "codex/shooter-character-art",
+  "base": "4fdeb49",
+  "baseVersion": "v156",
+  "status": "selected-concept",
+  "selectedCandidate": "C",
+  "tool": "built-in image_gen.imagegen",
+  "model": null,
+  "seed": null,
+  "reference": {
+    "path": "assets/characters/katana/concepts/katana-c-cloth-ronin-source.png",
+    "role": "cartoon-fantasy pixel style, proportions and camera only; new shooter identity"
+  },
+  "runtimeReady": false,
+  "reproducibility": "Tool did not return model version or seed. Full prompts and source hashes are preserved; exact regeneration is not guaranteed.",
+  "validation": "Dimensions, transparent background and nonempty contents checked with the existing PNG decoder. High-resolution partial-alpha images are costume references only.",
+  "candidates": [
+    {
+      "id": "A",
+      "name": "兜帽游侠",
+      "image": "shooter-a-hood-ranger-source.png",
+      "prompt": "shooter-a-hood-ranger-prompt.txt",
+      "sourceFile": "exec-904ae461-1f6b-459a-aadb-fa82b26507e3.png",
+      "width": 1122,
+      "height": 1402,
+      "sha256": "83906b1ae6f8ee1e84545c3cf534d83ea6c0ba22def8d32567fb5be93fb92665",
+      "alpha": {
+        "transparent": 1234471,
+        "partial": 336611,
+        "opaque": 1962
+      }
+    },
+    {
+      "id": "B",
+      "name": "护目镜炼金枪手",
+      "image": "shooter-b-alchemy-gunner-source.png",
+      "prompt": "shooter-b-alchemy-gunner-prompt.txt",
+      "sourceFile": "exec-5204ad89-34ce-464d-85cf-46e2d2f37212.png",
+      "width": 1122,
+      "height": 1402,
+      "sha256": "be742f629dcffa0c544988fdcab518df7aa496e4fd8683ffc5e5a1de220e6449",
+      "alpha": {
+        "transparent": 1234998,
+        "partial": 335907,
+        "opaque": 2139
+      }
+    },
+    {
+      "id": "C",
+      "name": "轻装机械斥候",
+      "image": "shooter-c-mechanical-scout-source.png",
+      "prompt": "shooter-c-mechanical-scout-prompt.txt",
+      "sourceFile": "exec-97353575-4bbe-46f7-86aa-bbc44951c7b7.png",
+      "width": 1122,
+      "height": 1402,
+      "sha256": "9530c714adc4d3ca0611446a3e5aaed135f6411e97ec2429566326a0f688c0ad",
+      "alpha": {
+        "transparent": 1223091,
+        "partial": 347903,
+        "opaque": 2050
+      }
+    }
+  ]
+}
