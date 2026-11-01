@@ -127,6 +127,14 @@ function explodeCircle(
     MB.directDamageMul *
     mageDirectDamageMul(core) *
     MAGE_ELEMENTS[el].damageMul;
+  core.mageVisualEvents.push({
+    kind: "body",
+    at: core.time,
+    element: el,
+    x,
+    y,
+    radius: R,
+  });
   let hits = 0;
   let reacted = false;
   for (const e of core.enemies) {
@@ -135,7 +143,7 @@ function explodeCircle(
     const dy = e.y - y;
     if (dx * dx + dy * dy > R * R) continue;
     hits++;
-    core.hurtEnemy(e, dmg, 0, 0, {
+    const hit = core.hurtEnemy(e, dmg, 0, 0, {
       noChain: true,
       src: "cast",
       type: el,
@@ -143,6 +151,7 @@ function explodeCircle(
       // 有会造成伤害的已领悟反应时，直伤最多留 1 HP，让反应完成击杀。
       lethalCap: mageReactionAvailableForHit(core, e, el, reactionBudget),
     });
+    if (hit) core.mageDmgBy.body += hit.effectiveHpLoss;
     if (e.dead) continue;
     if (applyElementalBodyHit(core, e, el, base, { reactionBudget }))
       reacted = true;
@@ -196,19 +205,28 @@ function updateMageEchoes(core: GameCore, dt: number): void {
     echo.t -= dt;
     if (echo.t > 0) continue;
     core.mageEchoes.splice(i, 1);
+    core.mageVisualEvents.push({
+      kind: "echo",
+      at: core.time,
+      element: echo.element,
+      x: echo.x,
+      y: echo.y,
+      radius: echo.R,
+    });
     for (const e of core.enemies) {
       if (e.dead) continue;
       const dx = e.x - echo.x;
       const dy = e.y - echo.y;
       if (dx * dx + dy * dy > echo.R * echo.R) continue;
       // 回响只结算伤害：不施加状态、不触发反应、不给武器经验。
-      core.hurtEnemy(e, echo.damage, 0, 0, {
+      const hit = core.hurtEnemy(e, echo.damage, 0, 0, {
         noCrit: true,
         noChain: true,
         src: "cast",
         type: echo.element,
         form: "other",
       });
+      if (hit) core.mageDmgBy.echo += hit.effectiveHpLoss;
     }
     core.audio.beep(420, 0.08, "sine", 0.03, 120);
   }
@@ -278,12 +296,20 @@ function shatterPrism(
   const R = ELEMENTAL_MAGE.prism.ultimateShatterRadius;
   const dmg =
     base * ELEMENTAL_MAGE.prism.ultimateShatterMul * MAGE_ELEMENTS[current].damageMul;
+  core.mageVisualEvents.push({
+    kind: "burst",
+    at: core.time,
+    element: current,
+    x: prism.x,
+    y: prism.y,
+    radius: R,
+  });
   for (const e of core.enemies) {
     if (e.dead) continue;
     const dx = e.x - prism.x;
     const dy = e.y - prism.y;
     if (dx * dx + dy * dy > R * R) continue;
-    core.hurtEnemy(e, dmg, 0, 0, {
+    const hit = core.hurtEnemy(e, dmg, 0, 0, {
       noCrit: true,
       noChain: true,
       noLifesteal: true,
@@ -291,6 +317,7 @@ function shatterPrism(
       type: current,
       form: "other",
     });
+    if (hit) core.mageDmgBy.shatter += hit.effectiveHpLoss;
     if (e.dead) continue;
     // 记录元素作为“标记”、当前元素作为“触发”：A 套装火棱镜 + 当前冰 → 急淬；
     // B 套装火棱镜 + 当前雷 → 超载。顺序与套装定义一致。
@@ -355,6 +382,15 @@ function refractPrism(
     mageDirectDamageMul(core) *
     MAGE_ELEMENTS[element].damageMul *
     share;
+  for (const point of targets)
+    core.mageVisualEvents.push({
+      kind: "refract",
+      at: core.time,
+      element,
+      x: point.x,
+      y: point.y,
+      radius: R,
+    });
   let hits = 0;
   for (const point of targets) {
     for (const e of core.enemies) {
@@ -363,7 +399,7 @@ function refractPrism(
       const dy = e.y - point.y;
       if (dx * dx + dy * dy > R * R) continue;
       hits++;
-      core.hurtEnemy(e, dmg, 0, 0, {
+      const hit = core.hurtEnemy(e, dmg, 0, 0, {
         noChain: true,
         noLifesteal: true,
         src: "cast",
@@ -376,6 +412,7 @@ function refractPrism(
           reactionBudget,
         ),
       });
+      if (hit) core.mageDmgBy.refract += hit.effectiveHpLoss;
       if (e.dead) continue;
       applyElementalBodyHit(core, e, element, refractedBase, {
         reactionBudget,
@@ -454,6 +491,14 @@ function triggerSplitShadows(
       maxT: p.lifetime,
       element,
     });
+    core.mageVisualEvents.push({
+      kind: "shadow",
+      at: core.time,
+      element,
+      x: point.x,
+      y: point.y,
+      radius: R,
+    });
     const dmg =
       base *
       MB.directDamageMul *
@@ -465,7 +510,7 @@ function triggerSplitShadows(
       const dx = e.x - point.x;
       const dy = e.y - point.y;
       if (dx * dx + dy * dy > R * R) continue;
-      core.hurtEnemy(e, dmg, 0, 0, {
+      const hit = core.hurtEnemy(e, dmg, 0, 0, {
         noCrit: true,
         noChain: true,
         noLifesteal: true,
@@ -473,6 +518,7 @@ function triggerSplitShadows(
         type: element,
         form: "other",
       });
+      if (hit) core.mageDmgBy.shadow += hit.effectiveHpLoss;
       if (e.dead) continue;
       applyElementalBodyHit(core, e, element, base, {
         allowChain: false,

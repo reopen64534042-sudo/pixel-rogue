@@ -4122,4 +4122,14 @@ dmg = Math.ceil(e.hp - 1);
 - 教程/入口：法师教程第 3 步由「站定施法」改为「元素法阵（一次命中至少 2 个目标）」，`detonate` 的教学条件去掉 steady；主界面副标题「范围 · 站定增伤」→「范围 · 元素反应」，教程按钮「站定施法」→「法阵命中」。
 - 验证：typecheck / build 通过；受控 e2e 法师教程第 3 步 0.5 秒完成；C 面板无站定字样、调律文案含「法阵直伤 +10%」；调律前后同条件直伤 45→49；两次施法间隔约 0.833 秒。未运行 Vitest/Playwright 套件；v159 A/B 数据基于旧站定/旧调律，未重跑；移除字段若被 parity/快照引用，留待授权测试批次统一更新。
 
+## 元素法师素材接入与反应表现（v164，2026-11-01）
+
+- 合并 origin/main 的 PR #230（1ad2db8）：保留 v160 魔女人物与 v161 VFX 素材条目；本分支原 v160/v161 顺延为 v162/v163，解决 CHANGELOG / migration / changelog.ts 冲突。
+- 人物：GameScene 的 MageCharacter 加载 48 帧魔女帽人物；技能 VFX：MageVfx 加载 29 帧图集，Scene 在固定步后 capture（含每渲染观察暂停 / 重置），draw 分层调用 drawCast / drawImpacts / drawEnemy / drawPrism；缺图回退程序化表现。
+- Core 新增只读 mageVisualEvents（body / echo / refract / shadow / burst），每个固定步换新数组；事件只记录实际元素、落点与半径，不改变伤害、索敌、经验、随机数或反应预算。法阵贴图只垫在精确范围圈下方。
+- 六反应数字：FloatingText / HitOptions 增加 reactionId；reactionDamage 按配对元素写入；draw 使用 16/14/12/12 四层配色（前元素外圈、反应强调色、落影、后元素主体）。反应名使用同一套 from/top 配色，字号 12/11（旧 13/12）。
+- 裂焰：主目标与溅射各推 burst 表现事件；MageVfx 火焰爆发 + 粒子 / 震屏，主目标 burst 半径 34、溅射 18。
+- 休整统计：GameCore 新增 mageDmgBy 与波次快照，记录本体 / 回响 / 折射 / 分影 / 碎裂与六反应的实际 effectiveHpLoss；showRestBar 追加两行细分，不并入通用 dmgBy，避免总分翻倍。
+- 验证：typecheck / build 通过；受控截图 output/mage-vfx-integration.png（魔女 + 技能 VFX）、output/reaction-styles.png（六反应数字 / 字标 + 棱镜素材）、output/blaze-reaction.png、output/mage-rest-stats.png；人物与技能图集纹理均加载。未运行 Vitest/Playwright；v159 A/B 数据未重跑；新增 Core 字段可能使 parity 快照过期，留待授权测试批次。
+
 

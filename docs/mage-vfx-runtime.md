@@ -1,6 +1,8 @@
-# 元素法师技能 VFX 交接包（v161，未接入运行时）
+# 元素法师技能 VFX 交接包（v161 交付，v164 接入运行时）
 
-**交付边界：只有素材、重建 / 离线预览工具和未启用的采样器。正式技能接线留给协作者。** GameScene 不导入 / 创建 / 注册 MageVfx，不请求技能图集；战斗 Core、draw 与 PixelPainter 和 upstream/main 9a3d860 一致。人物本体的独立接入见 [人物说明](mage-character-art.md)。
+> **2026-11-01 v164 更新**：MageVfx 已接入 GameScene。Scene 加载 / 注册技能图集，在固定步后 capture（并观察暂停 / 重置），draw 分层调用 drawCast / drawImpacts / drawEnemy / drawPrism；Core 新增只读 `mageVisualEvents`（body / echo / refract / shadow / burst），缺图回退程序化表现。素材交付与运行时接入都不改变伤害、索敌、经验、随机数或反应预算。
+
+**v161 交付边界（历史）：只有素材、重建 / 离线预览工具和未启用的采样器；正式技能接线由协作者在 v164 完成。** 人物本体的独立接入见 [人物说明](mage-character-art.md)。
 
 ## 资源与复现
 
@@ -25,21 +27,21 @@ node scripts/build-mage-vfx-preview.mjs
 
 复用现有 Node / TypeScript / PNG 编解码器和 Python / Pillow，无新增依赖。处理为共享尺度 / 锚点、预乘 alpha 面积采样、0.25 阈值、Lab 最近色和确定性色板键映射；源图透明 RGB 不参与混色。正式 SHA-256：7dedc4979f68c8ff22c2cfc9f95b18b06e63e240aecc4d2c58da7a23f7755adb。
 
-## 已准备、但未启用的接口
+## 运行时接口（v164 已接入）
 
-src/game/rendering/vfx/MageVfx.ts 提供 registerMageVfx / MageVfx 采样器，当前仅被离线脚本读取，不在正式游戏入口依赖图中。它定义自己的 MageVisualEvent / MageVfxView 交接契约，**真实 GameCore 没有 mageVisualEvents 字段**，不能把 GameCore 直接传给 capture。
+src/game/rendering/vfx/MageVfx.ts 提供 registerMageVfx / MageVfx 采样器。v164 起 GameScene 导入 / 创建 / 加载 / 注册技能图集，在固定步后 capture（并每渲染观察暂停 / 重置），draw 分层调用 drawCast / drawImpacts / drawEnemy / drawPrism。
 
-建议由协作者在确认方案后提供只读视图：现有 player / prof / state / time / enemies / mageShadows，加本步事件数组。事件记录 kind（body / echo / refract / shadow / burst）、模拟时间 at、element、x/y、真实 radius 和可选 source 点。每步使用新数组供引用去重；在轮盘推进前记录实际元素，避免第 3 发提前变色。是否增加 Core 事件或采取其他桥接方式由协作者负责，不属于本次交付。
+Core 新增只读 `mageVisualEvents`：事件记录 kind（body / echo / refract / shadow / burst）、模拟时间 at、实际 element、x/y、真实 radius；每个固定步换新数组供引用去重，轮盘推进前记录实际元素。GameCore 与 MageVisualEvent 结构兼容，渲染层只读，不改伤害、索敌、经验、随机数或反应预算。
 
-## 后续接线核对清单
+## 接线核对清单
 
-1. Scene 加载并注册 29 帧，在固定步采集真实状态；暂停沿用模拟时间，换局 / 死亡 / 退回开始 / shutdown 清理。保留加载失败回退。
-2. 本体、回响、折射、分影和震爆必须使用实际结算元素与落点，不能从剩余敌人重新猜。不要让 VFX 改动伤害、索敌、经验、RNG 或反应预算。
+1. Scene 已加载并注册 29 帧，在固定步采集真实状态；暂停沿用模拟时间，换局 / 死亡 / 退回开始 / shutdown 清理；保留加载失败回退。
+2. 本体、回响、折射、分影和震爆使用实际结算元素与落点，不从剩余敌人猜；不改伤害、索敌、经验、RNG 或反应预算。
 3. 保留精确法阵范围圈，贴图仅作圈内整数倍表现；普通 alpha，地面层低于人物和血条，无全屏闪白或额外资源条。
 4. 雷印只读 elemShockT，和 elemParaT 麻痹区分；霜牢优先于普通冻结，受击延长时不重播成形，真正结束后才碎裂。旧 frozenT 保留兼容。
-5. 镜像 / 分影人物复用、元素色和固定锚点由协作者另行接入；本次只接了人物本体，没有启用这些技能表现。
-6. 六反应艺术字仍是静态 UI 源素材，战斗飘字继续使用两字名称与上游描边规则。
+5. 镜像 / 分影人物仍用上游程序化表现；本批只接入 MageVfx 的技能贴图与 MageCharacter 本体。
+6. 六反应战斗飘字已改为与反应伤害数字同套的四层配色，字号 12/11px。
 
 ## 验证与限制
 
-素材重建、透明 / 色板 / 锚点 / 哈希、离线预览、typecheck 和 build 为交付检查。正式场景已受控确认技能图集未加载、技能适配器实例不存在、Core 无新增事件字段、图集网络请求为 0。没有新增 / 修改测试或基线，不运行 Vitest / Playwright 测试套件；技能触发、自然战斗、全组合与性能须在协作者完成接线后验收。
+素材重建、透明 / 色板 / 锚点 / 哈希、离线预览、typecheck 和 build 为交付检查。v164 接入后已受控确认人物与技能图集纹理加载，法阵 / 状态 / 棱镜 / 反应爆发可绘制，缺图路径回退；未新增 / 修改测试，不运行 Vitest / Playwright 测试套件；自然长局、全组合与性能仍须实机验收。

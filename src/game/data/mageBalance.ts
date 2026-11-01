@@ -17,7 +17,7 @@ export interface MageBalance {
   // —— 施法节奏（时间门控）——
   /**
    * 施法速率归一化系数（不是周期本身）：stats.ts 用它反推法师基础 fireRate = 1 / 本值。
-   * 实际周期 = castWindup + castInterval；v161 从 0.75 拉到 0.80 秒（约 −6% 频率）。
+   * 实际周期 = castWindup + castInterval；v163 从 0.75 拉到 0.80 秒（约 −6% 频率）。
    */
   castCycle: number;
   /** 前摇总时长（秒）：抬手（可打断） + 法阵收束（不可打断）。 */
@@ -35,7 +35,7 @@ export interface MageBalance {
    *
    * 文档里的火 60% / 冰 100% / 雷 80% 都相对这个基准；基准本身是
    * 占位配平值。法阵直伤另乘 `directDamageMul`，避免纯法阵压过元素效果。
-   * v161 移除站定：原站定 1.5× 折入基准（0.9 → 1.35），
+   * v163 移除站定：原站定 1.5× 折入基准（0.9 → 1.35），
    * 移动施法不再掉伤害。
    */
   elementBaseMul: number;

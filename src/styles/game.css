@@ -1140,6 +1140,19 @@ p {
   color: #e8fbff;
   font-weight: bold;
 }
+#bp-report .it.mage-sub {
+  flex: 1 0 100%;
+  justify-content: center;
+  gap: 0.8vmin;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: #7d8bb3;
+  font-size: 1.15vmin;
+}
+#bp-report .it.mage-sub b {
+  color: #c7cff2;
+}
 
 /* 休整操作按钮行 */
 .bp-actions {

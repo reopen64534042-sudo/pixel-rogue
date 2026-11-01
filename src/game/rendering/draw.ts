@@ -7,10 +7,12 @@ import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
 import type { ShooterEchoDrawing } from "./characters/ShooterCharacter";
+import type { MageVfx } from "./vfx/MageVfx";
 import { W, H, VIEW, WORLD, fmtTime, fmtHp } from "../data/constants";
 import { isBrittle, isFrostLocked, isFrozen, isParalyzed, isShocked } from "../core/ElementMath";
 import { mageCircleRadius, mageWindup } from "../core/MageSystem";
 import { ELEMENTAL_MAGE, MAGE_CASTS_PER_ELEMENT, MAGE_ELEMENTS, STAFF_LEVELS } from "../data/elementalMage";
+import type { MageReactionId } from "../data/elementalMage";
 import { warriorIaiStep } from "../core/WarriorSystem";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
 import {
@@ -85,6 +87,19 @@ function spriteRect(key: string, cx: number, cy: number, scale = 1) {
 }
 
 type CharacterDrawing = (x: number, y: number) => boolean;
+
+/** 六反应飘字配色：前元素外圈 → 反应强调色内圈 → 后元素主体。 */
+const REACTION_TEXT: Record<
+  MageReactionId,
+  { outer: string; accent: string; top: string }
+> = {
+  quench: { outer: "#ff9a3d", accent: "#e8f7ff", top: "#9fe1ff" },
+  melt: { outer: "#9fe1ff", accent: "#ffd24a", top: "#ff9a3d" },
+  overload: { outer: "#ff9a3d", accent: "#ffd24a", top: "#c07bff" },
+  blaze: { outer: "#c07bff", accent: "#ffd24a", top: "#ff6a2b" },
+  superconduct: { outer: "#9fe1ff", accent: "#e8f7ff", top: "#c07bff" },
+  frostbind: { outer: "#c07bff", accent: "#e8f7ff", top: "#57e6ff" },
+};
 
 function drawPlayerSprite(ctx: PixelPainter, character: CharacterDrawing | undefined, x: number, y: number) {
   if (character?.(x, y)) return;
@@ -181,7 +196,7 @@ function drawChargeBar(
 }
 
 export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean, character?: CharacterDrawing,
-  shooterWeapon?: () => void, shooterEcho?: ShooterEchoDrawing) {
+  shooterWeapon?: () => void, shooterEcho?: ShooterEchoDrawing, mageVfx?: MageVfx) {
   const TS = 16,
     tw = WORLD.w / TS,
     th = WORLD.h / TS;
@@ -345,7 +360,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
 
   // ---- S3 法师：法阵（施法落点）----
   // 抬手段是半透明圆环（可被打断），收束段更亮（已经成形、不可打断）。
-  // v161 移除站定后圆环保持紫色，不再随移动状态变色。
+  // v163 移除站定后圆环保持紫色，不再随移动状态变色。
   if (
     this.prof === "mage" &&
     (this.castPhase === "windup" || this.castPhase === "cast")
@@ -360,6 +375,11 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     // v80：法阵预览从中心缓动扩大，避免整圈突然出现；结束时正好等于实际半径。
     const grow = 1 - (1 - prog) * (1 - prog);
     const drawR = Math.max(1, Math.round(R * grow));
+    const castEl = this.mageElements.length
+      ? this.mageElements[this.mageWheelIndex % this.mageElements.length]
+      : null;
+    // 新素材法阵贴图垫在程序化范围圈下方；缺图时 MageVfx 内部返回 false。
+    mageVfx?.drawCast(ctx, this.castX, this.castY, R, prog, castEl);
     // 透明度随进度缓慢加深，避免 windup→cast 切换时整圈闪一下。
     ctx.globalAlpha = 0.2 + 0.3 * prog;
     ctx.strokeStyle = "#c07bff";
@@ -378,7 +398,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   }
   // 法师：脚下施法条（常驻，18px 与法杖经验条等长，3px 高度沿用原读条）。
   // 顺序（自上而下）：冲刺点 → 施法条 → 法杖经验条 → 三格元素轮盘。
-  // v161 移除站定后不再画急停线，条只表示本次施法进度。
+  // v163 移除站定后不再画急停线，条只表示本次施法进度。
   if (
     this.prof === "mage" &&
     this.state === "play" &&
@@ -477,6 +497,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.beam(bx, by, tx, ty, 1, "#f4fbff", 0.25 + k * 0.55);
       // 棱镜处的记录元素环：说明光束的来源元素
       ctx.globalAlpha = 0.25 + k * 0.35;
+
       ctx.strokeStyle = storedColor;
       ctx.beginPath();
       ctx.arc(bx, by, Math.round(5 + (1 - k) * 6), 0, Math.PI * 2);
@@ -495,9 +516,10 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     }
   }
 
-  // 法师：元素棱镜（悬浮水晶 + 地面法环，显示剩余时间与可折射次数）
+  // 法师：元素棱镜（新素材垫底；缺图时由下方程序化水晶回退）
   if (this.magePrism) {
     const prism = this.magePrism;
+    const assetPrism = mageVfx?.drawPrism(ctx, prism) ?? false;
     const color = MAGE_ELEMENTS[prism.element].color;
     const px = Math.round(prism.x);
     const py = Math.round(prism.y);
@@ -548,39 +570,42 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     ctx.beginPath();
     ctx.arc(cx, cy, 9, 0, Math.PI * 2);
     ctx.stroke();
-    // 外轮廓
-    ctx.globalAlpha = 0.95;
-    ctx.fillStyle = "#0b0e18";
-    for (const [dy, w] of rows)
-      ctx.fillRect(cx - Math.floor(w / 2), cy + dy, w, 1);
-    // 元素色晶面
-    ctx.fillStyle = color;
-    for (const [dy, w] of rows)
-      if (w > 2) ctx.fillRect(cx - Math.floor(w / 2) + 1, cy + dy, w - 2, 1);
-    // 左上高光
-    ctx.fillStyle = "#f4fbff";
-    ctx.globalAlpha = 0.9;
-    ctx.fillRect(cx - 1, cy - 5, 1, 1);
-    ctx.fillRect(cx - 2, cy - 4, 1, 1);
-    ctx.fillRect(cx - 3, cy - 3, 1, 1);
-    ctx.fillRect(cx - 4, cy - 2, 1, 1);
-    ctx.fillRect(cx - 5, cy - 1, 1, 1);
-    // 右下暗面
-    ctx.fillStyle = "#0b0e18";
-    ctx.globalAlpha = 0.32;
-    ctx.fillRect(cx + 2, cy - 1, 4, 2);
-    ctx.fillRect(cx + 1, cy + 1, 3, 1);
-    // 白芯
-    ctx.fillStyle = "#ffffff";
-    ctx.globalAlpha = 0.7 + pulse * 0.3;
-    ctx.fillRect(cx - 1, cy, 2, 1);
-    // 环绕的星点
-    const sparkX = cx + Math.round(Math.cos(this.time * 2.2) * 8);
-    const sparkY = cy + Math.round(Math.sin(this.time * 2.2) * 7);
-    ctx.fillRect(sparkX, sparkY, 1, 1);
-    ctx.globalAlpha = 0.25 + pulse * 0.25;
-    ctx.fillRect(sparkX - 1, sparkY, 3, 1);
-    ctx.fillRect(sparkX, sparkY - 1, 1, 3);
+    // 新素材已画出水晶时不再叠程序化水晶；缺图才回退。
+    if (!assetPrism) {
+      // 外轮廓
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = "#0b0e18";
+      for (const [dy, w] of rows)
+        ctx.fillRect(cx - Math.floor(w / 2), cy + dy, w, 1);
+      // 元素色晶面
+      ctx.fillStyle = color;
+      for (const [dy, w] of rows)
+        if (w > 2) ctx.fillRect(cx - Math.floor(w / 2) + 1, cy + dy, w - 2, 1);
+      // 左上高光
+      ctx.fillStyle = "#f4fbff";
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(cx - 1, cy - 5, 1, 1);
+      ctx.fillRect(cx - 2, cy - 4, 1, 1);
+      ctx.fillRect(cx - 3, cy - 3, 1, 1);
+      ctx.fillRect(cx - 4, cy - 2, 1, 1);
+      ctx.fillRect(cx - 5, cy - 1, 1, 1);
+      // 右下暗面
+      ctx.fillStyle = "#0b0e18";
+      ctx.globalAlpha = 0.32;
+      ctx.fillRect(cx + 2, cy - 1, 4, 2);
+      ctx.fillRect(cx + 1, cy + 1, 3, 1);
+      // 白芯
+      ctx.fillStyle = "#ffffff";
+      ctx.globalAlpha = 0.7 + pulse * 0.3;
+      ctx.fillRect(cx - 1, cy, 2, 1);
+      // 环绕的星点
+      const sparkX = cx + Math.round(Math.cos(this.time * 2.2) * 8);
+      const sparkY = cy + Math.round(Math.sin(this.time * 2.2) * 7);
+      ctx.fillRect(sparkX, sparkY, 1, 1);
+      ctx.globalAlpha = 0.25 + pulse * 0.25;
+      ctx.fillRect(sparkX - 1, sparkY, 3, 1);
+      ctx.fillRect(sparkX, sparkY - 1, 1, 3);
+    }
     // 剩余折射次数
     const pipX = px - Math.floor((prism.charges * 4 - 2) / 2);
     for (let i = 0; i < prism.charges; i++) {
@@ -592,6 +617,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     }
     ctx.globalAlpha = 1;
   }
+  mageVfx?.drawImpacts(ctx);
 
   // 法师：分影齐射的左右残影（半透明本体 + 元素色环，不参与碰撞）
   for (const shadow of this.mageShadows) {
@@ -713,6 +739,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.fillRect(x, y + h - 1, w, 1);
       ctx.globalAlpha = 1;
     }
+    mageVfx?.drawEnemy(ctx, e, w, h);
     if (e.flash > 0) {
       ctx.globalAlpha = 0.7;
       ctx.fillStyle = "#ffffff";
@@ -1515,8 +1542,10 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   for (const t of this.texts) {
     const layers = t.reactionName
       ? 3
-      : t.iaiDmg || t.triDmg
+      : t.reactionId
         ? 4
+        : t.iaiDmg || t.triDmg
+          ? 4
         : t.trueDmg
           ? t.big
             ? 4
@@ -1540,19 +1569,34 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const x = Math.round(t.x);
     const y = Math.round(t.y);
     if (t.reactionName) {
-      // 反应名：12px（伤害数字为 8px），只显示两字名称；深色描边保证在
-      // 火焰/冰霜染色与伤害数字上仍能看清。中文回退字形会比 font-size 更高，
-      // 额外留 4px 底部内边距，避免下半截被 Phaser Text 纹理裁掉。
+      // 反应名与六反应伤害数字同套配色：前元素外圈 → 深色落影 → 后元素主体。
+      // 比旧版缩小一号（12/11px），中文回退字形额外留 4px 底部内边距。
+      const style = t.reactionId ? REACTION_TEXT[t.reactionId] : null;
       ctx.textPaddingBottom = 4;
-      ctx.font = '13px "Press Start 2P", monospace';
-      ctx.fillStyle = "#10131f";
-      ctx.fillTextSlot(slots[0], t.s, x, y);
       ctx.font = '12px "Press Start 2P", monospace';
+      ctx.fillStyle = style?.outer ?? "#10131f";
+      ctx.fillTextSlot(slots[0], t.s, x, y);
+      ctx.font = '11px "Press Start 2P", monospace';
       ctx.fillStyle = "#10131f";
       ctx.fillTextSlot(slots[1], t.s, x + 1, y + 1);
-      ctx.fillStyle = t.c;
+      ctx.fillStyle = style?.top ?? t.c;
       ctx.fillTextSlot(slots[2], t.s, x, y);
       ctx.textPaddingBottom = 0;
+    } else if (t.reactionId) {
+      // 六反应伤害数字：16px 前元素外圈 → 14px 反应强调色 → 12px 落影 →
+      // 12px 后元素主体，和居合/三段斩同级但配色按反应区分。
+      const style = REACTION_TEXT[t.reactionId];
+      ctx.font = '16px "Press Start 2P", monospace';
+      ctx.fillStyle = style.outer;
+      ctx.fillTextSlot(slots[0], t.s, x, y);
+      ctx.font = '14px "Press Start 2P", monospace';
+      ctx.fillStyle = style.accent;
+      ctx.fillTextSlot(slots[1], t.s, x, y);
+      ctx.font = '12px "Press Start 2P", monospace';
+      ctx.fillStyle = "#10131f";
+      ctx.fillTextSlot(slots[2], t.s, x + 1, y + 1);
+      ctx.fillStyle = style.top;
+      ctx.fillTextSlot(slots[3], t.s, x, y);
     } else if (t.iaiDmg) {
       // 居合斩：全场最大字号 + 冰白主体。四层从外到内：
       // 深青粗外圈（16px）→ 亮青细边（14px）→ 深色落影 → 冰白主体（12px）。

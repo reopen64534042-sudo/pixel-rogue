@@ -1898,6 +1898,30 @@ export class GameUI {
     let html = `<span class="tot">合计 ${Math.round(total)}</span>`;
     for (const it of items)
       html += `<span class="it">${DMG_NAMES[it.k]} <b>${Math.round(it.v)}</b> (${((it.v / total) * 100).toFixed(0)}%)</span>`;
+    if (total >= 0.5 && this.core.prof === "mage") {
+      const detail = this.core.waveMageDamage();
+      const direct = (
+        [
+          ["本体", detail.body],
+          ["回响", detail.echo],
+          ["折射", detail.refract],
+          ["分影", detail.shadow],
+          ["碎裂", detail.shatter],
+        ] as [string, number][]
+      ).filter(([, v]) => v > 0.5);
+      if (direct.length)
+        html += `<div class="it mage-sub">法阵细分 ${direct
+          .map(([name, value]) => `${name} <b>${Math.round(value)}</b>`)
+          .join(" · ")}</div>`;
+      const reactions = Object.entries(detail.reaction)
+        .filter(([, value]) => value > 0.5)
+        .map(
+          ([id, value]) =>
+            `${MAGE_REACTIONS[id as keyof typeof MAGE_REACTIONS].name} <b>${Math.round(value)}</b>`,
+        );
+      if (reactions.length)
+        html += `<div class="it mage-sub">反应细分 ${reactions.join(" · ")}</div>`;
+    }
     if (total < 0.5) html = '<span class="it">本波没有造成伤害</span>';
     element("bp-report").innerHTML = html;
     // 置换入口：v60 起由 SWAP_ENTRY_ENABLED 统一关闭（原因见常量注释）。

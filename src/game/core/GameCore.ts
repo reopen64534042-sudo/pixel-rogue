@@ -121,6 +121,24 @@ import type {
 } from "./types";
 import { silentView } from "./types";
 import { cardsOfTier, enterRest, startNextWave, waveQuota } from "./WaveSystem";
+function emptyMageDamage() {
+  return {
+    body: 0,
+    echo: 0,
+    refract: 0,
+    shadow: 0,
+    shatter: 0,
+    reaction: {
+      quench: 0,
+      melt: 0,
+      overload: 0,
+      blaze: 0,
+      superconduct: 0,
+      frostbind: 0,
+    } as Record<MageReactionId, number>,
+  };
+}
+
 export class GameCore {
   state: Mode = "start";
   player!: Player;
@@ -449,6 +467,19 @@ export class GameCore {
     charges: number;
     budget: number;
   } | null = null;
+  /** 技能 VFX 的只读表现事件；每个固定步重建，供渲染层采样。 */
+  mageVisualEvents: {
+    kind: "body" | "echo" | "refract" | "shadow" | "burst";
+    at: number;
+    element: MageElement;
+    x: number;
+    y: number;
+    radius: number;
+    source?: { x: number; y: number };
+  }[] = [];
+  /** 休整面板的法师细分伤害；不并入通用 dmgBy，避免双重计数。 */
+  mageDmgBy = emptyMageDamage();
+  private mageWaveStartDmgBy = emptyMageDamage();
   /** 棱镜折射的纯表现事件：从棱镜射向落点的光束与命中闪光。 */
   magePrismBeams: {
     x: number;
@@ -587,11 +618,24 @@ export class GameCore {
   };
   beginWaveReport() {
     this.waveStartDamage = { ...this.dmgBy };
+    this.mageWaveStartDmgBy = {
+      ...this.mageDmgBy,
+      reaction: { ...this.mageDmgBy.reaction },
+    };
   }
   waveDamage(): DamageTotals {
     const result = { ...this.dmgBy };
     for (const source of Object.keys(result) as (keyof DamageTotals)[])
       result[source] -= this.waveStartDamage[source];
+    return result;
+  }
+  waveMageDamage() {
+    const result = emptyMageDamage();
+    for (const key of ["body", "echo", "refract", "shadow", "shatter"] as const)
+      result[key] = this.mageDmgBy[key] - this.mageWaveStartDmgBy[key];
+    for (const id of Object.keys(result.reaction) as MageReactionId[])
+      result.reaction[id] =
+        this.mageDmgBy.reaction[id] - this.mageWaveStartDmgBy.reaction[id];
     return result;
   }
   bpMode: Panel = null;
@@ -832,6 +876,7 @@ export class GameCore {
     this.mageUpgrades = [];
     this.magePrism = null;
     this.magePrismBeams = [];
+    this.mageVisualEvents = [];
     this.mageEchoes = [];
     this.mageShadowCd = 0;
     this.mageShadows = [];
@@ -912,6 +957,7 @@ export class GameCore {
       laser: 0,
       missileMain: 0, missileSwarm: 0, missileArc: 0, missileBurn: 0,
     };
+    this.mageDmgBy = emptyMageDamage();
     this.beginWaveReport();
     this.bpMode = null;
     this.swapUsedThisRest = false;
@@ -1031,6 +1077,8 @@ export class GameCore {
     return "play";
   }
   step(dt: number) {
+    // 每个固定步换新数组，渲染层按引用去重，不会重播上一帧事件。
+    this.mageVisualEvents = [];
     // #136：开局天赋未选定时冻结整个模拟——选完天赋才开始游戏。
     // 局中升级/报告/熔炉面板的「非暂停」语义不变（v14 设计）。
     if (

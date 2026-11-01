@@ -256,6 +256,10 @@ export function hurtEnemy(
       opts.iaiHit === true,
       opts.triHit === true,
     );
+    if (opts.reactionId) {
+      mainText.reactionId = opts.reactionId;
+      mainText.life = 0.82;
+    }
     if (crit) {
       // 暴击火花：不推进随机数，按敌人 seed 给四向金色/白色短粒子。
       for (let i = 0; i < 4; i++) {
