@@ -182,7 +182,7 @@ function lianShanDesc(style: WarriorStyle): string {
  * 置换（熔炉）入口开关。
  *
  * v60 起关闭：新职业池没有稀有度分层（法师 18 张全 t0、max 1），而 melt()
- * 的产出池走 legacyAvailTalents——法师局投入 2 张法师卡会熔出旧表退役卡。
+ * 的产出池走 legacyAvailTalents；v165 旧表已删除，该池为空。
  * 按 2026-10-28 裁定「先关入口、保留实现」：SwapSystem/melt 与单元测试不动，
  * 重新开放时改这里并同步池规则。
  */
@@ -1925,8 +1925,7 @@ export class GameUI {
     if (total < 0.5) html = '<span class="it">本波没有造成伤害</span>';
     element("bp-report").innerHTML = html;
     // 置换入口：v60 起由 SWAP_ENTRY_ENABLED 统一关闭（原因见常量注释）。
-    // 判定必须与 melt() 实际使用的池一致（legacyAvailTalents）——重新开放时
-    // 若改池，这里要同步改，否则按钮会静默失效。
+    // 判定必须与 melt() 实际使用的池一致（legacyAvailTalents；v165 为空）。
     const can =
       SWAP_ENTRY_ENABLED &&
       !this.core.swapUsedThisRest &&
@@ -2004,7 +2003,7 @@ export class GameUI {
       return;
     }
     hint.textContent = `可随机熔出 1 张${TIERS[this.core.swTarget]}天赋 · 点击熔炼确认`;
-    // 同上：材料档的产出池也用熔炉实际使用的旧表池
+    // 同上：材料档的产出池也用熔炉实际使用的池（v165 为空）
     mb.disabled = !this.core.legacyAvailTalents(this.core.swTarget).length;
     mb.style.opacity = mb.disabled ? "0.4" : "1";
   }

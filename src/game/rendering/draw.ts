@@ -417,16 +417,12 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     // 与经验条同一取整基准（偶数宽，不会出现半像素横移抖动）。
     const bx = Math.round(this.player.x - bw / 2);
     const by = Math.round(this.player.y) + 16;
-    // 外框（深蓝）+ 底槽（更亮的蓝灰）+ 进度（青）。
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = "#3a4a7a";
-    ctx.fillRect(bx, by, bw, 3);
-    ctx.fillStyle = "#2a3560";
-    ctx.fillRect(bx + 1, by + 1, bw - 2, 1);
-    ctx.globalAlpha = 1;
+    // v165：去掉 3px 半透明外框，只留 1px 底槽与进度线。
+    ctx.fillStyle = "#1d2440";
+    ctx.fillRect(bx, by, bw, 1);
     if (prog > 0) {
       ctx.fillStyle = "#57e6ff";
-      ctx.fillRect(bx + 1, by + 1, Math.max(1, Math.round((bw - 2) * prog)), 1);
+      ctx.fillRect(bx, by, Math.max(1, Math.round(bw * prog)), 1);
     }
   }
   // ---- 法师：镜像残影（吸引仇恨的诱饵）----
@@ -487,7 +483,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const color = MAGE_ELEMENTS[beam.element].color;
     const storedColor = MAGE_ELEMENTS[beam.stored].color;
     const bx = Math.round(beam.x);
-    const by = Math.round(beam.y) - 16;
+    const by = Math.round(beam.y) - 24;
     for (const point of beam.points) {
       const tx = Math.round(point.x);
       const ty = Math.round(point.y);

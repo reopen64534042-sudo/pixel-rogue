@@ -20,7 +20,6 @@ import type { Talent } from "../game/core/types";
  *   另一流派的卡；仅属性次数等数值校验被绕过，用于开发环境组合测试。
  */
 const GROUPS: { key: string; label: string }[] = [
-  { key: "legacy", label: "旧表（retired/hidden）" },
   { key: "shooter", label: "射手" },
   { key: "mage", label: "法师" },
   { key: "warrior", label: "战士" },
@@ -215,39 +214,72 @@ export class DevPanel {
     mkWave("下一波 →", 1);
     root.appendChild(waveBtns);
 
-    // 强化箭阶段：直接回退/跳到指定等级，并按阶段重建升级。
-    const specialRow = el(
-      "div",
-      "display:flex;gap:4px;margin-bottom:6px;align-items:center",
-    ) as HTMLDivElement;
-    specialRow.appendChild(el("span", "color:#7d8ec4", this.core.shooterWeapon === "laser" ? "激光" : this.core.shooterWeapon === "missile" ? "导弹" : "强化箭"));
-    const specialSel = document.createElement("select");
-    specialSel.style.cssText =
-      "flex:1;background:#0e1430;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 4px;font:11px ui-monospace,Consolas,monospace";
-    for (let i = 1; i <= 12; i++) {
-      const option = document.createElement("option");
-      option.value = String(i);
-      option.textContent = `Lv.${i}`;
-      specialSel.appendChild(option);
+    // 武器 / 法杖阶段：按当前职业显示对应控制。
+    if (this.core.prof === "shooter") {
+      const specialRow = el(
+        "div",
+        "display:flex;gap:4px;margin-bottom:6px;align-items:center",
+      ) as HTMLDivElement;
+      specialRow.appendChild(el("span", "color:#7d8ec4", this.core.shooterWeapon === "laser" ? "激光" : this.core.shooterWeapon === "missile" ? "导弹" : "强化箭"));
+      const specialSel = document.createElement("select");
+      specialSel.style.cssText =
+        "flex:1;background:#0e1430;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 4px;font:11px ui-monospace,Consolas,monospace";
+      for (let i = 1; i <= 12; i++) {
+        const option = document.createElement("option");
+        option.value = String(i);
+        option.textContent = `Lv.${i}`;
+        specialSel.appendChild(option);
+      }
+      specialSel.value = String(this.core.shooterWeapon === "laser" ? this.core.laserLevel : this.core.shooterWeapon === "missile" ? this.core.missile.level : this.core.specialLevel);
+      specialSel.addEventListener("keydown", (e) => e.stopPropagation());
+      specialSel.addEventListener("keyup", (e) => e.stopPropagation());
+      specialRow.appendChild(specialSel);
+      const specialGo = el(
+        "button",
+        "background:#1d2440;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 6px;cursor:pointer",
+        "应用",
+      );
+      specialGo.title = "按阶段重建升级（L4 起每级 1 条）";
+      specialGo.addEventListener("click", () => {
+        if (this.core.shooterWeapon === "laser") this.core.devSetLaserLevel(Number(specialSel.value));
+        else if (this.core.shooterWeapon === "missile") this.core.devSetMissileLevel(Number(specialSel.value));
+        else this.core.devSetSpecialLevel(Number(specialSel.value));
+        this.render();
+      });
+      specialRow.appendChild(specialGo);
+      root.appendChild(specialRow);
+    } else if (this.core.prof === "mage") {
+      const staffRow = el(
+        "div",
+        "display:flex;gap:4px;margin-bottom:6px;align-items:center",
+      ) as HTMLDivElement;
+      staffRow.appendChild(el("span", "color:#7d8ec4", "法杖"));
+      const staffSel = document.createElement("select");
+      staffSel.style.cssText =
+        "flex:1;background:#0e1430;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 4px;font:11px ui-monospace,Consolas,monospace";
+      for (let i = 1; i <= 12; i++) {
+        const option = document.createElement("option");
+        option.value = String(i);
+        option.textContent = `Lv.${i}`;
+        staffSel.appendChild(option);
+      }
+      staffSel.value = String(this.core.mageStaffLevel);
+      staffSel.addEventListener("keydown", (e) => e.stopPropagation());
+      staffSel.addEventListener("keyup", (e) => e.stopPropagation());
+      staffRow.appendChild(staffSel);
+      const staffGo = el(
+        "button",
+        "background:#1d2440;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 6px;cursor:pointer",
+        "应用",
+      );
+      staffGo.title = "按法杖等级重建元素与普通池";
+      staffGo.addEventListener("click", () => {
+        this.core.devSetStaffLevel(Number(staffSel.value));
+        this.render();
+      });
+      staffRow.appendChild(staffGo);
+      root.appendChild(staffRow);
     }
-    specialSel.value = String(this.core.shooterWeapon === "laser" ? this.core.laserLevel : this.core.shooterWeapon === "missile" ? this.core.missile.level : this.core.specialLevel);
-    specialSel.addEventListener("keydown", (e) => e.stopPropagation());
-    specialSel.addEventListener("keyup", (e) => e.stopPropagation());
-    specialRow.appendChild(specialSel);
-    const specialGo = el(
-      "button",
-      "background:#1d2440;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 6px;cursor:pointer",
-      "应用",
-    );
-    specialGo.title = "按阶段重建升级（L4 起每级 1 条）";
-    specialGo.addEventListener("click", () => {
-      if (this.core.shooterWeapon === "laser") this.core.devSetLaserLevel(Number(specialSel.value));
-      else if (this.core.shooterWeapon === "missile") this.core.devSetMissileLevel(Number(specialSel.value));
-      else this.core.devSetSpecialLevel(Number(specialSel.value));
-      this.render();
-    });
-    specialRow.appendChild(specialGo);
-    root.appendChild(specialRow);
 
     const body = el("div", "") as HTMLDivElement;
     root.appendChild(body);
@@ -374,12 +406,16 @@ export class DevPanel {
     if (!body) return;
     // 只有数量/职业/流派变化才重建 DOM（避免无意义的 74 行重排，也保住滚动位置）
     const sig =
-      `${this.core.prof}|${this.core.warriorStyle}|${this.core.shooterWeapon}|` +
+      `${this.core.prof}|${this.core.warriorStyle}|${this.core.shooterWeapon}|${this.core.mageStaffLevel}|` +
       UPGRADES.map((u) => this.core.player.upCounts[u.n] || 0).join(",");
     if (sig === this.sig) return;
     this.sig = sig;
     body.innerHTML = "";
-    for (const g of GROUPS) {
+    // 只列当前职业与通用卡；其它职业在正常游玩中不可选，避免整页「职业不符」。
+    const visibleGroups = GROUPS.filter(
+      (g) => g.key === "common" || g.key === this.core.prof,
+    );
+    for (const g of visibleGroups) {
       const cards = UPGRADES.filter((u) => (u.prof ?? "legacy") === g.key);
       if (!cards.length) continue;
       const sections =

@@ -125,7 +125,8 @@ export class MageVfx {
   }
 
   drawPrism(ctx: PixelPainter, prism: NonNullable<GameCore["magePrism"]>): boolean {
-    return stamp(ctx, START.prism + ELEMENT_INDEX[prism.element], prism.x, prism.y - 1, 1, 0.9);
+    // v165：棱镜整体放大到 2×，底边保持在原地面锚点，视觉更醒目。
+    return stamp(ctx, START.prism + ELEMENT_INDEX[prism.element], prism.x, prism.y - 24, 2, 0.9);
   }
 
   shadowPosition(shadow: Shadow): { x: number; y: number } | undefined {

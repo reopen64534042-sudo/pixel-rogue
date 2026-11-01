@@ -4132,4 +4132,14 @@ dmg = Math.ceil(e.hp - 1);
 - 休整统计：GameCore 新增 mageDmgBy 与波次快照，记录本体 / 回响 / 折射 / 分影 / 碎裂与六反应的实际 effectiveHpLoss；showRestBar 追加两行细分，不并入通用 dmgBy，避免总分翻倍。
 - 验证：typecheck / build 通过；受控截图 output/mage-vfx-integration.png（魔女 + 技能 VFX）、output/reaction-styles.png（六反应数字 / 字标 + 棱镜素材）、output/blaze-reaction.png、output/mage-rest-stats.png；人物与技能图集纹理均加载。未运行 Vitest/Playwright；v159 A/B 数据未重跑；新增 Core 字段可能使 parity 快照过期，留待授权测试批次。
 
+## 旧天赋清理、作弊面板与 UI 修正（v165，2026-11-01）
+
+- 用户要求删除老版本天赋及对应图鉴：`src/game/data/talents/legacy.ts` 的 39 张旧表通用卡全部清空，`mage.ts` 的 14 张退役法师卡删除；`UPGRADES` 不再包含它们，图鉴派生条目与 DevPanel 旧表分组同步消失。保留空 `LEGACY_UPGRADES` / `DMG_POOL` 导出，供历史 parity 与熔炉调用链编译；`CodexStore` 不删除、不覆盖旧存档中的已解锁键。
+- 作弊面板：原先无论职业都显示射手武器阶段。现按职业显示：射手保留强化弹/激光/导弹阶段选择，法师新增法杖 Lv1–12 选择并调用 `devSetStaffLevel` 重建元素与普通池；`mageStaffLevel` 纳入面板刷新签名。移除旧表分组。
+- 表现与命名：普通元素伤害数字按元素色染色（火/冰/雷）；元素棱镜素材放大到 2×（底边贴地，折射光束起点同步）；法师史诗卡「缺失反应」显示名改为「三环共鸣」，描述改为补全所选三元素之间最后一条配对反应。
+- 施法条：去掉 3px 半透明外框与内槽，只保留 18×1 底槽和进度线（v165 用户要求）。
+- 死亡总结：底部按钮从居中 flex 改为与上方 `.over-grid` 同宽的两列 grid，左右按钮分别对齐两列卡片中轴；窄屏改为单列。
+- 前摇/打断口径：站定删除后仍有 0.48 秒前摇；前 0.15 秒抬手可被受击或冲刺打断，后 0.33 秒收束不可打断。本次删除的是站定伤害加成，不是前摇或打断。
+- 验证：typecheck / build 通过；受控截图检查作弊面板法师法杖行、死亡总结按钮对齐、1px 施法条与图鉴无旧卡。旧表/退役卡的 parity 与图鉴计数断言会过期，未运行 Vitest/Playwright，留待授权测试批次。
+
 

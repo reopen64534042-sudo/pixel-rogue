@@ -33,15 +33,15 @@ export interface CodexEntry {
   aliases?: string[];
   /** 天赋稀有度 0-3，复用 `TIERS` */
   tier?: number;
-  /** 天赋分类：旧表是 攻击 / 增幅 / 技能 / 防御；职业池按职业分（射手 / 法师） */
+  /** 天赋分类：按职业池（射手 / 法师 / 战士）。 */
   group?: string;
-  /** 职业池归属（shooter / mage / common）。旧表为空。 */
+  /** 职业池归属（shooter / mage / warrior / common）。 */
   prof?: string;
-  /** 槽位轴名（核心 / 元素 / 循环 …）。旧表为空。 */
+  /** 槽位轴名（核心 / 元素 / 循环 …）。 */
   slot?: string;
-  /** 链层级 1/2/3。旧表为空。 */
+  /** 链层级 1/2/3。 */
   layer?: number;
-  /** 变体组 id。旧表为空。 */
+  /** 变体组 id。 */
   variant?: string;
   elite?: boolean;
   boss?: boolean;
@@ -70,9 +70,8 @@ function aliasesOf(name: string): string[] | undefined {
 /**
  * 图鉴分区名（S3）。
  *
- * 旧表按旧四类（攻击/增幅/技能/防御）分；职业池改按**职业**分
- * （设计文档：旧分类是过渡方案，将被「职业轴 × 槽位轴」取代）。
- * 槽位轴不再作为分区——分区太多（16 个）会让图鉴的 tab 变成噪音；
+ * v165 旧表已删除，图鉴按**职业池**分（射手 / 法师 / 战士）。
+ * 槽位轴不作为分区——分区太多（16 个）会让图鉴的 tab 变成噪音；
  * 槽位改为在条目详情里显示。
  */
 const PROF_GROUP: Record<string, string> = {
@@ -82,14 +81,9 @@ const PROF_GROUP: Record<string, string> = {
 };
 
 export const TALENT_ENTRIES: readonly CodexEntry[] = UPGRADES.filter(
-  // S2：只排除**原版隐藏**（`hidden`，如「不屈」）。
-  // `retired` 的旧表**保留在图鉴里**——这是有意的裁决：旧存档里的已解锁记录
-  //（`codex.syncTalents` 以卡名为键）必须有条目可落，否则会变成孤儿；
-  // 玩家上一局见过的卡突然消失也更像 bug。
-  // 代价是收集分母包含 40 张当前拿不到的卡，所以图鉴描述里对 retired 的卡
-  // 标注「已退役」（见 `CodexUI` 的 tier 文案），后续若要做「已退役」分区，
-  // 在这里加分组而不是重新过滤。
-  (u) => !u.hidden,
+  // v165：旧表与退役卡已从 UPGRADES 删除，图鉴同步不再生成条目。
+  // 旧存档里的已解锁键仍由 CodexStore 原样保留，不覆盖、不损坏。
+  (u) => !u.hidden && !u.retired,
 ).map(
   (u): CodexEntry => ({
     id: talentId(u.n),
