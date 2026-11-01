@@ -104,6 +104,7 @@ export function spawnEnemy(
     wave: this.waveN,
     elite,
     speedJitter,
+    ...(type === "boss_three" ? { boss: true } : {}),
     hpMul: difficulty.hpMul,
     attackMul: difficulty.attackMul,
   });

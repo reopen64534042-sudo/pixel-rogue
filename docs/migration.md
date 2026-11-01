@@ -1,5 +1,11 @@
 # 迁移记录与验收基线
 
+## PR #234 同步主分支并解决冲突（2026-11-01）
+
+- 怪物扩展dcd7d25与动画/范围调整4747397已推送origin/codex/monster-expansion，PR为https://github.com/reopen64534042-sudo/pixel-rogue/pull/234，目标upstream/main。用户进一步明确允许同步主分支并解决冲突，不包含合并PR到main。
+- 常规合入upstream/main的ecb8c15，保留PR #233的Boss独立生命成长、图鉴说明和数值文档。三处冲突为CHANGELOG.md、src/game/data/changelog.ts、docs/monster-numerics.md：按v169动画→v168新怪→v167首领生命→v166历史顺序保留全部日志，数值快照为18条怪物且包含上游首领生命曲线。
+- 自动合并后核对EnemySystem同时保留精英物种/词缀/动画事件与Boss生成标记，CodexUI同时保留精英槽位与Boss生命说明；Boss动画/特效模块和素材继续不改。合并后typecheck/build/diff检查通过（144模块，仅既有大chunk提醒），以常规合并提交更新同一PR；不强推、不合并PR，旧测试仍留待授权批次。
+
 ## 怪物扩展推送与PR准备（2026-11-01）
 
 - 用户认可最终效果，明确授权提交剩余改动、推送并创建PR，不含合并PR。当前独立分支`codex/monster-expansion`，推送至origin，PR目标为upstream/main（reopen64534042-sudo/pixel-rogue）。
@@ -4381,3 +4387,11 @@ dmg = Math.ceil(e.hp - 1);
 - 死亡总结：底部按钮从居中 flex 改为与上方 `.over-grid` 同宽的两列 grid，左右按钮分别对齐两列卡片中轴；窄屏改为单列。
 - 前摇/打断口径：站定删除后仍有 0.48 秒前摇；前 0.15 秒抬手可被受击或冲刺打断，后 0.33 秒收束不可打断。本次删除的是站定伤害加成，不是前摇或打断。
 - 验证：typecheck / build 通过；受控截图检查作弊面板法师法杖行、死亡总结按钮对齐、1px 施法条与图鉴无旧卡。旧表/退役卡的 parity 与图鉴计数断言会过期，未运行 Vitest/Playwright，留待授权测试批次。
+
+## 后期首领生命翻倍成长（v167，2026-11-01）
+
+- 用户要求修改前同步上游，并使用 gh 提 PR。已 fetch origin / upstream，确认旧 PR #222 已合并；从最新 upstream/main 9fb7bd8（v166，PR #232）新建 codex/boss-hp-doubling。工作区干净；两个已有 autostash 不属于本轮，保留原样。
+- 最终要求为第 10 波保持不变，只增强后两次：W10 仍 4,192，W20 改为 32,000，W30 为 64,000，W40 起每 10 波继续翻倍。此前提高 W10 的选项已被用户后续指令覆盖。
+- data/boss.ts 的 BOSS_HP_GROWTH 集中配置起点 / 基准 / 间隔 / 倍率；EnemySystem 仅为 boss_three 传入可选 boss 生成标记，EnemyStatSources 在同一 StatModel 管线内选择 W20+ 独立 HP，并跳过普通波次及射手额外生命乘区，避免破坏实际两倍关系。普通敌人 / 精英 / W10 路径的乘法次序与 RNG 不变；攻击 / 护甲 / DR / 技能 / 掉落均保持。
+- 图鉴提示、Boss 数值表、怪物数值和接口指南同步，双端日志 v167。既有 W20+ Boss 生命 / 生成上下文断言可能过期，提交信息同步留痕；按 2026-10-29 裁定不新增 / 修改测试或基线，不运行 Vitest / Playwright。
+- 验证：typecheck / build 通过（135 模块，保留既有 Vite 大 chunk 提示）。通过 Vite SSR 调用实际 resolveEnemySpawnStats 与 resolveDifficulty，核对射手 / 法师 / 战士 W10 / 20 / 30 / 40 的生命均为 4,192 / 32,000 / 64,000 / 128,000，攻击和速度沿原路径。临时 SSR 服务已关闭；这是生成数值核对，不是自然战斗 TTK / 平衡验收。差异检查通过，更新日志保留仓库既有混合换行，仅新增段落使用匹配的 LF。

@@ -7,6 +7,14 @@ export const THREE_HEADED_BEAST: EnemyConfig = {
   defense: 60, resistances: { fire: 0.1, frost: 0.1, lightning: 0.1 },
 };
 
+/** W10 retains ordinary spawn growth; from W20, actual maximum HP doubles per appearance. */
+export const BOSS_HP_GROWTH = {
+  fromWave: 20,
+  baseHp: 32_000,
+  everyWaves: 10,
+  multiplier: 2,
+} as const;
+
 export const BOSS = {
   name: "三首巨兽",
   intro: 1.2,

@@ -7,6 +7,7 @@ import {
   type CodexEntry,
 } from "../game/codex/codexData";
 import { ETYPES } from "../game/data/enemies";
+import { BOSS_HP_GROWTH } from "../game/data/boss";
 import type { CodexProgress } from "../game/codex/CodexSystem";
 import { TIERS, TIER_COLOR } from "../game/data/talents";
 import { spriteImageSrc } from "../game/rendering/assetRegistry";
@@ -65,7 +66,9 @@ function enemyStatsHtml(entry: CodexEntry): string {
     })
     .join(" · ");
   const rows: [string, string, string][] = [
-    ["生命", String(cfg.hp), "基础生命；生成时按波次成长"],
+    ["生命", String(cfg.hp), entry.boss
+      ? `基础生命；第 ${BOSS_HP_GROWTH.fromWave} 波 ${BOSS_HP_GROWTH.baseHp.toLocaleString()} HP，之后每 ${BOSS_HP_GROWTH.everyWaves} 波 ×${BOSS_HP_GROWTH.multiplier}`
+      : "基础生命；生成时按波次成长"],
     ["攻击", String(cfg.dmg), "基础攻击；生成时按波次成长"],
     ["移速", String(cfg.speed), "像素/秒，越大移动越快"],
     ["半径", String(cfg.r), "碰撞与受击体积"],
