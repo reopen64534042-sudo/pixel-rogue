@@ -11,6 +11,7 @@ import {
   mageCastSpeedMul,
   mageCircleWidthMul,
   mageCurrentElement,
+  mageDirectDamageMul,
   gainStaffXp,
   magePrismTier,
 } from "./MageProgressionSystem";
@@ -56,15 +57,6 @@ export function mageInterval(core: GameCore): number {
   return (MB.castInterval * mul) / castRate(core);
 }
 
-/**
- * 站定判定：前摇**最后一段**保持静止。
- * 绘制侧与 detonate 共用本函数，读条变青的时刻就是判定生效的时刻。
- */
-export function mageIsSteady(core: GameCore): boolean {
-  if (core.castPhase !== "windup" && core.castPhase !== "cast") return false;
-  return core.time - core.mageLastMoveAt >= mageWindup(core) * MB.steadyHoldRatio;
-}
-
 /** 法阵半径：属性范围、广域符印 +20%、法阵扩幅 +8%。 */
 export function mageCircleRadius(core: GameCore): number {
   const p = core.player;
@@ -73,10 +65,9 @@ export function mageCircleRadius(core: GameCore): number {
   return r;
 }
 
-/** 元素伤害基准（不含元素自身倍率）；站定 ×1.5。 */
-function mageElementBase(core: GameCore, steady = false): number {
-  const p = core.player;
-  return p.damage * MB.elementBaseMul * (steady ? MB.steadyDamageMul : 1);
+/** 元素伤害基准（不含元素自身倍率）；原站定 1.5× 已折入基准。 */
+function mageElementBase(core: GameCore): number {
+  return core.player.damage * MB.elementBaseMul;
 }
 
 /**
@@ -131,7 +122,11 @@ function explodeCircle(
   const el = mageCurrentElement(core);
   if (!el) return { hits: 0, reacted: false };
   // 直伤另乘 directDamageMul：状态 DoT / 闪电链 / 反应仍用完整元素基准。
-  const dmg = base * MB.directDamageMul * MAGE_ELEMENTS[el].damageMul;
+  const dmg =
+    base *
+    MB.directDamageMul *
+    mageDirectDamageMul(core) *
+    MAGE_ELEMENTS[el].damageMul;
   let hits = 0;
   let reacted = false;
   for (const e of core.enemies) {
@@ -188,6 +183,7 @@ function queueEcho(
     damage:
       base *
       MB.directDamageMul *
+      mageDirectDamageMul(core) *
       MAGE_ELEMENTS[el].damageMul *
       ELEMENTAL_MAGE.echo.damageMul,
     element: el,
@@ -341,10 +337,24 @@ function refractPrism(
   const targets = points.length
     ? points
     : [{ x: core.castX, y: core.castY }];
+  // 纯表现事件：棱镜到各折射落点的光束（A 两条、B 一条），让特化可见。
+  core.magePrismBeams.push({
+    x: prism.x,
+    y: prism.y,
+    points: targets.map((point) => ({ x: point.x, y: point.y })),
+    element,
+    stored: prism.element,
+    t: 0.3,
+    maxT: 0.3,
+  });
   const share = prism.budget / targets.length;
   const refractedBase = base * share;
   const dmg =
-    base * MB.directDamageMul * MAGE_ELEMENTS[element].damageMul * share;
+    base *
+    MB.directDamageMul *
+    mageDirectDamageMul(core) *
+    MAGE_ELEMENTS[element].damageMul *
+    share;
   let hits = 0;
   for (const point of targets) {
     for (const e of core.enemies) {
@@ -447,6 +457,7 @@ function triggerSplitShadows(
     const dmg =
       base *
       MB.directDamageMul *
+      mageDirectDamageMul(core) *
       MAGE_ELEMENTS[element].damageMul *
       p.damageMul;
     for (const e of core.enemies) {
@@ -491,11 +502,11 @@ function triggerSplitShadows(
  *
  * 充能条只服务保留旧卡「护咒壁」；元素系统本身不依赖充能。
  */
-function detonate(core: GameCore, steady: boolean) {
+function detonate(core: GameCore) {
   const p = core.player;
   const el = mageCurrentElement(core);
   if (!el) return;
-  const base = mageElementBase(core, steady);
+  const base = mageElementBase(core);
   const R = mageCircleRadius(core);
   const reactionBudget = new Set<Enemy>();
   const body = explodeCircle(
@@ -512,12 +523,7 @@ function detonate(core: GameCore, steady: boolean) {
   // 分影在棱镜折射之后触发：残影状态不会反过来喂给同一次施法的棱镜反应。
   if (body.reacted) triggerSplitShadows(core, el, base, R);
   const hits = body.hits + prismHits;
-  if (
-    core.tutorialMode &&
-    core.tutorialProf === "mage" &&
-    steady &&
-    hits >= 2
-  )
+  if (core.tutorialMode && core.tutorialProf === "mage" && hits >= 2)
     core.tutorialProfDone = true;
   if (hits <= 0) return;
 
@@ -629,11 +635,6 @@ export function triggerMirrorDecoy(this: GameCore): boolean {
 export function updateMageCasting(this: GameCore, dt: number) {
   const p = this.player;
   if (this.prof !== "mage") return;
-  // 站定判定的移动追踪
-  if (Math.hypot(p.x - this.magePrevX, p.y - this.magePrevY) > 0.05)
-    this.mageLastMoveAt = this.time;
-  this.magePrevX = p.x;
-  this.magePrevY = p.y;
   // 值型限时护盾
   if (this.mageShieldT > 0) {
     this.mageShieldT -= dt;
@@ -650,6 +651,11 @@ export function updateMageCasting(this: GameCore, dt: number) {
   if (this.magePrism) {
     this.magePrism.t -= dt;
     if (this.magePrism.t <= 0) this.magePrism = null;
+  }
+  for (let i = this.magePrismBeams.length - 1; i >= 0; i--) {
+    const beam = this.magePrismBeams[i];
+    beam.t -= dt;
+    if (beam.t <= 0) this.magePrismBeams.splice(i, 1);
   }
   if (this.mageShadowCd > 0) this.mageShadowCd -= dt;
   for (let i = this.mageShadows.length - 1; i >= 0; i--) {
@@ -702,10 +708,9 @@ export function updateMageCasting(this: GameCore, dt: number) {
     case "cast": {
       this.castT -= dt;
       if (this.castT > 0) break;
-      const steady = mageIsSteady(this);
       this.castPhase = "idle";
       this.castCd = mageInterval(this);
-      detonate(this, steady);
+      detonate(this);
       break;
     }
   }

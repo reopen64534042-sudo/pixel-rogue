@@ -23,7 +23,7 @@ export function tutorialTotalSteps(prof: string | null): number {
  * 敌人 0 伤害、无掉落；玩家不会在教程里死亡。
  *
  * 每步条件满足后**不自动推进**：HUD 出现「下一步」按钮，由玩家点击进入下一步。
- * 法师自动施法会让「命中 / 站定命中多个目标」瞬间达成，自动推进会让文字一闪而过。
+ * 法师自动施法会让「命中 / 法阵命中多个目标」瞬间达成，自动推进会让文字一闪而过。
  */
 export function startTutorial(
   this: GameCore,
@@ -73,10 +73,11 @@ export function startTutorial(
     this.player.picks.push(core);
   }
   // 法师教程临时给火元素：正式开局会重置并要求选择第一元素。
-  // 否则练习场没有可施放元素，命中/站定教学步骤永远无法完成。
+  // 否则练习场没有可施放元素，命中/法阵教学步骤永远无法完成。
   if (prof === "mage") {
     this.mageElements = ["fire"];
     this.mageElementPickPending = null;
+    this.mageElementPickQueue = [];
     this.mageReactionIds = [];
     this.mageSuit = null;
     this.mageWheelIndex = 0;
@@ -87,7 +88,7 @@ export function startTutorial(
   this.view.started();
   const p = this.player;
   if (prof === "mage") {
-    // 三只木桩靠在一起，方便教「法阵落最近目标 + 站定命中多个」。
+    // 三只木桩靠在一起，方便教「法阵落最近目标 + 一次命中多个」。
     spawnDummy.call(this, p.x + 60, p.y);
     spawnDummy.call(this, p.x + 55, p.y - 16);
     spawnDummy.call(this, p.x + 55, p.y + 16);

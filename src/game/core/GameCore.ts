@@ -384,16 +384,6 @@ export class GameCore {
   castX = 0;
   castY = 0;
   /**
-   * 站定判定：最后一次「玩家位置发生变化」的时刻（秒）。
-   *
-   * 判定看的是前摇**最后一段**（`steadyHoldRatio × 前摇总长`）是否静止，
-   * 而不是整段前摇——玩家可以边跑边施法，在读数临近完成时急停吃加成。
-   */
-  mageLastMoveAt = -1e9;
-  /** 上一帧玩家位置：用来检测「这一帧有没有移动」。 */
-  magePrevX = 0;
-  magePrevY = 0;
-  /**
    * 开发者无敌（仅 DEV 作弊面板使用）。
    *
    * 消费点在 `damagePlayer` 的最前面，并用 `import.meta.env.DEV` 门控：
@@ -459,6 +449,18 @@ export class GameCore {
     charges: number;
     budget: number;
   } | null = null;
+  /** 棱镜折射的纯表现事件：从棱镜射向落点的光束与命中闪光。 */
+  magePrismBeams: {
+    x: number;
+    y: number;
+    points: { x: number; y: number }[];
+    /** 当前法阵元素（伤害/状态按它结算）。 */
+    element: MageElement;
+    /** 棱镜记录元素（水晶颜色；终极震爆的标记）。 */
+    stored: MageElement;
+    t: number;
+    maxT: number;
+  }[] = [];
   /** 回响法阵：延迟 0.3 秒的第二次伤害，不施加状态/不触发反应。 */
   mageEchoes: {
     x: number;
@@ -482,6 +484,8 @@ export class GameCore {
    * 复用旧补选面板的 slots 展示，但不消耗天赋次数。
    */
   mageElementPickPending: "first" | "second" | "third" | null = null;
+  /** 一波内连升 Lv3/Lv6 时已触发的元素选择，休整时在 pending 之后依次处理。 */
+  mageElementPickQueue: ("second" | "third")[] = [];
   /**
    * S1/v139：本次休整可用的属性消费额度（波次 + 成长徽记）。为 0 时属性面板不出现。
    * 不进 parity 快照白名单：它只驱动面板流程，不参与任何数值计算。
@@ -809,9 +813,6 @@ export class GameCore {
     this.castCd = 0;
     this.castX = 0;
     this.castY = 0;
-    this.mageLastMoveAt = -1e9;
-    this.magePrevX = this.player.x;
-    this.magePrevY = this.player.y;
     this.mageCharge = 0;
     this.mageChargeFlashT = 0;
     this.mageShield = 0;
@@ -830,10 +831,12 @@ export class GameCore {
     this.mageReactionIds = [];
     this.mageUpgrades = [];
     this.magePrism = null;
+    this.magePrismBeams = [];
     this.mageEchoes = [];
     this.mageShadowCd = 0;
     this.mageShadows = [];
     this.mageElementPickPending = prof === "mage" ? "first" : null;
+    this.mageElementPickQueue = [];
     this.warriorFlowStacks = 0;
     this.warriorFlowT = 0;
     this.warriorSwingCount = 0;
@@ -1061,6 +1064,7 @@ export class GameCore {
     this.webZones = [];
     this.mageDecoys = [];
     this.magePrism = null;
+    this.magePrismBeams = [];
     this.mageEchoes = [];
     this.mageShadowCd = 0;
     this.mageShadows = [];
@@ -1122,6 +1126,7 @@ export class GameCore {
     this.mageDecoys = [];
     this.magePhaseT = 0;
     this.magePrism = null;
+    this.magePrismBeams = [];
     this.mageEchoes = [];
     this.mageShadowCd = 0;
     this.mageShadows = [];

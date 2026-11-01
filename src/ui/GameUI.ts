@@ -59,6 +59,7 @@ import {
   mageCastSpeedMul,
   magePrismTier,
   mageReactionIcd,
+  mageDirectDamageMul,
 } from "../game/core/MageProgressionSystem";
 import { mageCircleRadius } from "../game/core/MageSystem";
 import { statBase } from "../game/data/stats";
@@ -834,6 +835,7 @@ export class GameUI {
                     p.damage *
                     MAGE_BALANCE.elementBaseMul *
                     MAGE_BALANCE.directDamageMul *
+                    mageDirectDamageMul(this.core) *
                     MAGE_ELEMENTS[currentElement].damageMul
                   ).toFixed(1)
                 : "—",
@@ -924,7 +926,10 @@ export class GameUI {
       isMage
         ? [
             "⚡ 施法速度",
-            (p.fireRate * mageCastSpeedMul(this.core)).toFixed(2) + " 次/秒",
+            (
+              (p.fireRate * mageCastSpeedMul(this.core) * MAGE_BALANCE.castCycle) /
+              (MAGE_BALANCE.castWindup + MAGE_BALANCE.castInterval)
+            ).toFixed(2) + " 次/秒",
           ]
         : isLaser
           ? ["⚡ 光束输出速率", "×" + (laserOutputRate(p) / statBase("shooter").fireRate).toFixed(2)]
@@ -1328,6 +1333,7 @@ export class GameUI {
           ? p.damage *
             MAGE_BALANCE.elementBaseMul *
             MAGE_BALANCE.directDamageMul *
+            mageDirectDamageMul(this.core) *
             MAGE_ELEMENTS[el].damageMul
           : 0;
         const base = p.damage * MAGE_BALANCE.elementBaseMul;
@@ -1372,9 +1378,7 @@ export class GameUI {
           [
             "🔮 棱镜",
             prismTier > 0
-              ? prism
-                ? `${prismLabel} · ${prism.t.toFixed(1)}s · ${prism.charges} 发`
-                : `${prismLabel} · 待生成`
+              ? `${prismLabel}${prism ? ` · ${MAGE_ELEMENTS[prism.element].name}→${elementName} · ${prism.t.toFixed(1)}s · ${prism.charges} 发` : " · 待生成"}`
               : "未领悟",
           ],
           [
@@ -1430,13 +1434,13 @@ export class GameUI {
             ],
             [
               "当前数值",
-              "法阵直伤 = 基准 ×0.65 × 元素倍率；状态/链/反应使用完整基准",
+              "法阵直伤 = 基准 ×0.65 × 元素倍率（咏唱调律再 ×1.1）；状态/链/反应使用完整基准",
             ],
             ...(prismTier > 0
               ? ([
                   [
                     "棱镜",
-                    "第 3 次成功施法留下 4 秒；A 分裂到两个目标点，B 集中主落点；折射不触发链/不吸血/不给经验",
+                    "第 3 次成功施法留下 4 秒；A 分裂到两个目标点（稀有各 25%、史诗各 40%），B 集中主落点（50%/80%）；折射按当前法阵元素结算，记录元素用于终极震爆；不触发链/不吸血/不给经验",
                   ],
                 ] as [string, string][])
               : []),
@@ -2205,8 +2209,8 @@ export class GameUI {
     if (step === 3) {
       if (prof === "mage")
         return {
-          title: "站定施法",
-          body: "法阵会自动落在最近的可见敌人身上；读条最后 40% 停下，伤害 ×1.5。试着站定命中至少 2 个目标。",
+          title: "元素法阵",
+          body: "法阵会自动落在最近的可见敌人身上，移动也可以正常施法；试着让一次法阵命中至少 2 个木桩。",
         };
       if (prof === "warrior")
         return {

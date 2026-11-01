@@ -300,7 +300,9 @@ export function chooseSlot(this: GameCore, index: number) {
     this.audio.beep(880, 0.12, "square", 0.07, 300);
     this.bpMode = null;
     this.slots = [];
-    if (this.pendingLevels > 0) this.openLevelPanel();
+    // 一波内连升时，选完当前元素后还有排队的下一次元素选择。
+    if (this.mageElementPickPending || this.pendingLevels > 0)
+      this.openLevelPanel();
     else this.view.level();
     return true;
   }

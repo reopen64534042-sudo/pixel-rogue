@@ -3,7 +3,7 @@
  *
  * 元素法师 v2 的元素、状态、反应与法杖成长数值已迁到
  * `data/elementalMage.ts`；本文件只保留**施法节奏、法阵几何、
- * 站定、充能护盾与脱离卡**等仍被运行时消费的键。
+ * 充能护盾与脱离卡**等仍被运行时消费的键。
  *
  * 纪律（沿用 AGENTS.md）：
  * - 伤害公式的**计算**放 core/DamageMath.ts 的纯函数，系数从这里读；
@@ -15,7 +15,10 @@ export type MageElement = "fire" | "frost" | "lightning";
 
 export interface MageBalance {
   // —— 施法节奏（时间门控）——
-  /** 施法周期（秒）。与「攻速 1.33/s」互为倒数：1 / 1.33 ≈ 0.75。 */
+  /**
+   * 施法速率归一化系数（不是周期本身）：stats.ts 用它反推法师基础 fireRate = 1 / 本值。
+   * 实际周期 = castWindup + castInterval；v161 从 0.75 拉到 0.80 秒（约 −6% 频率）。
+   */
   castCycle: number;
   /** 前摇总时长（秒）：抬手（可打断） + 法阵收束（不可打断）。 */
   castWindup: number;
@@ -32,6 +35,8 @@ export interface MageBalance {
    *
    * 文档里的火 60% / 冰 100% / 雷 80% 都相对这个基准；基准本身是
    * 占位配平值。法阵直伤另乘 `directDamageMul`，避免纯法阵压过元素效果。
+   * v161 移除站定：原站定 1.5× 折入基准（0.9 → 1.35），
+   * 移动施法不再掉伤害。
    */
   elementBaseMul: number;
   /**
@@ -43,13 +48,6 @@ export interface MageBalance {
   directDamageMul: number;
   /** 无目标时的重试间隔（秒）：避免每帧空转找目标。 */
   castIdleRetry: number;
-  /**
-   * 站定施法：前摇最后 `steadyHoldRatio × 前摇总长` 的时间内保持静止，
-   * 本发伤害 ×`steadyDamageMul`。
-   */
-  steadyDamageMul: number;
-  /** 站定所需的「静止窗口」占前摇总长的比例（0.4 = 最后 40% 不许动）。 */
-  steadyHoldRatio: number;
   // —— 充能护盾（保留旧卡「护咒壁」）——
   /** 满充能所需的成功施法次数。 */
   chargeFull: number;
@@ -87,16 +85,14 @@ export interface MageBalance {
 
 export const MAGE_BALANCE: MageBalance = {
   castCycle: 0.75,
-  castWindup: 0.45,
+  castWindup: 0.48,
   castWindupInterruptible: 0.15,
-  castInterval: 0.3,
+  castInterval: 0.32,
   castRange: 150,
   circleRadius: 34,
-  elementBaseMul: 0.9,
+  elementBaseMul: 1.35,
   directDamageMul: 0.65,
   castIdleRetry: 0.1,
-  steadyDamageMul: 1.5,
-  steadyHoldRatio: 0.4,
 
   chargeFull: 3,
   chargeFlash: 0.35,

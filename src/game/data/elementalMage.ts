@@ -275,13 +275,13 @@ export const MAGE_RARE_UPGRADES: readonly MageRareUpgradeDef[] = [
     id: "tempo",
     name: "咏唱调律",
     ico: "🎼",
-    desc: "施法速度 +4%，已拥有元素的状态持续时间 +1 秒",
+    desc: "施法速度 +4%；法阵直伤 +10%",
   },
   {
     id: "prismRare",
     name: "元素棱镜",
     ico: "💠",
-    desc: "每第 3 次成功施法留下棱镜 4 秒；下一次法阵在棱镜处折射 50% 伤害，A 套装分裂到两个怪群、B 套装集火主落点",
+    desc: "每第 3 次成功施法留下棱镜 4 秒；下一次法阵从棱镜折射 50% 当前元素伤害。A 套装：分裂到棱镜周围两个分开的目标点，各 25%；B 套装：50% 集中折射到主落点",
   },
 ];
 
@@ -296,7 +296,7 @@ export const MAGE_EPIC_UPGRADES: readonly MageEpicUpgradeDef[] = [
     id: "prismEpic",
     name: "元素棱镜·史诗",
     ico: "🔷",
-    desc: "折射预算 50% → 80%，棱镜可存 2 发再碎裂",
+    desc: "折射预算 50% → 80%，棱镜可存 2 发再碎裂；A 套装两个落点各 40%，B 套装集中 80% 到主落点",
   },
   {
     id: "reactionMastery",
@@ -430,7 +430,8 @@ export const ELEMENTAL_MAGE = {
   },
   tempo: {
     castSpeed: 0.04,
-    statusDuration: 1,
+    /** 法阵直伤（含回响/分影/折射等派生直伤）倍率。 */
+    directDamage: 0.1,
   },
   mastery: {
     reactionDamage: 0.15,
