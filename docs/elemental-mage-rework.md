@@ -615,3 +615,11 @@ Lv10–12 三次抽取全部获得三项，只有顺序不同。
 - `getEnemyCombatStats(e, armorPen, resistancePen)` 对正抗性 `max(0, res - pen)`，负抗性原样；`hurtEnemy` 默认读取法师破法来源，`HitOptions.resistancePen` 可显式覆盖；灼烧 DoT 经 `EnemyDotOptions.resistancePen` 继承。
 - 继承矩阵：本体/回响/棱镜/分影/闪电链/六反应/反应回响/灼烧；真实/物理/引力不受影响；每次命中只应用一次，反应 raw 来自元素基准，无二次穿透。
 - 验证：typecheck/build/audit；受控 e2e 覆盖 55% 正抗性、负抗性不放大、各法师伤害来源继承与敌方→玩家不受影响；未跑 Vitest/Playwright 套件/自然长局。
+
+### 19.10 表现清理（v181，2026-11-02）
+
+- 四段施法条改为 4×5px 段 + 3×1px 间隔（23px），法杖经验条同宽；白色进度只填当前段。
+- 分影齐射复用本体魔女图集；缺图回退旧 `player` 贴图。
+- 平A法阵正常加载 MageVfx 素材时只显示中心图案；缺图才回退旧紫色圆环与中心方块。
+- 元素附着/麻痹旧全身方框改为 MageVfx 缺图兜底；冻结/霜牢冰壳、雷印/脆化细线、减速框不变。
+- 验证：typecheck/build；受控截图与像素检查（四段 5/5/5/5、分影纹理 3/0、紫色圆环 0）；未跑测试套件/自然长局。
