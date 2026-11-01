@@ -4101,3 +4101,35 @@ dmg = Math.ceil(e.hp - 1);
 - 两次提交完成后共同推送 origin 并向上游 main 创建一个 PR；授权不包含合并。检查与最终 PR 状态以实际 Git / GitHub 记录为准，不新增 / 修改测试，不运行 Vitest / Playwright 测试套件。
 
 - 技能交接最终检查：重建 / 90 帧离线预览成功，typecheck / build / diff 通过（126 模块，仅既有大 chunk 提示）。正式入口未导入技能采样器，所有 Core / draw / PixelPainter 相对最新上游无差异；人物单独提交已确认技能纹理未加载、网络请求 0。没有扩大技能接入或测试范围。
+
+## 元素法师法杖面板与脚底经验条（v162，2026-11-01）
+
+- 分支 `feat/mage-staff-panel`，从 main `9a3d860`（v159）创建。用户要求参考射手的导弹武器面板，为元素法师做对应面板，并在角色脚底增加经验条。
+- C 面板：复用 `stat-weapon` / `weapon-progress` / `weapon-stats` 结构，右侧新增「元素法杖」区；显示法杖 Lv/经验、当前元素、套装、轮盘、法阵直伤、状态/反应基准、法阵半径、已掌握反应、棱镜/回响/分影/反应 ICD/护咒壁充能，以及折叠的成长规则与当前强化列表。左栏删除重复的法杖等级/轮盘/套装/强化行。
+- 排版：法阵轮盘与已掌握反应用通栏行；状态区加 `mage-status` 单列网格，长值不再挤压标签。新增少量 CSS（`.row.wide`、`#stat-special-status-list.mage-status`）。
+- 脚底 HUD：按激光资源条样式自上而下重排为「冲刺点（y+12）→ 常驻施法条（y+16，18px 与经验条等长、3px 厚度沿用原读条）→ 法杖经验条（y+20，18×1）→ 三格元素轮盘（y+22）」；删除护咒壁脚底充能格，改为面板内 `mageCharge/3`。经验条由 18×2 减薄为 1px，后续按激光顺序重排、施法条常驻。
+- 法杖经验：Lv3/Lv6 待选元素期间不再暂停法杖经验；一波内连续触发时把后续元素选择放入 `mageElementPickQueue`，休整依次处理。
+- 元素棱镜：卡面与 C 面板补全 A/B 特化数值；表现改为悬浮水晶 + 短刻线 + 折射光束（A 两条、B 一条）；光束外晕用记录元素、核心用当前元素，C 面板显示「冰→火」。
+- 咏唱调律：移除「状态持续时间 +1 秒」，先改为站定伤害 +15%，v163 再改为法阵直伤 +10%；施法速度 +4% 保留。
+- 验证：typecheck / build 通过；受控截图与经验续涨、元素排队、棱镜 A/B 光束、调律直伤检查见下；未运行 Vitest/Playwright 套件。
+
+## 移除法师站定施法（v163，2026-11-01）
+
+- 本版覆盖 v162 记录中的站定倍率与咏唱调律口径；v162 的 UI/棱镜/经验队列内容保留。
+- 用户裁定删除「前摇最后 40% 静止 → 本发 ×1.5」的站定设定。移除 `mageIsSteady`、`mageLastMoveAt`/`magePrevX`/`magePrevY` 追踪、`steadyDamageMul`/`steadyHoldRatio`，`detonate` 不再接收 steady；法阵圆环固定紫色，脚下施法条保留常驻但只显示施法进度，不再画急停线或青色站定反馈。
+- 补偿（用户选「折入并控节奏」）：`elementBaseMul` 0.9 → 1.35，原站定 1.5× 折入基准；施法周期 0.75 → 0.80 秒（前摇 0.45→0.48、间隔 0.30→0.32，`castCycle` 归一化值仍为 0.75）。站桩约 −6%，移动约 +40%。C 面板「施法速度」改为显示实际次数（默认 1.25 次/秒，带调律 1.30），移除「站定倍率」行与规则中的站定描述。
+- 咏唱调律：站定伤害 +15% 失效，第二段改为法阵直伤 +10%（覆盖本体/回响/分影/折射直伤，`mageDirectDamageMul`）；施法速度 +4% 保留。
+- 教程/入口：法师教程第 3 步由「站定施法」改为「元素法阵（一次命中至少 2 个目标）」，`detonate` 的教学条件去掉 steady；主界面副标题「范围 · 站定增伤」→「范围 · 元素反应」，教程按钮「站定施法」→「法阵命中」。
+- 验证：typecheck / build 通过；受控 e2e 法师教程第 3 步 0.5 秒完成；C 面板无站定字样、调律文案含「法阵直伤 +10%」；调律前后同条件直伤 45→49；两次施法间隔约 0.833 秒。未运行 Vitest/Playwright 套件；v159 A/B 数据基于旧站定/旧调律，未重跑；移除字段若被 parity/快照引用，留待授权测试批次统一更新。
+
+## 元素法师素材接入与反应表现（v164，2026-11-01）
+
+- 合并 origin/main 的 PR #230（1ad2db8）：保留 v160 魔女人物与 v161 VFX 素材条目；本分支原 v160/v161 顺延为 v162/v163，解决 CHANGELOG / migration / changelog.ts 冲突。
+- 人物：GameScene 的 MageCharacter 加载 48 帧魔女帽人物；技能 VFX：MageVfx 加载 29 帧图集，Scene 在固定步后 capture（含每渲染观察暂停 / 重置），draw 分层调用 drawCast / drawImpacts / drawEnemy / drawPrism；缺图回退程序化表现。
+- Core 新增只读 mageVisualEvents（body / echo / refract / shadow / burst），每个固定步换新数组；事件只记录实际元素、落点与半径，不改变伤害、索敌、经验、随机数或反应预算。法阵贴图只垫在精确范围圈下方。
+- 六反应数字：FloatingText / HitOptions 增加 reactionId；reactionDamage 按配对元素写入；draw 使用 16/14/12/12 四层配色（前元素外圈、反应强调色、落影、后元素主体）。反应名使用同一套 from/top 配色，字号 12/11（旧 13/12）。
+- 裂焰：主目标与溅射各推 burst 表现事件；MageVfx 火焰爆发 + 粒子 / 震屏，主目标 burst 半径 34、溅射 18。
+- 休整统计：GameCore 新增 mageDmgBy 与波次快照，记录本体 / 回响 / 折射 / 分影 / 碎裂与六反应的实际 effectiveHpLoss；showRestBar 追加两行细分，不并入通用 dmgBy，避免总分翻倍。
+- 验证：typecheck / build 通过；受控截图 output/mage-vfx-integration.png（魔女 + 技能 VFX）、output/reaction-styles.png（六反应数字 / 字标 + 棱镜素材）、output/blaze-reaction.png、output/mage-rest-stats.png；人物与技能图集纹理均加载。未运行 Vitest/Playwright；v159 A/B 数据未重跑；新增 Core 字段可能使 parity 快照过期，留待授权测试批次。
+
+

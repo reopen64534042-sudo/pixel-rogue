@@ -1,4 +1,5 @@
 import type { DamageTypeId } from "../data/damageTypes";
+import type { MageReactionId } from "../data/elementalMage";
 export type Mode = "start" | "play" | "stats" | "pause" | "over";
 export type Panel = "level" | "rest" | "box" | "attr" | null;
 export type GameState = Mode | "levelup" | "report" | "swap";
@@ -620,7 +621,9 @@ export interface FloatingText extends Point {
   iaiDmg?: boolean;
   /** 大剑三段斩专属样式：与居合同级的四层大字，但改为暗金/暖白。 */
   triDmg?: boolean;
-  /** 元素反应名称：比伤害数字更大、只显示反应名，不带元素方向。 */
+  /** 元素反应专属样式：前元素外圈、后元素主体、反应强调色内圈。 */
+  reactionId?: MageReactionId;
+  /** 元素反应名称：只显示反应名，不带元素方向。 */
   reactionName?: boolean;
 }
 export interface Meteor extends Point {
@@ -701,6 +704,8 @@ export interface HitOptions {
   iaiHit?: boolean;
   /** 大剑三段斩：伤害数字用暗金大字样式（见 FloatingText.triDmg） */
   triHit?: boolean;
+  /** 元素反应伤害：用六反应专属四层配色（见 FloatingText.reactionId） */
+  reactionId?: MageReactionId;
   src?: DamageSource;
   fromExplode?: boolean;
   /** Combat Foundation S2（§5）：伤害属性，缺省 physical；所有既有调用点均已显式声明 */

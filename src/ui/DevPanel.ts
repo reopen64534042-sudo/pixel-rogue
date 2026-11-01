@@ -303,6 +303,7 @@ export class DevPanel {
     if (c.prof === "mage") {
       if (!c.mageElements.length) c.mageElements = ["fire"];
       c.mageElementPickPending = null;
+      c.mageElementPickQueue = [];
     }
     c.pendingLevels = 0;
     c.startTalentPending = false;

@@ -141,14 +141,20 @@ function reactionDamage(
   )
     amount *= 1 + ELEMENTAL_MAGE.finale.controlledBonus;
   if (amount <= 0) return 0;
-  core.hurtEnemy(e, amount, 0, 0, {
+  const reactionId =
+    (secondary ? reactionForPair(secondary, element) : null) ??
+    reactionForPair(magePreviousElement(core) ?? element, element);
+  const hit = core.hurtEnemy(e, amount, 0, 0, {
     noCrit: true,
     noChain: true,
+    reactionId: reactionId ?? undefined,
     src: "reaction",
     type: element,
     form: "other",
     noLifesteal,
   });
+  if (hit && reactionId)
+    core.mageDmgBy.reaction[reactionId] += hit.effectiveHpLoss;
   // A 套装反应终章：向附近 1 个敌人传播一次低伤害回响。
   // 只由主反应触发；blaze 小爆炸等次级伤害传 false，避免连锁放大。
   if (
@@ -167,14 +173,22 @@ function reactionDamage(
       }
     }
     if (target) {
-      core.hurtEnemy(target, amount * ELEMENTAL_MAGE.finale.echoMul, 0, 0, {
-        noCrit: true,
-        noChain: true,
-        noLifesteal: true,
-        src: "reaction",
-        type: element,
-        form: "other",
-      });
+      const echoHit = core.hurtEnemy(
+        target,
+        amount * ELEMENTAL_MAGE.finale.echoMul,
+        0,
+        0,
+        {
+          noCrit: true,
+          noChain: true,
+          noLifesteal: true,
+          src: "reaction",
+          type: element,
+          form: "other",
+        },
+      );
+      if (echoHit && reactionId)
+        core.mageDmgBy.reaction[reactionId] += echoHit.effectiveHpLoss;
     }
   }
   return amount;
@@ -197,6 +211,14 @@ function spawnReactionFx(
           : id === "superconduct"
             ? ["#d9a6ff", "#c07bff", "#57e6ff"]
             : ["#57e6ff", "#9fe1ff", "#e8f7ff"];
+  core.mageVisualEvents.push({
+    kind: "burst",
+    at: core.time,
+    element: def.to,
+    x: e.x,
+    y: e.y,
+    radius: id === "overload" || id === "blaze" ? 34 : 18,
+  });
   const count = id === "overload" || id === "blaze" ? 10 : 8;
   for (let i = 0; i < count; i++) {
     const a = (i / count) * Math.PI * 2;
@@ -234,6 +256,7 @@ function spawnReactionFx(
     def.color,
   );
   text.reactionName = true;
+  text.reactionId = id;
   text.life = 0.9;
   text.vy = -16;
 }
@@ -508,6 +531,14 @@ function resolveReaction(
         })
         .slice(0, ELEMENTAL_MAGE.reaction.blazeSplashCount);
       for (const o of splash) {
+        core.mageVisualEvents.push({
+          kind: "burst",
+          at: core.time,
+          element: "fire",
+          x: o.x,
+          y: o.y,
+          radius: 18,
+        });
         reactionDamage(
           core,
           o,

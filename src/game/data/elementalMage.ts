@@ -275,13 +275,13 @@ export const MAGE_RARE_UPGRADES: readonly MageRareUpgradeDef[] = [
     id: "tempo",
     name: "咏唱调律",
     ico: "🎼",
-    desc: "施法速度 +4%，已拥有元素的状态持续时间 +1 秒",
+    desc: "施法速度 +4%；法阵直伤 +10%",
   },
   {
     id: "prismRare",
     name: "元素棱镜",
     ico: "💠",
-    desc: "每第 3 次成功施法留下棱镜 4 秒；下一次法阵在棱镜处折射 50% 伤害，A 套装分裂到两个怪群、B 套装集火主落点",
+    desc: "每第 3 次成功施法留下棱镜 4 秒；下一次法阵从棱镜折射 50% 当前元素伤害。A 套装：分裂到棱镜周围两个分开的目标点，各 25%；B 套装：50% 集中折射到主落点",
   },
 ];
 
@@ -296,7 +296,7 @@ export const MAGE_EPIC_UPGRADES: readonly MageEpicUpgradeDef[] = [
     id: "prismEpic",
     name: "元素棱镜·史诗",
     ico: "🔷",
-    desc: "折射预算 50% → 80%，棱镜可存 2 发再碎裂",
+    desc: "折射预算 50% → 80%，棱镜可存 2 发再碎裂；A 套装两个落点各 40%，B 套装集中 80% 到主落点",
   },
   {
     id: "reactionMastery",
@@ -326,6 +326,23 @@ export const MAGE_ULTIMATE_UPGRADES: readonly MageUltimateUpgradeDef[] = [
     desc: "元素反应伤害 +25%；A 套装向附近 1 个敌人传播低伤害回响，B 套装对冻结/霜牢目标额外 +30%",
   },
 ];
+
+/** 法杖强化最多可得项：普通 1 + 稀有 2 + 史诗 3 + 终极 3。 */
+export const MAGE_UPGRADE_SLOTS = 9;
+
+/** 强化定义查询：C 面板展示名称与描述。 */
+export function mageUpgradeInfo(
+  id: MageUpgradeId,
+): { name: string; desc: string } | null {
+  const all = [
+    ...MAGE_NORMAL_UPGRADES,
+    ...MAGE_RARE_UPGRADES,
+    ...MAGE_EPIC_UPGRADES,
+    ...MAGE_ULTIMATE_UPGRADES,
+  ];
+  const def = all.find((u) => u.id === id);
+  return def ? { name: def.name, desc: def.desc } : null;
+}
 
 /** 所有法杖强化 id → 显示名；UI 与提示共用。 */
 export function mageUpgradeName(id: MageUpgradeId): string {
@@ -413,7 +430,8 @@ export const ELEMENTAL_MAGE = {
   },
   tempo: {
     castSpeed: 0.04,
-    statusDuration: 1,
+    /** 法阵直伤（含回响/分影/折射等派生直伤）倍率。 */
+    directDamage: 0.1,
   },
   mastery: {
     reactionDamage: 0.15,

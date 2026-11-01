@@ -53,12 +53,18 @@ export function hasMageUpgrade(
   return core.mageUpgrades.includes(id);
 }
 
-/** 元素凝聚 + 咏唱调律：元素状态持续时间加成（秒）。 */
+/** 元素凝聚：元素状态持续时间加成（秒）。 */
 export function mageStatusDurationBonus(core: GameCore): number {
-  let bonus = 0;
-  if (hasMageUpgrade(core, "elementFocus")) bonus += ELEMENTAL_MAGE.normal.elementFocusBonus;
-  if (hasMageUpgrade(core, "tempo")) bonus += ELEMENTAL_MAGE.tempo.statusDuration;
-  return bonus;
+  return hasMageUpgrade(core, "elementFocus")
+    ? ELEMENTAL_MAGE.normal.elementFocusBonus
+    : 0;
+}
+
+/** 咏唱调律：法阵直伤倍率（本体/回响/分影/棱镜折射的直伤）。 */
+export function mageDirectDamageMul(core: GameCore): number {
+  return hasMageUpgrade(core, "tempo")
+    ? 1 + ELEMENTAL_MAGE.tempo.directDamage
+    : 1;
 }
 
 /** 咏唱调律：施法速度倍率。 */
@@ -128,7 +134,8 @@ export function chooseMageElement(
   const el = elementOfChoice(cardName);
   if (!el || core.mageElements.includes(el)) return false;
   core.mageElements.push(el);
-  core.mageElementPickPending = null;
+  // 一波内连升触发的下一次元素选择已排队 → 选完当前这个立刻接着选。
+  core.mageElementPickPending = core.mageElementPickQueue.shift() ?? null;
 
   if (pending === "first") {
     core.mageWheelIndex = 0;
@@ -209,8 +216,6 @@ export function gainStaffXp(
   if (core.prof !== "mage" || !core.mageElements.length) return;
   // 教程只教基础施法，不推进法杖等级（避免练习场弹出成长提示/待选面板）。
   if (core.tutorialMode) return;
-  // 有元素待选时先暂停法杖经验：避免同一次等待里又升到 Lv6 覆盖待选项。
-  if (core.mageElementPickPending) return;
   if (!Number.isFinite(amount) || amount <= 0) return;
   if (core.mageStaffLevel >= STAFF_LEVELS.length) {
     core.mageStaffXp = 0;
@@ -223,9 +228,18 @@ export function gainStaffXp(
     core.mageStaffXp -= need;
     core.mageStaffLevel++;
     applyStaffLevelGrant(core, core.mageStaffLevel);
-    if (core.mageElementPickPending) break;
   }
   if (core.mageStaffLevel >= STAFF_LEVELS.length) core.mageStaffXp = 0;
+}
+
+/** 请求元素选择；已有待选时排队，休整时依次处理，避免覆盖。 */
+function requestElementPick(core: GameCore, kind: "second" | "third"): void {
+  if (!core.mageElementPickPending) {
+    core.mageElementPickPending = kind;
+    return;
+  }
+  if (!core.mageElementPickQueue.includes(kind))
+    core.mageElementPickQueue.push(kind);
 }
 
 /** 到达新法杖等级时发放对应池。 */
@@ -248,7 +262,7 @@ function applyStaffLevelGrant(core: GameCore, level: number): void {
     }
   }
   if (level === 3) {
-    core.mageElementPickPending = "second";
+    requestElementPick(core, "second");
     core.addText(p.x, p.y - 30, "法杖 Lv.3 · 第二元素待领悟", "#57e6ff");
     return;
   }
@@ -257,7 +271,7 @@ function applyStaffLevelGrant(core: GameCore, level: number): void {
     return;
   }
   if (level === 6) {
-    core.mageElementPickPending = "third";
+    requestElementPick(core, "third");
     core.addText(p.x, p.y - 30, "法杖 Lv.6 · 第三元素待领悟", "#57e6ff");
     return;
   }
@@ -429,6 +443,7 @@ export function devConfigureElementalMage(
   core.mageWheelIndex = 0;
   core.mageCastsInPhase = 0;
   core.mageElementPickPending = null;
+  core.mageElementPickQueue = [];
   core.mageUpgrades = MAGE_NORMAL_UPGRADES.map((u) => u.id);
   core.mageReactionIds = [];
   core.mageSuit = unique.length >= 2 ? suitOfPair(unique[0], unique[1]) : null;

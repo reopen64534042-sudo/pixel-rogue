@@ -48,11 +48,20 @@ import { MAGE_BALANCE } from "../game/data/mageBalance";
 import {
   MAGE_ELEMENTS,
   MAGE_CASTS_PER_ELEMENT,
+  MAGE_REACTIONS,
+  MAGE_UPGRADE_SLOTS,
   STAFF_LEVELS,
   elementOrderLabel,
-  mageUpgradeName,
+  mageUpgradeInfo,
 } from "../game/data/elementalMage";
-import { mageCurrentElement, mageCastSpeedMul } from "../game/core/MageProgressionSystem";
+import {
+  mageCurrentElement,
+  mageCastSpeedMul,
+  magePrismTier,
+  mageReactionIcd,
+  mageDirectDamageMul,
+} from "../game/core/MageProgressionSystem";
+import { mageCircleRadius } from "../game/core/MageSystem";
 import { statBase } from "../game/data/stats";
 import {
   WARRIOR_BALANCE,
@@ -782,10 +791,7 @@ export class GameUI {
             ? WARRIOR_BALANCE.flow.cap1
             : 0
       : 0;
-    // 元素名（法师「当前元素」行）
-    const elems = isMage ? this.core.mageElements : [];
     const currentElement = isMage ? mageCurrentElement(this.core) : null;
-    const staffNeed = STAFF_LEVELS[this.core.mageStaffLevel - 1]?.xpToNext;
     // 「居合」的势：势只增不减，满层后下一刀自动变居合斩（见 warriorBalance.iai）
     const iaiCap =
       isWarrior && this.core.warriorStyle === "katana"
@@ -829,6 +835,7 @@ export class GameUI {
                     p.damage *
                     MAGE_BALANCE.elementBaseMul *
                     MAGE_BALANCE.directDamageMul *
+                    mageDirectDamageMul(this.core) *
                     MAGE_ELEMENTS[currentElement].damageMul
                   ).toFixed(1)
                 : "—",
@@ -836,12 +843,6 @@ export class GameUI {
             [
               "✹ 状态/反应基准",
               (p.damage * MAGE_BALANCE.elementBaseMul).toFixed(1),
-            ],
-            [
-              "🪄 法杖等级",
-              staffNeed === null || staffNeed === undefined
-                ? `Lv.${this.core.mageStaffLevel} · 满级`
-                : `Lv.${this.core.mageStaffLevel} · ${this.core.mageStaffXp}/${staffNeed}`,
             ],
           ] as [string, string | number][])
         : isWarrior
@@ -925,7 +926,10 @@ export class GameUI {
       isMage
         ? [
             "⚡ 施法速度",
-            (p.fireRate * mageCastSpeedMul(this.core)).toFixed(2) + " 次/秒",
+            (
+              (p.fireRate * mageCastSpeedMul(this.core) * MAGE_BALANCE.castCycle) /
+              (MAGE_BALANCE.castWindup + MAGE_BALANCE.castInterval)
+            ).toFixed(2) + " 次/秒",
           ]
         : isLaser
           ? ["⚡ 光束输出速率", "×" + (laserOutputRate(p) / statBase("shooter").fireRate).toFixed(2)]
@@ -967,23 +971,9 @@ export class GameUI {
             ? `（锐势 +${(WARRIOR_BALANCE.lianShan.critBonus * 100).toFixed(0)}%）`
             : ""),
       ],
-      // 职业专属输出行：法师当前元素，射手穿透，战士流层数。
+      // 职业专属输出行：射手穿透，战士流层数；法师的轮盘/套装/强化在右侧法杖面板。
       ...(isMage
-        ? ([
-            [
-              "🔮 元素轮盘",
-              elems.length
-                ? `${elementOrderLabel(elems)} · 当前 ${currentElement ? MAGE_ELEMENTS[currentElement].name : "—"} · ${this.core.mageCastsInPhase}/${MAGE_CASTS_PER_ELEMENT}`
-                : "未选元素",
-            ],
-            ["🎴 元素套装", this.core.mageSuit ?? "未确定"],
-            [
-              "✹ 法杖强化",
-              this.core.mageUpgrades.length
-                ? this.core.mageUpgrades.map(mageUpgradeName).join(" · ")
-                : "—",
-            ],
-          ] as [string, string | number][])
+        ? []
         : isWarrior
           ? flowCap > 0
             ? ([
@@ -1163,11 +1153,14 @@ export class GameUI {
           ] as [string, string | number][])),
     ];
 
-    const renderRows = (items: [string, string | number][]) =>
+    const renderRows = (
+      items: [string, string | number][],
+      isWide: (label: string) => boolean = () => false,
+    ) =>
       items
         .map(([k, v]) => {
           const isDim = v === "—" || v === "未学习";
-          return `<div class="row${isDim ? " dim" : ""}"><span class="k">${k}</span><span class="v${isDim ? " dim" : ""}">${v}</span></div>`;
+          return `<div class="row${isDim ? " dim" : ""}${isWide(k) ? " wide" : ""}"><span class="k">${k}</span><span class="v${isDim ? " dim" : ""}">${v}</span></div>`;
         })
         .join("");
 
@@ -1203,10 +1196,15 @@ export class GameUI {
     const progressEl = document.getElementById("stat-special-progress");
     const statusEl = document.getElementById("stat-special-status");
     const statusList = document.getElementById("stat-special-status-list");
+    const statusTitle = document.getElementById("stat-special-status-title");
     if (statusEl) statusEl.hidden = true;
-    if (statusList) statusList.innerHTML = "";
-    if (weaponEl) weaponEl.hidden = !isShooter;
-    if (rulesEl) rulesEl.hidden = !isLaser && !isMissile;
+    if (statusList) {
+      statusList.innerHTML = "";
+      statusList.classList.remove("mage-status");
+    }
+    if (statusTitle) statusTitle.textContent = "专属机制";
+    if (weaponEl) weaponEl.hidden = !isShooter && !isMage;
+    if (rulesEl) rulesEl.hidden = !isLaser && !isMissile && !isMage;
     if (rulesList) rulesList.innerHTML = "";
     const renderProgress = (level: number, maxLevel: number, xp: number, need: number | null, unit: string, digits: 0 | 1 = 1) => {
       if (!progressEl) return;
@@ -1217,13 +1215,19 @@ export class GameUI {
         '<div class="weapon-progress-track" role="progressbar" aria-label="武器升级进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + percent.toFixed(1) + '" aria-valuetext="' + value + '"><div class="weapon-progress-fill" style="width:' + percent + '%"></div></div>';
     };
     if (specialTitle) {
-      specialTitle.style.display = isShooter ? "" : "none";
-      specialTitle.textContent = isLaser ? "激光武器" : isMissile ? "导弹武器" : "强化弹";
+      specialTitle.style.display = isShooter || isMage ? "" : "none";
+      specialTitle.textContent = isMage
+        ? "元素法杖"
+        : isLaser
+          ? "激光武器"
+          : isMissile
+            ? "导弹武器"
+            : "强化弹";
     }
     if (specialUpgradesEl)
-      specialUpgradesEl.style.display = isShooter ? "" : "none";
+      specialUpgradesEl.style.display = isShooter || isMage ? "" : "none";
     if (specialEl) {
-      specialEl.style.display = isShooter ? "" : "none";
+      specialEl.style.display = isShooter || isMage ? "" : "none";
       if (isShooter && isLaser) {
         const level = this.core.laserLevel;
         const need = LASER_XP[level - 1];
@@ -1320,6 +1324,150 @@ export class GameUI {
         if (specialUpgradesList) specialUpgradesList.innerHTML = upgrades.length
           ? upgrades.map(u => '<div class="special-upgrade"><span class="su-name">' + u.name + '</span><span class="su-desc">' + u.desc + '</span></div>').join("")
           : '<div class="special-upgrade-empty">Lv.4 起，每级获得一条武器升级</div>';
+      } else if (isMage) {
+        const level = this.core.mageStaffLevel;
+        const need = STAFF_LEVELS[level - 1]?.xpToNext ?? null;
+        const el = mageCurrentElement(this.core);
+        const elementName = el ? MAGE_ELEMENTS[el].name : "—";
+        const direct = el
+          ? p.damage *
+            MAGE_BALANCE.elementBaseMul *
+            MAGE_BALANCE.directDamageMul *
+            mageDirectDamageMul(this.core) *
+            MAGE_ELEMENTS[el].damageMul
+          : 0;
+        const base = p.damage * MAGE_BALANCE.elementBaseMul;
+        const suit = this.core.mageSuit ?? "未确定";
+        const wheel = this.core.mageElements.length
+          ? `${elementOrderLabel(this.core.mageElements)} · ${this.core.mageCastsInPhase}/${MAGE_CASTS_PER_ELEMENT}`
+          : "未选元素";
+        const reactionNames =
+          this.core.mageReactionIds.length
+            ? this.core.mageReactionIds
+                .map((id) => MAGE_REACTIONS[id].name)
+                .join(" / ")
+            : "未领悟";
+        renderProgress(
+          level,
+          STAFF_LEVELS.length,
+          this.core.mageStaffXp,
+          need,
+          "次有效施法",
+          0,
+        );
+        specialEl.innerHTML = renderRows([
+          ["🔮 当前元素", elementName],
+          ["🎴 元素套装", suit],
+          ["🔁 元素轮盘", wheel],
+          ["☄️ 法阵直伤", direct.toFixed(1)],
+          ["✹ 状态/反应基准", base.toFixed(1)],
+          ["🌐 法阵半径", mageCircleRadius(this.core).toFixed(0) + " px"],
+          ["☯ 已掌握反应", reactionNames],
+        ], (label) => label === "🔁 元素轮盘" || label === "☯ 已掌握反应");
+        const prismTier = magePrismTier(this.core);
+        const prism = this.core.magePrism;
+        const prismLabel =
+          prismTier === 3
+            ? "终极"
+            : prismTier === 2
+              ? "史诗"
+              : prismTier === 1
+                ? "稀有"
+                : "未领悟";
+        const statusRows: [string, string | number][] = [
+          [
+            "🔮 棱镜",
+            prismTier > 0
+              ? `${prismLabel}${prism ? ` · ${MAGE_ELEMENTS[prism.element].name}→${elementName} · ${prism.t.toFixed(1)}s · ${prism.charges} 发` : " · 待生成"}`
+              : "未领悟",
+          ],
+          [
+            "🔔 回响",
+            this.core.mageUpgrades.includes("echoCircle")
+              ? `已领悟 · ${this.core.mageEchoes.length} 待发`
+              : "未领悟",
+          ],
+          [
+            "👥 分影",
+            this.core.mageUpgrades.includes("splitShadow")
+              ? this.core.mageShadowCd > 0
+                ? `冷却 ${this.core.mageShadowCd.toFixed(1)}s`
+                : "就绪"
+              : "未领悟",
+          ],
+          ["⏱ ICD", `${mageReactionIcd(this.core).toFixed(1)} 秒`],
+          ...((this.core.player.upCounts["护咒壁"] || 0) > 0
+            ? ([["⚡ 护咒壁", `${this.core.mageCharge}/${MAGE_BALANCE.chargeFull}`]] as [string, string][])
+            : []),
+        ];
+        if (statusEl) statusEl.hidden = false;
+        if (statusTitle) statusTitle.textContent = "元素与反应";
+        if (statusList) {
+          statusList.classList.add("mage-status");
+          statusList.innerHTML = renderRows(statusRows);
+        }
+        if (rulesList)
+          rulesList.innerHTML = renderRows([
+            [
+              "法杖经验",
+              "本体法阵实际命中至少 1 个敌人 +1；空放或被打断不计；玩家等级/属性点独立",
+            ],
+            [
+              "轮盘",
+              "每 3 次成功施法切换；获得新元素不重置当前阶段；Lv1/3/6 选择元素",
+            ],
+            [
+              "成长",
+              "Lv2/4–5/7–9/10–12 自动发放普通/稀有/史诗/终极强化；旧法师三选一保留 6 张",
+            ],
+            [
+              "反应触发",
+              "只由本体法阵触发；每怪每发最多一次；未领悟不触发；链/DoT/派生不递归",
+            ],
+            [
+              "反应 ICD",
+              "每怪基础 0.5 秒；反应精通 0.4 秒；元素震爆不受 ICD",
+            ],
+            [
+              "双元素增伤",
+              "反应按触发元素结算抗性/类型，配对另一元素的 typeDamageBonus 也计入",
+            ],
+            [
+              "当前数值",
+              "法阵直伤 = 基准 ×0.65 × 元素倍率（咏唱调律再 ×1.1）；状态/链/反应使用完整基准",
+            ],
+            ...(prismTier > 0
+              ? ([
+                  [
+                    "棱镜",
+                    "第 3 次成功施法留下 4 秒；A 分裂到两个目标点（稀有各 25%、史诗各 40%），B 集中主落点（50%/80%）；折射按当前法阵元素结算，记录元素用于终极震爆；不触发链/不吸血/不给经验",
+                  ],
+                ] as [string, string][])
+              : []),
+            ...(this.core.mageUpgrades.includes("splitShadow")
+              ? ([
+                  [
+                    "分影齐射",
+                    "本体反应后召唤左右残影，各 55% 法阵，6 秒冷却；只施加 60% 持续时间状态",
+                  ],
+                ] as [string, string][])
+              : []),
+          ]);
+        const upgrades = this.core.mageUpgrades.flatMap((id) => {
+          const def = mageUpgradeInfo(id);
+          return def ? [def] : [];
+        });
+        if (specialUpgradesTitle)
+          specialUpgradesTitle.textContent = `当前强化 (${upgrades.length}/${MAGE_UPGRADE_SLOTS})`;
+        if (specialUpgradesList)
+          specialUpgradesList.innerHTML = upgrades.length
+            ? upgrades
+                .map(
+                  (u) =>
+                    `<div class="special-upgrade"><span class="su-name">${u.name}</span><span class="su-desc">${u.desc}</span></div>`,
+                )
+                .join("")
+            : '<div class="special-upgrade-empty">法杖 Lv.2 起自动领悟强化</div>';
       } else if (isShooter) {
         const level = this.core.specialLevel;
         const specialStats = getSpecialLevelStats(level);
@@ -1750,6 +1898,30 @@ export class GameUI {
     let html = `<span class="tot">合计 ${Math.round(total)}</span>`;
     for (const it of items)
       html += `<span class="it">${DMG_NAMES[it.k]} <b>${Math.round(it.v)}</b> (${((it.v / total) * 100).toFixed(0)}%)</span>`;
+    if (total >= 0.5 && this.core.prof === "mage") {
+      const detail = this.core.waveMageDamage();
+      const direct = (
+        [
+          ["本体", detail.body],
+          ["回响", detail.echo],
+          ["折射", detail.refract],
+          ["分影", detail.shadow],
+          ["碎裂", detail.shatter],
+        ] as [string, number][]
+      ).filter(([, v]) => v > 0.5);
+      if (direct.length)
+        html += `<div class="it mage-sub">法阵细分 ${direct
+          .map(([name, value]) => `${name} <b>${Math.round(value)}</b>`)
+          .join(" · ")}</div>`;
+      const reactions = Object.entries(detail.reaction)
+        .filter(([, value]) => value > 0.5)
+        .map(
+          ([id, value]) =>
+            `${MAGE_REACTIONS[id as keyof typeof MAGE_REACTIONS].name} <b>${Math.round(value)}</b>`,
+        );
+      if (reactions.length)
+        html += `<div class="it mage-sub">反应细分 ${reactions.join(" · ")}</div>`;
+    }
     if (total < 0.5) html = '<span class="it">本波没有造成伤害</span>';
     element("bp-report").innerHTML = html;
     // 置换入口：v60 起由 SWAP_ENTRY_ENABLED 统一关闭（原因见常量注释）。
@@ -2061,8 +2233,8 @@ export class GameUI {
     if (step === 3) {
       if (prof === "mage")
         return {
-          title: "站定施法",
-          body: "法阵会自动落在最近的可见敌人身上；读条最后 40% 停下，伤害 ×1.5。试着站定命中至少 2 个目标。",
+          title: "元素法阵",
+          body: "法阵会自动落在最近的可见敌人身上，移动也可以正常施法；试着让一次法阵命中至少 2 个木桩。",
         };
       if (prof === "warrior")
         return {
