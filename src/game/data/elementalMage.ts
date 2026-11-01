@@ -397,12 +397,12 @@ export const ELEMENTAL_MAGE = {
   reaction: {
     /** 每只敌人两次反应之间的基础间隔；低于基础施法周期，避免前期误伤；精通再降低。 */
     icdBase: 0.5,
-    quenchPerBurn: 0.8,
+    quenchPerBurn: 1,
     quenchFrostStacks: 2,
-    meltPerFrost: 0.95,
-    overloadPerBurn: 1.25,
-    blazeMain: 1.2,
-    blazeSplash: 0.6,
+    meltPerFrost: 1.2,
+    overloadPerBurn: 1.55,
+    blazeMain: 1.5,
+    blazeSplash: 0.75,
     blazeSplashCount: 3,
     blazeSplashRadius: 80,
   },
