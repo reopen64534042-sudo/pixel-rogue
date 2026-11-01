@@ -380,7 +380,7 @@ function grantEpicRandom(core: GameCore, level: number): void {
   grantEpicItem(core, pool[Math.floor(Math.random() * pool.length)], level);
 }
 
-/** Lv9：优先补缺失反应，再补齐其余史诗项。 */
+/** Lv9：优先补「三环共鸣」，再补齐其余史诗项。 */
 function grantEpicRemaining(core: GameCore, level: number): void {
   const missing = missingReactionId(core);
   if (missing) grantEpicItem(core, "missingReaction", level);

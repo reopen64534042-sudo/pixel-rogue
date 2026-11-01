@@ -209,7 +209,7 @@ export const STAFF_LEVELS: readonly StaffLevelDef[] = [
   { xpToNext: 56, note: "选择第三元素，随机领悟一条新反应" },
   { xpToNext: 64, note: "史诗池随机 1 项" },
   { xpToNext: 72, note: "史诗池随机 1 项" },
-  { xpToNext: 80, note: "史诗池：补齐三项（缺失反应保底）" },
+  { xpToNext: 80, note: "史诗池：补齐三项（三环共鸣保底）" },
   { xpToNext: 88, note: "终极池随机 1 项" },
   { xpToNext: 96, note: "终极池随机 1 项" },
   { xpToNext: null, note: "终极池：补齐三项" },
@@ -288,9 +288,9 @@ export const MAGE_RARE_UPGRADES: readonly MageRareUpgradeDef[] = [
 export const MAGE_EPIC_UPGRADES: readonly MageEpicUpgradeDef[] = [
   {
     id: "missingReaction",
-    name: "缺失反应",
+    name: "三环共鸣",
     ico: "✴️",
-    desc: "领悟 Lv6 未随机到的那条 B+C / C+A 反应",
+    desc: "补全所选三元素之间最后一条配对反应，使元素轮盘上的三条反应全部点亮",
   },
   {
     id: "prismEpic",

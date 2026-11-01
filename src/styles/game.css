@@ -1942,9 +1942,10 @@ p {
   margin-top: 0.6vmin;
 }
 .over-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1.4vmin;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.2vmin;
+  justify-items: center;
   margin-top: 1.2vmin;
 }
 @media (max-width: 720px), (max-height: 420px) {
@@ -1954,6 +1955,9 @@ p {
     padding: 1.1vmin;
   }
   .over-grid {
+    grid-template-columns: 1fr;
+  }
+  .over-actions {
     grid-template-columns: 1fr;
   }
   .over-title {

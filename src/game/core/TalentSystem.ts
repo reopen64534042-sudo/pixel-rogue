@@ -34,19 +34,15 @@ export function availTalents(this: GameCore, t: number) {
 }
 
 /**
- * 熔炉专用候选池（S2 过渡）。
+ * 熔炉专用候选池（历史兼容）。
  *
- * 熔炉的语义是「2 张同档 → 1 张高一档」，它的产出必须是**已存在于本局成长线**
- * 的卡。S2 让旧表整体 `hidden` 后，`availTalents` 只剩 18 张射手卡，而它们
- * 大多需要前置（L2 需 L1、L3 需 L2），三档池经常为空 → `melt()` 直接返回 null。
- *
- * 所以 S2 期间熔炉继续只处理旧表（`hidden` 不参与判定），保持 v40 行为；
- * 熔炉的最终去向（关闭入口 / 改为只推进已拥有的链）在 S4 决定。
+ * v165 旧表已全部删除，本池为空；熔炉入口（`SWAP_ENTRY_ENABLED`）自 v60 关闭，
+ * 保留函数只为既有 SwapSystem / melt 调用链与测试编译，不再提供可产出的旧卡。
  */
 export function legacyAvailTalents(this: GameCore, t: number) {
   return LEGACY_UPGRADES.filter(
     (u) =>
-      // 原版 `hidden` 仍然排除；只有 S2 的 `retired` 被放行
+      // v165 后 LEGACY_UPGRADES 为空；保留过滤逻辑供未来池复用
       !u.hidden &&
       (this.player.upCounts[u.n] || 0) < u.max &&
       (!u.req || u.req(this.player)) &&
@@ -55,7 +51,7 @@ export function legacyAvailTalents(this: GameCore, t: number) {
 }
 
 export function canOffer(this: GameCore, u: Talent) {
-  // retired：S2 起整体退役的旧表（不进抽取池，但仍在表内供 parity/图鉴使用）
+  // retired / hidden：v165 已删除旧表与退役卡，保留判定防御异常数据。
   if (u.hidden || u.retired) return false;
   if ((this.player.upCounts[u.n] || 0) >= u.max) return false;
   if (u.req && !u.req(this.player)) return false;

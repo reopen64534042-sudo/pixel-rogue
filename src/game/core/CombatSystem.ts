@@ -11,6 +11,7 @@ import {
   hash01,
 } from "../data/constants";
 import { DAMAGE_TYPES } from "../data/damageTypes";
+import { MAGE_ELEMENTS } from "../data/elementalMage";
 import { KNOCK } from "../data/knockback";
 import {
   WARRIOR_BALANCE,
@@ -247,7 +248,11 @@ export function hurtEnemy(
             ? TRUE_DAMAGE_COLOR
             : opts.specialHit || crit
               ? "#ffd24a"
-              : "#ffffff",
+              : opts.type === "fire" ||
+                  opts.type === "frost" ||
+                  opts.type === "lightning"
+                ? MAGE_ELEMENTS[opts.type].color
+                : "#ffffff",
       crit,
       mainIsTrue,
       false,
