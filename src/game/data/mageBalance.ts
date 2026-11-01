@@ -64,9 +64,9 @@ export interface MageBalance {
   /** 连咏：施法间隔倍率（0.8 = 间隔 −20%）。 */
   continuousCastIntervalMul: number;
 
-  // —— 范围（保留旧卡）——
-  /** 广域符印：作用范围倍率（1.2 = +20%）。 */
-  wideSealAreaMul: number;
+  // —— 机动（踏影）——
+  /** 踏影：冲刺起点残影吸引仇恨的持续时间（秒）。 */
+  shadowStepDecoyDuration: number;
 
   // —— 脱离（保留旧卡）——
   /** 相位：传送搜索半径（px）。 */
@@ -97,13 +97,13 @@ export const MAGE_BALANCE: MageBalance = {
   chargeFull: 3,
   chargeFlash: 0.35,
 
-  wardShieldPct: 0.12,
-  wardShieldDuration: 1.2,
+  wardShieldPct: 0.2,
+  wardShieldDuration: 3,
 
   quickCastWindupMul: 0.7,
   continuousCastIntervalMul: 0.8,
 
-  wideSealAreaMul: 1.2,
+  shadowStepDecoyDuration: 1.5,
 
   phaseRange: 80,
   phaseCooldown: 10,

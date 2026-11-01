@@ -11,12 +11,14 @@ import { MAGE_BUILD } from "../elementalMage";
  *
  * 旧卡：
  * - 速咏 / 连咏（节律）
- * - 广域符印（范围）
  * - 护咒壁（原「咏唱护壁」改名；仍消费充能条）
  * - 相位 / 镜像（脱离）
  *
+ * v178 重做生存/机动：护咒壁护盾提高到 20% 最大生命/3 秒；相位与镜像
+ * 均规避触发本次伤害；删除广域符印，新增机动卡「踏影」。
+ *
  * 已删除：炽焰印记、霜寒之力、闪电连锁、元素共振、双修、三修、
- * 星陨、多重陨星、元素残域、三连聚爆、元素蓄能、过载、回响。
+ * 星陨、多重陨星、元素残域、三连聚爆、元素蓄能、过载、回响、广域符印。
  */
 
 /** 脱离槽的变体组 id：相位 / 镜像二选一。 */
@@ -56,24 +58,6 @@ export const MAGE_TALENTS: Talent[] = [
     cur: () => "施法间隔缩短 20%",
   },
 
-  // ================= 范围槽：法阵大小 =================
-  {
-    n: "广域符印",
-    ico: "🌐",
-    t: 0,
-    cat: "范围",
-    slot: "范围",
-    layer: 1,
-    prof: "mage",
-    d: "法阵作用范围 +20%",
-    max: 1,
-    pv: (p) =>
-      `法阵半径 ${Math.round(MB.circleRadius * p.area)}px → ${Math.round(MB.circleRadius * p.area * MB.wideSealAreaMul)}px`,
-    f: () => {},
-    cur: (p) =>
-      `法阵半径 ${Math.round(MB.circleRadius * p.area * MB.wideSealAreaMul)}px`,
-  },
-
   // ================= 循环槽：每 3 次成功施法给盾 =================
   {
     n: "护咒壁",
@@ -83,12 +67,28 @@ export const MAGE_TALENTS: Talent[] = [
     slot: "循环",
     layer: 1,
     prof: "mage",
-    d: `每 ${MB.chargeFull} 次成功施法获得护盾（最大生命 ${Math.round(MB.wardShieldPct * 100)}%，持续 ${MB.wardShieldDuration} 秒，不可叠层）`,
+    d: `每 ${MB.chargeFull} 次成功施法获得护盾（最大生命 ${Math.round(MB.wardShieldPct * 100)}%，持续 ${MB.wardShieldDuration} 秒；不可叠层，重复触发刷新）`,
     max: 1,
     pv: () =>
       `护盾 ${Math.round(MB.wardShieldPct * 100)}% 最大生命 · 持续 ${MB.wardShieldDuration} 秒`,
     f: () => {},
-    cur: () => "每 3 次成功施法获得护盾",
+    cur: () => `每 ${MB.chargeFull} 次施法获得 ${Math.round(MB.wardShieldPct * 100)}% 护盾`,
+  },
+
+  // ================= 机动槽：冲刺留下仇恨残影 =================
+  {
+    n: "踏影",
+    ico: "👣",
+    t: 0,
+    cat: "机动",
+    slot: "机动",
+    layer: 1,
+    prof: "mage",
+    d: `冲刺时在起点留下持续 ${MB.shadowStepDecoyDuration} 秒的残影，敌人会转向攻击残影；不增加冲刺距离或充能`,
+    max: 1,
+    pv: () => `残影 ${MB.shadowStepDecoyDuration} 秒 · 冲刺起手`,
+    f: () => {},
+    cur: () => "冲刺留下仇恨残影",
   },
 
   // ================= 脱离槽：前摇被打断时的保险 =================
@@ -101,11 +101,11 @@ export const MAGE_TALENTS: Talent[] = [
     layer: 1,
     prof: "mage",
     variant: MAGE_VARIANT_ESCAPE,
-    d: "受击时传送到 80px 内没有敌人的位置；找不到落点时改为 0.5 秒无敌（10 秒冷却）",
+    d: `受击时传送到 ${MB.phaseRange}px 内没有敌人的位置；找不到落点时原地 ${MB.phaseInvuln} 秒无敌。两种结果都规避本次伤害，当前施法仍会被打断（${MB.phaseCooldown} 秒冷却）`,
     max: 1,
     pv: () => `传送 ${MB.phaseRange}px · 冷却 ${MB.phaseCooldown} 秒`,
     f: () => {},
-    cur: () => "受击时相位传送",
+    cur: () => "受击时传送并规避伤害",
   },
   {
     n: "镜像",
@@ -116,11 +116,11 @@ export const MAGE_TALENTS: Talent[] = [
     layer: 1,
     prof: "mage",
     variant: MAGE_VARIANT_ESCAPE,
-    d: "受击时留下残影吸引仇恨，自身进入 1 秒虚影（不可受击、无视碰撞、不能施法）（12 秒冷却）",
+    d: `受击时规避本次伤害并留下残影吸引仇恨，自身进入 ${MB.mirrorDuration} 秒虚影（不可受击、无视碰撞、不能施法）（${MB.mirrorCooldown} 秒冷却）`,
     max: 1,
     pv: () => `虚影 ${MB.mirrorDuration} 秒 · 冷却 ${MB.mirrorCooldown} 秒`,
     f: () => {},
-    cur: () => "受击时留下残影",
+    cur: () => "受击时残影规避伤害",
   },
 
   // ================= v177 玩家构筑卡（三选一池） =================

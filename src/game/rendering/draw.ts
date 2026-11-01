@@ -309,7 +309,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     this.prof === "mage" && this.mageWeapon === "arcane" &&
     (this.castPhase === "windup" || this.castPhase === "cast")
   ) {
-    // 预览圈与实际半径一致（法阵扩幅/广域符印都在 mageCircleRadius 内结算）。
+    // 预览圈与实际半径一致（法阵扩幅在 mageCircleRadius 内结算）。
     const R = Math.round(mageCircleRadius(this));
     const total = Math.max(0.001, mageWindup(this));
     const castPart = total * (1 - MB.castWindupInterruptible / MB.castWindup);

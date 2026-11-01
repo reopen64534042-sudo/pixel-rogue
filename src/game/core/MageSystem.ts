@@ -59,12 +59,10 @@ export function mageInterval(core: GameCore): number {
   return (MB.castInterval * mul) / castRate(core);
 }
 
-/** 法阵半径：属性范围、广域符印 +20%、法阵扩幅 +8%。 */
+/** 法阵半径：属性范围 × 法阵扩幅 +8%。 */
 export function mageCircleRadius(core: GameCore): number {
   const p = core.player;
-  let r = MB.circleRadius * p.area * mageCircleWidthMul(core);
-  if ((p.upCounts["广域符印"] || 0) > 0) r *= MB.wideSealAreaMul;
-  return r;
+  return MB.circleRadius * p.area * mageCircleWidthMul(core);
 }
 
 /** 元素伤害基准（不含元素自身倍率）；原站定 1.5× 已折入基准。 */
@@ -606,10 +604,11 @@ export function interruptMageCast(this: GameCore): boolean {
 }
 
 /**
- * 相位：受击时传送到附近没有敌人的位置。
+ * 相位：受击时传送到附近没有敌人的位置；找不到落点时原地短暂无敌。
  *
- * @returns true = 已传送，**本次伤害被完全规避**；
- *          false = 找不到落点（改为给 0.5 秒无敌，本次伤害照常结算）
+ * 两种结果都规避触发本次伤害；当前施法仍按受击打断（由调用方先处理）。
+ *
+ * @returns true = 已触发相位（传送或原地无敌），本次伤害被规避
  */
 export function triggerPhaseEscape(this: GameCore): boolean {
   const core = this;
@@ -634,12 +633,13 @@ export function triggerPhaseEscape(this: GameCore): boolean {
   }
   p.hurtCd = Math.max(p.hurtCd, MB.phaseInvuln);
   core.addText(p.x, p.y - 12, "相位失灵", "#ff9a3d");
-  return false;
+  return true;
 }
 
 /**
  * 镜像：在受击位置留下残影吸引仇恨，自身进入 1 秒虚影。
- * 残影是限时仇恨源，不因接触而破碎。
+ *
+ * 触发本次伤害由调用方规避；残影是限时仇恨源，不因接触而破碎。
  */
 export function triggerMirrorDecoy(this: GameCore): boolean {
   const core = this;

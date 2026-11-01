@@ -84,8 +84,12 @@ export function statBase(
     dashLv: 1,
     dashT: -1,
     // 冲刺冷却：#180 起战士单独配置（近战贴身的接近手段，CD 更短）。
-    // v137 起按流派分岔：太刀 1.6s，大剑 1.8s；其他职业沿用 2.4 秒。
-    dashMax: warrior ? wstyle.dashMax : 2.4,
+    // v178 起元素使（arcane）2.1 秒，射手沿用 2.4 秒；domain 不改。
+    dashMax: warrior
+      ? wstyle.dashMax
+      : mage && mageWeapon === "arcane"
+        ? 2.1
+        : 2.4,
     dashCharges: 1,
     dashRe: 0,
     dashChargeLv: 0,

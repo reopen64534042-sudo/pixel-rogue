@@ -845,10 +845,11 @@ export function damagePlayer(
   }
   // S3 法师：受击打断抬手段（前摇）。收束段不可打断。
   this.interruptMageCast();
-  // S3 法师「脱离」槽：相位（传送规避本次伤害）/ 镜像（残影 + 1 秒虚影）。
+  // S3 法师「脱离」槽：相位与镜像都规避触发本次伤害；施法已在上一行被打断。
   if (this.triggerPhaseEscape())
     return blockedHit(rawDmg, { dodged: true, shieldUsed: "none" });
-  this.triggerMirrorDecoy();
+  if (this.triggerMirrorDecoy())
+    return blockedHit(rawDmg, { dodged: true, shieldUsed: "none" });
   // §3.4 步骤 4：玩家受击固定 preserve-float（§3.3 浮点扣血，UI 取整仅显示）；
   // tough 经通用减伤乘区生效，S2 其余乘区全为 1。
   // 攻击者上下文优先用发射时快照（弹丸），其次接触敌人（opts.src）
