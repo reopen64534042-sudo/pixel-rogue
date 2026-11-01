@@ -1,3 +1,4 @@
+import { BOSS_HP_GROWTH } from "../data/boss";
 import { resolveKeyedMap } from "./StatKeyedMap";
 import { resolveStats, type KeyedStatFamily, type StatId, type StatModifier, type StatSheet } from "./StatModel";
 import type { DamageTypeId } from "../data/damageTypes";
@@ -80,6 +81,8 @@ export interface EnemySpawnContext {
   readonly wave: number;
   readonly elite: boolean;
   readonly speedJitter: number;
+  /** 首领后期生命使用独立成长，普通敌人不传此标记。 */
+  readonly boss?: boolean;
   /** 动态难度：生命最终倍率（省略 = 1） */
   readonly hpMul?: number;
   /** 动态难度：攻击最终倍率（省略 = 1） */
@@ -106,15 +109,19 @@ export function resolveEnemySpawnStats(
   const over = Math.max(0, ctx.wave - 15);
   const hpScale = 1 + (ctx.wave - 1) * 0.18 + over * over * 0.06;
   const dmgScale = 1 + (ctx.wave - 1) * 0.055 + over * over * 0.012;
+  const bossHpStep = ctx.boss && ctx.wave >= BOSS_HP_GROWTH.fromWave
+    ? Math.floor((ctx.wave - BOSS_HP_GROWTH.fromWave) / BOSS_HP_GROWTH.everyWaves)
+    : null;
   const result = resolveStats({
-    base: { maxHp: cfg.hp, attack: cfg.dmg, moveSpeed: cfg.speed },
+    base: { maxHp: bossHpStep === null ? cfg.hp : BOSS_HP_GROWTH.baseHp, attack: cfg.dmg, moveSpeed: cfg.speed },
     modifiers: [
-      { sourceId: "wave", stat: "maxHp", stage: "final", value: hpScale },
+      { sourceId: "wave", stat: "maxHp", stage: "final", value: bossHpStep === null ? hpScale : BOSS_HP_GROWTH.multiplier ** bossHpStep },
       // 2026-10-30 平衡回调：精英生命倍率 ×5，攻击保持 ×1.6。
       { sourceId: "elite", stat: "maxHp", stage: "final", value: ctx.elite ? 5 : 1 },
       { sourceId: "wave", stat: "attack", stage: "final", value: dmgScale },
       { sourceId: "elite", stat: "attack", stage: "final", value: ctx.elite ? 1.6 : 1 },
-      { sourceId: "difficulty", stat: "maxHp", stage: "final", value: ctx.hpMul ?? 1 },
+      // W20+ Boss 实际 HP 必须逐次翻倍，不能再叠加射手额外生命倍率。
+      { sourceId: "difficulty", stat: "maxHp", stage: "final", value: bossHpStep === null ? ctx.hpMul ?? 1 : 1 },
       { sourceId: "difficulty", stat: "attack", stage: "final", value: ctx.attackMul ?? 1 },
       { sourceId: "elite", stat: "moveSpeed", stage: "final", value: ctx.elite ? 0.8 : 1 },
       { sourceId: "jitter", stat: "moveSpeed", stage: "final", value: ctx.speedJitter },
