@@ -1,12 +1,13 @@
 import { drawAnimatedBoss } from "./BossVfx";
 import { drawEnemySkills } from "./EnemySkillRenderer";
+import { drawMonsterProjectile } from "./MonsterVfx";
 import { bossSpriteKey, drawBossGround, drawBossHead, drawBossHud } from "./BossRenderer";
 import { drawLaser, drawLaserResources } from "./LaserRenderer";
 import { drawMissile, drawMissileGround, drawMissileResources } from "./MissileRenderer";
 import { drawDomainGround, drawDomainEffects, drawDomainResources, drawDomainOverloadBody } from './DomainRenderer';
 import type { GameCore } from "../core/GameCore";
 import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
-import type { FloatingText } from "../core/types";
+import type { Enemy, FloatingText } from "../core/types";
 import type { PixelPainter } from "./PixelPainter";
 import type { ShooterEchoDrawing } from "./characters/ShooterCharacter";
 import type { MageVfx } from "./vfx/MageVfx";
@@ -24,14 +25,7 @@ import {
 } from "../data/warriorBalance";
 import { getSpecialLevelStats } from "../data/specialShot";
 import { TRUE_DAMAGE_OUTLINE } from "../core/CombatSystem";
-import {
-  BURROWER,
-  CHARGER_CHARGE,
-  DRUMMER_AURA,
-  ELITE_AFFIX_INFO,
-  ELITE_NOVA,
-  WEB_ZONE,
-} from "../data/enemies";
+import { ELITE_AFFIX_INFO } from "../data/enemies";
 import { spriteEntry } from "./assetRegistry";
 import { drawGreatswordSlash } from "./vfx/greatswordSlash";
 import {
@@ -198,7 +192,7 @@ function drawChargeBar(
 }
 
 export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean, character?: CharacterDrawing,
-  shooterWeapon?: () => void, shooterEcho?: ShooterEchoDrawing, mageVfx?: MageVfx, domainNumber?: (t: FloatingText) => boolean) {
+  shooterWeapon?: () => void, shooterEcho?: ShooterEchoDrawing, mageVfx?: MageVfx, domainNumber?: (t: FloatingText) => boolean, monsterDrawing?: (e: Enemy) => boolean) {
   const TS = 16,
     tw = WORLD.w / TS,
     th = WORLD.h / TS;
@@ -289,60 +283,6 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   // 织网蛛蛛网：预警时金色圈收缩，生效后画白色网纹；网只减速，不造成伤害。
   drawBossGround(this, ctx);
   drawEnemySkills(this, ctx);
-  for (const z of this.webZones) {
-    if (z.arm > 0) {
-      const k = 1 - z.arm / WEB_ZONE.arm;
-      ctx.globalAlpha = 0.45 + Math.sin(this.time * 18) * 0.2;
-      ctx.strokeStyle = "#ffd24a";
-      ctx.beginPath();
-      ctx.arc(Math.round(z.x), Math.round(z.y), z.R, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(
-        Math.round(z.x),
-        Math.round(z.y),
-        Math.max(2, z.R * k),
-        0,
-        Math.PI * 2,
-      );
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    } else {
-      // 生效后的网压低对比：多张网叠加时不能盖住角色和弹幕，
-      // 外圈 + 内圈负责读出减速范围，辐条只画外段避免中心糊成一团。
-      const pulse = Math.sin(this.time * 3 + z.x) * 0.02;
-      ctx.globalAlpha = 0.16 + pulse;
-      ctx.strokeStyle = "#8ea6cc";
-      ctx.beginPath();
-      ctx.arc(Math.round(z.x), Math.round(z.y), z.R, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 0.1 + pulse;
-      ctx.beginPath();
-      ctx.arc(
-        Math.round(z.x),
-        Math.round(z.y),
-        Math.round(z.R * 0.55),
-        0,
-        Math.PI * 2,
-      );
-      ctx.stroke();
-      ctx.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2;
-        ctx.moveTo(
-          Math.round(z.x + Math.cos(a) * z.R * 0.3),
-          Math.round(z.y + Math.sin(a) * z.R * 0.3),
-        );
-        ctx.lineTo(
-          Math.round(z.x + Math.cos(a) * z.R * 0.92),
-          Math.round(z.y + Math.sin(a) * z.R * 0.92),
-        );
-      }
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-  }
-
   // 陨星预告（#112）：圆环与十字合并为一次 lineStyle + strokePath。
   // 原先每个陨石要 2 次 beginPath + 2 次 strokePath，多个陨石时反复打断批次。
   if (this.meteors.length) {
@@ -647,11 +587,10 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     // 命名统一为 `${spr}_elite`，与 sprites.ts 的注册键一致（如 brute_elite）。
     const eliteKey = `${e.spr}_elite`;
     const eliteEntry = e.elite ? spriteEntry(eliteKey) : undefined;
-    // 火囊虫引爆时胀大，是「要炸了」的第一重信号
-    const puff = e.type === "bomber" && e.fuse > 0 ? 1.35 : 1;
+    // Animation sheets retain the approved native scale; missing sheets use the static originals.
     const rect = eliteEntry
-      ? spriteRect(eliteKey, e.x, e.y, puff)
-      : spriteRect(e.boss ? bossSpriteKey(this) : e.spr, e.x, e.y, (e.elite ? 1.8 : 1) * puff);
+      ? spriteRect(eliteKey, e.x, e.y)
+      : spriteRect(e.boss ? bossSpriteKey(this) : e.spr, e.x, e.y, e.elite ? 1.8 : 1);
     if (!rect) continue;
     const { x, y, w, h } = rect;
     const burrowHidden =
@@ -660,30 +599,11 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     if (e.slowT > 0) ctx.globalAlpha = 0.9;
     if (e.action?.kind === "blink" && e.action.phase === "windup") ctx.globalAlpha = Math.max(0.15, e.action.t / e.action.max);
     if (e.type === "burrower" && e.burrowState === "dive") ctx.globalAlpha = 0.55;
-    if (burrowHidden) {
-      // 地下只剩土丘、两只前爪与复眼；贴图不画，但敌人实体仍在场上（可被范围伤害命中）。
-      ctx.fillStyle = "#5a3a20";
-      ctx.fillRect(Math.round(e.x - 8), Math.round(e.y - 3), 16, 6);
-      ctx.fillStyle = "#3a1a0a";
-      ctx.fillRect(Math.round(e.x - 5), Math.round(e.y - 2), 10, 2);
-      ctx.fillStyle = "#e8e8f0";
-      ctx.fillRect(Math.round(e.x - 8), Math.round(e.y + 1), 3, 2);
-      ctx.fillRect(Math.round(e.x + 5), Math.round(e.y + 1), 3, 2);
-      ctx.fillStyle = "#ffd24a";
-      ctx.fillRect(Math.round(e.x - 2), Math.round(e.y - 1), 2, 2);
-      ctx.fillRect(Math.round(e.x + 2), Math.round(e.y - 1), 2, 2);
-      ctx.globalAlpha = 0.35 + Math.sin(this.time * 8 + e.seed) * 0.12;
-      ctx.strokeStyle = "#8a5a30";
-      ctx.beginPath();
-      ctx.arc(Math.round(e.x), Math.round(e.y), 12, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    } else {
-      ctx.sprite(rect.tex, x, y, w, h);
+    if (!burrowHidden) {
+      if (!monsterDrawing?.(e)) ctx.sprite(rect.tex, x, y, w, h);
       if (e.boss) drawBossHead(this, ctx);
     }
-    if (e.type === "burrower" && e.burrowState === "dive")
-      ctx.globalAlpha = 1;
+    ctx.globalAlpha = 1;
 
     if (e.slowT > 0) {
       ctx.globalAlpha = 0.35;
@@ -748,136 +668,8 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.globalAlpha = 1;
     }
     drawDomainOverloadBody(this,ctx,e,x,y,w,h);
-    // 火囊虫引爆预警：本体泛白高频交替（约 10Hz）+ 地面红色范围圈
-    if (e.type === "bomber" && e.fuse > 0) {
-      if (Math.sin(this.time * 62) > 0) {
-        ctx.globalAlpha = 0.8;
-        ctx.fillStyle = "#ffb3ab";
-        ctx.fillRect(x, y, w, h);
-        ctx.globalAlpha = 1;
-      }
-      // 圈半径从 0 扩张到真实爆炸半径（与结算判定 38 + player.r 一致）
-      const blast = 38 + this.player.r;
-      const grow = 1 - Math.max(0, e.fuse) / 0.5;
-      ctx.globalAlpha = 0.4 + Math.sin(this.time * 30) * 0.2;
-      ctx.strokeStyle = "#ff3b30";
-      ctx.beginPath();
-      ctx.arc(
-        Math.round(e.x),
-        Math.round(e.y),
-        Math.max(2, blast * grow),
-        0,
-        Math.PI * 2,
-      );
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-    // 战鼓手光环：外圈只画细线表示 120px 生效范围，近身脉冲圈表示鼓点。
-    if (e.type === "drummer") {
-      ctx.globalAlpha = 0.06 + (Math.sin(this.time * 4 + e.seed * 9) + 1) * 0.02;
-      ctx.strokeStyle = "#ffd24a";
-      ctx.beginPath();
-      ctx.arc(
-        Math.round(e.x),
-        Math.round(e.y),
-        DRUMMER_AURA.radius,
-        0,
-        Math.PI * 2,
-      );
-      ctx.stroke();
-      ctx.globalAlpha = 0.35 + Math.sin(this.time * 6 + e.seed) * 0.15;
-      ctx.beginPath();
-      ctx.arc(
-        Math.round(e.x),
-        Math.round(e.y),
-        12 + Math.sin(this.time * 6 + e.seed) * 2,
-        0,
-        Math.PI * 2,
-      );
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-    // 掘地虫钻出预警：地面收缩圈，结束后才恢复接触伤害。
-    if (e.type === "burrower" && e.burrowState === "surface") {
-      const k = 1 - (e.burrowT ?? 0) / BURROWER.surface;
-      ctx.globalAlpha = 0.5 + Math.sin(this.time * 20) * 0.2;
-      ctx.strokeStyle = "#ffd24a";
-      ctx.beginPath();
-      ctx.arc(Math.round(e.x), Math.round(e.y), 24, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(
-        Math.round(e.x),
-        Math.round(e.y),
-        Math.max(2, 24 * k),
-        0,
-        Math.PI * 2,
-      );
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-    // 角兽冲锋表现：预警线锁定方向，冲刺时留金色速度线，撞墙后头顶转星。
-    if (e.type === "charger" && e.chargeState) {
-      const dx = e.chargeDx ?? 0;
-      const dy = e.chargeDy ?? 0;
-      if (e.chargeState === "windup") {
-        const len = CHARGER_CHARGE.distance;
-        const tipX = e.x + dx * len;
-        const tipY = e.y + dy * len;
-        ctx.globalAlpha = 0.35 + Math.sin(this.time * 18) * 0.15;
-        ctx.strokeStyle = "#ff3b30";
-        ctx.beginPath();
-        ctx.moveTo(Math.round(e.x), Math.round(e.y));
-        ctx.lineTo(Math.round(tipX), Math.round(tipY));
-        ctx.stroke();
-        const px = -dy;
-        const py = dx;
-        ctx.globalAlpha = 0.75;
-        ctx.strokeStyle = "#ff3b30";
-        ctx.beginPath();
-        ctx.moveTo(Math.round(tipX), Math.round(tipY));
-        ctx.lineTo(
-          Math.round(tipX - dx * 7 + px * 3),
-          Math.round(tipY - dy * 7 + py * 3),
-        );
-        ctx.moveTo(Math.round(tipX), Math.round(tipY));
-        ctx.lineTo(
-          Math.round(tipX - dx * 7 - px * 3),
-          Math.round(tipY - dy * 7 - py * 3),
-        );
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-      } else if (e.chargeState === "dash") {
-        ctx.globalAlpha = 0.4;
-        ctx.strokeStyle = "#ffd24a";
-        for (let i = 1; i <= 3; i++) {
-          ctx.beginPath();
-          ctx.moveTo(
-            Math.round(e.x - dx * i * 5),
-            Math.round(e.y - dy * i * 5),
-          );
-          ctx.lineTo(
-            Math.round(e.x - dx * (i * 5 + 4)),
-            Math.round(e.y - dy * (i * 5 + 4)),
-          );
-          ctx.stroke();
-        }
-        ctx.globalAlpha = 1;
-      } else if (e.chargeState === "stun") {
-        ctx.fillStyle = "#ffd24a";
-        for (let i = 0; i < 3; i++) {
-          const a = this.time * 4 + (i * Math.PI * 2) / 3;
-          ctx.fillRect(
-            Math.round(e.x + Math.cos(a) * 7),
-            Math.round(e.y - e.r - 8 + Math.sin(a) * 2),
-            2,
-            2,
-          );
-        }
-      }
-    }
     // v128 三段斩震地眩晕：与角兽撞墙共用转星读法。
-    if ((e.stunT ?? 0) > 0 && e.chargeState !== "stun") {
+    if ((e.stunT ?? 0) > 0 || e.chargeState === "stun") {
       ctx.fillStyle = "#ffd24a";
       for (let i = 0; i < 3; i++) {
         const a = this.time * 4 + (i * Math.PI * 2) / 3;
@@ -902,27 +694,6 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       const my = Math.round(y - 8);
       ctx.fillRect(mx - 2, my, 5, 2);
       ctx.fillRect(mx, my - 2, 2, 5);
-    }
-    if (e.elite && e.affix === "nova" && (e.novaT ?? 0) > 0) {
-      const cx = Math.round(e.x);
-      const cy = Math.round(e.y);
-      const k = 1 - (e.novaT ?? 0) / ELITE_NOVA.windup;
-      const urgent = (e.novaT ?? 0) < 0.18;
-      // 只保留两层低饱和蓝灰线：外圈固定为真实命中半径，内圈随蓄力扩张；
-      // 不填充、不用白色高亮，保证看得清但不抢战场。
-      ctx.globalAlpha = urgent ? 0.8 : 0.55 + Math.sin(this.time * 20) * 0.08;
-      ctx.strokeStyle = urgent ? "#bcd8e6" : "#7fa8c0";
-      ctx.beginPath();
-      ctx.arc(cx, cy, ELITE_NOVA.radius, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(cx, cy, ELITE_NOVA.radius - 1, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = urgent ? 0.65 : 0.32 + k * 0.25;
-      ctx.beginPath();
-      ctx.arc(cx, cy, Math.max(2, ELITE_NOVA.radius * k), 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
     }
   }
 
@@ -1512,17 +1283,8 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     );
   }
 
-  // 敌方弹幕
-  for (const b of this.ebullets) {
-    const x = Math.round(b.x),
-      y = Math.round(b.y);
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = b.reflected ? "#9fe1ff" : "#ff5b5b";
-    ctx.fillRect(x - 2, y - 2, 4, 4);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = b.reflected ? "#e0f6ff" : "#ffd0c0";
-    ctx.fillRect(x - 1, y - 1, 2, 2);
-  }
+  // Enemy projectile core and directional tail share the new monster materials.
+  for (const b of this.ebullets) drawMonsterProjectile(ctx, b, this.time);
 
   // 粒子
   for (const q of this.parts) {

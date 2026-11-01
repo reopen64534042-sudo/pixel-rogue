@@ -31,6 +31,7 @@ export function startNextWave(this: GameCore) {
   this.swTarget = 0;
   this.swSel = {};
   clearBossTransient(this);
+  this.enemyVisualEvents = [];
   this.waveN++;
   const theme = waveTheme(this.waveN);
   this.themeGuarantee = isBossWave(this.waveN) ? null : theme.signature ?? null;

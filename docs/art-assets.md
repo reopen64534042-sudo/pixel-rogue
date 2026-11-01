@@ -366,3 +366,10 @@
 - `node scripts/build-monster-assets.mjs`（Node24）导出`assets/monsters/native`，逐张走现有`pixelize.mjs`的透明二值化/色板/尺寸校验，产出`public/assets/sprites`与两个manifest。PNG必须与运行时备用矩阵逐像素一致；不引入依赖、不修改全局色板。
 - 运行时默认矩阵与外部PNG使用同一逻辑键，既有GameScene覆盖加载器无需改动。精英使用独立24px贴图，不再走缺图时的×1.8缩放。
 - 素材预览：`docs/previews/monsters-v167/index.html`（可切换1×/4×）与`contact-sheet.png`；预览仅展示素材，不代表自然对局验收。已认可Boss PNG/图集未修改。
+
+## 15. 普通怪与精英攻击动画特效（v168）
+
+- 静态素材经用户认可后已提交为`dcd7d25`。新增动画在`public/assets/monsters/animation`独立发布：17套204帧，24×24/32×32帧格共享中心锚点，首帧是认可原图加透明留白，生成时逐像素核对。
+- 本批直接编辑既有原生像素源的动作配方，未新增生图调用、依赖或色板。Boss的动画、特效和加载方式均恢复原版。
+- 普通/精英/词缀攻击使用`MonsterFxRecipes.ts`纯像素绘制配方，预警使用战斗配置。Boss继续加载原版图集和绘制器。
+- 原稿、生产接线、重建命令、23段交互预览及GIF交付边界见[怪物动画与特效](monster-animation-and-vfx.md)。

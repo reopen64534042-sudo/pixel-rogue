@@ -4,6 +4,7 @@
 > 原设计基线：v150；实际实现基线：上游 v166。工作区 `E:\AllProjects\pixel-rogue-monster-design`，实现分支 `codex/monster-expansion`；原 `feat/monster-design` 分支保留。
 > 上游已经包含三首巨兽，投手与 Boss 使用同一地面池；第 10/20/30… 波保留 Boss 独占，因此三精英组合首次出现在 **W21**。不把 W20 改回普通精英波。
 > 相关文档：`docs/monster-numerics.md`、`docs/boss-three-headed-beast.md`、`docs/combat-numerics-agent-guide.md`、`docs/art-assets.md`。
+> v167静态素材已获用户认可并提交为`dcd7d25`；后续v168全怪物攻击动画/VFX重做见[动态说明](monster-animation-and-vfx.md)，本页机制参数继续适用。
 
 ## 1. 目标
 
@@ -162,7 +163,7 @@ W20 参考：
 
 保留现有接触 + 词缀，并新增招牌：
 
-- **震地践踏**：玩家在 120px 内时，0.7 秒预警，以自身为圆心 R110；1.0× 攻击物理，击退 80；冷却 6 秒。
+- **震地践踏**：玩家在120px内时，0.7秒预警，以自身为圆心R80；1.0×攻击物理，击退80；冷却6秒。v168按用户反馈由R110削至R80，预警与释放特效同步缩小。
 - 施放时静止；硬直/冻结规则沿用现有精英。
 - 词缀：分裂 / 召唤 / 冰霜新星（现有）。
 

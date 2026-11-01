@@ -7,6 +7,7 @@ import type { GameCore } from "./GameCore";
 import { enemySkillDamage } from "./DamageMath";
 import { isParalyzed } from "./ElementMath";
 import { addHostileHazard } from "./HostileHazards";
+import { emitEnemyVisual } from "./EnemyVisualEvents";
 
 export function interruptEnemyAction(e: Enemy): void {
   if (e.action?.kind === "thrust" && e.guard) e.guard.downT = S.thrust.guardDown;
@@ -49,6 +50,9 @@ function advance(core: GameCore, e: Enemy, a: EnemyAction, dt: number, aura: num
   a.t -= dt;
   if (a.phase === "windup") {
     if (a.t > 1e-8) return;
+    const radius = a.kind === "lob" ? S.lob.radius : a.kind === "stomp" ? S.stomp.radius :
+      a.kind === "collapse" ? S.collapse.radius : a.kind === "sonic" ? S.sonic.radius : e.r;
+    emitEnemyVisual(core, e, a.kind, a, radius, a.angle);
     switch (a.kind) {
       case "lob":
         if (circle(core, a, S.lob.radius)) hit(core, e, "lob", "fire", aura);
@@ -69,6 +73,7 @@ function advance(core: GameCore, e: Enemy, a: EnemyAction, dt: number, aura: num
       case "blink":
         e.x = clamp(a.x + Math.cos(a.angle) * S.blink.distance, 20, WORLD.w - 20);
         e.y = clamp(a.y + Math.sin(a.angle) * S.blink.distance, 20, WORLD.h - 20);
+        emitEnemyVisual(core, e, "blink", e, 18, a.angle);
         break;
       case "thrust": case "tether": case "sonic": {
         a.phase = "active";

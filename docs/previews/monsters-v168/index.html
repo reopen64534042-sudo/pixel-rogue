@@ -1,0 +1,316 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>怪物攻击动画与特效 · v168</title><style>body{margin:24px;background:#101522;color:#e8e8f0;font:15px system-ui}h1{font-size:26px}header{position:sticky;top:0;background:#101522ee;padding:12px 0;z-index:1}button,select{padding:7px 12px;background:#27334a;color:#fff;border:1px solid #52607a;border-radius:5px}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}figure{margin:0;background:#172030;border:1px solid #36445d;border-radius:8px;overflow:hidden}figure[hidden]{display:none}canvas{width:100%;image-rendering:pixelated}figcaption{padding:10px 14px;border-top:1px solid #36445d}small{color:#a0afc9}</style><h1>怪物攻击动画与特效 · v168</h1><p>17套本体动作（204帧）、普通怪/精英全部攻击、3种精英词缀；Boss保留原版。使用正式绘制配方；此页为等比素材编排，不代表实际伤害范围或自然对局验收。</p><header><button id="toggle">暂停</button> <select id="speed"><option value=".25">0.25×</option><option value=".5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select> <select id="filter"><option value="all">全部</option><option value="minion">小怪</option><option value="elite">精英与词缀</option></select> <label><input id="warnings" type="checkbox" checked>预警轮廓</label> <input id="seek" type="range" min="0" max="2.8" step=".01" value="0"> <span id="clock">0.00 s</span></header><main></main><script type="module">const TAU = Math.PI * 2;
+const sat = (n) => Math.max(0, Math.min(1, n));
+const phase = (n) => n - Math.floor(n);
+const noise = (n) => phase(Math.sin(n * 127.1 + 31.7) * 4375.13);
+function ring(c, x, y, r, color, alpha, segments = 28, rotation = 0) {
+    c.globalAlpha = sat(alpha);
+    c.strokeStyle = color;
+    c.beginPath();
+    for (let i = 0; i <= segments; i++) {
+        const a = rotation + i / segments * TAU;
+        const px = Math.round(x + Math.cos(a) * Math.max(1, r)), py = Math.round(y + Math.sin(a) * Math.max(1, r));
+        if (i)
+            c.lineTo(px, py);
+        else
+            c.moveTo(px, py);
+    }
+    c.stroke();
+    c.globalAlpha = 1;
+}
+function fleck(c, x, y, color, alpha, size = 2) {
+    c.fillStyle = color;
+    c.globalAlpha = sat(alpha);
+    c.fillRect(Math.round(x), Math.round(y), size, size);
+    c.globalAlpha = 1;
+}
+function shard(c, x, y, length, width, angle, color, light, alpha) {
+    const dx = Math.cos(angle), dy = Math.sin(angle);
+    c.polygon([x - dy * width, y + dx * width, x + dx * length, y + dy * length, x + dy * width, y - dx * width, x - dx * 2, y - dy * 2], color, alpha);
+    c.beam(x, y, x + dx * length * 0.85, y + dy * length * 0.85, 1, light, alpha * 0.85);
+}
+function arcBolt(c, x, y, x2, y2, seed, width, C, alpha) {
+    const dx = x2 - x, dy = y2 - y, d = Math.hypot(dx, dy) || 1;
+    let px = x, py = y;
+    for (let i = 1; i <= 8; i++) {
+        const k = i / 8, bend = i === 8 ? 0 : (noise(i + seed * 17) - 0.5) * width;
+        const nx = Math.round(x + dx * k - dy / d * bend), ny = Math.round(y + dy * k + dx / d * bend);
+        c.beam(px, py, nx, ny, 3, C.psiViolet, alpha * 0.35);
+        c.beam(px, py, nx, ny, 1, C.iceCyan, alpha);
+        if (i % 3 === 0)
+            c.beam(nx, ny, nx + dy / d * 5, ny - dx / d * 5, 1, C.bone, alpha * 0.8);
+        px = nx;
+        py = ny;
+    }
+}
+export function monsterWarningCircle(c, x, y, r, progress, C, inner = 0, cold = false) {
+    const k = sat(progress), color = cold ? C.iceCyan : C.fireOrange;
+    ring(c, x, y, r, C.danger, 0.64, 36);
+    if (inner > 0)
+        ring(c, x, y, inner, C.iceDeep, 0.8);
+    ring(c, x, y, Math.max(inner + 1, r - (r - inner) * k), color, 0.38, 28);
+    for (let i = 0; i < 8; i++) {
+        const a = i / 8 * TAU, dx = Math.cos(a), dy = Math.sin(a);
+        c.beam(x + dx * (r - 3), y + dy * (r - 3), x + dx * (r + 3), y + dy * (r + 3), 1, color, 0.7);
+        if (i < Math.ceil(k * 8))
+            fleck(c, x + dx * (r + 5), y + dy * (r + 5), color, 0.8, 1);
+    }
+}
+export function monsterWarningLane(c, g, progress, C, rounded = true) {
+    const a = g.angle ?? 0, dx = Math.cos(a), dy = Math.sin(a), length = g.length ?? g.radius, width = g.width ?? 20;
+    const x2 = g.x + dx * length, y2 = g.y + dy * length, nx = -dy * width / 2, ny = dx * width / 2;
+    c.polygon([g.x + nx, g.y + ny, x2 + nx, y2 + ny, x2 - nx, y2 - ny, g.x - nx, g.y - ny], C.danger, 0.045);
+    c.beam(g.x + nx, g.y + ny, x2 + nx, y2 + ny, 1, C.danger, 0.65);
+    c.beam(g.x - nx, g.y - ny, x2 - nx, y2 - ny, 1, C.danger, 0.65);
+    if (rounded) {
+        c.strokeStyle = C.danger;
+        c.globalAlpha = 0.65;
+        c.beginPath();
+        c.arc(g.x, g.y, width / 2, a + Math.PI / 2, a + Math.PI * 1.5);
+        c.stroke();
+        c.beginPath();
+        c.arc(x2, y2, width / 2, a - Math.PI / 2, a + Math.PI / 2);
+        c.stroke();
+        c.globalAlpha = 1;
+    }
+    else
+        c.beam(x2 + nx, y2 + ny, x2 - nx, y2 - ny, 1, C.danger, 0.65);
+    for (let d = 18; d < length; d += 28) {
+        const x = g.x + dx * d, y = g.y + dy * d;
+        c.beam(x - dx * 5 - dy * 3, y - dy * 5 + dx * 3, x, y, 1, C.fireOrange, 0.25 + sat(progress) * 0.45);
+        c.beam(x - dx * 5 + dy * 3, y - dy * 5 - dx * 3, x, y, 1, C.fireOrange, 0.25 + sat(progress) * 0.45);
+    }
+}
+/** Art recipes use supplied collision geometry and never create their own damage zones. */
+export function drawMonsterEffect(c, kind, progress, g, C) {
+    const k = sat(progress), fade = sat((1 - k) * 2), angle = g.angle ?? 0, seed = g.seed ?? 1;
+    const x = Math.round(g.x), y = Math.round(g.y), r = Math.max(2, g.radius), time = g.time ?? k;
+    if (kind === "projectile") {
+        const dx = Math.cos(angle), dy = Math.sin(angle), color = g.tint ?? C.danger;
+        for (let i = 3; i >= 1; i--)
+            c.beam(x - dx * i * 3, y - dy * i * 3, x - dx * (i - 1) * 3, y - dy * (i - 1) * 3, Math.max(1, r * 2 - i), color, 0.12 + (3 - i) * 0.08);
+        c.polygon([x + dx * 3, y + dy * 3, x - dy * r, y + dx * r, x - dx * 2, y - dy * 2, x + dy * r, y - dx * r], color, 0.9);
+        fleck(c, x, y, C.bone, 0.65 + Math.sin(time * 18) * 0.15, 1);
+    }
+    else if (kind === "impact" || kind === "muzzle") {
+        const color = kind === "muzzle" ? C.psiPurple : C.sand;
+        for (let i = 0; i < 7; i++) {
+            const a = angle + (i - 3) * 0.32, d = 2 + k * r;
+            shard(c, x + Math.cos(a) * d, y + Math.sin(a) * d, (1 - k) * 5 + 1, 1, a, color, C.bone, fade);
+        }
+    }
+    else if (kind === "fire" || kind === "fire-ground" || kind === "breath" || kind === "lob-flight") {
+        if (kind === "lob-flight") {
+            const tx = g.endX ?? x, ty = g.endY ?? y;
+            const px = x + (tx - x) * k, py = y + (ty - y) * k - Math.sin(k * Math.PI) * Math.min(45, Math.hypot(tx - x, ty - y) * 0.25);
+            for (let i = 3; i >= 0; i--)
+                fleck(c, px - i * 2, py - i, i ? C.fireDeep : C.fireYellow, 1 - i * 0.2, i ? 2 : 3);
+            ring(c, tx, ty, 3 + k * 3, C.fireDeep, 0.25);
+        }
+        else {
+            const ground = kind === "fire-ground", breath = kind === "breath";
+            const count = breath ? 22 : ground ? 9 : 16;
+            for (let i = 0; i < count; i++) {
+                const p = ground || breath ? phase(time * 1.9 + noise(i + seed)) : k;
+                const a = breath ? angle + (noise(i + seed) - 0.5) * (g.arc ?? 1) * 0.92 : i / count * TAU + noise(i) * 0.2;
+                const d = ground ? Math.sqrt(noise(i + seed)) * r * 0.8 : breath ? 10 + p * (r - 15) : r * (0.1 + k * 0.83);
+                const px = x + Math.cos(a) * d, py = y + Math.sin(a) * d;
+                const height = ground ? 3 + (1 - p) * 8 : breath ? 4 + p * 9 : 2 + (1 - k) * 12;
+                const opacity = ground || breath ? (1 - p) * 0.7 * fade : fade * 0.8;
+                c.polygon([px - 3, py + 2, px - 2, py - height / 2, px + 1, py - height, px + 4, py], C.fireDeep, opacity * 0.8);
+                shard(c, px, py, height, 2, -Math.PI / 2, C.fireOrange, C.fireYellow, opacity);
+            }
+            if (!breath)
+                ring(c, x, y, ground ? r : r * (0.1 + k * 0.9), C.fireDeep, ground ? 0.45 : fade * 0.6);
+        }
+    }
+    else if (kind === "frost" || kind === "frost-ground" || kind === "spikes") {
+        const ground = kind === "frost-ground", spikes = kind === "spikes", inner = g.innerRadius ?? 0;
+        const radius = ground ? r : inner + (r - inner) * Math.min(1, k * 2.8);
+        ring(c, x, y, radius, C.iceDeep, ground ? 0.4 : fade * 0.7);
+        if (spikes) {
+            for (let i = -2; i <= 2; i++) {
+                const height = (i ? 19 : 38) * Math.min(1, k * 6);
+                shard(c, x + i * 7, y + Math.abs(i) * 2, height, i ? 3 : 6, -Math.PI / 2 + i * 0.06, C.iceDeep, C.iceCyan, fade);
+            }
+        }
+        else
+            for (let i = 0; i < 20; i++) {
+                const a = i / 20 * TAU, d = ground ? Math.sqrt(noise(i + seed)) * r * 0.9 : radius;
+                shard(c, x + Math.cos(a) * d, y + Math.sin(a) * d, ground ? 3 + noise(i) * 4 : 3 + (1 - k) * 7, 1.5, ground ? -Math.PI / 2 : a, C.iceDeep, C.iceCyan, ground ? 0.4 * fade : fade * 0.85);
+            }
+        if (inner > 0)
+            ring(c, x, y, inner, C.iceCyan, fade * 0.5);
+    }
+    else if (kind === "stone" || kind === "emerge" || kind === "burrow" || kind === "dash") {
+        const underground = kind === "burrow", dash = kind === "dash";
+        const spread = underground ? r : r * (0.2 + k * 0.8);
+        if (!dash)
+            ring(c, x, y, spread, C.pBrown, underground ? 0.35 : fade * 0.6);
+        for (let i = 0; i < (underground ? 6 : 12); i++) {
+            const a = dash ? angle + Math.PI + (i % 3 - 1) * 0.4 : i / 12 * TAU + noise(i + seed) * 0.25;
+            const d = underground ? noise(i) * r : spread * (0.35 + noise(i + seed) * 0.6);
+            const px = x + Math.cos(a) * d, py = y + Math.sin(a) * d - (underground ? 0 : Math.sin(k * Math.PI) * 8);
+            if (kind === "stone")
+                c.beam(x + Math.cos(a) * 6, y + Math.sin(a) * 6, px, py + 2, 1, C.ink2, fade * 0.6);
+            shard(c, px, py, underground ? 2 : 3 + noise(i) * 4, 2, a - Math.PI / 2, C.pBrown, C.sand, underground ? 0.6 : fade * 0.7);
+        }
+    }
+    else if (kind === "web") {
+        ring(c, x, y, r, C.steelMid, 0.32);
+        for (const scale of [0.36, 0.66, 0.9])
+            ring(c, x, y, r * scale, C.steelLight, 0.13, 8, time * 0.02);
+        for (let i = 0; i < 8; i++) {
+            const a = i / 8 * TAU;
+            c.beam(x + Math.cos(a) * r * 0.28, y + Math.sin(a) * r * 0.28, x + Math.cos(a) * r * 0.95, y + Math.sin(a) * r * 0.95, 1, C.steelLight, 0.16);
+            fleck(c, x + Math.cos(a) * r * 0.66, y + Math.sin(a) * r * 0.66, C.bone, 0.22, 1);
+        }
+    }
+    else if (kind === "slime") {
+        for (let i = 0; i < 10; i++) {
+            const a = i / 10 * TAU, d = r * k * (0.5 + noise(i + seed) * 0.5);
+            const px = x + Math.cos(a) * d, py = y + Math.sin(a) * d - Math.sin(k * Math.PI) * 9;
+            fleck(c, px, py, C.slimeDark, fade, 3);
+            fleck(c, px, py, C.slimeLite, fade, 2);
+        }
+        ring(c, x, y + 2, r * k, C.slimeMid, fade * 0.4, 16);
+    }
+    else if (kind === "beam" || kind === "gaze" || kind === "lightning" || kind === "marks") {
+        const length = g.length ?? r, dx = Math.cos(angle), dy = Math.sin(angle);
+        if (kind === "marks") {
+            arcBolt(c, x - 8, y - Math.max(65, r * 2.4), x, y, seed + Math.floor(k * 12), 12, C, fade);
+            ring(c, x, y, r * Math.min(1, k * 3), C.iceCyan, fade * 0.6);
+            for (let i = 0; i < 10; i++)
+                shard(c, x, y, r * (0.2 + k * 0.8), 1, i / 10 * TAU, C.psiViolet, C.fireYellow, fade * 0.6);
+        }
+        else {
+            const endX = x + dx * length, endY = y + dy * length, width = g.width ?? 12;
+            c.beam(x, y, endX, endY, Math.max(2, width * 0.5), kind === "gaze" ? C.psiLime : C.iceDeep, fade * 0.18);
+            for (const side of [-1, 1])
+                arcBolt(c, x - dy * side * 2, y + dx * side * 2, endX, endY, seed + Math.floor(time * 22) + side, width * 0.6, C, fade * 0.8);
+            for (let i = 0; i < 5; i++) {
+                const d = phase(time * 1.8 + i / 5) * length;
+                fleck(c, x + dx * d, y + dy * d, C.bone, fade * 0.8, 1);
+            }
+        }
+    }
+    else if (kind === "pulse" || kind === "aura") {
+        const aura = kind === "aura", radius = aura ? r * phase(time * 0.7 + seed * 0.01) : r * k;
+        ring(c, x, y, radius, C.gold, aura ? 0.12 : fade * 0.65, 32);
+        if (!aura)
+            ring(c, x, y, Math.max(1, radius - 4), C.pGold, fade * 0.35);
+        for (let i = 0; i < 12; i++) {
+            const a = i / 12 * TAU;
+            fleck(c, x + Math.cos(a) * radius, y + Math.sin(a) * radius, C.gold, aura ? 0.2 : fade, 1);
+        }
+    }
+    else if (kind === "rift" || kind === "summon") {
+        const summoning = kind === "summon", radius = r * (summoning ? 0.6 + k * 0.4 : 1 - k * 0.65);
+        ring(c, x, y, radius, C.psiViolet, fade * 0.7, summoning ? 6 : 20, k * 1.8);
+        for (let i = 0; i < 12; i++) {
+            const a = i / 12 * TAU + k * 1.5, d = r * (summoning ? k : 1 - k);
+            fleck(c, x + Math.cos(a) * d, y + Math.sin(a) * d * 0.7, i % 3 ? C.psiPurple : C.bone, fade * 0.7, i % 3 ? 2 : 1);
+        }
+        if (!summoning) {
+            c.polygon([x, y - radius * 0.65, x + radius * 0.7, y, x, y + radius * 0.65, x - radius * 0.7, y], C.ink0, fade * 0.65);
+            c.beam(x - radius * 0.5, y, x + radius * 0.5, y, 1, C.psiPurple, fade);
+        }
+    }
+    else if (kind === "guard" || kind === "crystal") {
+        const guard = kind === "guard", arc = g.arc ?? Math.PI * 2 / 3;
+        for (let i = 0; i < 5; i++) {
+            const a = guard ? angle - arc / 2 + i / 4 * arc : angle + (i - 2) * 0.18;
+            const d = guard ? r : r * k;
+            shard(c, x + Math.cos(a) * d, y + Math.sin(a) * d, guard ? 3 : 6 * (1 - k) + 2, guard ? 1.5 : 2, a, C.iceDeep, C.iceCyan, guard ? 0.25 + (1 - k) * 0.6 : fade);
+        }
+    }
+    c.globalAlpha = 1;
+}
+
+/** Offline art choreography, using the exact production pixel recipes. Not a gameplay simulator. */
+export const MONSTER_PREVIEW_CARDS = [
+  ["slime", "史莱姆 · 蓄力扑击", "impact", "minion"], ["bat", "蝙蝠 · 收翼扑击", "impact", "minion"],
+  ["shooter", "射手 · 蓄能弹丸", "shot", "minion"], ["bomber", "火囊虫 · 引爆", "fire", "minion"],
+  ["brute", "岩石兽 · 重拳", "impact", "minion"], ["splitter", "裂胶史莱姆 · 分裂", "slime", "minion"],
+  ["splitling", "小史莱姆 · 跳扑", "impact", "minion"], ["charger", "角兽 · 冲锋撞地", "dash", "minion"],
+  ["drummer", "战鼓手 · 鼓点光环", "aura", "minion"], ["spinner", "织网蛛 · 吐网", "web", "minion"],
+  ["burrower", "掘地虫 · 破土", "emerge", "minion"], ["lobber", "熔岩投手 · 炮击火地", "lob", "minion"],
+  ["bulwark", "晶甲虫 · 晶盾突进", "crystal", "minion"], ["tether", "缚电水母 · 电浆束", "beam", "minion"],
+  ["brute_elite", "岩石巨兽 · 震地践踏", "stone", "elite"], ["shooter_elite", "飞行眼魔 · 凝视", "gaze", "elite"],
+  ["shooter_elite", "飞行眼魔 · 重力塌缩", "rift", "elite"], ["shooter_elite", "飞行眼魔 · 闪烁", "blink", "elite"],
+  ["drummer_elite", "战鼓祭司 · 音爆", "pulse", "elite"], ["drummer_elite", "战鼓祭司 · 强化光环", "aura", "elite"],
+  ["brute_elite", "精英词缀 · 召唤", "summon", "elite"], ["shooter_elite", "精英词缀 · 冰霜新星", "frost", "elite"],
+  ["drummer_elite", "精英词缀 · 分裂", "slime", "elite"],
+];
+
+export function renderMonsterPreview(p, card, time, C, fx, warningCircle, warningLane, box = { x: 0, y: 0, w: 208, h: 144 }, showWarnings = true) {
+  const [key, , effect] = card;
+  const u = ((time % 2.8) + 2.8) % 2.8 / 2.8, preparing = u < 0.3, active = u >= 0.3 && u < 0.78;
+  const prep = u / 0.3, k = Math.max(0, Math.min(1, (u - 0.3) / 0.48));
+  const lane = ["shot", "beam", "gaze", "lightning", "breath"].includes(effect);
+  const x = box.x + (lane || effect === "lob" ? 45 : box.w / 2), y = box.y + Math.round(box.h * 0.52);
+  const targetX = box.x + 139, targetY = y, seed = 7;
+  // Keep the normalized art preview in step with the elite stomp nerf (110px -> 80px).
+  const radius = key === "brute_elite" && effect === "stone" ? 27 : effect === "aura" ? 55 : 37;
+  const geometry = { x, y, radius, seed, time, angle: 0, width: effect === "beam" ? 12 : 10, length: 125, arc: 1.1 };
+  p.polygon([x - 17, y + 9, x, y + 4, x + 17, y + 9, x, y + 13], C.ink0, 0.35);
+  if (effect === "aura") fx(p, "aura", 0, geometry, C);
+  else if (showWarnings && preparing && !["impact", "shot", "slime", "blink", "summon"].includes(effect)) {
+    if (lane) warningLane(p, geometry, prep, C);
+    else warningCircle(p, effect === "lob" || effect === "rift" ? targetX : x, y, radius, prep, C, 0, effect === "frost");
+  }
+  if (effect === "crystal") fx(p, "guard", active ? k : 0, { x, y, radius: 21, angle: 0, arc: 2.1 }, C);
+  if (effect === "lob" && preparing) fx(p, "lob-flight", prep, { ...geometry, endX: targetX, endY: targetY }, C);
+  if (effect === "emerge" && preparing) fx(p, "burrow", 0, { ...geometry, radius: 12 }, C);
+  if (effect === "blink" && preparing) fx(p, "rift", prep * 0.5, { ...geometry, x: x + 50, radius: 18 }, C);
+  if (active) {
+    if (effect === "shot") {
+      fx(p, "muzzle", k, { ...geometry, radius: 12 }, C);
+      fx(p, "projectile", 0, { ...geometry, x: x + 10 + k * 125, radius: 2 }, C);
+    } else if (effect === "lob") {
+      if (k < 0.55) fx(p, "fire", k / 0.55, { ...geometry, x: targetX }, C);
+      fx(p, "fire-ground", k > 0.9 ? (k - 0.9) * 10 : 0, { ...geometry, x: targetX, radius: 18 }, C);
+    } else if (effect === "blink") {
+      fx(p, "rift", k, { ...geometry, radius: 18 }, C);
+      fx(p, "rift", k * 0.7, { ...geometry, x: x + 50, radius: 18 }, C);
+    } else if (effect === "web") fx(p, "web", 0, { ...geometry, time }, C);
+    else if (effect === "dash") {
+      fx(p, "dash", k, { ...geometry, x: x + k * 25, radius: 33 }, C);
+      if (k > 0.5) fx(p, "stone", (k - 0.5) * 2, { ...geometry, x: x + 28, radius: 24 }, C);
+    } else if (effect === "aura") fx(p, "pulse", k, { ...geometry, radius: 18 }, C);
+    else if (effect === "rift") fx(p, effect, k, { ...geometry, x: targetX, radius: 35 }, C);
+    else fx(p, effect, effect === "beam" || effect === "gaze" || effect === "breath" ? 0.15 : k,
+      { ...geometry, radius: effect === "breath" ? 102 : radius }, C);
+  }
+  let pose = preparing ? prep < 0.55 ? 3 : 4 : active ? k < 0.25 ? 5 : k < 0.75 ? 6 : 7 : Math.floor(time * 7) % 2 ? 1 : 2;
+  if (effect === "beam" && active) pose = Math.floor(time * 12) % 2 ? 9 : 10;
+  if (effect === "crystal" && active && k > 0.6) pose = 11;
+  if (key === "drummer" || effect === "aura") pose = Math.floor(time * 6) % 2 ? 3 : 6;
+  const bodyX = x + (effect === "blink" && active ? 50 : effect === "dash" && active ? Math.round(k * 25) : 0);
+  if (!(effect === "emerge" && preparing)) {
+    p.body(key, pose, bodyX, y, 2);
+  }
+  if (active && effect === "slime" && k > 0.2) {
+    p.body(key === "splitter" ? "splitling" : key === "drummer_elite" ? "drummer" : "splitling", 2, x - k * 25, y + 10, 1);
+    p.body(key === "splitter" ? "splitling" : key === "drummer_elite" ? "drummer" : "splitling", 1, x + k * 25, y + 10, 1);
+  }
+}
+
+
+const sources={"slime":{"file":"public/assets/monsters/animation/slime.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAAB7ElEQVR42u2awW3DMAxFc85OHSEjdqsOkWM2aNECBlxDtkVSX6Hk9wpfCuMppskvI/HtBgAAAAAAAAC9uH/cv0vHKH4AGnTgun9u/h5fj78jeh/UfiAgUg8AEEBswAP7lQ209S7O0hG9mL0CXbn51fXPcH+zD+/oG4DUr2ygtfv5fB26o0NQU6DsAafwW+rvWUft77FBqod35A1A6lcHxNpf446GXE2BMgac0m+pf0Z/jycs1Ro952tEvzwgevotBfKuoQg4pf/33Nq6e+uv9qsGoMfT+Uzz1dy/yK0NVLtIdv/ZGtunktH864BYzt/zRANI6VcNQK/hvep8mXYvSwNZLiCz/2gNbzDUrqH2lwKitMuX/u8NoNZ++QCI17j6fJkDqLaBvBeQzX8WQJYg8wSQ0j9LAKn6Rz5czJctgFSPcJn91gCy3ABPALX0z/AdkLJ/5MPFfPkDqGbhyAVk8VsCyOq3BlBr/9E6Z/5oALXyq/unZ8hdcb5CDbQ+IjfX6480UCu/9/Nbv4RW+T31afEr2zv9qYZLPF8z+P8NwdFLcNtzRvdbAsjrrw0glX/vl6ozv+cdGpVf2T/y4brwfDV7+zb6Rq7V3WsN/O3euJ7Frx5i6v8mhr+AwaFB6U0AAAAAAAAAAAAAgKn5AZE9cTArxQi3AAAAAElFTkSuQmCC"},"bat":{"file":"public/assets/monsters/animation/bat.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAACHElEQVR42u2awW3DMAxFe+4IPXSAjtBVkokyTcbKsRu48MGFopJRSOkLdvseYKBppKdAoklFzssLAAAAAAAAAAAAAAAAAHTy9vqxPHqdbQtj537WerHGEA7cnkBZ+5V969fRdrM//5H91pxGxm6tgdr/F+Iff6IiXc7Lr8Cq/xcJuK3vel3Pi+u/Fu2s8Z7F849agKP4rblvBVBkDdT+WQVSHf/4g1WyTBJ1cohWr7L/5vX8dbtsUHn+UQniKH5r7lsJLrIGav+sG0wd//gTOxTrylSvrW3m6snQz/ieTXB1O8+frcgqvzUXrQQXWQO1f2aBVMc//kAVuzQGie5QykB9/7y47vK9iNuqhq0EFDl/qNu2EkT0bEPpr+e+5Y+uwSy/+gZTxT/+5A5lOZ1+FnP9O7tDKcdZg28bz/KXbXrOOTx/9vyhHuPR58+cbczwl/P6KEFk10DlV8cn/h3kB2uHcrt93V3ZHYr1tcHzZw4TvQxt+Xt3cGVfy589v1L763n1Aqj3iZvKr45P/DvID/UOxcto0eroPeVpnXFkJkdxxpQdI7vACr81/14BGPUUb7RfHZ/4d5Afto7WIOV7I35HMPKGqjO05+/J0KXT8/fuDpV+VQGY6VfHJ/595Ie7g07Vj8VG++vsa/l7M3TZ37p6d4dqv6oAzPYfMT7x/wMyj+1HjjEqOSj9BCgAAAAAAAAAAAAAAAAAwEi+ATniIwDSilQUAAAAAElFTkSuQmCC"},"shooter":{"file":"public/assets/monsters/animation/shooter.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAAB20lEQVR42u2Z0U3DMBRF880IfDAAIzAK6ioskGk6Vj/ZwKgfloxxotL4Puda50iWUBWu48fxcxOWBQAAAAAAAAAAAKbl9eU99bhmVD4g6KkFZQPsr/t6SWlv/Y9cMyof/yfPdxc0YgM4N7j7fa2XtLn+XJv1QP2V+er64//g/eUuaES+e4PLNco1KMd6sDmo8yM2GP6PPWCsBY3YAM4NrqzBdWOsHQRV56u/YeH/oPxZBFXlOze4MvvauPc8yjr9Zw51fmT98X9AvrugERvAucGVa8+//5U+Uz1a150hX11//B+8v2oxWvL0FNQx37nB1Y9uuRblO6W6Rs/UX5mv3mBRfm5lbzXyMx4wvevzS6Ay7Hb7/jPhUUGd85UCRWywukHkoWpAinxnf0pX7tl1o3j2PV/kAaOoz+YEeaj+wG75aoFmOSFV+TP508ru3YDUB0Cv+vAIdhKBVA2uVaO9b1g93jP1zJ/JTx7BTiCQk/yRAqkaXGsdW+Pov2lV+TM1UDf/o+YIE0ghv/MGUDe4eq77ePtYU+vn5SDK/FkaqKP/UWuQC6SUXz2P8wlfz/XIZ2fMd2+gzv6HrcFZUPUczif8LLj76ex/1P3DpCc8AAAnDAAAAAAAAAAo+QHVWstCfZxY3QAAAABJRU5ErkJggg=="},"bomber":{"file":"public/assets/monsters/animation/bomber.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAACD0lEQVR42u2YwW3DMAxFcy6aBTpCR8it187WqbpJJ3GRoCocRxZtid8R7fcAoU4af0rUJxPrdAIAAAAAAAAAAAAA6IXh53NAn/09cv6Va6C+DPHh6zKogkTXj15ke8i/cu7/16I1UF8Gl/NZWljR9VPioxbZHvKvyr167tRXQTSN74/Xu78eAaPrR29w5H/53Mfve62B+jLEr2I3w/+ZPl2nIEfWnzOpqsgUBba3/HvlPjf3u0cwhzVQX2vF02gIMtZV6NfM/3pdE2fOpN6b7N3gSsbJvXaL4bi/ygKYm/vDo15DHHV+QuurDbpGv/mxZeMC8zKossE96BpjbZzIDa4095KnespPdH1pgLH2kgbhUrxGg1trVsuksk12anBT7beX99uYe93cgAI1OBpQjw1IbSBjNCdowwJQG1TW4JxyE73BlbSnZ0CKGM+or970NzNQ2sySvsdjRkn/+tnWDZjqteZIrT89X8qZqfUgN2qDs3Kv3l9Fg46mLzfQOMazO7R3geW+IWvmX6NfEyN32J17v+UAPXqDs34Becbwqq/o+lIDje9TGXTp/FuKLKefOyT2LGAv/bXNqmWPoza4XO7V+7u1/7vVVxtoek9JvyVBlr53gVn/60VfTeQGZ2koY3jWV2R9uYFqFrn1/Z5r7u3z0VH6U/2LcqsGHVk/rNmOWpAAAAAAAAAAAAAAPfILf3CDRMnIchgAAAAASUVORK5CYII="},"brute":{"file":"public/assets/monsters/animation/brute.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAACEUlEQVR42u2cbU7DMBiD93t34gJIOyKXQtxnaBKRspK0afL6zUcfo2oCaU7q2F4bKLcbAAAAAAAAAAAAvHD/uD9Txyz8AIMSgInX9uvv6/HzeDssNFLzz+598rW4QT0CMOsC72ljoZGav6c+lt4hX4sa1CMAMy9w4H5+f75xvl5fP2sNsppfqU9v75CvBQzqxa9YgDC3Ev6WMXK8VgZV8yv19ypP8rWwQVX8cUEcLcDZMQJvKX/tecTvj8vMoty8+FUB8PDmKP4fUqM4PEcGajH/jPxxQZQswNmFUPMHbDlSvK+jNgBqflUAPLwZ1neED4AanaQaBYFKDVQbsNn5VQscv0dlIHVBbOe5xz9SSai9UzNGrT6z5uvfADlCqxOYkb9E8FH5U2Psfd8aMPX6WgZAPXcv/8ycr+kDRkHwATBySaxQQFL9jy7fWkMwO//2NkmxPxNukUr4a/cgWN/+5zCCPqNpk7zH3v6Rl/UmcYq/ZSPuiK91/ttNvj19LDYRLflTe0x7/BZ7WJb8Hv70zEBv/UfUJtt2rZtjNWOOxuepj4I/vnIq4a8tiFJ+q181q/ypHEOlzxn9R/a/q/i5qxeLq4hUO1+1gFYqiCsU0GX5c8/YWJZDbrKqAvJ4BklZnvD78avHQP+TA1iWQ4+n09XmVJcn/L783hlAf0f0miT/kgMAAAAAAAAAAAAAAAD88AuqJyOLwU5BAQAAAABJRU5ErkJggg=="},"splitter":{"file":"public/assets/monsters/animation/splitter.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAAB1ElEQVR42u2a0W3DMAxE/e0ROkJ36Aj57nTdqjN0DRcp6sAwrESkeIQsvxf4I0Zygkje2YEzTQAAAAAAAAAAADAs88e8bI9X53vTB+jaAEAAAQNa1P76f92+b3/Hqnd0nm7E91ZZf/o7/gVAqq8coCON9Sid95rgqBil81fCUn9PfdT6GRdItXnPfAGQ6qsDYtXfazw7IkLuWYF6DDilvqX+Pepn3GGp1sjy11n15QGRpW8tUOsakQGn1l+/+za/L58/y1J67zWwUl9pgIy781H8JbuBuH/YMkCeDfSoX7PGNgQsDahdQ62/D4h7Lbb12L9vDSCFvtIAWXfnV/SXq0A1A9SygZ70LQFkbYA1gFT6+4DYfzfqJ5JSX24A8RpX9Zer+DUD1LKBnvQ9AVTbAG8AReuPFkDR8yM314X95S7Q9ndxxBD1qu8JoNoGeAMoWv8oIF7VpzWAovWV8yM314X9NXmKVGpIawOs+t4mR+tvnzxZ9S0BpNLP6O9I+moTU/9KM7x6NNz6iLlkpuj/cqCfU//s/kbOZ4q5xP4aQf8hWFp4aiRjA0cakX9APLP+CAOqms8Uc4n9NYK+nNNv4OQwoMwoAAAAAAAAAAAAAAAAAETyC7WnwQETdfg6AAAAAElFTkSuQmCC"},"splitling":{"file":"public/assets/monsters/animation/splitling.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAABCElEQVR42u3aXY4BQRQG0Hq2J0vwbHV2ZQ22QQiJSDqC+opbzpn061cz96fbdLQGAAAAAAAAAMxmtV4d7y8Vmav++svPDtA5b3f92ew3l8uQju1tsv76O/8DIJo/w4A+FsgCLNe+Zw/S+aMekOnlrbxf0fzqA/osP3VGz2FN5p8zbnn32T3rn8xPL8A3lnem/Wr/PqDP8j89I32DG5F/y9sejper94Cm89OfsJJnzL5frcIAfTM/PUBV8mftb4VPb+r/wiGJp8tSfqLJqX9h0je4VH66v5XzhyyX+v/eS75RZ6R//9436dH5lfubeFFc9SV68zWLP/gDijOgZhMAAAAAAAAAAOAdJ2AMVzWvCL+kAAAAAElFTkSuQmCC"},"charger":{"file":"public/assets/monsters/animation/charger.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAACFElEQVR42u2ZQW6DMBBFOUBzoey67SoH66GqHqGnyLI3oKISkUswGHv+YLvvSahRVP7AZ+ZjyDAAAAAAAPxb7vfvsWV9AGiU6+UyTgEx/W1RHwA6CCBVSKj1gSU6jwCNBs+0fdxuj4CYPs/f167fS+8zX50v0XkEWPdkfL/+BkJsK/FLre81AB69w3x1vkTnEaDvAFIOgEfvMF+dLtE9HwEs78BrxxbTJ1A1A+DRO8xXx3dIpf5yv6078NEa83Gn6ueex54385brv1pfOQAevVlL/5fMgOz4U8RLirSsvxUQayFxtMY8UCr9XgJINQBevVmL/yUzIPFoKT5+vT0+f76+PH2XM2Ct64f7tqYfBleKfm44pOrXFBLq3sm5vrn+tDpfTwYpLjL65+kfraG8O/bgz9EaHv3TtP9hga1iy/9D30Y/rJGiXxIQ+O9fg/7PLDAtr+YlluIElvrhS7Ic/XBfj4CI+ZP7Ii5Vv2R5fub1rVXf8xxq8Kc2b/68pd9LOMXP2RbDu3WhLX/6TfGnNv1lQO/plwyXQt+rP9U1avG/Rm82HwNKwyF28LHa1gFkFZ4qfzz8X+ps6ZcERIq+1XlY+6+uofTniP+19n80BFTmx0LKYpWyNnSWzakOT4X/qfoWAdGaP94z0KI/cv9jIWC9ehgcsW5OlT/on6/vMQP4fxJnHWQT5gAAAAAAAAAAAAB0wg8CiBB3EFYQfgAAAABJRU5ErkJggg=="},"drummer":{"file":"public/assets/monsters/animation/drummer.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAACCElEQVR42u2b7U0DMRBE7zclUAKlUAKiFRpINdRCFflJB0aWcORYx3Fn79jey3vSSQlKxvZ4Z+9DYVkAAAAAAAAAAADgYXh+egnp8KgPFCgBcLy3l/cQPn8Pa4/U+t5rn3ydvEB7BMByA67X77BXf+2zLd5Ye6TWVwegV+2Qr5MWqEK/DP3WBtQ0iHJuW/qtPsXvf4S3W3jz11b+K/WVAVDVZl4To+t/yhNYadBaAbUEzLt+2QC2NqBmI9T6+brj9xXFqdZXBUBdO2v7uzWG6gTQcgKTexQF9hZQbcC86ys3WK0fST6U/uS3MvF9bYj36s92glHXztExav3xnK+b6J4Cql2Ad311kSr11Q3Cs//quZOvAwNcMsHw9Xo7rBbgVT9dQcyg3xIA7/urCECP2lHXzxnydbfJUTRd1sUjDWJ1Fjizfsu9u0q/LBBrf7zr96ihWfyZ0Zu7QZJ43uHyQVofkKHfXz9/gP2ffmuAR+tbPMRVjeHdH7n/IxZQdtHWDcgvEZMuDY4AeGlAj1yfSxley+bwF2kR+T1m6xrS84GoazlXtT/oj69P5Rj4fzC8ls2hnHz6u+oHZfk6LItT5Q/64/V7ZAD/Dwxi2Ry2rkwUv5RNzc7UHKE/6M+hrx4D/3eGV9Ec8skvYpTFqfIH/fH6PTKA/4PoPVn+Gx4AAAAAAAAAAACgHz9QGbgz6F6vPwAAAABJRU5ErkJggg=="},"spinner":{"file":"public/assets/monsters/animation/spinner.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAAB70lEQVR42u2a223DMAxF/d0ROkIW6k8m8jSdKmu4SIsAgirqRcoWlXMAoUFcX0kUeS3b2TYAAAAAAAAAAAAAAACAt+Hz43akPtceX12f9V03/rVj08yB+qroYL8fR0nw+T+9E/Cu79ngiH/f2K3mQH01dPL8m2oqcef6Kxgc8W8be3jMcg7UV6GT7/vx2/agxYvyjvqeC4z4t489jLnlHKgvQfjVUh1IV4eexLHW7xm/xii8Glyos18c/5kKQBp7bEDaGpgp/6db3zDBpQW2KLSS/kiH1uivUGDhOn89/trrc2hurX2FsS0ZXI/+mRfI0g6ody1G15d3/X8d5RJI86ah5gqsNYmaAtDo5wzC+ipsWWC5GIW6vQ9ZWwxOUwAjdnCp3JR2QBa7XOv6WkI/TE4pgSwewJUS1CJAkr7Vg7gRCzDK4OJzpFu83DlXG9wZ+RlrhwY0qg8rbff68RZKSiDN1bE2Qa1MNKevvQ/eM1tQi9u8EfrxOue+m8ngzsjPlLb0ENqyDwvtFfQ36bWj9FrSwiRS+ha/U6gpAO1tpKRvZUC5ZjGH1mNXGtzo/JS0S9/NVF/e9YcnUK2+1RbxqvHPrj8arwZX0pl5B7pUfp6RQOhfp++dkfGpOd/DDpT8BAAAAAAAAAAAAAAAADiTH6U8f2sz4to8AAAAAElFTkSuQmCC"},"burrower":{"file":"public/assets/monsters/animation/burrower.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAAB+klEQVR42u2ZwW3DMAxFc+4IPXWOjNBTzp2uo3SG3rpBjt3AhQ8qGEKRbFMURPk9ICjiKJ80xc+49uUCAAAAAAAAAAAAAAAAcEqury9L7oU++zt7/XP5tj4H/FURX34+l6/b7eH1cX1rEiS6/gwGo/7bck/HW54D/tohvr5vGSS6/mwGo/7l3PUAssbBXzs3VgewBImuP5vBqH8999wAOhoHf20IkBNa/8pjenO2/po/S9SqfyT/9Nne84hssPv9919v+X5/0E3v0+dp7Qj906P+tTq3OIce9Qmrr4eENGguyBHzSgOU9K3/ZtT0z2qw9ZzlHuiXXmPZ30gDrtT7co3FAz38FVnftYFkY6cBUdI/er9DFqmkv67dawD3DXAecHJ/c1ek8rgcQp4DbpQruJK2/FHzitFiQEfX79pANX1rgbbkP+IG9xhwMq/cDW695gwDrqSt7wGNPqCj6ndroGf3hFo87SkNIa1tHXBe9fHST9S+J/fJUv9IA66kLQeQV4wI/dOlPz0bKGeAkr61QDX9EQ2mr7KePYq31r/FmpkHnNTW++MRo5W/ouu7N5C8AqoZ0fKouaZvMZlnfXroexN5wG01jmeM0fvHvT+9G6hVDiPn5p3/yAMo8oDb8z3PGCP3z/T92SL5MxsUAAAAAAAAAAAAAADgtPwBOBn0mfdIdm4AAAAASUVORK5CYII="},"lobber":{"file":"public/assets/monsters/animation/lobber.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAACJklEQVR42u2azW3DMAxGfS46QU89d4Tces0InalTdYRu0ElcOKhSRbFp/VERrfcAI0HqfKQofnRceJoAAAAAAAAAAAAAAB7Ny9Pb7B/os7+j1D/MWWMN+GtH+Ov9+XLMn6fLa61A1vWtG4z6x+fuPq+5Bvy1I+5E55/z/+EFGVn/CAaj/vG5XwdQpTXgrxzxSkGs6x/RYNRf1r0ZQIVx8FdEgIu4EGA5ShZgXd/ygKP+6bmvDaDcNeCviM3d22C3ySkb7Wtr6OfmnxPDssHuauTibNRFu/6p69Cqv5T71gAq8UAv/d/V/m42ZyXz3hlM0C+9hYnJv2aT9m4wp/1xep23bu/8obOc584dYcBJvR/+DyjXA9r+sq4vB6mQvN/QtfVT81/OTTVZ8w1WuIL5a3bv/SP8PHePDzHg/rTDi1qNC/Cj+79L/RYN5H9P0i8tkEb+2hvQ6heov/75+3zz6tclR9vqgJO03TmaMWr6y6p+kwZy58fol95mSPpTxoNlrQzWysBr+uHfRxlwkrY7RzOGpf7R0m/WQDH6pQWKyb9Hg6Xq514AppVnjEqf/D3CgFvTvt6CKcaooW1eX7OB1pp7T7/0GRpJP8dk2gZrZWCNc60POEk7/AWkEcNC/6j3p3YDhU0t6ZcWKDb/3gymXX9trA44STvmsxH6p0l/ajZQSbNpf6+X+vRS/17RHnCa+Ryhf4bqzxYNAQAAAAAAAAAAAAD1+QUIpCkBn7N/FgAAAABJRU5ErkJggg=="},"bulwark":{"file":"public/assets/monsters/animation/bulwark.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAAChElEQVR42u1b223DMAz0d0foRwfoCB2hC3SnLtGdis5Q5LMbJIgRGYRCSRYfqqncAYYfcY4URZ5kJV4WAAAAAAAAAAAAAAAAAFiW5fnp9cxt4Ef/zh5/zl/rNqC+WuRfP+v28va5bunYwkh0/ikKDPHf5Xu6btkG1FcHeepYKyPR+WcrMMS/7jv9zMIO6qtBnhMlYxZGovPPUGCIf5/v2+cGbUB97SG/7UsG6D09RqLzT1NgiH+X75wASdqA+uow8PF7XknTnh6ve2UDovNHFDjEX+Y7FSBNG2aL/5aHdLAkuSmeBaUGnE5/dw3YrnWuR1BeD36J/712ogtc4qJxuO7pdhc3gch59e+I+HO+5wKkbcNR8l/Dv0eA1OKTnC0lqkiESCBq/NqF1l3+P2KB3b7PxSSPWW98IgtcLffznJLWwJD6GsCfiw4955YOliMkEOVOnVnj1yp0i/96r6gNjh08eoQs+a3yPajA1bi5Qc3ahoVAj+LnZj/sLKh3gPFOoFIReyRoi19bYG4d7DyC0ZEp587FR7rOFFHgatzcDMjaxuj81woQJz7srEjzGGaZQHlCN/klzu/oBDqtliwi9sZHIkDe/PQ88VHe0v0PIXAMd+mx3tKGBfdI/tqjl2oNyDOBqFN7+DUBavEfscBGFTA9Pn+/b3zpmLt3doGrcVMB8rIRIX9y/lyEcvER/QzvnUD5Occv/gmv0gmc/71FNiI+nvwtwbb6l3VEgatxp2ueNiLkD8efRIeKjyo/PROIs9Xi1waoxn+0Ahsd/xGIJnAcd+vaI+XP8Pz0ftGyxK993eC//Y/CHx2e8Sm9DY/8QX4CAAAAAAAAAAAAAAAAAAAAB8YF50KQbWY7IggAAAAASUVORK5CYII="},"tether":{"file":"public/assets/monsters/animation/tether.png","size":24,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAAYCAYAAABa3SD0AAABrklEQVR42u2YwW3DMBAE9U4JKSEN5aOKXE2qCvxMBwqEgAbB0FFgcs/e8wyghwV4jxrqTraWBQAAAAAAAACieH1523qHSz7+k/t3F0QD/O3mY90ux/vntp3Wn2OGI3W++/2fwb+0v9wF2W9A0PApTnY/sxyp890HRAb/0v5yF2S/AcIGK+s+n78u6+35ufU61PnuAyKDf2l/uQuy3wBhg/XWfVp/e7nVkTrffUBk8C/tL3dB9hsgbrD9O0drHvWvzM8wIJz9y/srgyDrDQj6hfhfR4+W7z4gMvhX+7EW5L4BkX9h9mPPbd8v1edG313Nzs8wIJz9R/mxFuS8ASFPmKrWnt2eL35mvEBX5GcYEM7+o/xYC3LegJAnjDkZBkSGPZD5acPbz7OaWFEjcu0lt65Rzo8+5eucurFm5qsckX+fOq7rXo6mWPv52vS7d3am/GvDBj/e+e7XEOFHPuUyTGqe8uQ/6i90++s4Chudcur8DNdAfr78iPs+hf/e9Jo9qZU13NdPfu5893s/pE7vi72Co1NaUcN57eQ/R76qjuu6AQAAAAAAAAAAAACm8Q1E27SEWlvCeQAAAABJRU5ErkJggg=="},"brute_elite":{"file":"public/assets/monsters/animation/brute_elite.png","size":32,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAAAgCAYAAAAbrK/lAAADGUlEQVR42u2dzW0rIRRG3UB6SB0uwauss0w770nZp6x0kEoc2dK8hxEwA1z4wJwjzWZi8V3uH8yEOKcTAAAAAAAAAAAAAAAAAAAAAAAAQDfOLy/X1PXs+gAUIA1g2bz78/l1vy5vHw/Xdr9VHNT61D71L9VfvQBHaQC9E8AfM0d/84eFDTG/p+Jg6QOlvroBjJD79B+h/uoFqNTfxilJgFo73LFK9K2S0de8jenr+/dun7eKv1pf2QBGqL1Z6/8pNkAh8aMFYGHIyvruzq4kAWqagatZUwAWMXDHv35f7pevG7pv1QDU+qoGMELt1dig3gBYLMbSGGwTKC2AWgesrO8GviYBSpNg03fHytV3C8GiEew1P6u4xxbhXP2ZNyAj1F5o0cuxwcr/NfrTxsDfwZUWQG0DWl3/SKBT92v0Q3PL1d/8YVWAm2+vf88PVyhGVk9gpfqzbkDUue/nf6kNVv4v1a+tP2kMYg0opwAsHLCyfiihchOwtAGr9dUNOLYDzV2AZmwA6txPbUAU/q/xQU39SWOQmsxd9Ofy34CfSzJBLXeg6K+jHyvAo/otnsBy5z/jBkQde0sb1PGftf6Cj94PBgQSMPV+En30awqwVN/qFZja/z0bgHru5P8AMUgZ4Bvh7j56OAB99NFvq6+2gfiL4x8zwF+FUp9r4QD0++j77+BL9GvfwRN/ffxVNhB/cfwJwNoN2KVU3/L4Hfm31gJgkf9q/8+8AUoeg9oMCB5Tc+63Oobl6+/ZYKUfs6HV/GOnYY76/2SEQj91CumofqtTUD30R6i/0WyYLf5Wdaf0fdQhewacOtLLhpgPes9R4f/e+v6TRIm+VQMu1bf+gzR1/SltUPi/Nv7PVP9DBn9vl9DaB6sUn0qfBswCgP8HXQBckdbN9+gCcPv5+/n132X9GsQdO/S+rWfx9fQ/+uiP1gOIf0f9WPPr2Xz3frHS+utx976Gt3Xw1f5Hf119tQ3EXxz/vebasvnuTV5Nr+JT+R999EfoAcRfG39pgx15cvxnMAAAAAAAAAAAAAAAAAAAAAAAAADQ8AsGJbBc3cTZjQAAAABJRU5ErkJggg=="},"shooter_elite":{"file":"public/assets/monsters/animation/shooter_elite.png","size":32,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAAAgCAYAAAAbrK/lAAACn0lEQVR42u2d4U3DMBSE+7sjMEJ3YBHEKiyQaTIWP9kgKJUiGctJCSS5S+/7JEu0pT3bz/eeqdtwuQAAAAAAAAAAAAAAAAAAAACoebnehrGl6gNgQBJAzFqrb3fvw721Hns2ffyPvlQ/3YCOCSClAI1j7Kt5npv/1u+eXd8h/vg/WD/dgA4JILUATeNcO//dRjFQ6zvEH/8H66cb0CEBpBagUqMvYjCNsV+4v9sgBmp9h/jj/2D9dAM6JID0AtSKwaPW7WBAtb4i/vif/IMBhfrpBajULsc41+oYPIu+Q/zxf6A+BtTqJxeguvBMr/P5+TWM7WN4+9HG+1p9OKu+U/zxf6B+ywBLi/8IAybppxeg+q2kaY5b89+KQ9/4q+VM+ur4u/nvkXb5oYRn2ADI809pgDWLfw8DpuorDeCQgFoJeBzz9fV6b9NjRxaAI/XVCdjBf2u1y+eeeQOgnv9mByax0gBHJuBEfaUB1Duw9ALgtgFSrv9JZ3xs0lcUAGX8j5x/EjAGsNyBJRcA1j8FgAKAASQFwMWAKWcArH8KgF0B4AxA9x5oWgGoY/CXQ7gtPoWh0mf9cwYgPQNoGWDtIdTWBkzSdzGAsgC0Xuu3h9BbfwlOoY//bv86gzrzBsBh/i0MqOyDS/JRGEBdgOq+tL57MPddhD0ug6HSTy6A6f536UO8AdVjd9iBKnZgl5mPQy79vMdF2JT66f5L97+8D0oDuJgvOQGoC1B9GYr6vdm523tdBuNI/fQCiP/F+koDOJjPMQklFaC5i9Atzf1lwwvSOeinFkD8bzAH6QZU94EdaPt/DtT3Pbp9Vn0KIP5Xj19uQAcTJicAh11YMskFMN3/LvMPoQnAYgcCAACZO1AAAAAAAAAAAAAAAAAAWMc3imDeQ1EwLXQAAAAASUVORK5CYII="},"drummer_elite":{"file":"public/assets/monsters/animation/drummer_elite.png","size":32,"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAAAgCAYAAAAbrK/lAAAD3klEQVR42u1cQW7cMAzcc4F8oE/IE/qEnPaeW1/aN/QVOfYHGyiFClaQrTVJeShzBjCKbtYeecgZ07tObjeCIAiCIAiCIAiCIAiCIAiCIAiCAOPx++2h+dlV+AmCBmQApMT3b6+PonFP5/p6ec9V+bN7n/4H82c3YIQAyNyAUn+p89brV+NH6h+h95k/4BpkN2Ak/qwGaLXu/f/K/Cj9I1z86H98DW4jA5z5MUA2fjbg/1y/7vevDVX/s/mj1f9s7zF/AtQgswGj8We8ALaal+3Hy8vXVl6fHYBI/kgDCKL36X8wf3YDRguA2Q3w8fHnYeXvHcOqfdW7t82qAZofHQBRep/5A+LPbkAEfxuemgawBHA5ltz/KH/Z10uLyl14agjKCbj8e0b9UfzIAEB5b6v3VvL/0gNQrwBHDWARIDu/DGBNA3gEcN1fw+9pxKpv1b/lbX8+IwDQ/GcGALr3t/p/pQHA6j94DdoCHDWAVYDs/L0APtIAHtzleFp+TzMiArg1oIZ/1QEkQu+3/Y/W/yi/h//gNagNJiePrcff5BTi9ZlkZv5qei2/JYDbjxu0/JY11ObX8nvdgWn5rzAAob1n6T8v/RH+C1GDWoC3+89N8q1FlH2sAmTmlwFs4deuQZ67lt9Dg2JALb/XHZiWf+UBJIr3LGvw0h/hP3gN2gJUQeuVtbfVhUjzWwMoO389lobf0gTtcbT8ViPK4x3l97oDs9TfawA4u//Qa/Dof88BEOE/aP1HJ99egbyLQP7X3eZ/ll8bhL1p6ii/9TN5WQMNv2f4aflX7T/0Gjz633MARPgPWv+9yesf8fv7322wCGsAZuWXAarh9whgect5lN/ypxGkAbX8XgFsqb/HAIDoP/QaPPrfawBE+A9ef3QAefFrQ6jdf3cdFwzgdg1afo/b74wBHGUAQGeApf/QA6B1AELX/2YNv9l/HEs+LdLj93oMsfcInuSceW5W/VfllwbU8nsFsOXi7zEAIP2HXoN1+PIYQFH+C5G/o/CbFb7PnHx9b/ttuIf5nmmGMy5+KP0ltPxemmv5vQLYor/XF9HI+iPXgNTfo/7L+38UfjPD99nJu30EasZvZG4dXz4rPOu3EbX6r87fq+vR/vPoQVT/R+CPsIZV9b+C9sPwmxm+o5MfvXfWxzG99czkR+kfgX/v+CN+rx5E8keof4QeWLH+V/H/MGBR4bf1hdGs7x56HKeID9Q/Qv21/DP7MIv+UdaQXX94/fcCdnb4ntXgkdeG1J/85I+QAaw/tv7QkI16gpcXnyAIgiAIgiAIgiAIgiAIgiAIgiAIgiAIgoiPT0tn3JdNK1w6AAAAAElFTkSuQmCC"}}, C={"ink0":"#1a0a2a","ink1":"#22223a","ink2":"#3a1a0a","white":"#ffffff","bone":"#e8e8f0","sand":"#ffd9a0","steelLight":"#c5c7cf","steelMid":"#8b8f9a","steelDark":"#4a5062","pGold":"#f4a940","pBlue":"#3d6de0","pBlueDk":"#1e3a8a","pBrown":"#5a3a20","slimeLite":"#9dff9d","slimeMid":"#4dd44d","slimeDark":"#0a3d0a","psiPurple":"#b05cff","psiViolet":"#8a5cff","psiLime":"#7dff5a","fireYellow":"#ffe14a","fireOrange":"#ff8c3a","fireDeep":"#c2410c","stoneRed":"#c05050","stoneDark":"#3a0d0d","gold":"#ffd24a","iceCyan":"#57e6ff","iceDeep":"#1a9fd4","danger":"#ff5b5b","hpPink":"#ff4d6d"};
+const bitmaps=Object.fromEntries(await Promise.all(Object.entries(sources).map(async([key,s])=>{const i=new Image();i.src=s.src;await i.decode();return [key,i]})));
+class CanvasPainter {
+ constructor(c){this.c=c;this.fillStyle='#fff';this.strokeStyle='#fff';this.globalAlpha=1}
+ fillRect(x,y,w,h){this.c.fillStyle=this.fillStyle;this.c.globalAlpha=this.globalAlpha;this.c.fillRect(x,y,w,h);this.c.globalAlpha=1}
+ beam(x,y,x2,y2,w,color,a){const c=this.c;c.globalAlpha=a;c.strokeStyle=color;c.lineWidth=w;c.beginPath();c.moveTo(x,y);c.lineTo(x2,y2);c.stroke();c.globalAlpha=1;c.lineWidth=1}
+ polygon(p,color,a){const c=this.c;c.fillStyle=color;c.globalAlpha=a;c.beginPath();c.moveTo(p[0],p[1]);for(let i=2;i<p.length;i+=2)c.lineTo(p[i],p[i+1]);c.closePath();c.fill();c.globalAlpha=1}
+ beginPath(){this.c.beginPath()} moveTo(x,y){this.c.moveTo(x,y)} lineTo(x,y){this.c.lineTo(x,y)} arc(x,y,r,a,b){this.c.arc(x,y,r,a,b)}
+ stroke(){this.c.globalAlpha=this.globalAlpha;this.c.strokeStyle=this.strokeStyle;this.c.lineWidth=1;this.c.stroke();this.c.globalAlpha=1}
+ body(key,frame,x,y,scale){const s=sources[key],i=bitmaps[key];if(!s)return;let r;if(s.frames)r=s.frames[frame].frame;else r={x:Number(frame)*s.size,y:0,w:s.size,h:s.size};this.c.imageSmoothingEnabled=false;this.c.drawImage(i,r.x,r.y,r.w,r.h,Math.round(x-r.w*scale/2),Math.round(y-r.h*scale/2),r.w*scale,r.h*scale)}
+}
+const gallery=document.querySelector('main'), views=[];
+for(const card of MONSTER_PREVIEW_CARDS){const f=document.createElement('figure');f.dataset.group=card[3];const canvas=document.createElement('canvas');canvas.width=208;canvas.height=144;const caption=document.createElement('figcaption');caption.textContent=card[1];f.append(canvas,caption);gallery.append(f);views.push([canvas,new CanvasPainter(canvas.getContext('2d')),card])}
+let time=0,run=true,last=performance.now();const seek=document.querySelector('#seek'),speed=document.querySelector('#speed'),toggle=document.querySelector('#toggle');
+toggle.onclick=()=>{run=!run;toggle.textContent=run?'暂停':'播放'};seek.oninput=()=>{time=Number(seek.value);run=false;toggle.textContent='播放'};
+document.querySelector('#filter').onchange=e=>document.querySelectorAll('figure').forEach(f=>f.hidden=e.target.value!=='all'&&f.dataset.group!==e.target.value);
+function tick(now){if(run)time=(time+Math.min(.05,(now-last)/1000)*Number(speed.value))%2.8;last=now;seek.value=String(time);document.querySelector('#clock').textContent=time.toFixed(2)+' s';for(const [canvas,p,card] of views){if(canvas.parentElement.hidden)continue;const c=p.c;c.clearRect(0,0,208,144);c.fillStyle='#172030';c.fillRect(0,0,208,144);c.strokeStyle='#202b3c';c.beginPath();for(let x=0;x<208;x+=16){c.moveTo(x,0);c.lineTo(x,144)}for(let y=0;y<144;y+=16){c.moveTo(0,y);c.lineTo(208,y)}c.stroke();renderMonsterPreview(p,card,time,C,drawMonsterEffect,monsterWarningCircle,monsterWarningLane,undefined,document.querySelector('#warnings').checked)}requestAnimationFrame(tick)}requestAnimationFrame(tick);
+</script></html>

@@ -100,6 +100,7 @@ import type {
   DamageTotals,
   Enemy,
   EnemyBullet,
+  EnemyVisualEvent,
   EliteAffix,
   FloatingText,
   GameState,
@@ -147,6 +148,7 @@ export class GameCore {
   state: Mode = "start";
   player!: Player;
   enemies: Enemy[] = [];
+  enemyVisualEvents: EnemyVisualEvent[] = [];
   bossState: BossState | null = null;
   bossHazards: BossHazard[] = [];
   /** Boss/minion shared hostile ground. Legacy name remains an alias for previews. */
@@ -765,6 +767,7 @@ export class GameCore {
   /** 返回开始页的 Boss 清理命令，UI 不直接改危险区或敌人字段。 */
   clearBossEncounter() {
     clearBossTransient(this);
+    this.enemyVisualEvents = [];
     this.enemies = this.enemies.filter((e) => !e.boss && !e.bossSummon);
   }
   resetMissileWeapon() { this.missile = createMissileState(); }
@@ -822,6 +825,7 @@ export class GameCore {
     };
     this.player.hp = this.player.maxhp;
     clearBossTransient(this);
+    this.enemyVisualEvents = [];
     this.enemies = [];
     this.bullets = [];
     this.gems = [];
@@ -1122,6 +1126,7 @@ export class GameCore {
     this.warriorLeapState = null;
     const wave = Math.max(1, this.waveN);
     clearBossTransient(this);
+    this.enemyVisualEvents = [];
     this.enemies = [];
     this.ebullets = [];
     this.bullets = [];
@@ -1240,6 +1245,7 @@ export class GameCore {
       return;
     }
     this.state = "over";
+    this.enemyVisualEvents = [];
     const p = this.player;
     const totalDamage = Object.values(this.dmgBy).reduce(
       (sum, value) => sum + value,

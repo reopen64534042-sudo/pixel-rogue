@@ -13,6 +13,7 @@ import {
   ELITE_DRUMMER_AURA,
 } from "../data/enemies";
 import { interruptEnemyAction, updateEnemyBehavior } from "./EnemyBehaviors";
+import { emitEnemyVisual } from "./EnemyVisualEvents";
 import { ELEMENTAL_MAGE } from "../data/elementalMage";
 import { resolveDifficulty } from "../data/difficulty";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
@@ -347,6 +348,7 @@ export function updateEnemies(this: GameCore, dt: number) {
               bat.xp = 0;
             }
             this.addText(e.x, e.y - e.r - 12, "召唤", "#b05cff");
+            emitEnemyVisual(this, e, "summon", e, 26);
             this.audio.beep(520, 0.12, "triangle", 0.05, 120);
           }
           e.affixT = 5 * paraActionMul(e);
@@ -355,6 +357,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         if ((e.novaT ?? 0) > 0) {
           e.novaT = (e.novaT ?? 0) - dt;
           if (e.novaT <= 0) {
+            emitEnemyVisual(this, e, "nova", e, ELITE_NOVA.radius);
             const hit =
               Math.hypot(p.x - e.x, p.y - e.y) < ELITE_NOVA.radius;
             if (hit)
@@ -450,6 +453,7 @@ export function updateEnemies(this: GameCore, dt: number) {
           // 发射时攻击者快照：发射者可能在命中前死亡/移除，不依赖存活引用
           stats: getEnemyCombatStats(e),
         });
+        emitEnemyVisual(this, e, "shot", e, 12, a);
         this.audio.beep(340, 0.08, "square", 0.03, -60);
       }
     } else if (e.type === "bomber") {
@@ -464,6 +468,7 @@ export function updateEnemies(this: GameCore, dt: number) {
       } else {
         e.fuse -= dt;
         if (e.fuse <= 0) {
+          emitEnemyVisual(this, e, "explosion", e, 38 + p.r);
           const d2p = Math.hypot(p.x - e.x, p.y - e.y);
           if (
             d2p < 38 + p.r &&
@@ -570,6 +575,7 @@ export function updateEnemies(this: GameCore, dt: number) {
           e.burrowState = undefined;
           e.burrowT = 0;
           e.burrowCd = BURROWER.cooldown * paraActionMul(e);
+          emitEnemyVisual(this, e, "emerge", e, 24);
           this.audio.beep(90, 0.12, "sawtooth", 0.04, 20);
           for (let i = 0; i < 8; i++) {
             const dustA = (i / 8) * Math.PI * 2;
@@ -631,6 +637,7 @@ export function updateEnemies(this: GameCore, dt: number) {
           arm: WEB_ZONE.arm,
         });
         e.webCd = WEB_ZONE.cooldown * paraActionMul(e);
+        emitEnemyVisual(this, e, "web", e, 12, a);
         this.audio.beep(260, 0.08, "triangle", 0.03, -30);
       }
     } else if (e.type === "charger") {
@@ -657,6 +664,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         e.y = clamp(ny, 20, WORLD.h - 20);
         if (hitWall || e.chargeT <= 0) {
           e.chargeState = "stun";
+          emitEnemyVisual(this, e, "charge", e, 24, Math.atan2(e.chargeDy ?? 0, e.chargeDx ?? 1));
           e.chargeT = CHARGER_CHARGE.stun;
           e.chargeCd = CHARGER_CHARGE.cooldown * paraActionMul(e);
           this.shake = Math.min(this.shake + 1.5, 6);

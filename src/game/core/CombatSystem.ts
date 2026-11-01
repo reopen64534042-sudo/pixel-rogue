@@ -2,6 +2,7 @@ import { BOSS } from "../data/boss";
 import { enemyCodexKey, ETYPES } from "../data/enemies";
 import { enemyGuardMultiplier } from "./DamageMath";
 import { interruptEnemyAction } from "./EnemyBehaviors";
+import { emitEnemyVisual } from "./EnemyVisualEvents";
 import { bossDamageTakenMultiplier, bossInvulnerable, clearBossTransient, syncBossPhase } from "./BossSystem";
 import type { GameCore } from "./GameCore";
 import {
@@ -557,6 +558,7 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   }
   // 精英「分裂」词缀：死亡裂成两只非精英小一号本体，不产生额外掉落。
   if (e.elite && e.affix === "split") {
+    emitEnemyVisual(this, e, "split", e, e.r * 2);
     for (let i = 0; i < 2 && this.enemies.length < 160; i++) {
       this.spawnEnemy(ETYPES[e.type]?.baseType ?? e.type);
       const child = this.enemies[this.enemies.length - 1];
@@ -585,6 +587,7 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   // 裂胶史莱姆：先分裂再结算击杀爆炸，让范围伤害有机会连子体一起清掉。
   // 子体不占波次配额、不再分裂、不掉落，同屏数量仍受 160 上限约束。
   if (e.type === "splitter") {
+    emitEnemyVisual(this, e, "split", e, 18);
     for (let i = 0; i < 2 && this.enemies.length < 160; i++) {
       this.spawnEnemy("splitling");
       const child = this.enemies[this.enemies.length - 1];
@@ -718,6 +721,7 @@ export function damagePlayer(
   dmg: number,
   opts: PlayerHitOptions = {},
 ): DamageResult {
+  if (opts.cause === "contact" && opts.src) emitEnemyVisual(this, opts.src, "contact", this.player, opts.src.r + 5);
   const p = this.player;
   if (
     this.prof === "shooter" && this.shooterWeapon === "laser" &&

@@ -363,6 +363,16 @@ export interface BossHazard extends Point {
   hostile?: true;
 }
 export type EnemyActionKind = "lob" | "thrust" | "tether" | "stomp" | "gaze" | "collapse" | "blink" | "sonic";
+export type EnemyVisualKind = EnemyActionKind | "contact" | "shot" | "explosion" | "split" | "web" | "emerge" | "charge" | "summon" | "nova";
+/** Emitted at an actual attack/release; presentation only, never consulted by combat. */
+export interface EnemyVisualEvent extends Point {
+  kind: EnemyVisualKind;
+  source: Enemy;
+  at: number;
+  duration: number;
+  angle: number;
+  radius: number;
+}
 export interface EnemyAction extends Point {
   kind: EnemyActionKind;
   phase: "windup" | "active";

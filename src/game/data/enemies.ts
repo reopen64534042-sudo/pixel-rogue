@@ -161,7 +161,7 @@ export const MONSTER_SKILLS = {
   lob: { windup: 0.8, cooldown: 3.5, range: 280, radius: 50, groundRadius: 24, groundLife: 3, tick: 0.25 },
   thrust: { windup: 0.6, cooldown: 4.5, range: 110, length: 110, width: 30, distance: 80, duration: 0.25, guardDown: 0.8 },
   tether: { windup: 0.8, cooldown: 5, range: 260, length: 240, width: 20, duration: 1.2, tick: 0.3, ticks: 4 },
-  stomp: { windup: 0.7, cooldown: 6, range: 120, radius: 110, knock: 80 },
+  stomp: { windup: 0.7, cooldown: 6, range: 120, radius: 80, knock: 80 },
   gaze: { windup: 0.8, cooldown: 5, range: 280, length: 280, width: 24 },
   collapse: { windup: 0.9, cooldown: 7, range: 280, radius: 90 },
   blink: { windup: 0.3, cooldown: 4, range: 90, distance: 140 },

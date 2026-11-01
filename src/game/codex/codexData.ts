@@ -239,7 +239,7 @@ export const ENEMY_ENTRIES: readonly CodexEntry[] = [
     id: enemyId("brute_elite"),
     cat: "enemy",
     name: "岩石巨兽",
-    desc: "近战精英：120px内触发0.7秒践踏预警，110px内造成物理伤害并击退80px，冷却6秒。生命 ×5、攻击 ×1.6；第8波起携带词缀，普通宝箱50%概率，血包与经验必掉。",
+    desc: "近战精英：120px内触发0.7秒践踏预警，80px内造成物理伤害并击退80px，冷却6秒。生命 ×5、攻击 ×1.6；第8波起携带词缀，普通宝箱50%概率，血包与经验必掉。",
     spr: "brute_elite",
     link: "brute",
     elite: true,

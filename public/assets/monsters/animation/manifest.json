@@ -1,0 +1,275 @@
+{
+  "schema": 1,
+  "note": "Approved static sprites remain unchanged. 12 poses with a shared center anchor, frame zero locked.",
+  "poses": [
+    "idle",
+    "move-a",
+    "move-b",
+    "windup-a",
+    "windup-b",
+    "strike-a",
+    "strike-b",
+    "recover",
+    "hurt",
+    "channel-a",
+    "channel-b",
+    "break"
+  ],
+  "units": [
+    {
+      "key": "slime",
+      "file": "slime.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "7252811c2c4a4b85d580db2391a42b593d9ee38dd5bf1f5761ea919460921f87",
+      "lockedSeedSha256": "0f44bd36f48ed455a38292e3841dbf66e12618312379d1852c790b52c8d45a0f"
+    },
+    {
+      "key": "bat",
+      "file": "bat.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "9a9ff256e8edf190a684c7d82a30978ecd515dd5ee0af7a8ce8b6fd81e2069d6",
+      "lockedSeedSha256": "4c00db6b653c24721dd469b5275be9e96561fa88838e9fdd7d7345e4d1ed327e"
+    },
+    {
+      "key": "shooter",
+      "file": "shooter.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "9b480cf0550b8fcbe2028905289c513c35dcc6a7c556dce302eee27a47bf0d3f",
+      "lockedSeedSha256": "f64450c9ef8270f5c00828e2c2ab2ba63e4931f2085ae49aa85ffd1086d407db"
+    },
+    {
+      "key": "bomber",
+      "file": "bomber.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "a7af8a2d1e38b117ee33cf67bc0f48303a516cd6042dbaf0ddba81eba616f6b0",
+      "lockedSeedSha256": "60f74a29288172151491008fb83ee8b76bfa3307d6fd21c087ec7383b5820c4f"
+    },
+    {
+      "key": "brute",
+      "file": "brute.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "2ded588b690c52218c4e8476af07df6fdcf1d0f06f3ec510125a7c581c5c4785",
+      "lockedSeedSha256": "f943eda80012f08b38ab1c11297f1dcb2bbda6467eba91a337348611cb80f492"
+    },
+    {
+      "key": "splitter",
+      "file": "splitter.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "ba2361a3508aebd29fd4e1f473c717ca8357061853452a25558bd96cb588fe22",
+      "lockedSeedSha256": "6a9bc0d7b164b6d7436bf38f66dc87ace3dddfcae0083a8fc3c50e89e177867b"
+    },
+    {
+      "key": "splitling",
+      "file": "splitling.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "18daec15c71e4017d27ff82904b3fc2f89acffc4ec2a08489e14c61fb4551f86",
+      "lockedSeedSha256": "95a77ccf2716baf12c0a8e258f3bd688a8064bf0c44fc221047fd5610592b841"
+    },
+    {
+      "key": "charger",
+      "file": "charger.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "4e46b68c38cd96b0fcd2dd59f0d97939055b1501d6de7b992b0d4f498482e13e",
+      "lockedSeedSha256": "dfe3711bf83a76b47197dfe88b7e386b16b3f54a43bc32e8f0b6670b922872a8"
+    },
+    {
+      "key": "drummer",
+      "file": "drummer.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "e3273248a1c36581bd0a23afc80bf46503226a533fd23b28c44ab7622a510c1f",
+      "lockedSeedSha256": "ae2bef14c6236c6790efeaa8e12394269088dc396dc26b6d36e84b993c831186"
+    },
+    {
+      "key": "spinner",
+      "file": "spinner.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "4234f94173ffea50f27de1fcabcc6876e6f92c64234d2a620d3b38f0646fd38c",
+      "lockedSeedSha256": "6e8094d20ac6412ff5dbcb21c255dcf49c5469e8d830e21218c110fb95516851"
+    },
+    {
+      "key": "burrower",
+      "file": "burrower.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "3add45c3d80bbb7c5b051b85bbd2655d19685f945844eec589f2794d52e57850",
+      "lockedSeedSha256": "b5777237c4a7d1b6200a82438cb5d067c5599f2c964b511988ee392419d787ea"
+    },
+    {
+      "key": "lobber",
+      "file": "lobber.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "d54c531860023cafc69db7d40b1880cc8b65ef9d7f7100196af3bbaf98676ce3",
+      "lockedSeedSha256": "fe09e171f716f2e8445b47560af9747ac98cd5754721b10cb092077f2f640769"
+    },
+    {
+      "key": "bulwark",
+      "file": "bulwark.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "1acc8b8114f8f49ba6e5f032722347b8f58d702cf671e1d539d230b0bb39a82c",
+      "lockedSeedSha256": "2c257d7d86084a47ef1dfa2c0b9125350e06d9ccb38d9ed61e5397537ac0e202"
+    },
+    {
+      "key": "tether",
+      "file": "tether.png",
+      "frame": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "frames": 12,
+      "sha256": "d9dcdad909ad0d1718285b2f87593f71fae8a578921cfa74f1887ef477fdcc99",
+      "lockedSeedSha256": "d42f02d2e2a348fc1a17c4ba117c2933997d43f0dfa40143880d1ecd5284360f"
+    },
+    {
+      "key": "brute_elite",
+      "file": "brute_elite.png",
+      "frame": [
+        32,
+        32
+      ],
+      "anchor": [
+        16,
+        16
+      ],
+      "frames": 12,
+      "sha256": "36e619f4e840d93824be9780425a648938bd191710edaefa5f1e941833ee4589",
+      "lockedSeedSha256": "73bfaea776427e0be078111b6cd34c77ceb4a493fbabaf9a722afa354e067cba"
+    },
+    {
+      "key": "shooter_elite",
+      "file": "shooter_elite.png",
+      "frame": [
+        32,
+        32
+      ],
+      "anchor": [
+        16,
+        16
+      ],
+      "frames": 12,
+      "sha256": "c23ee5a1ea9f2ca1901fced85a8a4310969782e1ad46c3154e487b615f4a9d03",
+      "lockedSeedSha256": "f86a9d8388366caf8ce97c00395b2e7b3273468856896197dfca6dba7e0f7fb2"
+    },
+    {
+      "key": "drummer_elite",
+      "file": "drummer_elite.png",
+      "frame": [
+        32,
+        32
+      ],
+      "anchor": [
+        16,
+        16
+      ],
+      "frames": 12,
+      "sha256": "d3fc4f802e5649f7d3611f46d7ae69542421e64d023c0e517429a67bec7cbecc",
+      "lockedSeedSha256": "bf3a017c7e8fa6ae993d8cdacd58d6541e0d85a13b38bba94abdab0ca2bd7110"
+    }
+  ]
+}

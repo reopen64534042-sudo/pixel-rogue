@@ -8,7 +8,7 @@
 - src/game/scenes/GameScene.ts：唯一场景及其输入/更新/清理生命周期。
 - src/game/core/：GameCore 状态与命令，Simulation 按原顺序调度规则；Player/Combat/Attack/Projectile/Enemy/Wave/Progression/Talent/Swap/Effects 各有实际职责，BossSystem 管理三首巨兽的入场、三阶段、预警招式、危险区与随从（data/boss.ts 配置；每 10 波替代普通/精英）；LaserSystem 管理射手激光照射/回充、焦点与时间预算；MissileSystem 管理导弹装填/制导/扫掠，MissileCombat 经统一管线结算爆破/电弧/余烬。Mage/MageProgression/Element（元素法师 v2：法杖等级 1–12、每 3 次成功施法轮盘、Lv1/3/6 元素、A/B 套装、六反应与棱镜/分影/终章；ElementMath 为纯计算层）随职业池接入，Damage/CombatSystem 构成 Combat Foundation 统一伤害管线（S1 纯计算 + S2 全路径接入），CombatStats 为实体属性适配层（S3-A 接线 + S3-B 方案甲数值），StatModel 为纯属性解析模型（S4-A，未接入运行时），StatSheets 为 S4-B 只读 shadow 构建器（未接入运行时），FixedClock 固定步长。
 - src/game/data/：常量、初始属性、射手/法师/战士职业池与通用卡（talents/ 分文件；旧表已于 v165 删除）、元素法师 v2 规则（elementalMage.ts）、首领配置（boss.ts）、敌人配置及伤害类型注册与战斗基准。
-- src/game/rendering/：原像素纹理、Phaser 绘制和对象复用；BossAnimation / BossArt / BossVfx / BossGeneratedVfx 采样三首巨兽的八姿态图集与招式表现，离线预览用 scripts/build-boss-preview.mjs；vfx/laser 的桥接器与播放器由 Scene 按固定步采集，LaserVfxPainter 复用原绘制顺序。MissileRenderer 与 vfx/missile 只读实际飞行和引爆事件，复用 PixelPainter 的深度与对象池。
+- src/game/rendering/：像素纹理、Phaser绘制和对象复用；MonsterAnimation采样17套204帧，MonsterVfx使用MonsterFxRecipes，只读真实enemyVisualEvents及AI阶段。BossAnimation/BossArt/BossVfx/BossGeneratedVfx继续使用原版Boss八姿态和技能图集。动态预览见docs/monster-animation-and-vfx.md。vfx/laser桥接器与播放器由Scene按固定步采集；MissileRenderer只读飞行和引爆，复用PixelPainter深度与对象池。
 - src/game/rendering/characters/：职业人物表现；KatanaCharacter / GreatswordCharacter / ShooterCharacter / MageCharacter 由 Scene 只读模拟状态取帧，射手身体与独立瞄准的武器分层、折光剪影复用同套素材，法师接入魔女人物本体；MageVfx 按 Core 的只读 mageVisualEvents 绘制法阵/状态/棱镜/反应爆发，缺失素材回退原程序化表现，不修改战斗状态。
 - DomainSystem / data/domain 管理法师独立坍缩领域武器；Simulation 调度，DamageMath 形成分量，CombatSystem 同次应用主爆发/真伤/生命压缩。DomainRenderer / DomainCharacter 只读实际状态；AudioService 缓存领域 WAV 并在暂停/清理时停播，见 docs/domain-weapon-design.md 与 docs/domain-character-art.md。
 - 领域保留三场合成，收拢中心锁定并跟随目标（范围内可攻击Boss→捕获目标→最近敌人），仅失效重选、无目标保留最后位置；捕获名单仍独立快照。W/M独立增强场/洞伤害，全域连斩去重，无量真实过载，形成后黑洞按实际位置向怪群巡游。V2四次强化已撤回。
@@ -62,6 +62,7 @@
 - npm run palette:export：从 src/game/data/palette.ts 导出 assets/palette.gpl（美术产线，改动色板后必跑）。
 - node scripts/pixelize.mjs <png> --key <assetKey>：贴图后处理（规格见 docs/art-assets.md 第 7 节）。
 - node scripts/build-monster-assets.mjs：Node 24从monsterArt.ts重建17张普通/子体/精英PNG，走pixelize色板/透明/尺寸校验，导出docs/previews/monsters-v167预览；不改Boss图集。
+- node scripts/build-monster-animation-assets.mjs：从认可原稿重建17套204帧动作并锁定首帧；node scripts/build-monster-motion-preview.mjs与python scripts/export-monster-motion-preview.py导出23段共享配方的离线动画/VFX预览。运行时由MonsterAnimation按固定步采样，MonsterVfx只读真实释放事件；见docs/monster-animation-and-vfx.md。
 **验证标准（2026-10-29 用户裁定，覆盖本节及「验收」中与此冲突的旧要求）**：改动以**编译通过、无报错**（`npm run typecheck` + `npm run build`）为交付线；**默认不运行 Vitest / Playwright，不主动新增/扩展测试或补写基线**，用户点名才做。若改动会使既有测试断言过期，在提交信息与 docs/migration.md 中留痕说明，留待用户授权的测试批次统一处理。
 
 ## 验收
