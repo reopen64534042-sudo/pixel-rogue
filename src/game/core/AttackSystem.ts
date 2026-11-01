@@ -302,6 +302,7 @@ export function updateAttacks(this: GameCore, dt: number) {
           dy = e.y - m.y;
         if (dx * dx + dy * dy < R * R)
           this.hurtEnemy(e, meteorDamage(p), 0, 0, {
+            origin: m,
             noChain: true,
             fromExplode: true,
             src: "meteor",

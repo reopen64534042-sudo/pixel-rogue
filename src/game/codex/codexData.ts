@@ -113,14 +113,24 @@ export function enemyId(key: string): string {
 /**
  * 敌人条目。
  *
- * **不能靠遍历 `ETYPES` 生成**：精英不是独立配置，而是 `spawnEnemy("brute", true)`
- * 的强化标记（生命 ×8、伤害 ×1.5、体型 ×1.8），因此精英条目必须显式登记。
+ * 精英条目显式登记：岩石巨兽是 brute 的精英形态，眼魔/祭司有独立基础配置；
+ * 三者共用生命 ×5、攻击 ×1.6、移速 ×0.8、半径 ×1.8，且不进入普通刷新池。
  *
  * 数据来源与配置保持一致：基础怪的名称/描述对应 `data/enemies.ts` 的数值与抗性；
  * `spr` 为逻辑贴图名，与绘制层同一套键（精英沿用 `` `${spr}_elite` `` 命名）。
  * 贴图经 `assetRegistry.spriteImageSrc()` 取得，**换贴图时本文件无需改动**。
  */
 export const ENEMY_ENTRIES: readonly CodexEntry[] = [
+  { id: enemyId("lobber"), cat: "enemy", name: "熔岩投手", spr: "lobber", link: "lobber", status: "live",
+    desc: "第15波解锁。0.8秒圆形落点预警后炮击，留下持续3秒的火地；保持移动并绕开火地。" },
+  { id: enemyId("bulwark"), cat: "enemy", name: "晶甲虫", spr: "bulwark", link: "bulwark", status: "live",
+    desc: "第16波解锁。正面120°护盾减伤60%，真实伤害和持续伤害忽略方向护盾。短距突进前有0.6秒预警，结束后护盾关闭0.8秒。绕侧或抓住破绽。" },
+  { id: enemyId("tether"), cat: "enemy", name: "缚电水母", spr: "tether", link: "tether", status: "live",
+    desc: "第19波解锁。0.8秒直线预警后，沿锁定方向持续放电1.2秒，每0.3秒检查一次；横移出线可躲避，直接受击或硬控制可打断。" },
+  { id: enemyId("shooter_elite"), cat: "enemy", name: "飞行眼魔", spr: "shooter_elite", link: "shooter_elite", elite: true, status: "live",
+    desc: "第12波起的第二精英槽位。凝视射线与重力塌缩都有预警，命中减速30%持续2秒；近身时向外闪烁140px。分裂词缀产生普通射手。" },
+  { id: enemyId("drummer_elite"), cat: "enemy", name: "战鼓祭司", spr: "drummer_elite", link: "drummer_elite", elite: true, status: "live",
+    desc: "第21波起的第三精英槽位（第20波为Boss）。140px内友军+20%移速和伤害，不叠加；预警0.7秒后释放150px音爆环，经过的友军获得3秒移速强化。" },
   {
     id: enemyId("boss_three"), cat: "enemy", name: "三首巨兽", spr: "boss_three", link: "boss_three", boss: true,
     desc: "每 10 波出现的首领。70% / 35% 生命切换火焰、冰霜、雷霆首；转阶段短暂无敌。免疫硬控与击退、减速效果减半；冲锋结束后硬直 1 秒，承伤 +15%。冰环贴身可躲，雷击落点锁定施放位置。阶段随从无经验和掉落。必掉 2 普通宝箱、1 血包及 8 倍精英经验。",
@@ -229,7 +239,7 @@ export const ENEMY_ENTRIES: readonly CodexEntry[] = [
     id: enemyId("brute_elite"),
     cat: "enemy",
     name: "岩石巨兽",
-    desc: "精英形态：生命 ×5、攻击 ×1.6、移速 ×0.8、体型 ×1.8；第 8 波起随机携带「分裂 / 召唤蝙蝠 / 冰霜新星」词缀。普通宝箱（品质祝福）50% 概率掉落，血包与经验仍必掉。",
+    desc: "近战精英：120px内触发0.7秒践踏预警，110px内造成物理伤害并击退80px，冷却6秒。生命 ×5、攻击 ×1.6；第8波起携带词缀，普通宝箱50%概率，血包与经验必掉。",
     spr: "brute_elite",
     link: "brute",
     elite: true,

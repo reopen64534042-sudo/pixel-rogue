@@ -3,6 +3,7 @@ import { WORLD, clamp } from "../data/constants";
 import type { DamageTypeId } from "../data/damageTypes";
 import { bossAttackDamage, bossGroundTickDamage, bossRewardXp } from "./DamageMath";
 import { frostSlowFactor } from "./ElementMath";
+import { addHostileHazard } from "./HostileHazards";
 import type { GameCore } from "./GameCore";
 import type { BossAttackId, BossPhase, BossState, Enemy, Point } from "./types";
 
@@ -12,6 +13,7 @@ export function clearBossTransient(core: GameCore): void {
   core.bossStrikes = [];
   core.bossImpacts = [];
   core.bossSlowT = 0;
+  core.enemySlowT = 0;
 }
 
 export function bossInvulnerable(core: GameCore, e: Enemy): boolean {
@@ -172,11 +174,11 @@ function circleContains(core: GameCore, target: Point, r: number): boolean {
 
 function addHazard(core: GameCore, s: BossState, kind: "fire" | "frost", at: Point, r: number): void {
   if (core.bossState !== s || s.enemy.dead || s.action === "transition") return;
-  if (core.bossHazards.length >= BOSS.hazard.max) core.bossHazards.shift();
-  core.bossHazards.push({
+  addHostileHazard(core, {
     kind, ...at, r, t: BOSS.hazard.duration, tickT: BOSS.hazard.tick,
     dmg: bossGroundTickDamage(s.enemy.dmg, kind),
     slowF: kind === "frost" ? BOSS.hazard.slow : 0,
+    source: s.enemy, interval: BOSS.hazard.tick,
   });
 }
 
@@ -289,16 +291,6 @@ function updateHazards(core: GameCore, s: BossState, dt: number): void {
     if (core.bossState !== s || core.state !== "play" || s.action === "transition") return;
   }
   core.bossStrikes = core.bossStrikes.filter((strike) => strike.t > 0);
-  for (const h of core.bossHazards) {
-    h.t -= dt;
-    h.tickT -= dt;
-    if (h.tickT <= 0 && h.t >= -1e-8) {
-      h.tickT += BOSS.hazard.tick;
-      if (circleContains(core, h, h.r) && h.dmg > 0) hitPlayer(core, s, h.dmg, h.kind, true);
-      if (core.bossState !== s || core.state !== "play" || s.action === "transition") return;
-    }
-  }
-  core.bossHazards = core.bossHazards.filter((h) => h.t > 0);
 }
 
 export function updateBosses(core: GameCore, dt: number): boolean {

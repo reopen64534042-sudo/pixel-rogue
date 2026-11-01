@@ -1,4 +1,5 @@
 import { drawAnimatedBoss } from "./BossVfx";
+import { drawEnemySkills } from "./EnemySkillRenderer";
 import { bossSpriteKey, drawBossGround, drawBossHead, drawBossHud } from "./BossRenderer";
 import { drawLaser, drawLaserResources } from "./LaserRenderer";
 import { drawMissile, drawMissileGround, drawMissileResources } from "./MissileRenderer";
@@ -287,6 +288,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
 
   // 织网蛛蛛网：预警时金色圈收缩，生效后画白色网纹；网只减速，不造成伤害。
   drawBossGround(this, ctx);
+  drawEnemySkills(this, ctx);
   for (const z of this.webZones) {
     if (z.arm > 0) {
       const k = 1 - z.arm / WEB_ZONE.arm;
@@ -656,6 +658,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       e.type === "burrower" && e.burrowState === "under";
     // 冰冻染色
     if (e.slowT > 0) ctx.globalAlpha = 0.9;
+    if (e.action?.kind === "blink" && e.action.phase === "windup") ctx.globalAlpha = Math.max(0.15, e.action.t / e.action.max);
     if (e.type === "burrower" && e.burrowState === "dive") ctx.globalAlpha = 0.55;
     if (burrowHidden) {
       // 地下只剩土丘、两只前爪与复眼；贴图不画，但敌人实体仍在场上（可被范围伤害命中）。

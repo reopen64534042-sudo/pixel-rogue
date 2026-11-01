@@ -137,3 +137,8 @@ export const BOSS_DAMAGE = {
   fireGround: 0.4, frostGround: 0,
   vulnerability: 1.15,
 } as const;
+
+export const ENEMY_SKILL_DAMAGE = {
+  lob: 1, fireGround: 0.25, thrust: 1, tether: 0.3,
+  stomp: 1, gaze: 1, collapse: 0.8, sonic: 0.6,
+} as const;

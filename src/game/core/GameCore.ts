@@ -100,6 +100,7 @@ import type {
   DamageTotals,
   Enemy,
   EnemyBullet,
+  EliteAffix,
   FloatingText,
   GameState,
   GameView,
@@ -148,6 +149,12 @@ export class GameCore {
   enemies: Enemy[] = [];
   bossState: BossState | null = null;
   bossHazards: BossHazard[] = [];
+  /** Boss/minion shared hostile ground. Legacy name remains an alias for previews. */
+  get hazards(): BossHazard[] { return this.bossHazards; }
+  set hazards(value: BossHazard[]) { this.bossHazards = value; }
+  enemySlowT = 0;
+  /** Records species-slot affixes even if an earlier elite dies before the next spawn. */
+  waveEliteAffixes: EliteAffix[] = [];
   bossStrikes: BossStrike[] = [];
   bossImpacts: BossImpact[] = [];
   bossSlowT = 0;
@@ -823,6 +830,7 @@ export class GameCore {
     this.burnZones = [];
     this.trailZones = [];
     this.webZones = [];
+    this.waveEliteAffixes = [];
     this.dashFireBoostT = 0;
     this.specialLoaded = false;
     this.dodgeNextCrit = false;

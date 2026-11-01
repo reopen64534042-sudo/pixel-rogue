@@ -183,6 +183,7 @@ function reactionDamage(
           noChain: true,
           noLifesteal: true,
           src: "reaction",
+          origin: e,
           type: element,
           form: "other",
         },
@@ -376,6 +377,7 @@ function triggerChain(
   let px = origin.x;
   let py = origin.y;
   for (const o of near) {
+    const incoming = { x: px, y: py };
     core.bolts.push({ x1: px, y1: py, x2: o.x, y2: o.y, life: 0.15 });
     px = o.x;
     py = o.y;
@@ -388,6 +390,7 @@ function triggerChain(
         noCrit: true,
         noChain: true,
         src: "chain",
+        origin: incoming,
         type: "lightning",
         form: "other",
       },

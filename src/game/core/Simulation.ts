@@ -1,4 +1,5 @@
 import { updateBosses } from "./BossSystem";
+import { updateHostileHazards } from "./HostileHazards";
 import { updateDomain } from './DomainSystem';
 import { VIEW, WORLD, clamp } from "../data/constants";
 import { updateAttacks } from "./AttackSystem";
@@ -29,6 +30,7 @@ export function update(this: GameCore, dt: number) {
   updateMelee.call(this, dt);
   if (updateProjectiles.call(this, dt)) return;
   updateWave.call(this, dt);
+  if (updateHostileHazards(this, dt)) return;
   if (updateBosses(this, dt)) return;
   if (updateEnemies.call(this, dt)) return;
   updateProgression.call(this, dt);

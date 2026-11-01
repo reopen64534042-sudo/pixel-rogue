@@ -1,7 +1,7 @@
 import { BOSS } from "../data/boss";
 import { domainDash } from './DomainSystem';
 import { WORLD, clamp } from "../data/constants";
-import { WEB_ZONE } from "../data/enemies";
+import { EYE_SLOW, WEB_ZONE } from "../data/enemies";
 import {
   WARRIOR_BALANCE as WB,
   shieldRebuildSeconds,
@@ -40,7 +40,7 @@ export function playerMoveSpeed(core: GameCore): number {
       bossSlow = Math.min(bossSlow, 1 - h.slowF);
   }
   const escape=core.prof==='mage' && core.mageWeapon==='domain' && core.domain.escapeUntil>core.time ? 1+core.domain.escapeBonus : 1;
-  return p.speed * boost * webSlow * bossSlow * escape;
+  return p.speed * boost * webSlow * Math.min(bossSlow, core.enemySlowT > 0 ? 1 - EYE_SLOW.factor : 1) * escape;
 }
 
 /** 走路与冲刺共用的「势」积累；满层后清空余量，避免触发后立刻又攒一层。 */
@@ -57,6 +57,7 @@ function addIaiDistance(core: GameCore, moved: number) {
 }
 
 export function updatePlayer(this: GameCore, dt: number) {
+  this.enemySlowT = Math.max(0, this.enemySlowT - dt);
   const p = this.player;
   // v131：跃击起手/坠落由 WarriorSystem 统一推进；先于移动和相机。
   updateWarriorLeapMotion.call(this, dt);

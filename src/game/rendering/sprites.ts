@@ -1,4 +1,7 @@
 import { makeBossSprite } from "./bossSprite";
+import { MONSTER_ART, monsterArtRows } from "../data/monsterArt";
+import { PALETTE_HEX } from "../data/palette";
+
 function makeSprite(map: string[], palette: Record<string, string>) {
   const h = map.length,
     w = map[0].length;
@@ -226,3 +229,10 @@ SPR.box = makeSprite(
   ],
   { i: "#c9cdd6", w: "#a8672f", d: "#6b3f19", f: "#ffc23d" },
 );
+
+// Native v167 originals also work when PNG overrides are unavailable.
+for (const [key, art] of Object.entries(MONSTER_ART)) {
+  SPR[key] = makeSprite(monsterArtRows(key), Object.fromEntries(
+    Object.entries(art.colors).map(([symbol, color]) => [symbol, PALETTE_HEX[color]]),
+  ));
+}

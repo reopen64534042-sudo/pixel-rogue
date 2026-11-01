@@ -358,3 +358,11 @@
 
 - 29 帧正式素材、透明统计、色板 / 锚点和离线预览，见 [协作者交接说明](mage-vfx-runtime.md)。
 - 源概念与提示词仍见 mage-vfx-art-brief.md；v164 已在 GameScene 加载 / 注册并通过只读 mageVisualEvents 接入法阵、状态、棱镜与反应爆发，缺图回退程序化表现。
+
+## 14. 怪物素材重绘（v167，2026-11-01）
+
+- `src/game/data/monsterArt.ts`保存17张可编辑原生像素矩阵（13普通/特殊、1子体、3精英），只引用现有`palette.ts`颜色键。普通/子体为16×16，精英为24×24；旧十种普通怪仅重绘，数值不变。
+- 5种新怪先用内置imagegen生成透明造型参考，完整提示词、未暴露的seed说明和选稿在`assets/monsters/references/generation.json`；参考图不直接缩成16px，避免高密网格抹掉核心轮廓。祭司最终采用文档中的暗红布料、炭灰装甲与金色角盔。
+- `node scripts/build-monster-assets.mjs`（Node24）导出`assets/monsters/native`，逐张走现有`pixelize.mjs`的透明二值化/色板/尺寸校验，产出`public/assets/sprites`与两个manifest。PNG必须与运行时备用矩阵逐像素一致；不引入依赖、不修改全局色板。
+- 运行时默认矩阵与外部PNG使用同一逻辑键，既有GameScene覆盖加载器无需改动。精英使用独立24px贴图，不再走缺图时的×1.8缩放。
+- 素材预览：`docs/previews/monsters-v167/index.html`（可切换1×/4×）与`contact-sheet.png`；预览仅展示素材，不代表自然对局验收。已认可Boss PNG/图集未修改。

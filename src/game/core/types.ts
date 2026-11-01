@@ -350,12 +350,28 @@ export interface BossState {
   castTickT: number;
 }
 export interface BossHazard extends Point {
-  kind: "fire" | "frost";
+  kind: "fire" | "frost" | "lightning";
   r: number;
   t: number;
   tickT: number;
   dmg: number;
   slowF: number;
+  /** Shared hostile ground pool; dmg is damage per tick, not DPS. */
+  source?: Enemy;
+  stats?: Readonly<CombatStatsSnapshot>;
+  interval?: number;
+  hostile?: true;
+}
+export type EnemyActionKind = "lob" | "thrust" | "tether" | "stomp" | "gaze" | "collapse" | "blink" | "sonic";
+export interface EnemyAction extends Point {
+  kind: EnemyActionKind;
+  phase: "windup" | "active";
+  angle: number;
+  t: number;
+  max: number;
+  tickT: number;
+  ticks: number;
+  hit: boolean;
 }
 export interface BossStrike extends Point {
   attack: "marks" | "spikes" | "nova";
@@ -378,6 +394,12 @@ export interface BossImpact extends Point {
   points: Point[];
 }
 export interface Enemy extends Point {
+  action?: EnemyAction;
+  actionCd?: number;
+  secondaryCd?: number;
+  blinkCd?: number;
+  guard?: { angle: number; arc: number; mul: number; downT: number };
+  rallyUntil?: number;
   boss?: boolean;
   bossSummon?: boolean;
   type: string;
@@ -524,6 +546,9 @@ export interface Enemy extends Point {
   skillDamageBonus?: Readonly<Record<string, number>>;
 }
 export interface EnemyConfig {
+  behavior?: "lobber" | "bulwark" | "tether" | "eyeElite" | "drummerElite";
+  baseType?: string;
+  eliteOnly?: boolean;
   hp: number;
   speed: number;
   dmg: number;
@@ -708,6 +733,8 @@ export interface Slash extends Point {
   impact?: boolean;
 }
 export interface HitOptions {
+  /** Incoming direction for shields. Direct attacks default to player position; AoE passes its center. */
+  origin?: Readonly<Point>;
   /** Extra components settle atomically with the primary hit, never as recursive hits. */
   components?: readonly { rawAmount: number; type: DamageTypeId; inheritBonuses: boolean }[];
   armorPen?: number;

@@ -3,7 +3,7 @@ import { clearBossTransient, spawnBoss } from "./BossSystem";
 import { UPGRADES } from "../data/talents";
 import { clearMissileTransient } from "./MissileSystem";
 import { clearDomainTransient } from './DomainSystem';
-import { waveTheme } from "../data/enemies";
+import { eliteSpeciesForSlot, waveTheme } from "../data/enemies";
 import { shieldRebuildSeconds } from "../data/warriorBalance";
 import { resolveDifficulty } from "../data/difficulty";
 import { attrPicksPerWave } from "./AttributeSystem";
@@ -44,6 +44,7 @@ export function startNextWave(this: GameCore) {
   this.quota = this.waveQuota(this.waveN);
   this.spawnedThisWave = 0;
   this.webZones = [];
+  this.waveEliteAffixes = [];
   this.potionGrow = 0; // 血包转化计数每波重置，已获得的生命上限永久保留
   this.boxDropsThisWave = 0; // 宝箱掉落名额每波重置
   this.eliteBoxPointsThisWave = 0; // Issue #87：精英宝箱点数上限每波重置
@@ -188,7 +189,7 @@ export function updateWave(this: GameCore, dt: number) {
         const eliteQuota = eliteQuotaForWave(this.waveN);
         const isElite = this.spawnedThisWave < eliteQuota;
         if (isElite) {
-          this.spawnEnemy("brute", true);
+          this.spawnEnemy(eliteSpeciesForSlot(this.spawnedThisWave), true);
           this.spawnedThisWave++;
         } else {
           const batch = this.waveN >= 5 ? 2 : 1;

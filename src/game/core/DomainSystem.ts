@@ -199,11 +199,11 @@ function echo(c:GameCore,h:DomainHole,killed:boolean) {
   if (add<=0) return;
   h.extension+=add;h.life+=add;domainSound(c,'echo-singularity',.2);
 }
-function hit(c:GameCore,e:Enemy,s:DomainSnapshot,amount:number,kind:'dot'|'slash'|'terminal',hole=false) {
+function hit(c:GameCore,e:Enemy,s:DomainSnapshot,amount:number,kind:'dot'|'slash'|'terminal',hole=false,origin?:Point) {
   const result=c.hurtEnemy(e,amount,0,0,{src:'domain',type:'gravity',form:'other',continuous:true,
     kind:kind==='dot'?'dot':'hit',attackerStats:s.attacker,noCrit:kind!=='slash',noOnHit:true,
     noChain:true,noLifesteal:true,silent:kind==='dot'||kind==='slash',silentSound:true,noFlash:kind==='slash',
-    armorPen:hole?s.armorPen:0,domainHit:kind==='dot'?undefined:kind});
+    armorPen:hole?s.armorPen:0,domainHit:kind==='dot'?undefined:kind,origin});
   if (kind==='dot' && !hole && result && result.effectiveHpLoss>0) {
     e.domainDamageAt=c.time;
     e.domainDamageUntil=c.time+.65;
@@ -217,8 +217,8 @@ function refund(c:GameCore,s:DomainSnapshot,killed:boolean) {
   c.domain.refundUsed+=add;c.domain.castCd=Math.max(0,c.domain.castCd-add);
   domainSound(c,'mass-recycle',.2);
 }
-function slash(c:GameCore,e:Enemy,s:DomainSnapshot,h?:DomainHole) {
-  const result=hit(c,e,s,domainDamage(s,h?'holeSlash':'fieldSlash',!!e.boss,domainStunned(c,e)),'slash',!!h);
+function slash(c:GameCore,e:Enemy,s:DomainSnapshot,h?:DomainHole,origin?:Point) {
+  const result=hit(c,e,s,domainDamage(s,h?'holeSlash':'fieldSlash',!!e.boss,domainStunned(c,e)),'slash',!!h,h??origin);
   if (!result || c.state!=='play') return;
   if (result.settledDamage>0) {
     // Every accepted hit owns its cut, including the killing hit. No decorative empty-space cuts.
@@ -232,16 +232,16 @@ function slash(c:GameCore,e:Enemy,s:DomainSnapshot,h?:DomainHole) {
   if (h) echo(c,h,result.killed);else refund(c,s,result.killed);
 }
 function fieldSlashVolley(c:GameCore) {
-  const selected=new Map<Enemy,{stats:DomainSnapshot;power:number}>();
+  const selected=new Map<Enemy,{stats:DomainSnapshot;power:number;origin:Point}>();
   for (const f of c.domain.fields) if (domainUpgrade(f.stats,'slash')) {
     const radius=domainFieldRadius(c,f);
     for (const e of c.enemies) if (valid(e) && near(e,f,radius)) {
       const power=domainAttackPower(f.stats,domainDamage(f.stats,'fieldSlash',!!e.boss,domainStunned(c,e)));
       const old=selected.get(e);
-      if (!old || power>old.power) selected.set(e,{stats:f.stats,power});
+      if (!old || power>old.power) selected.set(e,{stats:f.stats,power,origin:f});
     }
   }
-  for (const [e,entry] of selected) slash(c,e,entry.stats);
+  for (const [e,entry] of selected) slash(c,e,entry.stats,undefined,entry.origin);
   if (selected.size) slashSound(c);
 }
 function startCollapse(c:GameCore,cc:Map<Enemy,CcRequest>) {
@@ -273,7 +273,7 @@ function birth(c:GameCore) {
     if (!valid(e) || !near(e,h,s.holeR) || bossInvulnerable(c,e)) continue;
     const stunned=domainStunned(c,e);
     const result=c.hurtEnemy(e,domainDamage(s,'birth',!!e.boss,stunned),0,0,{src:'domain',type:'gravity',form:'other',continuous:true,
-      attackerStats:s.attacker,noOnHit:true,noChain:true,noLifesteal:true,silentSound:true,armorPen:s.armorPen,domainHit:'collapse',
+      attackerStats:s.attacker,noOnHit:true,noChain:true,noLifesteal:true,silentSound:true,armorPen:s.armorPen,domainHit:'collapse',origin:h,
       components:[{rawAmount:domainDamage(s,'true',!!e.boss,stunned),type:'true',inheritBonuses:true},
         {rawAmount:domainCurrentHpDamage(s,e.hp),type:'gravity',inheritBonuses:false}]});
     if (!result) continue;
@@ -334,7 +334,7 @@ function tickHole(c:GameCore,h:DomainHole,amount:number,remnant=false) {
 function endHole(c:GameCore,h:DomainHole) {
   const s=h.stats;
   if (domainUpgrade(s,'terminal')) {
-    for (const e of c.enemies) if (valid(e) && near(e,h,s.holeR)) hit(c,e,s,domainDamage(s,'terminal',!!e.boss,domainStunned(c,e)),'terminal',true);
+    for (const e of c.enemies) if (valid(e) && near(e,h,s.holeR)) hit(c,e,s,domainDamage(s,'terminal',!!e.boss,domainStunned(c,e)),'terminal',true,h);
     effect(c,'terminal',h,s.holeR,.4);domainSound(c,'terminal-impact');
   } else domainSound(c,'blackhole-release');
   if (domainUpgrade(s,'ember')) c.domain.remnant={x:h.x,y:h.y,id:c.domain.nextId++,age:0,life:C.remnantLife,tick:0,stats:s};

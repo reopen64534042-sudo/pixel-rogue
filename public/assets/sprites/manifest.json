@@ -1,5 +1,22 @@
 {
   "sprites": {
-    "boss_three": "boss_three.png"
+    "boss_three": "boss_three.png",
+    "slime": "slime.png",
+    "bat": "bat.png",
+    "shooter": "shooter.png",
+    "bomber": "bomber.png",
+    "brute": "brute.png",
+    "splitter": "splitter.png",
+    "splitling": "splitling.png",
+    "charger": "charger.png",
+    "drummer": "drummer.png",
+    "spinner": "spinner.png",
+    "burrower": "burrower.png",
+    "lobber": "lobber.png",
+    "bulwark": "bulwark.png",
+    "tether": "tether.png",
+    "brute_elite": "brute_elite.png",
+    "shooter_elite": "shooter_elite.png",
+    "drummer_elite": "drummer_elite.png"
   }
 }
