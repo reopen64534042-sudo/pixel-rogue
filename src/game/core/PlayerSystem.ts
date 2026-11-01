@@ -2,6 +2,7 @@ import { BOSS } from "../data/boss";
 import { domainDash } from './DomainSystem';
 import { WORLD, clamp } from "../data/constants";
 import { EYE_SLOW, WEB_ZONE } from "../data/enemies";
+import { MAGE_BALANCE } from "../data/mageBalance";
 import {
   WARRIOR_BALANCE as WB,
   shieldRebuildSeconds,
@@ -173,6 +174,17 @@ export function updatePlayer(this: GameCore, dt: number) {
       this.laserDash();
       this.missileDash();
       domainDash(this);
+      // 踏影：元素使冲刺时在起点留下仇恨残影；domain 不继承。
+      if (
+        this.prof === "mage" &&
+        this.mageWeapon === "arcane" &&
+        (p.upCounts["踏影"] || 0) > 0
+      )
+        this.mageDecoys.push({
+          x: p.x,
+          y: p.y,
+          t: MAGE_BALANCE.shadowStepDecoyDuration,
+        });
       p.dashT = 0.16;
       if (triOwned) {
         this.warriorTriSlotRe[this.warriorTriDashStage] =
