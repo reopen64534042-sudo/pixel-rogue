@@ -860,6 +860,13 @@ export function applyElementalBurst(
   }
 }
 
+/** 破法：元素抗性穿透（只削正抗性，不放大弱点）。 */
+export function mageSpellPen(core: GameCore): number {
+  return hasMageCard(core, MAGE_BUILD.pierce.name)
+    ? MAGE_BUILD.pierce.resistancePen
+    : 0;
+}
+
 /**
  * 通用 DoT 结算：preserve-float、不暴击、不产生飘字。
  *
@@ -871,7 +878,11 @@ export function applyDotDamage(
   rawAmount: number,
   type: DamageTypeId,
 ): void {
-  applyEnemyDotDamage(core, e, rawAmount, { ...withDamageType(PA.mageBurn, type), src: "element" });
+  applyEnemyDotDamage(core, e, rawAmount, {
+    ...withDamageType(PA.mageBurn, type),
+    src: "element",
+    resistancePen: mageSpellPen(core),
+  });
 }
 
 /** 推进元素状态（每帧）。 */

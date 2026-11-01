@@ -470,7 +470,7 @@ export const ELEMENTAL_MAGE = {
   },
 } as const;
 
-/** v177 元素使玩家三选一构筑卡的规则与初始占位数值。 */
+/** v177–v180 元素使玩家三选一构筑卡的规则与初始占位数值。 */
 export const MAGE_BUILD = {
   chainResonance: {
     name: "霜雷共振",
@@ -497,6 +497,10 @@ export const MAGE_BUILD = {
     name: "满印成势",
     layers: 3,
     reactionBonus: 0.2,
+  },
+  pierce: {
+    name: "破法",
+    resistancePen: 0.15,
   },
 } as const;
 

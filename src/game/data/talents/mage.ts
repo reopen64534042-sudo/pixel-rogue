@@ -3,12 +3,12 @@ import { MAGE_BALANCE as MB } from "../mageBalance";
 import { MAGE_BUILD } from "../elementalMage";
 
 /**
- * 元素法师旧卡与 v177–v179 玩家三选一卡。
+ * 元素法师旧卡与 v177–v180 玩家三选一卡。
  *
  * 元素/反应/法杖成长由法杖等级发放（见 `data/elementalMage.ts` /
  * `core/MageProgressionSystem.ts`）。v177 新增 5 张构筑卡：霜雷共振、
  * 焰尾扩散、轮转、霜牢碎裂、满印成势；v178 重做生存/机动；v179 删除
- * 速咏/连咏，新增节律卡「第四拍」。
+ * 速咏/连咏，新增节律卡「第四拍」；v180 新增穿透卡「破法」。
  *
  * 旧卡：
  * - 护咒壁（原「咏唱护壁」改名；仍消费充能条）
@@ -17,6 +17,7 @@ import { MAGE_BUILD } from "../elementalMage";
  * v178 重做生存/机动：护咒壁护盾提高到 20% 最大生命/3 秒；相位与镜像
  * 均规避触发本次伤害；删除广域符印，新增机动卡「踏影」。
  * v179 节律重排：第四拍只强化每阶段第 4 发；咏唱调律仍由法杖稀有池发放。
+ * v180 穿透：破法只削正元素抗性，不放大负抗性/弱点。
  *
  * 已删除：炽焰印记、霜寒之力、闪电连锁、元素共振、双修、三修、
  * 星陨、多重陨星、元素残域、三连聚爆、元素蓄能、过载、回响、广域符印、
@@ -184,6 +185,21 @@ export const MAGE_TALENTS: Talent[] = [
     pv: () => "3 层反应 +20%",
     f: () => {},
     cur: () => "满层反应强化",
+  },
+  {
+    n: MAGE_BUILD.pierce.name,
+    ico: "✦",
+    t: 0,
+    cat: "元素",
+    slot: "穿透",
+    layer: 1,
+    prof: "mage",
+    mageMinElements: 2,
+    d: `元素伤害无视 ${Math.round(MAGE_BUILD.pierce.resistancePen * 100)}% 元素抗性（只削正抗性，不放大弱点）。`,
+    max: 1,
+    pv: () => `抗性穿透 ${Math.round(MAGE_BUILD.pierce.resistancePen * 100)}%`,
+    f: () => {},
+    cur: () => "元素抗性穿透",
   },
 
   // v165：旧元素 / 反应 / 星陨 / 蓄能等 14 张退役卡已按用户要求删除，

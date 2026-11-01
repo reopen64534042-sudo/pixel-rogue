@@ -104,24 +104,24 @@
 | [src/game/core/LaserSystem.ts:232](../src/game/core/LaserSystem.ts) | hurtEnemy | "physical" | "ranged" | "laser:pulse" |
 | [src/game/core/LaserSystem.ts:252](../src/game/core/LaserSystem.ts) | hurtEnemy | "physical" | "ranged" | "laser:scatter" |
 | [src/game/core/EnemyBehaviors.ts:32](../src/game/core/EnemyBehaviors.ts) | damagePlayer | "physical" \| "fire" \| "lightning" | "ranged" \| "melee" | "enemy:lob" \| "enemy:thrust" \| "enemy:tether" \| "enemy:stomp" \| "enemy:gaze" \| "enemy:collapse" \| "enemy:sonic" |
-| [src/game/core/CombatSystem.ts:411](../src/game/core/CombatSystem.ts) | hurtEnemy | "lightning" | "other" | "common:chain" |
-| [src/game/core/CombatSystem.ts:630](../src/game/core/CombatSystem.ts) | hurtEnemy | "fire" | "other" | "common:explode" |
-| [src/game/core/CombatSystem.ts:808](../src/game/core/CombatSystem.ts) | hurtEnemy | "physical" | "melee" | "warrior:shieldShock" |
-| [src/game/core/CombatSystem.ts:914](../src/game/core/CombatSystem.ts) | hurtEnemy | "physical" | "other" | "warrior:thorns" |
-| [src/game/core/CombatSystem.ts:964](../src/game/core/CombatSystem.ts) | applyEnemyDotDamage | "physical" \| "gravity" \| "fire" \| "frost" \| "lightning" \| "true" | AttackForm | string |
+| [src/game/core/ElementSystem.ts:158](../src/game/core/ElementSystem.ts) | hurtEnemy | MageElement | "other" | "mage:reaction" |
+| [src/game/core/ElementSystem.ts:186](../src/game/core/ElementSystem.ts) | hurtEnemy | MageElement | "other" | "mage:reactionEcho" |
+| [src/game/core/ElementSystem.ts:417](../src/game/core/ElementSystem.ts) | hurtEnemy | "lightning" | "other" | "mage:chain" |
+| [src/game/core/ElementSystem.ts:881](../src/game/core/ElementSystem.ts) | applyEnemyDotDamage | "physical" \| "gravity" \| "fire" \| "frost" \| "lightning" \| "true" | "other" | "mage:burn" |
+| [src/game/core/CombatSystem.ts:415](../src/game/core/CombatSystem.ts) | hurtEnemy | "lightning" | "other" | "common:chain" |
+| [src/game/core/CombatSystem.ts:636](../src/game/core/CombatSystem.ts) | hurtEnemy | "fire" | "other" | "common:explode" |
+| [src/game/core/CombatSystem.ts:814](../src/game/core/CombatSystem.ts) | hurtEnemy | "physical" | "melee" | "warrior:shieldShock" |
+| [src/game/core/CombatSystem.ts:921](../src/game/core/CombatSystem.ts) | hurtEnemy | "physical" | "other" | "warrior:thorns" |
+| [src/game/core/CombatSystem.ts:971](../src/game/core/CombatSystem.ts) | applyEnemyDotDamage | "physical" \| "gravity" \| "fire" \| "frost" \| "lightning" \| "true" | AttackForm | string |
 | [src/game/core/MeleeSystem.ts:108](../src/game/core/MeleeSystem.ts) | hurtEnemy | "physical" \| "gravity" \| "fire" \| "frost" \| "lightning" \| "true" | AttackForm | string |
 | [src/game/core/EnemySystem.ts:366](../src/game/core/EnemySystem.ts) | damagePlayer | "frost" | "other" | "enemy:eliteNova" |
 | [src/game/core/EnemySystem.ts:482](../src/game/core/EnemySystem.ts) | damagePlayer | "fire" | "other" | "enemy:bomber" |
 | [src/game/core/EnemySystem.ts:778](../src/game/core/EnemySystem.ts) | damagePlayer | "physical" | "melee" | "enemy:contact" \| "enemy:chargeContact" |
-| [src/game/core/ElementSystem.ts:139](../src/game/core/ElementSystem.ts) | hurtEnemy | MageElement | "other" | "mage:reaction" |
-| [src/game/core/ElementSystem.ts:167](../src/game/core/ElementSystem.ts) | hurtEnemy | MageElement | "other" | "mage:reactionEcho" |
-| [src/game/core/ElementSystem.ts:374](../src/game/core/ElementSystem.ts) | hurtEnemy | "lightning" | "other" | "mage:chain" |
-| [src/game/core/ElementSystem.ts:729](../src/game/core/ElementSystem.ts) | applyEnemyDotDamage | "physical" \| "gravity" \| "fire" \| "frost" \| "lightning" \| "true" | "other" | "mage:burn" |
-| [src/game/core/MageSystem.ts:144](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:body" |
-| [src/game/core/MageSystem.ts:215](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:echo" |
-| [src/game/core/MageSystem.ts:305](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:prism" |
-| [src/game/core/MageSystem.ts:390](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:refract" |
-| [src/game/core/MageSystem.ts:496](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:shadow" |
+| [src/game/core/MageSystem.ts:140](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:body" |
+| [src/game/core/MageSystem.ts:217](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:echo" |
+| [src/game/core/MageSystem.ts:307](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:prism" |
+| [src/game/core/MageSystem.ts:392](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:refract" |
+| [src/game/core/MageSystem.ts:498](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:shadow" |
 | [src/game/core/SpecialSystem.ts:83](../src/game/core/SpecialSystem.ts) | hurtEnemy | "physical" \| "true" | "other" | "charged:legacyLaser" |
 | [src/game/core/SpecialSystem.ts:170](../src/game/core/SpecialSystem.ts) | hurtEnemy | "physical" | "other" | "charged:legacyMissile" |
 | [src/game/core/WarriorSystem.ts:403](../src/game/core/WarriorSystem.ts) | hurtEnemy | "physical" | "melee" | "warrior:qi" \| "warrior:fissure" |
@@ -187,7 +187,7 @@
 | 源码 | 函数 |
 | --- | --- |
 | [src/game/core/EnemyDamageApplication.ts:13](../src/game/core/EnemyDamageApplication.ts) | applyEnemyHpDamage |
-| [src/game/core/CombatSystem.ts:867](../src/game/core/CombatSystem.ts) | damagePlayer |
+| [src/game/core/CombatSystem.ts:874](../src/game/core/CombatSystem.ts) | damagePlayer |
 
 ## 5. 保留的机制语义
 
