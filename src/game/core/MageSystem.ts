@@ -43,20 +43,17 @@ function castRate(core: GameCore): number {
   return Math.max(0.05, core.player.fireRate * MB.castCycle * mageCastSpeedMul(core));
 }
 
-/** 有效前摇时长（速咏 −30%，施法速度同比缩放）。 */
+/** 有效前摇时长（第四拍：每阶段第 4 发 −40%；施法速度同比缩放）。 */
 export function mageWindup(core: GameCore): number {
-  const mul =
-    (core.player.upCounts["速咏"] || 0) > 0 ? MB.quickCastWindupMul : 1;
-  return (MB.castWindup * mul) / castRate(core);
+  const fourth =
+    core.mageCastsInPhase + 1 >= MAGE_CASTS_PER_ELEMENT &&
+    (core.player.upCounts["第四拍"] || 0) > 0;
+  return (MB.castWindup * (fourth ? MB.fourthBeatWindupMul : 1)) / castRate(core);
 }
 
-/** 有效施法间隔（连咏 −20%，施法速度同比缩放）。 */
+/** 有效施法间隔（施法速度同比缩放）。 */
 export function mageInterval(core: GameCore): number {
-  const mul =
-    (core.player.upCounts["连咏"] || 0) > 0
-      ? MB.continuousCastIntervalMul
-      : 1;
-  return (MB.castInterval * mul) / castRate(core);
+  return MB.castInterval / castRate(core);
 }
 
 /** 法阵半径：属性范围 × 法阵扩幅 +8%。 */
@@ -118,11 +115,12 @@ function explodeCircle(
   R: number,
   base: number,
   reactionBudget: Set<Enemy>,
+  directMul = 1,
 ): CircleResult {
   const el = mageCurrentElement(core);
   if (!el) return { hits: 0, reacted: false };
   // 直伤另乘 directDamageMul：状态 DoT / 闪电链 / 反应仍用完整元素基准。
-  const dmg = mageDirectHitDamage(base, mageDirectDamageMul(core), el);
+  const dmg = mageDirectHitDamage(base, mageDirectDamageMul(core), el, directMul);
   core.mageVisualEvents.push({
     kind: "body",
     at: core.time,
@@ -176,6 +174,7 @@ function queueEcho(
   y: number,
   R: number,
   base: number,
+  directMul = 1,
 ): void {
   const el = mageCurrentElement(core);
   if (!el) return;
@@ -185,7 +184,12 @@ function queueEcho(
     t: ELEMENTAL_MAGE.echo.delay,
     maxT: ELEMENTAL_MAGE.echo.delay,
     R,
-    damage: mageDirectHitDamage(base, mageDirectDamageMul(core), el, ELEMENTAL_MAGE.echo.damageMul),
+    damage: mageDirectHitDamage(
+      base,
+      mageDirectDamageMul(core),
+      el,
+      ELEMENTAL_MAGE.echo.damageMul * directMul,
+    ),
     element: el,
   });
 }
@@ -536,6 +540,11 @@ function detonate(core: GameCore) {
   const base = mageElementBase(core);
   const R = mageCircleRadius(core);
   const reactionBudget = new Set<Enemy>();
+  const directMul =
+    (p.upCounts["第四拍"] || 0) > 0 &&
+    core.mageCastsInPhase + 1 >= MAGE_CASTS_PER_ELEMENT
+      ? MB.fourthBeatDirectMul
+      : 1;
   const body = explodeCircle(
     core,
     core.castX,
@@ -543,9 +552,10 @@ function detonate(core: GameCore) {
     R,
     base,
     reactionBudget,
+    directMul,
   );
   if (hasMageUpgrade(core, "echoCircle"))
-    queueEcho(core, core.castX, core.castY, R, base);
+    queueEcho(core, core.castX, core.castY, R, base, directMul);
   const prismHits = refractPrism(core, el, base, R, reactionBudget);
   // 分影在棱镜折射之后触发：残影状态不会反过来喂给同一次施法的棱镜反应。
   if (body.reacted) triggerSplitShadows(core, el, base, R);

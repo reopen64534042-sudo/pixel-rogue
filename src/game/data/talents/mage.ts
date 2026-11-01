@@ -3,59 +3,45 @@ import { MAGE_BALANCE as MB } from "../mageBalance";
 import { MAGE_BUILD } from "../elementalMage";
 
 /**
- * 元素法师保留的旧卡 + v177 玩家三选一构筑卡。
+ * 元素法师旧卡与 v177–v179 玩家三选一卡。
  *
  * 元素/反应/法杖成长由法杖等级发放（见 `data/elementalMage.ts` /
- * `core/MageProgressionSystem.ts`）。旧卡是 §16.3 暂保留的 6 张通用卡；
- * v177 新增 5 张构筑卡：霜雷共振、焰尾扩散、轮转、霜牢碎裂、满印成势。
+ * `core/MageProgressionSystem.ts`）。v177 新增 5 张构筑卡：霜雷共振、
+ * 焰尾扩散、轮转、霜牢碎裂、满印成势；v178 重做生存/机动；v179 删除
+ * 速咏/连咏，新增节律卡「第四拍」。
  *
  * 旧卡：
- * - 速咏 / 连咏（节律）
  * - 护咒壁（原「咏唱护壁」改名；仍消费充能条）
  * - 相位 / 镜像（脱离）
  *
  * v178 重做生存/机动：护咒壁护盾提高到 20% 最大生命/3 秒；相位与镜像
  * 均规避触发本次伤害；删除广域符印，新增机动卡「踏影」。
+ * v179 节律重排：第四拍只强化每阶段第 4 发；咏唱调律仍由法杖稀有池发放。
  *
  * 已删除：炽焰印记、霜寒之力、闪电连锁、元素共振、双修、三修、
- * 星陨、多重陨星、元素残域、三连聚爆、元素蓄能、过载、回响、广域符印。
+ * 星陨、多重陨星、元素残域、三连聚爆、元素蓄能、过载、回响、广域符印、
+ * 速咏、连咏。
  */
 
 /** 脱离槽的变体组 id：相位 / 镜像二选一。 */
 export const MAGE_VARIANT_ESCAPE = "mage-escape";
 
 export const MAGE_TALENTS: Talent[] = [
-  // ================= 节律槽：缩短前摇与间隔 =================
+  // ================= 节律槽：第 4 发加速 =================
   {
-    n: "速咏",
-    ico: "⏩",
+    n: "第四拍",
+    ico: "🥁",
     t: 0,
     cat: "节律",
     slot: "节律",
     layer: 1,
     prof: "mage",
-    d: `施法前摇 −30%（${MB.castWindup.toFixed(2)} → ${(MB.castWindup * MB.quickCastWindupMul).toFixed(3)} 秒）`,
+    d: `每个元素阶段的第 4 次施法：前摇 −${Math.round((1 - MB.fourthBeatWindupMul) * 100)}%，本体与回响直伤 +${Math.round((MB.fourthBeatDirectMul - 1) * 100)}%。`,
     max: 1,
     pv: () =>
-      `前摇 ${MB.castWindup.toFixed(2)}s → ${(MB.castWindup * MB.quickCastWindupMul).toFixed(3)}s`,
+      `第 4 发前摇 ${MB.castWindup.toFixed(2)}s → ${(MB.castWindup * MB.fourthBeatWindupMul).toFixed(3)}s · 直伤 +20%`,
     f: () => {},
-    cur: () => "前摇缩短 30%",
-  },
-  {
-    n: "连咏",
-    ico: "🎼",
-    t: 0,
-    cat: "节律",
-    slot: "节律",
-    layer: 2,
-    prof: "mage",
-    requires: "速咏",
-    d: `施法间隔 −20%（${MB.castInterval.toFixed(2)} → ${(MB.castInterval * MB.continuousCastIntervalMul).toFixed(2)} 秒）`,
-    max: 1,
-    pv: () =>
-      `间隔 ${MB.castInterval.toFixed(2)}s → ${(MB.castInterval * MB.continuousCastIntervalMul).toFixed(2)}s`,
-    f: () => {},
-    cur: () => "施法间隔缩短 20%",
+    cur: () => "第 4 发加速并增伤",
   },
 
   // ================= 循环槽：每 3 次成功施法给盾 =================

@@ -58,11 +58,11 @@ export interface MageBalance {
   /** 护咒壁持续时间（秒）。 */
   wardShieldDuration: number;
 
-  // —— 节律（保留旧卡）——
-  /** 速咏：前摇倍率（0.7 = 前摇 −30%）。 */
-  quickCastWindupMul: number;
-  /** 连咏：施法间隔倍率（0.8 = 间隔 −20%）。 */
-  continuousCastIntervalMul: number;
+  // —— 节律（第四拍）——
+  /** 第四拍：每阶段第 4 次施法前摇倍率（0.6 = −40%）。 */
+  fourthBeatWindupMul: number;
+  /** 第四拍：第 4 次施法本体/回响直伤倍率（1.2 = +20%）。 */
+  fourthBeatDirectMul: number;
 
   // —— 机动（踏影）——
   /** 踏影：冲刺起点残影吸引仇恨的持续时间（秒）。 */
@@ -100,8 +100,8 @@ export const MAGE_BALANCE: MageBalance = {
   wardShieldPct: 0.2,
   wardShieldDuration: 3,
 
-  quickCastWindupMul: 0.7,
-  continuousCastIntervalMul: 0.8,
+  fourthBeatWindupMul: 0.6,
+  fourthBeatDirectMul: 1.2,
 
   shadowStepDecoyDuration: 1.5,
 
