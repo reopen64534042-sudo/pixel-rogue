@@ -20,7 +20,6 @@ import {
 } from "./ElementMath";
 import {
   hasMageUpgrade,
-  magePreviousElement,
   mageStatusDurationBonus,
   mageReactionDamageMul,
   mageReactionIcd,
@@ -39,7 +38,8 @@ import type { Enemy } from "./types";
  * 三条硬约束：
  * - 只有本体法阵调用 `applyElementalBodyHit`；链/反应派生伤害只施加状态或纯伤害，
  *   不递归触发新反应。
- * - 反应只认 `mageReactionIds` 中已领悟的配对；未掌握时即使状态满足也不触发。
+ * - A/B 套装各是一条三元素循环，当前元素只对应一条已领悟反应；目标带匹配附着即可触发，
+ *   层数只决定强度，不再作为冻结/叠满门槛。
  * - DoT 不走 hurtEnemy（round-min-one 会把每帧伤害取整成 1 并刷屏）。
  */
 
@@ -61,35 +61,38 @@ function snapshot(e: Enemy): StatusSnapshot {
   };
 }
 
-/** 当前元素在本局轮盘上是否会触发某条已领悟反应。 */
+/** 目标是否带有冰附着：凝冰层数、冻结或霜牢都算。 */
+function hasFrostAttachment(e: Enemy): boolean {
+  return frostLayers(e) > 0 || isFrozen(e) || isFrostLocked(e);
+}
+
+function snapshotHasFrostAttachment(s: StatusSnapshot): boolean {
+  return s.frost > 0 || s.frozen || s.frostLock;
+}
+
+/**
+ * 当前元素在本局套装里对应的唯一反应。
+ *
+ * A/B 套装各自是一条三元素循环，所以每个当前元素最多对应一条已领悟反应；
+ * 目标身上的附着决定这条反应是否成立，而不是轮盘上一元素。
+ */
 function learnedReaction(
   core: GameCore,
   element: MageElement,
 ): MageReactionId | null {
-  const from = magePreviousElement(core);
-  if (!from) return null;
-  const id = reactionForPair(from, element);
-  if (!id || !core.mageReactionIds.includes(id)) return null;
-  // 只开放本局套装的三条反应；即使异常状态下学到了别套反应也不触发。
-  if (core.mageSuit && MAGE_REACTIONS[id].suit !== core.mageSuit) return null;
-  return id;
-}
-
-/** 反应是否造成直接伤害（用于直伤击杀保护；超导/霜缚为 false）。 */
-function reactionDealsDamage(id: MageReactionId): boolean {
-  return (
-    id === "quench" ||
-    id === "melt" ||
-    id === "overload" ||
-    id === "blaze"
-  );
+  if (!core.mageSuit) return null;
+  for (const id of core.mageReactionIds) {
+    const def = MAGE_REACTIONS[id];
+    if (def.to === element && def.suit === core.mageSuit) return id;
+  }
+  return null;
 }
 
 /**
- * 法阵直伤结算前查询：目标是否满足一个**会造成伤害**的已领悟反应。
+ * 法阵直伤结算前查询：目标是否满足一条已领悟反应。
  *
- * 供 MageSystem 把直伤压到 1 HP，让随后结算的反应完成击杀；
- * 超导/霜缚没有直伤，不能给这个保护，否则目标会停在 1 HP。
+ * 供 MageSystem 把直伤压到 1 HP，让随后结算的反应完成击杀。
+ * v176 起超导/霜缚也有反应伤害，因此六反应统一享受这个保护。
  */
 export function mageReactionAvailableForHit(
   core: GameCore,
@@ -97,18 +100,24 @@ export function mageReactionAvailableForHit(
   element: MageElement,
   reactionBudget?: ReadonlySet<Enemy>,
 ): boolean {
-  if (e.dead || reactionBudget?.has(e)) return false;
+  // 反应 ICD 生效时 applyElementalBodyHit 会跳过反应，不能再给直伤留 1 HP。
+  if (e.dead || (e.elemReactionCd ?? 0) > 0 || reactionBudget?.has(e))
+    return false;
   const id = learnedReaction(core, element);
-  if (!id || !reactionDealsDamage(id)) return false;
+  if (!id) return false;
   const snap = snapshot(e);
   switch (id) {
     case "quench":
-      return snap.burn > 0 && !snap.frozen;
+      return snap.burn > 0;
     case "melt":
-      return snap.frozen || snap.frostLock;
+      return snapshotHasFrostAttachment(snap);
     case "overload":
       return snap.burn > 0;
     case "blaze":
+      return snap.shock;
+    case "superconduct":
+      return snapshotHasFrostAttachment(snap);
+    case "frostbind":
       return snap.shock;
     default:
       return false;
@@ -125,17 +134,15 @@ function reactionDamage(
   noLifesteal = false,
   finaleEcho = true,
   controlled = false,
-  secondary?: MageElement,
+  secondary: MageElement,
 ): number {
   // 双元素增伤：触发元素由 hurtEnemy 结算；配对的另一元素在此补上
   // typeDamageBonus。抗性方向仍按触发元素（见 docs §19）。
   const amount = mageReactionRawDamage(base, mul, reactionDamageMultiplier(e), mageReactionDamageMul(core),
-    secondary && secondary !== element ? typeBonusMultiplier(core.player.typeDamageBonus, secondary) : undefined,
+    secondary !== element ? typeBonusMultiplier(core.player.typeDamageBonus, secondary) : undefined,
     hasMageUpgrade(core, "reactionFinale") && core.mageSuit === "B" && controlled);
   if (amount <= 0) return 0;
-  const reactionId =
-    (secondary ? reactionForPair(secondary, element) : null) ??
-    reactionForPair(magePreviousElement(core) ?? element, element);
+  const reactionId = reactionForPair(secondary, element) ?? undefined;
   const hit = core.hurtEnemy(e, amount, 0, 0, {
     noCrit: true,
     noChain: true,
@@ -254,6 +261,7 @@ function spawnReactionFx(
 
 /** 施加灼烧：每层独立计时，最多 3 层。 */
 function applyBurn(core: GameCore, e: Enemy, durationMul = 1): void {
+  e.elemLastAura = "fire";
   const arr = e.elemFire ?? (e.elemFire = []);
   if (arr.length >= ELEMENTAL_MAGE.burn.stackCap) return;
   arr.push(
@@ -282,6 +290,7 @@ function applyFrost(
   suppressFreeze = false,
   durationMul = 1,
 ): void {
+  e.elemLastAura = "frost";
   if (isFrozen(e) || isFrostLocked(e)) return;
   const arr = e.elemFrost ?? (e.elemFrost = []);
   const cap = ELEMENTAL_MAGE.frost.stackCap;
@@ -306,6 +315,7 @@ function applyLightningStatus(
   e: Enemy,
   durationMul = 1,
 ): void {
+  e.elemLastAura = "lightning";
   e.elemShockT = ELEMENTAL_MAGE.shock.duration * durationMul;
   // Boss 免疫麻痹；雷印仍可挂上，供裂焰/超载判定。
   if (!isParalyzed(e) && !e.boss)
@@ -425,7 +435,7 @@ function resolveReaction(
 
   switch (id) {
     case "quench": {
-      if (snap.burn <= 0 || snap.frozen) return result;
+      if (snap.burn <= 0) return result;
       const layers = snap.burn;
       if (e.elemFire) delete e.elemFire;
       if (e.elemFireTickT !== undefined) delete e.elemFireTickT;
@@ -443,17 +453,16 @@ function resolveReaction(
       );
       spawnReactionFx(core, e, id);
       if (!e.dead)
-        applyFrost(core, e, ELEMENTAL_MAGE.reaction.quenchFrostStacks);
+        applyFrost(core, e, ELEMENTAL_MAGE.reaction.carryOverStacks);
       result.triggered = true;
       result.skipStatus = true;
       return result;
     }
     case "melt": {
-      if (!snap.frozen && !snap.frostLock) return result;
-      const layers = snap.frost;
+      if (!snapshotHasFrostAttachment(snap)) return result;
+      const layers = Math.max(1, snap.frost);
       clearFrost(e);
       clearFrostLock(e);
-      // 本次火击施加的灼烧被融化消耗；已有灼烧保留。
       reactionDamage(
         core,
         e,
@@ -466,6 +475,7 @@ function resolveReaction(
         partner,
       );
       spawnReactionFx(core, e, id);
+      if (!e.dead) applyBurn(core, e, ELEMENTAL_MAGE.reaction.carryOverStacks);
       result.triggered = true;
       result.skipStatus = true;
       return result;
@@ -504,6 +514,7 @@ function resolveReaction(
         snap.frozen || snap.frostLock,
         partner,
       );
+      if (!e.dead) applyBurn(core, e, ELEMENTAL_MAGE.reaction.carryOverStacks);
       const splash = core.enemies
         .filter(
           (o) =>
@@ -549,8 +560,20 @@ function resolveReaction(
       return result;
     }
     case "superconduct": {
-      if (!snap.frozen) return result;
+      if (!snapshotHasFrostAttachment(snap)) return result;
+      const layers = Math.max(1, snap.frost);
       clearFrost(e);
+      reactionDamage(
+        core,
+        e,
+        base,
+        element,
+        ELEMENTAL_MAGE.reaction.superconductPerFrost * layers,
+        noLifesteal,
+        true,
+        snap.frozen || snap.frostLock,
+        partner,
+      );
       result.triggered = true;
       result.forceChain = true;
       result.chainJumps = ELEMENTAL_MAGE.chain.superconductJumps;
@@ -560,14 +583,27 @@ function resolveReaction(
     case "frostbind": {
       if (!snap.shock) return result;
       if (e.elemShockT !== undefined) delete e.elemShockT;
-      if (snap.frozen) {
-        // 已冻结：解除冻结，保留 3 层凝冰，转为霜牢。
-        clearFrost(e, true);
-      } else if (!snap.frostLock) {
-        // 本次冰击的 1 层凝冰保留；本会冻结时由霜牢压制。
-        applyFrost(core, e, 1, true);
+      reactionDamage(
+        core,
+        e,
+        base,
+        element,
+        ELEMENTAL_MAGE.reaction.frostbindPerShock,
+        noLifesteal,
+        true,
+        snap.frozen || snap.frostLock,
+        partner,
+      );
+      if (!e.dead) {
+        if (snap.frozen) {
+          // 已冻结：解除冻结，保留 3 层凝冰，转为霜牢。
+          clearFrost(e, true);
+        } else if (!snap.frostLock) {
+          // 本次冰击的 1 层凝冰保留；本会冻结时由霜牢压制。
+          applyFrost(core, e, ELEMENTAL_MAGE.reaction.carryOverStacks, true);
+        }
+        applyFrostLock(e);
       }
-      applyFrostLock(e);
       spawnReactionFx(core, e, id);
       result.triggered = true;
       result.skipStatus = true;
@@ -621,20 +657,73 @@ export function applyElementalBodyHit(
     opts.reactionBudget?.add(e);
     e.elemReactionCd = mageReactionIcd(core);
   }
-  if (e.dead) return result.triggered;
-
-  if (!result.skipStatus) {
+  if (!e.dead && !result.skipStatus) {
     const durationMul = opts.statusDurationMul ?? 1;
     if (element === "fire") applyBurn(core, e, durationMul);
     else if (element === "frost") applyFrost(core, e, 1, false, durationMul);
     else applyLightningStatus(core, e, durationMul);
   }
 
-  if (opts.allowChain !== false && element === "lightning" && !e.dead) {
-    const guaranteed = result.forceChain;
-    triggerChain(core, e, base, result.chainJumps, guaranteed);
+  // 超导的反应伤害可能击杀主目标；它的必定链仍要触发，链只取附近存活目标。
+  if (
+    opts.allowChain !== false &&
+    element === "lightning" &&
+    (result.forceChain || !e.dead)
+  ) {
+    triggerChain(core, e, base, result.chainJumps, result.forceChain);
   }
   return result.triggered;
+}
+
+/** 最近一次施加且仍存在的附着；死亡传播用。 */
+function dominantMageAura(e: Enemy): MageElement | null {
+  const last = e.elemLastAura;
+  if (last === "fire" && fireLayers(e) > 0) return "fire";
+  if (last === "frost" && hasFrostAttachment(e)) return "frost";
+  if (last === "lightning" && isShocked(e)) return "lightning";
+  if (hasFrostAttachment(e)) return "frost";
+  if (fireLayers(e) > 0) return "fire";
+  if (isShocked(e)) return "lightning";
+  return null;
+}
+
+/**
+ * v176 死亡传播：带元素附着的敌人死亡时，把最近附着以 1 层传播给
+ * 90px 内最多 2 个敌人。只施加状态，不触发反应、不递归。
+ */
+export function spreadMageAuraOnDeath(core: GameCore, e: Enemy): void {
+  if (core.prof !== "mage" || core.mageWeapon === "domain") return;
+  const aura = dominantMageAura(e);
+  if (!aura) return;
+  const targets = core.enemies
+    .filter(
+      (o) =>
+        o !== e &&
+        !o.dead &&
+        Math.hypot(o.x - e.x, o.y - e.y) <= ELEMENTAL_MAGE.death.spreadRadius,
+    )
+    .sort(
+      (a, b) =>
+        Math.hypot(a.x - e.x, a.y - e.y) -
+        Math.hypot(b.x - e.x, b.y - e.y),
+    )
+    .slice(0, ELEMENTAL_MAGE.death.spreadTargets);
+  for (const o of targets) {
+    if (aura === "fire") {
+      if (fireLayers(o) >= ELEMENTAL_MAGE.burn.stackCap) continue;
+      applyBurn(core, o, ELEMENTAL_MAGE.death.spreadStacks);
+    } else if (aura === "frost") {
+      if (
+        isFrozen(o) ||
+        isFrostLocked(o) ||
+        frostLayers(o) >= ELEMENTAL_MAGE.frost.stackCap
+      )
+        continue;
+      applyFrost(core, o, ELEMENTAL_MAGE.death.spreadStacks);
+    } else {
+      applyLightningStatus(core, o);
+    }
+  }
 }
 
 /**
@@ -735,7 +824,6 @@ export function updateMageElements(this: GameCore, dt: number): void {
   const burnBase = mageElementDamageBase(this.player.damage);
   for (const e of this.enemies) {
     if (e.dead) continue;
-    const wasFrozen = isFrozen(e);
 
     // 灼烧：每层独立倒计时；每 0.5 秒按当前层数结算一次。
     if (e.elemFire?.length) {
@@ -775,17 +863,14 @@ export function updateMageElements(this: GameCore, dt: number): void {
         delete e.elemFrostLockT;
         delete e.elemFrostLockTotal;
         delete e.elemFrostLockExtendAt;
-        if (e.elemFrost) delete e.elemFrost;
+        // v176：霜牢自然结束只解除控制；凝冰附着保留到被反应消耗或过期。
       }
     }
     if (e.elemFrost?.length && !isFrozen(e) && !isFrostLocked(e)) {
       e.elemFrost = e.elemFrost.filter((t) => t - dt > 0);
       if (e.elemFrost.length === 0) delete e.elemFrost;
     }
-    // 冻结自然结束时清空凝冰；霜缚转霜牢时 wasFrozen 但仍有霜牢，不清。
-    if (wasFrozen && !isFrozen(e) && !isFrostLocked(e) && e.elemFrost) {
-      delete e.elemFrost;
-    }
+    // v176：冻结自然结束同样只解除控制，凝冰附着保留，供下一元素阶段反应。
 
     if (e.elemParaT !== undefined) {
       e.elemParaT = Math.max(0, e.elemParaT - dt);

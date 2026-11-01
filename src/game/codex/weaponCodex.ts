@@ -56,11 +56,11 @@ export const OTHER_WEAPON_ENTRIES: readonly CodexEntry[] = [
   reference("arcane", "", "元素使",
     `自动法阵攻击最近目标，移动也能施法；每${MAGE_CASTS_PER_ELEMENT}次成功施法轮换元素。Lv.1/3/6选择第一、第二、第三元素，元素顺序决定A/B套装与反应方向。法杖升级、人物升级和专属天赋分别成长。`, "overview", "主武器"),
   reference("arcane", "growth", "法杖成长与反应",
-    `本体法阵实际命中至少一个敌人获得1点法杖经验，空放、打断、回响和派生攻击不给经验。每级所需：${xpText(STAFF_LEVELS.map(l => l.xpToNext))}。第二元素领悟第一条反应，第三元素随机领悟另一条；史诗成长补齐。反应需先领悟，只有本体施法触发，链与派生不递归。`),
+    `本体法阵实际命中至少一个敌人获得1点法杖经验，空放、打断、回响和派生攻击不给经验。每级所需：${xpText(STAFF_LEVELS.map(l => l.xpToNext))}。第二元素领悟第一条反应，第三元素随机领悟另一条；史诗成长补齐。反应需先领悟，只有本体施法触发；目标带对应元素附着即可触发，不要求冻结/叠满，层数只提高反应强度；反应后留 1 层触发附着，链与派生不递归。带附着的敌人死亡会向附近最多 2 个敌人传播 1 层附着（不触发反应）。`),
   ...Object.values(MAGE_ELEMENTS).map(e => reference("arcane", `element-${e.id}`, `${e.name}元素 · ${e.statusName}`,
     `${e.desc}。上述元素倍率以完整元素基准为单位；本体法阵直伤另乘${MAGE_BALANCE.directDamageMul}，状态与链使用完整基准。`, "mechanic", "Lv.1 / 3 / 6 可选择", e.ico)),
   ...Object.values(MAGE_REACTIONS).map(r => reference("arcane", `reaction-${r.id}`, reactionLabel(r.id),
-    `${r.desc}。所属套装：${r.suit}；先领悟此反应后，才可由本体对应元素命中触发。`, "mechanic", `元素反应 · 套装 ${r.suit}`, "☯️")),
+    `${r.desc}。所属套装：${r.suit}；先领悟此反应后，目标带对应附着时由本体元素命中触发，不要求冻结/叠满。`, "mechanic", `元素反应 · 套装 ${r.suit}`, "☯️")),
   ...[
     { items: MAGE_NORMAL_UPGRADES, stage: "Lv.2 普通池随机1项" },
     { items: MAGE_RARE_UPGRADES, stage: "Lv.4–5 稀有池" },
