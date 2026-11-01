@@ -85,6 +85,8 @@ export function startTutorial(
     this.mageElementPickPending = null;
     this.mageElementPickQueue = [];
     this.mageSuit = null;
+    this.mageMainElement = null;
+    this.mageSubOrder = [];
     this.mageReactionIds = [];
     this.mageReactionUnlockLevels = [];
     this.mageElementPickLevels = [];

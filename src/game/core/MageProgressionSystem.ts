@@ -2,6 +2,7 @@ import {
   ELEMENTAL_MAGE,
   MAGE_ELEMENTS,
   MAGE_ELEMENT_CHOICES,
+  MAGE_CASTS_PER_ELEMENT,
   MAGE_SPECIALIZATIONS,
   MAGE_REACTIONS,
   STAFF_LEVELS,
@@ -12,6 +13,7 @@ import {
   reactionLabel,
 } from "../data/elementalMage";
 import type {
+  MageBeatKind,
   MageElement,
   MageReactionId,
   MageSuit,
@@ -27,11 +29,51 @@ import type { Slot } from "./types";
  * 轮盘推进在 MageSystem，反应结算在 ElementSystem。
  */
 
-/** 当前轮盘元素。未选元素时返回 null（开局选择面板期间）。 */
-export function mageCurrentElement(core: GameCore): MageElement | null {
+/** 是否已觉醒为元素大法师（大法师强化 + 主元素 + 完整副顺序）。 */
+export function mageIsGrandmaster(core: GameCore): boolean {
+  return (
+    hasMageUpgrade(core, "grandmaster") &&
+    !!core.mageMainElement &&
+    core.mageSubOrder.length === 2
+  );
+}
+
+/** 指定拍的元素；未觉醒时四拍都沿用当前轮盘元素。 */
+export function mageElementForBeat(
+  core: GameCore,
+  beat: number,
+): MageElement | null {
   if (!core.mageElements.length) return null;
+  if (mageIsGrandmaster(core)) {
+    const b =
+      ((beat % MAGE_CASTS_PER_ELEMENT) + MAGE_CASTS_PER_ELEMENT) %
+      MAGE_CASTS_PER_ELEMENT;
+    if (b < 2) return core.mageSubOrder[b] ?? core.mageMainElement;
+    return core.mageMainElement;
+  }
   const i = core.mageWheelIndex % core.mageElements.length;
   return core.mageElements[i];
+}
+
+/** 当前轮盘/大法师拍对应的元素。 */
+export function mageCurrentElement(core: GameCore): MageElement | null {
+  return mageElementForBeat(core, core.mageCastsInPhase);
+}
+
+/** 当前拍类型；未觉醒返回 null。 */
+export function mageBeatKind(core: GameCore): MageBeatKind | null {
+  if (!mageIsGrandmaster(core)) return null;
+  if (core.mageCastsInPhase < 2) return "sub";
+  return core.mageCastsInPhase === 2 ? "main" : "mainStrong";
+}
+
+/** 当前拍标签（C 面板/提示共用）。 */
+export function mageBeatLabel(core: GameCore): string {
+  const kind = mageBeatKind(core);
+  if (kind === "sub") return `副${core.mageCastsInPhase + 1}`;
+  if (kind === "main") return "主基础";
+  if (kind === "mainStrong") return "主强";
+  return "轮盘";
 }
 
 /** 当前元素在轮盘上的前一个元素；不足两个元素时返回 null。 */
@@ -66,13 +108,6 @@ export function mageCircleRangeMul(core: GameCore): number {
     : 1;
 }
 
-/** Lv12 占位：全元素伤害 +5%，P2 由大法师替换。 */
-export function mageGrandmasterElementMul(core: GameCore): number {
-  return hasMageUpgrade(core, "grandmasterPlaceholder")
-    ? 1 + ELEMENTAL_MAGE.grandmasterPlaceholder.elementDamageBonus
-    : 1;
-}
-
 /** 咏唱调律：法阵直伤倍率（P1 调律只给施法速度与范围）。 */
 export function mageDirectDamageMul(_core: GameCore): number {
   return 1;
@@ -102,12 +137,19 @@ export function mageReactionIcd(_core: GameCore): number {
   return ELEMENTAL_MAGE.reaction.icdBase;
 }
 
-/** 元素选择面板的候选卡：只列尚未持有的元素，并附上套装/反应预览。 */
+/** 元素/主元素选择面板的候选卡。 */
 export function mageElementPickSlots(core: GameCore): Slot[] {
-  return MAGE_ELEMENT_CHOICES.filter((card) => {
-    const el = elementOfChoice(card.n);
-    return !!el && !core.mageElements.includes(el);
-  }).map((card) => {
+  const cards =
+    core.mageElementPickPending === "grandmaster"
+      ? MAGE_ELEMENT_CHOICES.filter((card) => {
+          const el = elementOfChoice(card.n);
+          return !!el && core.mageElements.includes(el);
+        })
+      : MAGE_ELEMENT_CHOICES.filter((card) => {
+          const el = elementOfChoice(card.n);
+          return !!el && !core.mageElements.includes(el);
+        });
+  return cards.map((card) => {
     const el = elementOfChoice(card.n);
     const preview = el ? mageElementPreview(core, el) : "";
     return {
@@ -126,6 +168,10 @@ function mageElementPreview(core: GameCore, el: MageElement): string {
   const pending = core.mageElementPickPending;
   if (pending === "first") {
     return "第一元素起手；第二元素将决定 A/B 套装与首条反应";
+  }
+  if (pending === "grandmaster") {
+    const subs = core.mageElements.filter((x) => x !== el).map(name);
+    return `主 ${name(el)}；副 ${subs.join(" → ")}；每 4 拍 副1 → 副2 → 主基础 → 主强；解锁全部六反应`;
   }
   if (pending === "second") {
     const first = core.mageElements[0];
@@ -156,7 +202,8 @@ function mageElementPreview(core: GameCore, el: MageElement): string {
  *
  * - 第一元素：建立轮盘起点；
  * - 第二元素：确定 A/B 套装并领悟 A+B 反应；
- * - 第三元素：补齐该套装剩余两条反应。
+ * - 第三元素：补齐该套装剩余两条反应；
+ * - 大法师：从三元素中选主元素，另外两个成为副元素。
  */
 export function chooseMageElement(
   core: GameCore,
@@ -165,7 +212,27 @@ export function chooseMageElement(
   const pending = core.mageElementPickPending;
   if (core.prof !== "mage" || core.mageWeapon === "domain" || !pending) return false;
   const el = elementOfChoice(cardName);
-  if (!el || core.mageElements.includes(el)) return false;
+  if (!el) return false;
+  if (pending === "grandmaster") {
+    if (!core.mageElements.includes(el)) return false;
+    if (!core.mageUpgrades.includes("grandmaster"))
+      core.mageUpgrades.push("grandmaster");
+    core.mageMainElement = el;
+    core.mageSubOrder = core.mageElements.filter((x) => x !== el);
+    core.mageWheelIndex = 0;
+    core.mageCastsInPhase = 0;
+    core.mageElementPickPending = core.mageElementPickQueue.shift() ?? null;
+    core.addText(
+      core.player.x,
+      core.player.y - 28,
+      `元素大法师 · 主 ${MAGE_ELEMENTS[el].name} · 副 ${core.mageSubOrder
+        .map((x) => MAGE_ELEMENTS[x].name)
+        .join(" → ")}`,
+      MAGE_ELEMENTS[el].color,
+    );
+    return true;
+  }
+  if (core.mageElements.includes(el)) return false;
   core.mageElements.push(el);
   core.mageElementPickLevels.push(core.mageStaffLevel);
   // 一波内连升触发的下一次元素选择已排队 → 选完当前这个立刻接着选。
@@ -236,6 +303,21 @@ export function chooseMageElement(
   return true;
 }
 
+/** 休整期交换两个副元素的出场顺序；主元素不可改。 */
+export function swapMageSubOrder(core: GameCore): boolean {
+  if (!mageIsGrandmaster(core) || core.wavePhase !== "rest") return false;
+  core.mageSubOrder = [core.mageSubOrder[1], core.mageSubOrder[0]];
+  core.addText(
+    core.player.x,
+    core.player.y - 28,
+    `副元素顺序：${core.mageSubOrder
+      .map((x) => MAGE_ELEMENTS[x].name)
+      .join(" → ")}`,
+    MAGE_ELEMENTS[core.mageMainElement as MageElement].color,
+  );
+  return true;
+}
+
 /** 由前两个元素推导套装（反应缺失时的兜底）。 */
 function suitOfPair(a: MageElement, b: MageElement): MageSuit | null {
   const r = reactionForPair(a, b);
@@ -267,7 +349,10 @@ export function gainStaffXp(
 }
 
 /** 请求元素选择；已有待选时排队，休整时依次处理，避免覆盖。 */
-function requestElementPick(core: GameCore, kind: "second" | "third"): void {
+function requestElementPick(
+  core: GameCore,
+  kind: "second" | "third" | "grandmaster",
+): void {
   if (!core.mageElementPickPending) {
     core.mageElementPickPending = kind;
     return;
@@ -328,7 +413,9 @@ function applyStaffLevelGrant(core: GameCore, level: number): void {
     return;
   }
   if (level === 12) {
-    add("grandmasterPlaceholder");
+    add("grandmaster", "#ffd24a");
+    requestElementPick(core, "grandmaster");
+    core.addText(p.x, p.y - 30, "法杖 Lv.12 · 元素大法师觉醒，选择主元素", "#ffd24a");
     return;
   }
   core.addText(p.x, p.y - 30, `法杖 Lv.${level}`, "#9aa3c7", false, false, true);
@@ -405,6 +492,8 @@ export function devConfigureElementalMage(
   core.mageCastsInPhase = 0;
   core.mageElementPickPending = null;
   core.mageElementPickQueue = [];
+  core.mageMainElement = null;
+  core.mageSubOrder = [];
   core.mageUpgrades = [];
   core.mageReactionIds = [];
   core.mageReactionUnlockLevels = [];
@@ -442,8 +531,13 @@ export function devSetStaffLevel(this: GameCore, level: number): void {
   if (target >= 6) upgrades.push("prismEpic");
   if (target >= 10) upgrades.push("splitShadow");
   if (target >= 11) upgrades.push("splitShadowPlus");
-  if (target >= 12) upgrades.push("grandmasterPlaceholder");
+  if (target >= 12) upgrades.push("grandmaster");
   core.mageUpgrades = upgrades;
+  if (target >= 12 && core.mageElements.length === 3) {
+    core.mageMainElement = core.mageElements[0];
+    core.mageSubOrder = core.mageElements.slice(1);
+    core.mageCastsInPhase = 0;
+  }
   ensureSpecializationCount(core, target);
   // 切等级时清掉旧等级的瞬态表现，避免残留棱镜/分影/护盾。
   core.magePrism = null;

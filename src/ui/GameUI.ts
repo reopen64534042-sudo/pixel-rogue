@@ -35,7 +35,7 @@ import {
 import { fmtHp, fmtTime } from "../game/data/constants";
 import { levelGrowthSteps, levelGrowthSummary } from "../game/data/levelGrowth";
 import { waveTheme } from "../game/data/enemies";
-import { boltDamage, critMultiplier } from "../game/core/DamageMath";
+import { boltDamage, critMultiplier, mageBeatDamageMul } from "../game/core/DamageMath";
 import { professionPierce } from "../game/core/AttributeSources";
 import { COMBAT_BALANCE } from "../game/data/combatBalance";
 import {
@@ -62,7 +62,10 @@ import {
 } from "../game/data/elementalMage";
 import {
   mageCurrentElement,
+  mageBeatKind,
+  mageBeatLabel,
   mageCastSpeedMul,
+  mageIsGrandmaster,
   magePrismTier,
   mageReactionIcd,
   mageDirectDamageMul,
@@ -438,6 +441,10 @@ export class GameUI {
     };
     element("bp-next").onclick = () => {
       this.nextWave();
+    };
+    element("bp-subswap").onclick = () => {
+      if (!this.core.swapMageSubOrder()) return;
+      this.showRestBar();
     };
     for (const id of [
       "btn-start",
@@ -865,7 +872,8 @@ export class GameUI {
                     MAGE_BALANCE.elementBaseMul *
                     MAGE_BALANCE.directDamageMul *
                     mageDirectDamageMul(this.core) *
-                    MAGE_ELEMENTS[currentElement].damageMul
+                    MAGE_ELEMENTS[currentElement].damageMul *
+                    mageBeatDamageMul(mageBeatKind(this.core))
                   ).toFixed(1)
                 : "—",
             ],
@@ -1353,19 +1361,33 @@ export class GameUI {
         const need = STAFF_LEVELS[level - 1]?.xpToNext ?? null;
         const el = mageCurrentElement(this.core);
         const elementName = el ? MAGE_ELEMENTS[el].name : "—";
+        const beatKind = mageBeatKind(this.core);
+        const beatMul = mageBeatDamageMul(beatKind);
+        const grandmaster = mageIsGrandmaster(this.core);
         const direct = el
           ? p.damage *
             MAGE_BALANCE.elementBaseMul *
             MAGE_BALANCE.directDamageMul *
             mageDirectDamageMul(this.core) *
-            MAGE_ELEMENTS[el].damageMul
+            MAGE_ELEMENTS[el].damageMul *
+            beatMul
           : 0;
         const base = p.damage * MAGE_BALANCE.elementBaseMul;
-        const wheel = this.core.mageElements.length
-          ? `${elementOrderLabel(this.core.mageElements)} · ${this.core.mageCastsInPhase}/${MAGE_CASTS_PER_ELEMENT}`
-          : "未选元素";
-        const reactionNames =
-          this.core.mageReactionIds.length
+        const mainName = this.core.mageMainElement
+          ? MAGE_ELEMENTS[this.core.mageMainElement].name
+          : "—";
+        const subNames = this.core.mageSubOrder
+          .map((e) => MAGE_ELEMENTS[e].name)
+          .join(" → ");
+        const wheel = grandmaster
+          ? `第 ${this.core.mageCastsInPhase + 1}/${MAGE_CASTS_PER_ELEMENT} 拍 · ${mageBeatLabel(this.core)} · 主 ${mainName} · 副 ${subNames}`
+          : this.core.mageElements.length
+            ? `${elementOrderLabel(this.core.mageElements)} · ${this.core.mageCastsInPhase}/${MAGE_CASTS_PER_ELEMENT}`
+            : "未选元素";
+        const wheelLabel = grandmaster ? "🧭 当前节奏" : "🧭 本局元素反应路径";
+        const reactionNames = grandmaster
+          ? `六反应全解锁 · 专精 ${this.core.mageReactionIds.map((id) => MAGE_REACTIONS[id].name).join(" / ") || "—"}`
+          : this.core.mageReactionIds.length
             ? this.core.mageReactionIds
                 .map((id) => MAGE_REACTIONS[id].name)
                 .join(" / ")
@@ -1380,12 +1402,23 @@ export class GameUI {
         );
         specialEl.innerHTML = renderRows([
           ["🔮 当前元素", elementName],
-          ["🧭 本局元素反应路径", wheel],
+          ...(grandmaster
+            ? ([
+                ["👑 元素大法师", `主 ${mainName} · 副 ${subNames}`],
+                ["🎵 当前拍", `${mageBeatLabel(this.core)} · ×${beatMul.toFixed(2)}`],
+              ] as [string, string][])
+            : []),
+          [wheelLabel, wheel],
           ["☄️ 法阵直伤", direct.toFixed(1)],
           ["✹ 状态/反应基准", base.toFixed(1)],
           ["🌐 法阵半径", mageCircleRadius(this.core).toFixed(0) + " px"],
           ["☯ 已掌握反应", reactionNames],
-        ], (label) => label === "🧭 本局元素反应路径" || label === "☯ 已掌握反应");
+        ], (label) =>
+          label === wheelLabel ||
+          label === "☯ 已掌握反应" ||
+          label === "👑 元素大法师" ||
+          label === "🎵 当前拍",
+        );
         const prismTier = magePrismTier(this.core);
         const prism = this.core.magePrism;
         const prismLabel =
@@ -1452,15 +1485,19 @@ export class GameUI {
             ],
             [
               "轮盘",
-              "每 4 次成功施法切换；获得新元素不重置当前阶段；Lv1/4/7 选择元素",
+              grandmaster
+                ? "4 拍：副1 → 副2 → 主基础 → 主强；副顺序休整期可交换，主元素固定"
+                : "每 4 次成功施法切换；获得新元素不重置当前阶段；Lv1/4/7 选择元素",
             ],
             [
               "成长",
-              "Lv2 调律 / Lv3 基础棱镜 / Lv4 第二元素 / Lv5 专精 / Lv6 棱镜史诗 / Lv7 第三元素 / Lv8–9 专精 / Lv10 分影 / Lv11 双影协奏 / Lv12 大法师觉醒占位；三选一池 8 张（4 张生存/机动 + 1 张节律 + 1 张穿透 + 2 张构筑卡）",
+              "Lv2 调律 / Lv3 基础棱镜 / Lv4 第二元素 / Lv5 专精 / Lv6 棱镜史诗 / Lv7 第三元素 / Lv8–9 专精 / Lv10 分影 / Lv11 双影协奏 / Lv12 元素大法师（选主元素，4拍+六反应）；三选一池 8 张（4 张生存/机动 + 1 张节律 + 1 张穿透 + 2 张构筑卡）",
             ],
             [
               "反应触发",
-              "目标带匹配元素附着即可触发，不要求冻结/叠满；层数只提高反应强度；A/B 套装按当前元素唯一决定；本体与分影可触发，链/DoT/棱镜不触发；每怪每发最多一次",
+              grandmaster
+                ? "六反应全解锁，按目标附着取第一条成立反应；已拥有专精优先，其次 融化>裂焰、急淬>霜缚、超载>超导；本体与分影可触发，链/DoT/棱镜不触发；每怪每发最多一次"
+                : "目标带匹配元素附着即可触发，不要求冻结/叠满；层数只提高反应强度；A/B 套装按当前元素唯一决定；本体与分影可触发，链/DoT/棱镜不触发；每怪每发最多一次",
             ],
             [
               "反应后",
@@ -1480,7 +1517,9 @@ export class GameUI {
             ],
             [
               "当前数值",
-              "法阵直伤 = 基准 ×0.65 × 元素倍率；咏唱调律不再加直伤，只加施法速度与法阵范围；状态/链/反应使用完整基准",
+              grandmaster
+                ? "法阵直伤 = 基准 ×0.65 × 元素倍率 × 拍倍率（副0.8 / 主1.3 / 主强1.6）；反应使用拍后基准；灼烧 DoT 按完整基准"
+                : "法阵直伤 = 基准 ×0.65 × 元素倍率；咏唱调律不再加直伤，只加施法速度与法阵范围；状态/链/反应使用完整基准",
             ],
             ...(prismTier > 0
               ? ([
@@ -1838,20 +1877,24 @@ export class GameUI {
     if (title)
       title.textContent = box
         ? `🎁 开启宝箱 · 剩余 ${this.core.boxPicks} 次强化 · 强化一项已学天赋`
-        : pending
-          ? `🔮 法杖 Lv.${this.core.mageStaffLevel} · 选择第${pending === "first" ? "一" : pending === "second" ? "二" : "三"}元素`
-          : "⬆ 等级提升！选择一项天赋强化";
+        : pending === "grandmaster"
+          ? "👑 元素大法师觉醒 · 选择主元素"
+          : pending
+            ? `🔮 法杖 Lv.${this.core.mageStaffLevel} · 选择第${pending === "first" ? "一" : pending === "second" ? "二" : "三"}元素`
+            : "⬆ 等级提升！选择一项天赋强化";
     const hint = document.querySelector<HTMLElement>(
       "#bp-level .level-subhint",
     );
     if (hint)
       hint.textContent = box
         ? "只强化已学天赋 · 键盘 1 / 2 / 3 快捷选取"
-        : pending
-          ? `只显示尚未持有的元素 · 选择后立即加入圆盘 · 键盘 ${
-              pending === "first" ? "1 / 2 / 3" : pending === "second" ? "1 / 2" : "1"
-            } 快捷选取`
-          : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷新」换一张";
+        : pending === "grandmaster"
+          ? "主元素固定 · 另两元素成为副元素 · 每 4 拍 副1 → 副2 → 主基础 → 主强 · 键盘 1 / 2 / 3"
+          : pending
+            ? `只显示尚未持有的元素 · 选择后立即加入圆盘 · 键盘 ${
+                pending === "first" ? "1 / 2 / 3" : pending === "second" ? "1 / 2" : "1"
+              } 快捷选取`
+            : "模拟不暂停 · 键盘 1 / 2 / 3 快捷选取 · 点击卡片下方「刷新」换一张";
     this.drawCards();
     element("bp-level").classList.remove("hidden");
     element("bp-rest").classList.add("hidden");
@@ -1959,6 +2002,15 @@ export class GameUI {
     // v128：按钮文案跟随「下一波」键位（默认 F，可在设置中改）。
     element("bp-next").textContent =
       `下一波 (${keyLabel(this.core.keybinds.nextWave)})`;
+    const subSwap = element("bp-subswap");
+    const grandmaster = mageIsGrandmaster(this.core);
+    subSwap.classList.toggle("hidden", !grandmaster);
+    if (grandmaster) {
+      const names = this.core.mageSubOrder.map(
+        (e) => MAGE_ELEMENTS[e].name,
+      );
+      subSwap.textContent = `⇄ 副元素 ${names.join(" → ")}`;
+    }
     // 伤害统计: 合计突出 + 按占比降序
     const damage = this.core.waveDamage();
     const total = Object.values(damage).reduce((a, b) => a + b, 0);
