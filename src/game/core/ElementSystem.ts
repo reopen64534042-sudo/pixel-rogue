@@ -24,7 +24,6 @@ import {
 import {
   hasMageCard,
   hasMageUpgrade,
-  mageGrandmasterElementMul,
   mageStatusDurationBonus,
   mageReactionDamageMul,
   mageReactionIcd,
@@ -75,16 +74,56 @@ function snapshotHasFrostAttachment(s: StatusSnapshot): boolean {
   return s.frost > 0 || s.frozen || s.frostLock;
 }
 
+/** 大法师六反应固定优先级：专精优先，其次按此顺序取第一条可成立反应。 */
+const GRANDMASTER_REACTION_ORDER: readonly MageReactionId[] = [
+  "quench",
+  "melt",
+  "overload",
+  "blaze",
+  "superconduct",
+  "frostbind",
+];
+
+function reactionRequirementMet(
+  id: MageReactionId,
+  snap: StatusSnapshot,
+): boolean {
+  switch (id) {
+    case "quench":
+    case "overload":
+      return snap.burn > 0;
+    case "melt":
+    case "superconduct":
+      return snapshotHasFrostAttachment(snap);
+    case "blaze":
+    case "frostbind":
+      return snap.shock;
+  }
+}
+
 /**
- * 当前元素在本局套装里对应的唯一反应。
+ * 当前元素可触发的唯一反应。
  *
- * A/B 套装各自是一条三元素循环，所以每个当前元素最多对应一条已领悟反应；
- * 目标身上的附着决定这条反应是否成立，而不是轮盘上一元素。
+ * 普通元素使按 A/B 套装从已领悟列表里取；大法师解除套装限制，
+ * 按固定优先级从六反应中取第一条满足目标附着的反应。
  */
 function learnedReaction(
   core: GameCore,
   element: MageElement,
+  snap: StatusSnapshot,
 ): MageReactionId | null {
+  if (core.mageMainElement) {
+    const candidates = GRANDMASTER_REACTION_ORDER.filter(
+      (id) =>
+        MAGE_REACTIONS[id].to === element && reactionRequirementMet(id, snap),
+    );
+    if (!candidates.length) return null;
+    return (
+      candidates.find((id) =>
+        hasMageUpgrade(core, MAGE_SPECIALIZATIONS[id].id),
+      ) ?? candidates[0]
+    );
+  }
   if (!core.mageSuit) return null;
   for (const id of core.mageReactionIds) {
     const def = MAGE_REACTIONS[id];
@@ -108,9 +147,9 @@ export function mageReactionAvailableForHit(
   // 反应 ICD 生效时 applyElementalBodyHit 会跳过反应，不能再给直伤留 1 HP。
   if (e.dead || (e.elemReactionCd ?? 0) > 0 || reactionBudget?.has(e))
     return false;
-  const id = learnedReaction(core, element);
-  if (!id) return false;
   const snap = snapshot(e);
+  const id = learnedReaction(core, element, snap);
+  if (!id) return false;
   switch (id) {
     case "quench":
       return snap.burn > 0;
@@ -435,7 +474,7 @@ function resolveReaction(
     forceChain: false,
     chainJumps: ELEMENTAL_MAGE.chain.jumps,
   };
-  const id = learnedReaction(core, element);
+  const id = learnedReaction(core, element, snap);
   if (!id) return result;
   const partner = MAGE_REACTIONS[id].from;
 
@@ -839,8 +878,7 @@ export function applyDotDamage(
 /** 推进元素状态（每帧）。 */
 export function updateMageElements(this: GameCore, dt: number): void {
   if (this.prof === "mage" && this.mageWeapon === "domain") return;
-  const burnBase =
-    mageElementDamageBase(this.player.damage) * mageGrandmasterElementMul(this);
+  const burnBase = mageElementDamageBase(this.player.damage);
   for (const e of this.enemies) {
     if (e.dead) continue;
 

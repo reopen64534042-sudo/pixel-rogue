@@ -11,7 +11,7 @@ import { CONDITIONAL_DAMAGE as CD } from "../data/combatBalance";
 import { WARRIOR_BALANCE } from "../data/warriorBalance";
 import { LEGACY_DAMAGE as OLD } from "../data/combatBalance";
 import { MAGE_BALANCE as MB } from "../data/mageBalance";
-import { ELEMENTAL_MAGE, MAGE_ELEMENTS, type MageElement } from "../data/elementalMage";
+import { ELEMENTAL_MAGE, MAGE_ELEMENTS, type MageBeatKind, type MageElement } from "../data/elementalMage";
 import {
   CURRENT_HP_DAMAGE_FRACTION, MAX_HP_DAMAGE_FRACTION, HP_DAMAGE_CAP_MUL, TRUE_DAMAGE_MUL,
   LASER_DAMAGE_MUL, MISSILE_DAMAGE_MUL, MISSILE_BURN_DPS_MUL, FISSION_DAMAGE_MUL,
@@ -77,6 +77,15 @@ export function mageReactionRawDamage(base: number, multiplier: number, state: n
 }
 export const mageChainDamage = (base: number, mul = 1) => base * ELEMENTAL_MAGE.chain.damageMul * mul;
 export const mageBurnDamage = (base: number, layers: number) => layers * ELEMENTAL_MAGE.burn.damagePerLayer * base;
+/** 元素大法师 4 拍伤害倍率：副 0.8 / 主基础 1.3 / 主强 1.6；未觉醒返回 1。 */
+export const mageBeatDamageMul = (kind: MageBeatKind | null): number =>
+  kind === "sub"
+    ? ELEMENTAL_MAGE.grandmaster.subDamageMul
+    : kind === "main"
+      ? ELEMENTAL_MAGE.grandmaster.mainDamageMul
+      : kind === "mainStrong"
+        ? ELEMENTAL_MAGE.grandmaster.mainStrongDamageMul
+        : 1;
 
 export const warriorWaveDamage = (attack: number, kind: "qi" | "fissure") =>
   attack * WARRIOR_BALANCE.energyWaves[kind].dmgMul;

@@ -11,8 +11,9 @@ import {
   mageCastSpeedMul,
   mageCircleRangeMul,
   mageCurrentElement,
+  mageBeatKind,
+  mageIsGrandmaster,
   mageDirectDamageMul,
-  mageGrandmasterElementMul,
   gainStaffXp,
   magePrismTier,
 } from "./MageProgressionSystem";
@@ -23,7 +24,7 @@ import {
 import type { GameCore } from "./GameCore";
 import { PLAYER_ATTACK_PROFILES as PA, withDamageType } from "../data/attackProfiles";
 import type { Enemy, MageCastPhase } from "./types";
-import { mageElementDamageBase, mageDirectHitDamage, mageRefractedBase } from "./DamageMath";
+import { mageElementDamageBase, mageDirectHitDamage, mageRefractedBase, mageBeatDamageMul } from "./DamageMath";
 
 /**
  * 元素法师施法系统。
@@ -71,9 +72,9 @@ export function mageCircleRadius(core: GameCore): number {
   return MB.circleRadius * p.area * mageCircleRangeMul(core);
 }
 
-/** 元素伤害基准（不含元素自身倍率）；原站定 1.5× 已折入基准。 */
+/** 元素伤害基准（不含元素自身倍率与 4 拍倍率）。 */
 function mageElementBase(core: GameCore): number {
-  return mageElementDamageBase(core.player.damage) * mageGrandmasterElementMul(core);
+  return mageElementDamageBase(core.player.damage);
 }
 
 /**
@@ -162,11 +163,12 @@ function explodeCircle(
   return { hits };
 }
 
-/** 成功施法后的轮盘推进：每 4 次切换，获得新元素时不重置当前阶段。 */
+/** 成功施法后的轮盘推进：每 4 次切换；大法师改为 4 拍循环，不推进元素轮盘。 */
 function advanceWheel(core: GameCore): void {
   core.mageCastsInPhase++;
   if (core.mageCastsInPhase < MAGE_CASTS_PER_ELEMENT) return;
   core.mageCastsInPhase = 0;
+  if (mageIsGrandmaster(core)) return;
   if (core.mageElements.length > 1)
     core.mageWheelIndex =
       (core.mageWheelIndex + 1) % core.mageElements.length;
@@ -422,7 +424,7 @@ function detonate(core: GameCore) {
   const p = core.player;
   const el = mageCurrentElement(core);
   if (!el) return;
-  const base = mageElementBase(core);
+  const base = mageElementBase(core) * mageBeatDamageMul(mageBeatKind(core));
   const R = mageCircleRadius(core);
   const reactionBudget = new Set<Enemy>();
   const directMul =

@@ -14,6 +14,7 @@ import { MAGE_STATUS, type MageVfx } from "./vfx/MageVfx";
 import { W, H, VIEW, WORLD, fmtTime, fmtHp } from "../data/constants";
 import { isBrittle, isFrostLocked, isFrozen, isParalyzed, isShocked } from "../core/ElementMath";
 import { mageCircleRadius, mageWindup } from "../core/MageSystem";
+import { mageCurrentElement, mageElementForBeat } from "../core/MageProgressionSystem";
 import { ELEMENTAL_MAGE, MAGE_CASTS_PER_ELEMENT, MAGE_ELEMENTS, STAFF_LEVELS } from "../data/elementalMage";
 import type { MageReactionId } from "../data/elementalMage";
 import { warriorIaiStep } from "../core/WarriorSystem";
@@ -318,9 +319,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const remain =
       this.castPhase === "windup" ? this.castT + castPart : this.castT;
     const prog = Math.max(0, Math.min(1, 1 - remain / total));
-    const castEl = this.mageElements.length
-      ? this.mageElements[this.mageWheelIndex % this.mageElements.length]
-      : null;
+    const castEl = mageCurrentElement(this);
     const atlasDrawn =
       mageVfx?.drawCast(ctx, this.castX, this.castY, R, prog, castEl) ?? false;
     if (!atlasDrawn) {
@@ -350,7 +349,8 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     }
   }
   // 法师：脚下施法条 = 元素相位条（23×1：4×5px 段 + 3×1px 间隔）。
-  // 已完成段填当前元素色；当前施法段用白线填充；第 4 段完成后换色并归零。
+  // 已完成段填对应拍的元素色；当前施法段用白线填充。
+  // 大法师四拍：副1/副2/主/主强各有颜色；普通元素使四段同为当前轮盘色。
   // 顺序：冲刺点 → 元素相位/施法条 → 法杖经验条；不再画三点轮盘。
   if (
     this.prof === "mage" && this.mageWeapon === "arcane" &&
@@ -366,11 +366,11 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
         this.castPhase === "windup" ? this.castT + castPart : this.castT;
       prog = Math.max(0, Math.min(1, 1 - remain / total));
     }
-    const el = this.mageElements.length
-      ? this.mageElements[this.mageWheelIndex % this.mageElements.length]
-      : null;
-    const color = el ? MAGE_ELEMENTS[el].color : "#57e6ff";
     const total = MAGE_CASTS_PER_ELEMENT;
+    const beatColors = Array.from({ length: total }, (_, i) => {
+      const beatEl = mageElementForBeat(this, i);
+      return beatEl ? MAGE_ELEMENTS[beatEl].color : "#57e6ff";
+    });
     const completed = Math.max(0, Math.min(total, this.mageCastsInPhase));
     const bw = MAGE_BAR_W;
     const bx = Math.round(this.player.x) - Math.floor(bw / 2);
@@ -379,7 +379,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     ctx.fillStyle = "#1d2440";
     ctx.fillRect(bx, by, bw, 1);
     for (let i = 0; i < completed; i++) {
-      ctx.fillStyle = color;
+      ctx.fillStyle = beatColors[i];
       ctx.fillRect(
         bx + i * (MAGE_BAR_SEG_W + MAGE_BAR_GAP_W),
         by,
@@ -592,8 +592,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     this.mageUpgrades.includes("splitShadowPlus") &&
     this.mageElements.length
   ) {
-    const current =
-      this.mageElements[this.mageWheelIndex % this.mageElements.length];
+    const current = mageCurrentElement(this);
     const others = this.mageElements.filter((el) => el !== current);
     for (let i = 0; i < 2; i++) {
       const element = others[i % Math.max(1, others.length)];

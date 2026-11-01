@@ -42,6 +42,7 @@ import { updateMageElements } from "./ElementSystem";
 import {
   devConfigureElementalMage,
   devSetStaffLevel,
+  swapMageSubOrder as swapMageSubOrderCommand,
 } from "./MageProgressionSystem";
 import {
   interruptMageCast,
@@ -464,12 +465,16 @@ export class GameCore {
   mageCastsInPhase = 0;
   /** 本局套装：第二元素获得后确定。 */
   mageSuit: MageSuit | null = null;
-  /** 已领悟的配对反应（Lv3 一条，Lv6 随机一条）。 */
+  /** 已领悟的配对反应（Lv4 一条，Lv7 补齐两条）。 */
   mageReactionIds: MageReactionId[] = [];
   /** 与 mageReactionIds 对齐的解锁法杖等级；DEV 直接配装时为 0。 */
   mageReactionUnlockLevels: number[] = [];
   /** 与 mageElements 对齐的元素选择等级；DEV 直接配装时为空。 */
   mageElementPickLevels: number[] = [];
+  /** Lv12 元素大法师：主元素；未觉醒时为 null。 */
+  mageMainElement: MageElement | null = null;
+  /** 大法师的两个副元素出场顺序（休整期可交换）。 */
+  mageSubOrder: MageElement[] = [];
   /** 法杖等级成长已获得项。 */
   mageUpgrades: MageUpgradeId[] = [];
   /**
@@ -518,12 +523,17 @@ export class GameCore {
     element: MageElement;
   }[] = [];
   /**
-   * 法杖 Lv1/4/7 的强制元素选择：待选第几元素。
+   * 法杖 Lv1/4/7 的元素选择与 Lv12 主元素选择：待选类型。
    * 复用旧补选面板的 slots 展示，但不消耗天赋次数。
    */
-  mageElementPickPending: "first" | "second" | "third" | null = null;
-  /** 一波内连升 Lv4/Lv7 时已触发的元素选择，休整时在 pending 之后依次处理。 */
-  mageElementPickQueue: ("second" | "third")[] = [];
+  mageElementPickPending:
+    | "first"
+    | "second"
+    | "third"
+    | "grandmaster"
+    | null = null;
+  /** 一波内连续触发多次选择时排队，休整时在 pending 之后依次处理。 */
+  mageElementPickQueue: ("second" | "third" | "grandmaster")[] = [];
   /**
    * S1/v139：本次休整可用的属性消费额度（波次 + 成长徽记）。为 0 时属性面板不出现。
    * 不进 parity 快照白名单：它只驱动面板流程，不参与任何数值计算。
@@ -740,6 +750,7 @@ export class GameCore {
   updateMageElements = updateMageElements.bind(this);
   devSetStaffLevel = devSetStaffLevel.bind(this);
   devConfigureElementalMage = devConfigureElementalMage.bind(this);
+  swapMageSubOrder = () => swapMageSubOrderCommand(this);
   interruptMageCast = interruptMageCast.bind(this);
   triggerPhaseEscape = triggerPhaseEscape.bind(this);
   triggerMirrorDecoy = triggerMirrorDecoy.bind(this);
@@ -889,6 +900,8 @@ export class GameCore {
     this.mageWheelIndex = 0;
     this.mageCastsInPhase = 0;
     this.mageSuit = null;
+    this.mageMainElement = null;
+    this.mageSubOrder = [];
     this.mageReactionIds = [];
     this.mageReactionUnlockLevels = [];
     this.mageElementPickLevels = [];

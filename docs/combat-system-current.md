@@ -119,7 +119,7 @@ StatModel **已经用于运行时**的玩家投影和敌人生成；StatSheets �
 | 强化弹射手 | 物理 / ranged；指定真伤弹走 true | AttackSystem + ProjectileSystem；发射快照、穿透/弹射衰减、强化弹专属触发 |
 | 激光射手 | 物理 / ranged | LaserSystem；浮点连续命中仍是 hit；同目标复用暴击/命中特效窗口，附属束关闭重复触发，武器共享吸血预算 |
 | 导弹射手 | 主爆炸物理或离子雷电 / ranged；余烬火焰 dot / ranged；部分派生 true | MissileSystem + MissileCombat；齐射快照、主弹暴击复用、派生隔离、余烬积分和每轮 XP 上限 |
-| 元素使（mage / arcane） | 火/冰/雷 / other；反应也按明确元素结算 | MageSystem + ElementSystem；直伤 hurtEnemy，元素 DoT 独立浮点应用；配对元素额外增伤有专属逻辑 |
+| 元素使（mage / arcane） | 火/冰/雷 / other；反应也按明确元素结算 | MageSystem + ElementSystem；直伤 hurtEnemy，元素 DoT 独立浮点应用；配对元素额外增伤有专属逻辑；元素大法师的 4 拍倍率在施法入口乘入 base（副 0.8 / 主 1.3 / 主强 1.6），灼烧 DoT 仍按完整基准 |
 | 领域师（mage / domain） | 引力 / other，形成爆发另含 true 及当前生命压缩 | DomainSystem；主伤与 components 同次应用，分量明确是否继承增伤；场/洞快照、领域值 M、穿透与治疗另有边界 |
 | 太刀战士 | 核心挥砍/居合物理 / melee | MeleeSystem + WarriorSystem；战士近战基础穿甲，命中列表与连段/冲刺状态 |
 | 大剑战士 | 核心挥砍/三段斩物理 / melee | 同一近战框架 + 大剑机制；跃击免伤、盾链与反击，各派生攻击需单独确认形式 |

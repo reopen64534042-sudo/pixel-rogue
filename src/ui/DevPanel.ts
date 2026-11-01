@@ -535,6 +535,8 @@ export class DevPanel {
         c.mageReactionIds = Object.keys(MAGE_REACTIONS) as MageReactionId[];
         c.mageReactionUnlockLevels = [];
         c.mageUpgrades = upgradeEntries.map((u) => u.id);
+        c.mageMainElement = "fire";
+        c.mageSubOrder = ["frost", "lightning"];
         resetTransient();
         resyncMagePanel();
         this.close();
@@ -549,6 +551,8 @@ export class DevPanel {
         c.mageUpgrades = [];
         c.mageReactionIds = [];
         c.mageReactionUnlockLevels = [];
+        c.mageMainElement = null;
+        c.mageSubOrder = [];
         resetTransient();
         this.close();
         this.build();

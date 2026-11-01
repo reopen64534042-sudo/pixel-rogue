@@ -10,9 +10,12 @@ export type { MageElement };
  *
  * v185 P1：法杖等级、每 4 次施法轮盘、Lv1/4/7 元素、A/B 套装、
  * 六反应与六专精、分影/双影协奏；回响/普通池/三环/反应终章/棱镜终极已移除。
+ * v186 P2a：Lv12 元素大法师、4 拍节奏、六反应解锁与副顺序；主强专属形态在 P2b。
  */
 
 export type MageSuit = "A" | "B";
+/** 元素大法师的 4 拍类型：副1/副2、主基础、主强。 */
+export type MageBeatKind = "sub" | "main" | "mainStrong";
 
 export type MageReactionId =
   | "quench"
@@ -34,7 +37,7 @@ export type MageUpgradeId =
   | "specFrostbind"
   | "splitShadow"
   | "splitShadowPlus"
-  | "grandmasterPlaceholder";
+  | "grandmaster";
 
 export interface MageElementDef {
   readonly id: MageElement;
@@ -187,7 +190,7 @@ export function elementOrderLabel(elements: readonly MageElement[]): string {
  * 法杖等级表。索引 = 等级 - 1；`xpToNext` 为升级所需经验，满级为 null。
  *
  * v185 P1：元素在 Lv1/4/7；Lv2 固定咏唱调律，Lv3 基础棱镜，Lv5/8/9
- * 反应专精，Lv10/11 分影/双影协奏，Lv12 为大法师觉醒占位。
+ * 反应专精，Lv10/11 分影/双影协奏，Lv12 为元素大法师觉醒。
  * 经验来源：每次本体法阵实际命中至少 1 个敌人 +1。
  */
 export interface StaffLevelDef {
@@ -207,7 +210,7 @@ export const STAFF_LEVELS: readonly StaffLevelDef[] = [
   { xpToNext: 80, note: "R3 专精" },
   { xpToNext: 88, note: "分影" },
   { xpToNext: 96, note: "双影协奏" },
-  { xpToNext: null, note: "大法师觉醒占位（全元素伤害 +5%）" },
+  { xpToNext: null, note: "元素大法师觉醒：选择主元素" },
 ];
 
 /** 每次成功施法获得的法杖经验。 */
@@ -333,10 +336,10 @@ export const MAGE_STAFF_UPGRADES: readonly MageStaffUpgradeDef[] = [
     desc: "左右 2 个残影常驻；每个元素第 2、第 4 下协同攻击；法阵与主角同大，不结算直伤，反应伤害为正常的 80%；残影独立反应预算、无视本体 ICD",
   },
   {
-    id: "grandmasterPlaceholder",
-    name: "大法师觉醒·占位",
+    id: "grandmaster",
+    name: "元素大法师",
     ico: "✧",
-    desc: "Lv12 占位：全元素伤害 +5%；P2 由元素大法师替换",
+    desc: "Lv12 选择主元素；每 4 拍 副1→副2→主基础→主强；副元素 0.8×、主基础 1.3×、主强 1.6×；解锁全部六反应，专精仍只保留本局三条",
   },
 ];
 
@@ -434,9 +437,11 @@ export const ELEMENTAL_MAGE = {
     /** 法阵范围（半径乘区）。 */
     circleRange: 0.1,
   },
-  /** Lv12 占位：全元素伤害 +5%，P2 由元素大法师替换。 */
-  grandmasterPlaceholder: {
-    elementDamageBonus: 0.05,
+  /** Lv12 元素大法师：4 拍倍率；P2b 再给主强专属形态。 */
+  grandmaster: {
+    subDamageMul: 0.8,
+    mainDamageMul: 1.3,
+    mainStrongDamageMul: 1.6,
   },
   shadow: {
     /** 基础分影：法阵半径 / 反应伤害倍率。 */
