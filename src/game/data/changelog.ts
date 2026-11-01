@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** 更新日志（最新在前）。约定：功能 PR 合并时递增版本号，且每条按【加强】【削弱】【调整】【新增】【清理】【修复】【说明】分类开头。 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "v182",
+    date: "2026-11-02",
+    title: "冻结冰壳整块填充清理",
+    items: [
+      "【清理】删除冻结/霜牢冰壳的整块 28% 淡蓝 `#9fe1ff` 填充；不再给怪物蒙一层浅色方框。",
+      "【说明】保留顶部冷光、底部冰棱、两侧霜点与 MageVfx 冻结素材；不改冻结/霜牢时长、控制规则、`slowT` 减速框、雷印/脆化细线。"
+    ],
+  },
+  {
     version: "v181",
     date: "2026-11-02",
     title: "元素使表现清理与四段条修复",
