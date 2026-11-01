@@ -22,6 +22,7 @@ import {
   registerGreatswordSlash,
 } from "../rendering/vfx/greatswordSlash";
 import { KATANA_DASH, registerKatanaDash } from "../rendering/vfx/katanaDash";
+import { MageCharacter, MAGE_CHARACTER, registerMageCharacter } from "../rendering/characters/MageCharacter";
 import { KatanaCharacter, KATANA_CHARACTER, registerKatanaCharacter } from "../rendering/characters/KatanaCharacter";
 import { GreatswordCharacter, GREATSWORD_CHARACTER, registerGreatswordCharacter } from "../rendering/characters/GreatswordCharacter";
 import { ShooterCharacter, SHOOTER_CHARACTER, registerShooterCharacter } from "../rendering/characters/ShooterCharacter";
@@ -80,8 +81,9 @@ export class GameScene extends Phaser.Scene {
   private readonly katanaCharacter = new KatanaCharacter();
   private readonly greatswordCharacter = new GreatswordCharacter();
   private readonly shooterCharacter = new ShooterCharacter();
+  private readonly mageCharacter = new MageCharacter();
   private readonly drawCharacter = (x: number, y: number) =>
-    this.katanaCharacter.draw(this.painter, x, y) || this.greatswordCharacter.draw(this.painter, x, y) || this.shooterCharacter.drawBody(this.painter, x, y);
+    this.katanaCharacter.draw(this.painter, x, y) || this.greatswordCharacter.draw(this.painter, x, y) || this.shooterCharacter.drawBody(this.painter, x, y) || this.mageCharacter.draw(this.painter, x, y);
   private readonly drawShooterWeapon = () => this.shooterCharacter.drawWeapon(this.painter);
   private readonly drawShooterEcho = (x: number, y: number, angle: number, alpha: number) =>
     this.shooterCharacter.drawEcho(this.painter, x, y, angle, alpha);
@@ -238,6 +240,7 @@ export class GameScene extends Phaser.Scene {
       this.katanaCharacter.reset();
       this.greatswordCharacter.reset();
       this.shooterCharacter.reset();
+      this.mageCharacter.reset();
       if (import.meta.env.DEV) delete window.__PIXEL_ROGUE__;
     });
     // Explicit test mode only; production bundles contain no control bridge.
@@ -257,6 +260,7 @@ export class GameScene extends Phaser.Scene {
     void this.loadKatanaCharacter();
     void this.loadGreatswordCharacter();
     void this.loadShooterCharacter();
+    void this.loadMageCharacter();
     const testName = new URLSearchParams(window.location.search).get("test");
     this.specialTest =
       import.meta.env.DEV && import.meta.env.MODE === "e2e"
@@ -658,6 +662,16 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private async loadMageCharacter() {
+    try {
+      const image = await loadImageElement(MAGE_CHARACTER.image);
+      if (!this.sys.isActive()) return;
+      registerMageCharacter(this.textures, image);
+    } catch (error) {
+      console.warn("[assets] Mage character loading failed; using original sprite", error);
+    }
+  }
+
   private async loadShooterCharacter() {
     try {
       const [body, weapons] = await Promise.all([
@@ -680,6 +694,7 @@ export class GameScene extends Phaser.Scene {
         this.katanaCharacter.capture(this.core);
         this.greatswordCharacter.capture(this.core);
         this.shooterCharacter.capture(this.core);
+        this.mageCharacter.capture(this.core);
         this.captureLaserAnimation();
       });
     else this.clock.reset();
@@ -689,6 +704,7 @@ export class GameScene extends Phaser.Scene {
     this.katanaCharacter.capture(this.core);
     this.greatswordCharacter.capture(this.core);
     this.shooterCharacter.capture(this.core);
+    this.mageCharacter.capture(this.core);
     this.painter.begin();
     if (this.core.state === "start") {
       this.cameras.main.setScroll(0, 0);

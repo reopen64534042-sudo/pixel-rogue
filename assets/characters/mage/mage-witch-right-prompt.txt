@@ -1,0 +1,14 @@
+Use case: identity-preserve; production game sprite animation sheet.
+Input 1 is the transparent 1024x1536 EDIT TARGET canvas with the normalized witch seed in the first of 24 slots. Input 2 is a magnified identity / pixel-grid reference for the same witch. Produce the complete 4-column x 6-row sheet in one edit, exactly 24 separate full-body sprites, all facing RIGHT. Preserve the normalized seed design, bent wide-brim pointed witch hat, silver hair, visible eye/face, purple short robe and blue-black capelet, cyan piping, gold clasps, brown boots and one connected cyan-crystal staff. No redesign or added equipment.
+
+Canvas: portrait 1024x1536, 4 columns x 6 rows, equal 256x256 slots. Each character about 204 output pixels high (34 logical pixels enlarged 6x), boots at about local y=236, body centered near local x=128. Wide empty transparent gaps. Full hat and complete staff remain inside their own slot, never touching adjacent sprites. Maintain one shared scale across ALL poses. Crisp approximately 6x6 pixel clusters; no fine illustration detail, no labels, grid lines, scenery, floor, shadows, floating particles or big spell effects.
+
+Rows, top to bottom:
+1. IDLE (4 frames): relaxed staff upright, tiny breathing / cape motion, same face and readable hat silhouette. Frame 1 matches the seed.
+2. RUN first half (frames 1-4 of an 8-frame run): clear rightward stride, front foot reaching / contact / passing / rear knee lifting, cape and hat tip lag slightly. Show genuinely different leg positions.
+3. RUN second half (frames 5-8): opposite foot leads, contact / passing / push-off / return. Eight run poses form ONE continuous cycle, not four duplicates. Brown boots remain visible and separated.
+4. CHANT (4 frames): windup from staff close to torso to staff lifted, forward hand gathering energy; deliberate readable arm and staff motion. No detached VFX.
+5. RELEASE (4 frames): decisive staff / forward hand extension toward RIGHT, recoil, settle, recover. Preserve full staff and both hands, do not add projectiles or circles.
+6. DASH (4 frames): forward lean, clear cloak / hat-tip trailing, staff tucked safely, then recovery. Keep feet visible, no afterimages or clouds.
+
+Invariants: same character, same RIGHT facing, same silver hair and witch-hat silhouette family, same costume details and palette, same underlying head/body scale in every frame. Gentle front/side three-quarter slightly top-down orthographic RPG camera matching the seed. Real transparent alpha, no fake checkerboard, no text/watermark. Do not duplicate a static figure across the run rows; do not crop, resize individual poses, rotate whole rows or add extra characters.

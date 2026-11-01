@@ -1,0 +1,1405 @@
+{
+  "schema": 1,
+  "date": "2026-11-01",
+  "tool": "built-in image_gen.imagegen",
+  "model": null,
+  "seed": null,
+  "image": "public/assets/characters/mage-witch-64x64.png",
+  "width": 256,
+  "height": 768,
+  "frameSize": 64,
+  "anchor": {
+    "x": 32,
+    "y": 59
+  },
+  "frames": [
+    {
+      "name": "right-idle-0",
+      "index": 0,
+      "x": 0,
+      "y": 0,
+      "region": {
+        "left": 63,
+        "right": 239,
+        "top": 39,
+        "bottom": 256
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 634,
+      "colors": 11,
+      "bounds": {
+        "minX": 20,
+        "minY": 24,
+        "maxX": 49,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-idle-1",
+      "index": 1,
+      "x": 64,
+      "y": 0,
+      "region": {
+        "left": 311,
+        "right": 492,
+        "top": 39,
+        "bottom": 256
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 646,
+      "colors": 10,
+      "bounds": {
+        "minX": 19,
+        "minY": 23,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 2,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-idle-2",
+      "index": 2,
+      "x": 128,
+      "y": 0,
+      "region": {
+        "left": 568,
+        "right": 750,
+        "top": 39,
+        "bottom": 256
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 634,
+      "colors": 11,
+      "bounds": {
+        "minX": 20,
+        "minY": 23,
+        "maxX": 49,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-idle-3",
+      "index": 3,
+      "x": 192,
+      "y": 0,
+      "region": {
+        "left": 818,
+        "right": 1006,
+        "top": 39,
+        "bottom": 256
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 650,
+      "colors": 11,
+      "bounds": {
+        "minX": 18,
+        "minY": 23,
+        "maxX": 49,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 2,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-run-0",
+      "index": 4,
+      "x": 0,
+      "y": 64,
+      "region": {
+        "left": 118,
+        "right": 399,
+        "top": 70,
+        "bottom": 408
+      },
+      "source": "assets/characters/mage/mage-witch-walk-right-source.png",
+      "opaque": 593,
+      "colors": 11,
+      "bounds": {
+        "minX": 20,
+        "minY": 24,
+        "maxX": 49,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 10
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-run-1",
+      "index": 5,
+      "x": 64,
+      "y": 64,
+      "region": {
+        "left": 547,
+        "right": 821,
+        "top": 70,
+        "bottom": 408
+      },
+      "source": "assets/characters/mage/mage-witch-walk-right-source.png",
+      "opaque": 588,
+      "colors": 11,
+      "bounds": {
+        "minX": 21,
+        "minY": 24,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 10
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-run-2",
+      "index": 6,
+      "x": 128,
+      "y": 64,
+      "region": {
+        "left": 981,
+        "right": 1255,
+        "top": 70,
+        "bottom": 408
+      },
+      "source": "assets/characters/mage/mage-witch-walk-right-source.png",
+      "opaque": 586,
+      "colors": 11,
+      "bounds": {
+        "minX": 21,
+        "minY": 23,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-run-3",
+      "index": 7,
+      "x": 192,
+      "y": 64,
+      "region": {
+        "left": 1427,
+        "right": 1705,
+        "top": 70,
+        "bottom": 408
+      },
+      "source": "assets/characters/mage/mage-witch-walk-right-source.png",
+      "opaque": 597,
+      "colors": 11,
+      "bounds": {
+        "minX": 20,
+        "minY": 24,
+        "maxX": 49,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 10
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-run-4",
+      "index": 8,
+      "x": 0,
+      "y": 128,
+      "region": {
+        "left": 109,
+        "right": 399,
+        "top": 491,
+        "bottom": 828
+      },
+      "source": "assets/characters/mage/mage-witch-walk-right-source.png",
+      "opaque": 607,
+      "colors": 11,
+      "bounds": {
+        "minX": 20,
+        "minY": 25,
+        "maxX": 49,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 10
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-run-5",
+      "index": 9,
+      "x": 64,
+      "y": 128,
+      "region": {
+        "left": 547,
+        "right": 832,
+        "top": 491,
+        "bottom": 828
+      },
+      "source": "assets/characters/mage/mage-witch-walk-right-source.png",
+      "opaque": 601,
+      "colors": 11,
+      "bounds": {
+        "minX": 20,
+        "minY": 25,
+        "maxX": 49,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 10
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-run-6",
+      "index": 10,
+      "x": 128,
+      "y": 128,
+      "region": {
+        "left": 978,
+        "right": 1260,
+        "top": 491,
+        "bottom": 828
+      },
+      "source": "assets/characters/mage/mage-witch-walk-right-source.png",
+      "opaque": 591,
+      "colors": 11,
+      "bounds": {
+        "minX": 20,
+        "minY": 23,
+        "maxX": 49,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-run-7",
+      "index": 11,
+      "x": 192,
+      "y": 128,
+      "region": {
+        "left": 1424,
+        "right": 1710,
+        "top": 491,
+        "bottom": 828
+      },
+      "source": "assets/characters/mage/mage-witch-walk-right-source.png",
+      "opaque": 605,
+      "colors": 11,
+      "bounds": {
+        "minX": 20,
+        "minY": 25,
+        "maxX": 49,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 10
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-chant-0",
+      "index": 12,
+      "x": 0,
+      "y": 192,
+      "region": {
+        "left": 48,
+        "right": 220,
+        "top": 810,
+        "bottom": 1035
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 602,
+      "colors": 11,
+      "bounds": {
+        "minX": 21,
+        "minY": 22,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 8
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-chant-1",
+      "index": 13,
+      "x": 64,
+      "y": 192,
+      "region": {
+        "left": 292,
+        "right": 495,
+        "top": 810,
+        "bottom": 1035
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 677,
+      "colors": 11,
+      "bounds": {
+        "minX": 15,
+        "minY": 22,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 0,
+        "y": 8
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-chant-2",
+      "index": 14,
+      "x": 128,
+      "y": 192,
+      "region": {
+        "left": 541,
+        "right": 741,
+        "top": 810,
+        "bottom": 1035
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 704,
+      "colors": 11,
+      "bounds": {
+        "minX": 17,
+        "minY": 21,
+        "maxX": 50,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 2,
+        "y": 8
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-chant-3",
+      "index": 15,
+      "x": 192,
+      "y": 192,
+      "region": {
+        "left": 800,
+        "right": 990,
+        "top": 810,
+        "bottom": 1035
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 713,
+      "colors": 11,
+      "bounds": {
+        "minX": 17,
+        "minY": 23,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-release-0",
+      "index": 16,
+      "x": 0,
+      "y": 256,
+      "region": {
+        "left": 32,
+        "right": 276,
+        "top": 1072,
+        "bottom": 1288
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 655,
+      "colors": 11,
+      "bounds": {
+        "minX": 18,
+        "minY": 26,
+        "maxX": 57,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 6,
+        "y": 11
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-release-1",
+      "index": 17,
+      "x": 64,
+      "y": 256,
+      "region": {
+        "left": 291,
+        "right": 519,
+        "top": 1072,
+        "bottom": 1288
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 647,
+      "colors": 11,
+      "bounds": {
+        "minX": 18,
+        "minY": 25,
+        "maxX": 55,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 5,
+        "y": 11
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-release-2",
+      "index": 18,
+      "x": 128,
+      "y": 256,
+      "region": {
+        "left": 546,
+        "right": 764,
+        "top": 1072,
+        "bottom": 1288
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 695,
+      "colors": 11,
+      "bounds": {
+        "minX": 15,
+        "minY": 23,
+        "maxX": 50,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-release-3",
+      "index": 19,
+      "x": 192,
+      "y": 256,
+      "region": {
+        "left": 815,
+        "right": 1005,
+        "top": 1072,
+        "bottom": 1288
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 623,
+      "colors": 11,
+      "bounds": {
+        "minX": 20,
+        "minY": 24,
+        "maxX": 51,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 4,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-dash-0",
+      "index": 20,
+      "x": 0,
+      "y": 320,
+      "region": {
+        "left": 31,
+        "right": 266,
+        "top": 1317,
+        "bottom": 1509
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 677,
+      "colors": 10,
+      "bounds": {
+        "minX": 17,
+        "minY": 30,
+        "maxX": 56,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 5,
+        "y": 12
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-dash-1",
+      "index": 21,
+      "x": 64,
+      "y": 320,
+      "region": {
+        "left": 281,
+        "right": 515,
+        "top": 1317,
+        "bottom": 1509
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 647,
+      "colors": 10,
+      "bounds": {
+        "minX": 15,
+        "minY": 30,
+        "maxX": 54,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 12
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-dash-2",
+      "index": 22,
+      "x": 128,
+      "y": 320,
+      "region": {
+        "left": 541,
+        "right": 761,
+        "top": 1317,
+        "bottom": 1509
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 596,
+      "colors": 10,
+      "bounds": {
+        "minX": 18,
+        "minY": 30,
+        "maxX": 53,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 4,
+        "y": 12
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "right-dash-3",
+      "index": 23,
+      "x": 192,
+      "y": 320,
+      "region": {
+        "left": 802,
+        "right": 1005,
+        "top": 1317,
+        "bottom": 1509
+      },
+      "source": "assets/characters/mage/mage-witch-right-source.png",
+      "opaque": 619,
+      "colors": 11,
+      "bounds": {
+        "minX": 18,
+        "minY": 27,
+        "maxX": 51,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 3,
+        "y": 11
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-idle-0",
+      "index": 24,
+      "x": 0,
+      "y": 384,
+      "region": {
+        "left": 48,
+        "right": 234,
+        "top": 31,
+        "bottom": 242
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 582,
+      "colors": 11,
+      "bounds": {
+        "minX": 16,
+        "minY": 23,
+        "maxX": 46,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 0,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-idle-1",
+      "index": 25,
+      "x": 64,
+      "y": 384,
+      "region": {
+        "left": 300,
+        "right": 478,
+        "top": 31,
+        "bottom": 242
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 582,
+      "colors": 11,
+      "bounds": {
+        "minX": 17,
+        "minY": 23,
+        "maxX": 46,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 0,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-idle-2",
+      "index": 26,
+      "x": 128,
+      "y": 384,
+      "region": {
+        "left": 559,
+        "right": 722,
+        "top": 31,
+        "bottom": 242
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 569,
+      "colors": 11,
+      "bounds": {
+        "minX": 18,
+        "minY": 23,
+        "maxX": 44,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 0,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-idle-3",
+      "index": 27,
+      "x": 192,
+      "y": 384,
+      "region": {
+        "left": 796,
+        "right": 980,
+        "top": 31,
+        "bottom": 242
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 592,
+      "colors": 12,
+      "bounds": {
+        "minX": 17,
+        "minY": 23,
+        "maxX": 46,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 0,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-run-0",
+      "index": 28,
+      "x": 0,
+      "y": 448,
+      "region": {
+        "left": 61,
+        "right": 349,
+        "top": 109,
+        "bottom": 470
+      },
+      "source": "assets/characters/mage/mage-witch-walk-left-source.png",
+      "opaque": 794,
+      "colors": 10,
+      "bounds": {
+        "minX": 13,
+        "minY": 22,
+        "maxX": 52,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-run-1",
+      "index": 29,
+      "x": 64,
+      "y": 448,
+      "region": {
+        "left": 433,
+        "right": 724,
+        "top": 109,
+        "bottom": 470
+      },
+      "source": "assets/characters/mage/mage-witch-walk-left-source.png",
+      "opaque": 783,
+      "colors": 10,
+      "bounds": {
+        "minX": 13,
+        "minY": 22,
+        "maxX": 52,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-run-2",
+      "index": 30,
+      "x": 128,
+      "y": 448,
+      "region": {
+        "left": 806,
+        "right": 1093,
+        "top": 109,
+        "bottom": 470
+      },
+      "source": "assets/characters/mage/mage-witch-walk-left-source.png",
+      "opaque": 765,
+      "colors": 10,
+      "bounds": {
+        "minX": 13,
+        "minY": 22,
+        "maxX": 52,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 8
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-run-3",
+      "index": 31,
+      "x": 192,
+      "y": 448,
+      "region": {
+        "left": 1177,
+        "right": 1467,
+        "top": 109,
+        "bottom": 470
+      },
+      "source": "assets/characters/mage/mage-witch-walk-left-source.png",
+      "opaque": 780,
+      "colors": 11,
+      "bounds": {
+        "minX": 13,
+        "minY": 23,
+        "maxX": 52,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-run-4",
+      "index": 32,
+      "x": 0,
+      "y": 512,
+      "region": {
+        "left": 61,
+        "right": 349,
+        "top": 572,
+        "bottom": 930
+      },
+      "source": "assets/characters/mage/mage-witch-walk-left-source.png",
+      "opaque": 782,
+      "colors": 10,
+      "bounds": {
+        "minX": 13,
+        "minY": 23,
+        "maxX": 52,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-run-5",
+      "index": 33,
+      "x": 64,
+      "y": 512,
+      "region": {
+        "left": 433,
+        "right": 722,
+        "top": 572,
+        "bottom": 930
+      },
+      "source": "assets/characters/mage/mage-witch-walk-left-source.png",
+      "opaque": 769,
+      "colors": 11,
+      "bounds": {
+        "minX": 13,
+        "minY": 24,
+        "maxX": 52,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 10
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-run-6",
+      "index": 34,
+      "x": 128,
+      "y": 512,
+      "region": {
+        "left": 806,
+        "right": 1095,
+        "top": 572,
+        "bottom": 930
+      },
+      "source": "assets/characters/mage/mage-witch-walk-left-source.png",
+      "opaque": 756,
+      "colors": 10,
+      "bounds": {
+        "minX": 13,
+        "minY": 23,
+        "maxX": 52,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-run-7",
+      "index": 35,
+      "x": 192,
+      "y": 512,
+      "region": {
+        "left": 1176,
+        "right": 1461,
+        "top": 572,
+        "bottom": 930
+      },
+      "source": "assets/characters/mage/mage-witch-walk-left-source.png",
+      "opaque": 773,
+      "colors": 10,
+      "bounds": {
+        "minX": 14,
+        "minY": 23,
+        "maxX": 51,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-chant-0",
+      "index": 36,
+      "x": 0,
+      "y": 576,
+      "region": {
+        "left": 41,
+        "right": 238,
+        "top": 770,
+        "bottom": 993
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 601,
+      "colors": 11,
+      "bounds": {
+        "minX": 15,
+        "minY": 24,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 0,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-chant-1",
+      "index": 37,
+      "x": 64,
+      "y": 576,
+      "region": {
+        "left": 300,
+        "right": 506,
+        "top": 770,
+        "bottom": 993
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 627,
+      "colors": 11,
+      "bounds": {
+        "minX": 14,
+        "minY": 24,
+        "maxX": 47,
+        "maxY": 58
+      },
+      "shift": {
+        "x": -1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-chant-2",
+      "index": 38,
+      "x": 128,
+      "y": 576,
+      "region": {
+        "left": 555,
+        "right": 768,
+        "top": 770,
+        "bottom": 993
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 607,
+      "colors": 11,
+      "bounds": {
+        "minX": 14,
+        "minY": 24,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": -1,
+        "y": 8
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-chant-3",
+      "index": 39,
+      "x": 192,
+      "y": 576,
+      "region": {
+        "left": 802,
+        "right": 1004,
+        "top": 770,
+        "bottom": 993
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 641,
+      "colors": 11,
+      "bounds": {
+        "minX": 16,
+        "minY": 23,
+        "maxX": 49,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-release-0",
+      "index": 40,
+      "x": 0,
+      "y": 640,
+      "region": {
+        "left": 17,
+        "right": 284,
+        "top": 1036,
+        "bottom": 1248
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 674,
+      "colors": 11,
+      "bounds": {
+        "minX": 5,
+        "minY": 25,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": -5,
+        "y": 10
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-release-1",
+      "index": 41,
+      "x": 64,
+      "y": 640,
+      "region": {
+        "left": 304,
+        "right": 517,
+        "top": 1036,
+        "bottom": 1248
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 622,
+      "colors": 11,
+      "bounds": {
+        "minX": 13,
+        "minY": 23,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": -1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-release-2",
+      "index": 42,
+      "x": 128,
+      "y": 640,
+      "region": {
+        "left": 543,
+        "right": 769,
+        "top": 1036,
+        "bottom": 1248
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 607,
+      "colors": 11,
+      "bounds": {
+        "minX": 11,
+        "minY": 24,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": -2,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-release-3",
+      "index": 43,
+      "x": 192,
+      "y": 640,
+      "region": {
+        "left": 801,
+        "right": 1000,
+        "top": 1036,
+        "bottom": 1248
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 603,
+      "colors": 11,
+      "bounds": {
+        "minX": 14,
+        "minY": 23,
+        "maxX": 47,
+        "maxY": 58
+      },
+      "shift": {
+        "x": -1,
+        "y": 9
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-dash-0",
+      "index": 44,
+      "x": 0,
+      "y": 704,
+      "region": {
+        "left": 17,
+        "right": 276,
+        "top": 1287,
+        "bottom": 1501
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 633,
+      "colors": 11,
+      "bounds": {
+        "minX": 4,
+        "minY": 28,
+        "maxX": 47,
+        "maxY": 58
+      },
+      "shift": {
+        "x": -6,
+        "y": 13
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-dash-1",
+      "index": 45,
+      "x": 64,
+      "y": 704,
+      "region": {
+        "left": 299,
+        "right": 523,
+        "top": 1287,
+        "bottom": 1501
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 588,
+      "colors": 11,
+      "bounds": {
+        "minX": 7,
+        "minY": 27,
+        "maxX": 44,
+        "maxY": 58
+      },
+      "shift": {
+        "x": -6,
+        "y": 11
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-dash-2",
+      "index": 46,
+      "x": 128,
+      "y": 704,
+      "region": {
+        "left": 551,
+        "right": 767,
+        "top": 1287,
+        "bottom": 1501
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 655,
+      "colors": 11,
+      "bounds": {
+        "minX": 13,
+        "minY": 24,
+        "maxX": 48,
+        "maxY": 58
+      },
+      "shift": {
+        "x": -1,
+        "y": 10
+      },
+      "bootBaseline": 59
+    },
+    {
+      "name": "left-dash-3",
+      "index": 47,
+      "x": 192,
+      "y": 704,
+      "region": {
+        "left": 785,
+        "right": 1010,
+        "top": 1287,
+        "bottom": 1501
+      },
+      "source": "assets/characters/mage/mage-witch-left-source.png",
+      "opaque": 621,
+      "colors": 11,
+      "bounds": {
+        "minX": 13,
+        "minY": 24,
+        "maxX": 50,
+        "maxY": 58
+      },
+      "shift": {
+        "x": 0,
+        "y": 9
+      },
+      "bootBaseline": 59
+    }
+  ],
+  "palette": [
+    {
+      "key": "ink0",
+      "hex": "#1a0a2a"
+    },
+    {
+      "key": "ink1",
+      "hex": "#22223a"
+    },
+    {
+      "key": "white",
+      "hex": "#ffffff"
+    },
+    {
+      "key": "bone",
+      "hex": "#e8e8f0"
+    },
+    {
+      "key": "sand",
+      "hex": "#ffd9a0"
+    },
+    {
+      "key": "steelMid",
+      "hex": "#8b8f9a"
+    },
+    {
+      "key": "pBlueDk",
+      "hex": "#1e3a8a"
+    },
+    {
+      "key": "pBrown",
+      "hex": "#5a3a20"
+    },
+    {
+      "key": "psiPurple",
+      "hex": "#b05cff"
+    },
+    {
+      "key": "psiViolet",
+      "hex": "#8a5cff"
+    },
+    {
+      "key": "gold",
+      "hex": "#ffd24a"
+    },
+    {
+      "key": "iceCyan",
+      "hex": "#57e6ff"
+    },
+    {
+      "key": "iceDeep",
+      "hex": "#1a9fd4"
+    }
+  ],
+  "alphaValues": [
+    0,
+    255
+  ],
+  "sources": [
+    {
+      "path": "assets/characters/mage/mage-witch-seed-source.png",
+      "sha256": "c41a2e09f0ff6a9cd4eb19de0e567d5dc6d73fd342d1397ecd859288cf844be9"
+    },
+    {
+      "path": "assets/characters/mage/mage-witch-right-source.png",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "bdba30cd5ebb049e3339a17afe895890d7c6c1adaa9d56666183b467cf456259"
+    },
+    {
+      "path": "assets/characters/mage/mage-witch-walk-right-source.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "9a24b83bea0c7e10e601f99c65213a9335bad22e94d4c2014b16fc5824efa43d",
+      "walkTileSize": 46.666666666666664,
+      "referenceHeight": 35,
+      "probeHeight": 36,
+      "referenceFace": {
+        "x": 35.92857142857143,
+        "y": 38.92857142857143,
+        "headSpan": 14.92857142857143
+      },
+      "probeFace": {
+        "x": 35.92857142857143,
+        "y": 37.92857142857143,
+        "headSpan": 14.92857142857143
+      }
+    },
+    {
+      "path": "assets/characters/mage/mage-witch-left-source.png",
+      "width": 1024,
+      "height": 1536,
+      "sha256": "b677a2a321e037772510ed7ea8e24e99689829f53516b2227281eae09290f7e9"
+    },
+    {
+      "path": "assets/characters/mage/mage-witch-walk-left-source.png",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "cba29b3edc138e97e04c685bd0eb256b4bc3434362f907a4a82e8a41e61ae868",
+      "walkTileSize": 52.36363636363637,
+      "referenceHeight": 36,
+      "probeHeight": 33,
+      "referenceFace": {
+        "x": 28.375,
+        "y": 39.125,
+        "headSpan": 16.125
+      },
+      "probeFace": {
+        "x": 27.833333333333332,
+        "y": 40.333333333333336,
+        "headSpan": 14.333333333333336
+      }
+    }
+  ],
+  "prompts": [
+    "assets/characters/mage/mage-witch-seed-prompt.txt",
+    "assets/characters/mage/mage-witch-right-prompt.txt",
+    "assets/characters/mage/mage-witch-right-fix-prompt.txt",
+    "assets/characters/mage/mage-witch-left-prompt.txt",
+    "assets/characters/mage/mage-witch-walk-right-prompt.txt",
+    "assets/characters/mage/mage-witch-walk-left-prompt.txt"
+  ],
+  "references": [
+    "assets/characters/katana/katana-c-seed-16x.png",
+    "assets/characters/shooter/shooter-c-seed-8x.png"
+  ],
+  "sourceHistory": [
+    "assets/characters/mage/mage-witch-right-source-v1.png",
+    "assets/characters/mage/mage-witch-before-walk.png"
+  ],
+  "processing": {
+    "script": "scripts/build-mage-character-assets.mjs",
+    "sampling": "transparent-gap segmentation; one shared scale per source-width unit; premultiplied area sampling; Lab palette; binary alpha",
+    "sourceTileSize": 42.666666666666664,
+    "contentScale": 1,
+    "sourceAlphaMinimum": 240,
+    "anchor": "sole plane; walk torso registered to approved face landmark instead of moving support foot",
+    "mirroredFrames": false
+  },
+  "sha256": "42413b4d8e0cca2738a0965bdea51a4dfa816819e3f3368d83755ce068b11e53"
+}

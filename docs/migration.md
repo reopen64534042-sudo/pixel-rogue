@@ -4082,3 +4082,13 @@ dmg = Math.ceil(e.hp - 1);
 - 双元素增伤：反应伤害仍按触发元素走 `hurtEnemy`（抗性/类型由触发元素决定），配对另一元素的 `typeDamageBonus` 由 `DamageMath.typeBonusMultiplier` 额外计入；受击方双抗性拆分不做。受控验证：+50% 火增伤下急淬 41→61（≈1.5×）。
 - 反应 ICD：基础 0.5 秒、反应精通 0.4 秒；每怪每发一次与标记消耗仍是主门控，ICD 只防极高速连发；元素震爆为独立事件，不读/不设 ICD。受控验证：目标 ICD=0.5 时急淬反应 0，清零后恢复 41。
 - 验证：`npm run typecheck` / `npm run build` 通过；未运行 Vitest / Playwright、未改测试基线。自然无固定刷怪 harness 因站桩法师面对远程织网蛛停在 W11，不能作为 A/B 结论；目前数据是环形极限群怪 + 满配受控，仍需自然长局与手机端试玩。
+
+## 魔女帽法师人物交付（v160，2026-11-01）
+
+- 用户明确授权人物接入并提交；技能相关只交付素材 / 文档，留给协作者接入，随后一起推送提 PR。提交前已同步 upstream/main 9a3d860，完整保留 v159 配平、双元素增伤和 ICD；没有混入未合并的 staff-panel 分支。
+- 本提交只接法师本体：48 帧魔女帽 / 银发 / 水晶法杖人物，包含修订后的左右八帧接地行走。其余 32 帧逐像素保持，正式贴图 256×768、12 色、二值 alpha，靴底边界全 59；哈希 42413b4d8e0cca2738a0965bdea51a4dfa816819e3f3368d83755ce068b11e53。
+- 人物只读现有位移和 castPhase / castT，完成施法后显示释放，不增加 Core 事件字段或技能桥接。GameScene 只加载 / 采集 / 绘制人物；draw、PixelPainter 与所有战斗 Core 文件保持上游原样。技能、状态、镜像、分影、棱镜继续使用上游程序化表现。
+- 源图、完整内置 imagegen 提示词、旧步态归档、处理脚本与预览均保留。模型 / seed 未提供；旧技能接线尝试已按用户要求撤出，不计为当前交付能力。同步前完整补丁在 output/mage-before-delivery-split.patch，自动备份 bbb5c1a / b545dfe 仅本会话所有，保持不动。
+- 交付按 typecheck / build / diff 与聚焦人物检查；不新增 / 修改测试，不运行 Vitest / Playwright 测试套件。旧人物 / 版本截图断言可能过期，留待授权批次；自然长局、四 / 八向人物和独立受伤 / 死亡动作未制作。本次授权包含提交、推送与创建 PR，不包含合并。
+
+- 本体最终检查：typecheck / build / diff 通过（126 模块，保留既有大 chunk 提示）；受控观察吟唱 12–15、释放 16–19、行走 4–11，48 帧人物纹理加载。skillTextureLoaded / skillBridgePresent / skillEventFieldPresent 均为 false，技能图集网络请求 0；页面 error / warn 为空，临时页面与 5190 服务关闭。记录 output/mage-delivery-scope-check.json 与人物截图。
