@@ -1,0 +1,15 @@
+Use case: identity-preserve; repair a production WALK cycle. Input 1 is a 1536x768 transparent edit canvas with the existing witch in slot 1. Input 2 is her exact game-scale identity reference. Replace / fill the canvas with EXACTLY 8 poses, FOUR COLUMNS x TWO ROWS, all facing RIGHT. Same wide pointed witch hat, silver hair, visible eye, purple short robe, cyan piping, brown boots and one held crystal staff. Do not redesign her upper body.
+
+This is a GROUNDED BRISK WALK, not running, hopping, skipping, flying or lunging. The previous animation looked wrong because too many frames repeated the same airborne stride. Show an explicit alternating heel-to-toe cycle with AT LEAST ONE BOOT ON THE GROUND IN EVERY FRAME. Both legs must pass beneath the hips twice per loop. Keep torso upright and head, hat base and staff grip nearly stationary; hat tip / cape sway is at most one logical pixel. Staff stays upright / gently diagonal, held close, no thrusting. No big cape streaming, deep forward lean or extra body bounce.
+
+Frame order left-to-right top row, then bottom row:
+1 CONTACT A: near boot forward heel touches down, far boot behind on toe.
+2 DOWN A: near boot planted; far heel lifts, knees soften slightly.
+3 PASSING A: weight-bearing near boot UNDER THE HIPS; far knee and boot swing past closely, not spread wide.
+4 PUSH A: near boot behind on toe; far leg preparing a forward heel contact.
+5 CONTACT B: FAR boot now forward heel down, near boot behind; reverse leg overlap and depth clearly.
+6 DOWN B: far boot planted; near heel lifts.
+7 PASSING B: weight-bearing far boot UNDER THE HIPS; near knee and boot pass closely.
+8 PUSH B: far boot behind on toe, near leg preparing frame 1. Frame 8 loops smoothly to frame 1.
+
+Equal slots 384x384, portrait bodies about 280px high including hat (35 logical pixels at 8x); same shared scale in every slot, hip center x about 192, ground baseline local y about 352. Foot stride compact, about +/-5 logical pixels around hips. Same 3/4 right-facing slightly top-down RPG view, 1px-style hard clusters enlarged 8x, true transparent alpha and broad gutters. No ground line, labels, text, grid, shadows, glow, particles or extra objects. Keep every hat and staff fully inside its slot. Do not make eight copies of the same splayed-leg pose.

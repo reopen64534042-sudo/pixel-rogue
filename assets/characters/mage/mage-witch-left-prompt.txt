@@ -1,0 +1,14 @@
+Use case: identity-preserve; production game sprite animation sheet.
+Create a complete separately drawn LEFT-FACING animation sheet for the exact witch in the supplied normalized seed and reference edit canvas. The input seed faces right; redraw her facing LEFT, including the visible eye/face, grip and forward staff arm. Keep the same bent wide-brim pointed witch hat, silver hair, purple robe, blue-black capelet, cyan piping, gold clasps, brown boots and one cyan-crystal staff. No redesign, extra gear or extra staffs.
+
+Canvas portrait 1024x1536, EXACTLY 4 columns x 6 rows (24 full-body frames), all LEFT facing in the same mild front/side, slightly top-down RPG camera. Each equal slot is 256x256. Shared character size about 204 output pixels high, equivalent to 34 logical pixels enlarged 6x; soles at local y about 236, body center x about 128. Keep every full hat and staff inside its own slot with broad transparent gutters. No labels, grid, floor, scenery, shadows, particles, magic circles or detached effects. Crisp coarse pixel clusters, preserve true alpha.
+
+Rows:
+1 IDLE four subtle breathing poses, staff held upright, face clear.
+2 RUN poses 1-4: strong leftward stride with front foot reach/contact, legs passing, rear knee lifting.
+3 RUN poses 5-8: opposite foot leads, contact, passing, push-off, return; together rows 2-3 are ONE distinct eight-frame cycle with visible brown boot separation, cloak and hat-tip lag.
+4 CHANT four poses: staff close to torso, then deliberate staff lift / forward-hand preparation; no detached VFX.
+5 RELEASE four poses: staff and hand thrust LEFT, recoil, settle, recover, both hands and full staff visible.
+6 DASH four poses: lean LEFT, cloak and hat-tip trail RIGHT, staff tucked, recover; no trails.
+
+Invariants: same witch, same LEFT facing in all 24 frames, same palette and costume, same hat / face / hair proportions, one shared scale, no per-frame resizing. No antialiasing, blur, gradients, checkerboard pixels, watermark or extra characters. Do not repeat the same static figure across the run rows.

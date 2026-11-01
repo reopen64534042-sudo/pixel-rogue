@@ -1,0 +1,587 @@
+{
+  "output": "public/assets/vfx/mage-elemental-48x48.png",
+  "width": 288,
+  "height": 240,
+  "frameSize": 48,
+  "frameCount": 29,
+  "columns": 6,
+  "rows": 5,
+  "anchorPx": {
+    "x": 24,
+    "y": 24
+  },
+  "circleReferenceRadius": 18,
+  "alphaValues": [
+    0,
+    255
+  ],
+  "palette": [
+    {
+      "key": "ink0",
+      "hex": "#1a0a2a"
+    },
+    {
+      "key": "ink1",
+      "hex": "#22223a"
+    },
+    {
+      "key": "white",
+      "hex": "#ffffff"
+    },
+    {
+      "key": "bone",
+      "hex": "#e8e8f0"
+    },
+    {
+      "key": "psiPurple",
+      "hex": "#b05cff"
+    },
+    {
+      "key": "psiViolet",
+      "hex": "#8a5cff"
+    },
+    {
+      "key": "fireYellow",
+      "hex": "#ffe14a"
+    },
+    {
+      "key": "fireOrange",
+      "hex": "#ff8c3a"
+    },
+    {
+      "key": "fireDeep",
+      "hex": "#c2410c"
+    },
+    {
+      "key": "gold",
+      "hex": "#ffd24a"
+    },
+    {
+      "key": "iceCyan",
+      "hex": "#57e6ff"
+    },
+    {
+      "key": "iceDeep",
+      "hex": "#1a9fd4"
+    },
+    {
+      "key": "danger",
+      "hex": "#ff5b5b"
+    }
+  ],
+  "processing": "shared scale and anchor per family; premultiplied area sampling; alpha threshold 0.25; Lab palette; no per-frame recentering",
+  "elementColors": {
+    "fire": {
+      "psiViolet": "fireDeep",
+      "psiPurple": "fireOrange",
+      "iceDeep": "fireDeep",
+      "iceCyan": "fireYellow"
+    },
+    "frost": {
+      "psiViolet": "iceDeep",
+      "psiPurple": "iceCyan",
+      "gold": "bone",
+      "fireOrange": "iceDeep",
+      "fireYellow": "white",
+      "fireDeep": "iceDeep",
+      "danger": "iceDeep"
+    },
+    "lightning": {
+      "iceDeep": "psiViolet",
+      "iceCyan": "psiPurple"
+    }
+  },
+  "sources": [
+    {
+      "path": "assets/vfx/mage/mage-circle-source.png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "ead108f0836226743efe50bd777f6a078707bd9e025087afef24944eaee52a75"
+    },
+    {
+      "path": "assets/vfx/mage/mage-burn-source.png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "a4dd1ec573fb538b3eacfacf7057be84a73d7e17e0f285b87342c1dec2332d30"
+    },
+    {
+      "path": "assets/vfx/mage/mage-frost-source.png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "8ad5e3e814517a5654506a2b93b69ccdc82c6bf47214b86c3e28a994cc2eba6d"
+    },
+    {
+      "path": "assets/vfx/mage/mage-shock-source.png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "7d0e0ad265931ed5f3ea9de5dc53e268924efbf854e2df8d0f24b9b0831023f5"
+    }
+  ],
+  "frames": [
+    {
+      "id": "circle-fire-0",
+      "index": 0,
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "opaque": 291,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 128,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "fire"
+    },
+    {
+      "id": "circle-fire-1",
+      "index": 1,
+      "x": 48,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "opaque": 403,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 384,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "fire"
+    },
+    {
+      "id": "circle-fire-2",
+      "index": 2,
+      "x": 96,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "opaque": 491,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 640,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "fire"
+    },
+    {
+      "id": "circle-fire-3",
+      "index": 3,
+      "x": 144,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "opaque": 203,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 896,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "fire"
+    },
+    {
+      "id": "circle-frost-0",
+      "index": 4,
+      "x": 192,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "opaque": 291,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 128,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "frost"
+    },
+    {
+      "id": "circle-frost-1",
+      "index": 5,
+      "x": 240,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "opaque": 403,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 384,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "frost"
+    },
+    {
+      "id": "circle-frost-2",
+      "index": 6,
+      "x": 0,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "opaque": 491,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 640,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "frost"
+    },
+    {
+      "id": "circle-frost-3",
+      "index": 7,
+      "x": 48,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "opaque": 203,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 896,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "frost"
+    },
+    {
+      "id": "circle-lightning-0",
+      "index": 8,
+      "x": 96,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "opaque": 291,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 128,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "lightning"
+    },
+    {
+      "id": "circle-lightning-1",
+      "index": 9,
+      "x": 144,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "opaque": 403,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 384,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "lightning"
+    },
+    {
+      "id": "circle-lightning-2",
+      "index": 10,
+      "x": 192,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "opaque": 491,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 640,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "lightning"
+    },
+    {
+      "id": "circle-lightning-3",
+      "index": 11,
+      "x": 240,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "opaque": 203,
+      "source": "assets/vfx/mage/mage-circle-source.png",
+      "sourceAnchor": {
+        "x": 896,
+        "y": 500
+      },
+      "scale": 0.140625,
+      "element": "lightning"
+    },
+    {
+      "id": "burn-0",
+      "index": 12,
+      "x": 0,
+      "y": 96,
+      "w": 48,
+      "h": 48,
+      "opaque": 90,
+      "source": "assets/vfx/mage/mage-burn-source.png",
+      "sourceAnchor": {
+        "x": 170.66666666666666,
+        "y": 512
+      },
+      "scale": 0.08,
+      "element": null
+    },
+    {
+      "id": "burn-1",
+      "index": 13,
+      "x": 48,
+      "y": 96,
+      "w": 48,
+      "h": 48,
+      "opaque": 167,
+      "source": "assets/vfx/mage/mage-burn-source.png",
+      "sourceAnchor": {
+        "x": 512,
+        "y": 512
+      },
+      "scale": 0.08,
+      "element": null
+    },
+    {
+      "id": "burn-2",
+      "index": 14,
+      "x": 96,
+      "y": 96,
+      "w": 48,
+      "h": 48,
+      "opaque": 261,
+      "source": "assets/vfx/mage/mage-burn-source.png",
+      "sourceAnchor": {
+        "x": 853.3333333333333,
+        "y": 512
+      },
+      "scale": 0.08,
+      "element": null
+    },
+    {
+      "id": "chill-0",
+      "index": 15,
+      "x": 144,
+      "y": 96,
+      "w": 48,
+      "h": 48,
+      "opaque": 66,
+      "source": "assets/vfx/mage/mage-frost-source.png",
+      "sourceAnchor": {
+        "x": 170.66666666666666,
+        "y": 266
+      },
+      "scale": 0.08,
+      "element": null
+    },
+    {
+      "id": "chill-1",
+      "index": 16,
+      "x": 192,
+      "y": 96,
+      "w": 48,
+      "h": 48,
+      "opaque": 140,
+      "source": "assets/vfx/mage/mage-frost-source.png",
+      "sourceAnchor": {
+        "x": 512,
+        "y": 266
+      },
+      "scale": 0.08,
+      "element": null
+    },
+    {
+      "id": "chill-2",
+      "index": 17,
+      "x": 240,
+      "y": 96,
+      "w": 48,
+      "h": 48,
+      "opaque": 238,
+      "source": "assets/vfx/mage/mage-frost-source.png",
+      "sourceAnchor": {
+        "x": 853.3333333333333,
+        "y": 266
+      },
+      "scale": 0.08,
+      "element": null
+    },
+    {
+      "id": "freeze-0",
+      "index": 18,
+      "x": 0,
+      "y": 144,
+      "w": 48,
+      "h": 48,
+      "opaque": 345,
+      "source": "assets/vfx/mage/mage-frost-source.png",
+      "sourceAnchor": {
+        "x": 128,
+        "y": 704
+      },
+      "scale": 0.1,
+      "element": null
+    },
+    {
+      "id": "freeze-1",
+      "index": 19,
+      "x": 48,
+      "y": 144,
+      "w": 48,
+      "h": 48,
+      "opaque": 427,
+      "source": "assets/vfx/mage/mage-frost-source.png",
+      "sourceAnchor": {
+        "x": 384,
+        "y": 704
+      },
+      "scale": 0.1,
+      "element": null
+    },
+    {
+      "id": "freeze-2",
+      "index": 20,
+      "x": 96,
+      "y": 144,
+      "w": 48,
+      "h": 48,
+      "opaque": 438,
+      "source": "assets/vfx/mage/mage-frost-source.png",
+      "sourceAnchor": {
+        "x": 640,
+        "y": 704
+      },
+      "scale": 0.1,
+      "element": null
+    },
+    {
+      "id": "freeze-3",
+      "index": 21,
+      "x": 144,
+      "y": 144,
+      "w": 48,
+      "h": 48,
+      "opaque": 360,
+      "source": "assets/vfx/mage/mage-frost-source.png",
+      "sourceAnchor": {
+        "x": 896,
+        "y": 704
+      },
+      "scale": 0.1,
+      "element": null
+    },
+    {
+      "id": "shock-0",
+      "index": 22,
+      "x": 192,
+      "y": 144,
+      "w": 48,
+      "h": 48,
+      "opaque": 109,
+      "source": "assets/vfx/mage/mage-shock-source.png",
+      "sourceAnchor": {
+        "x": 128,
+        "y": 528
+      },
+      "scale": 0.1,
+      "element": null
+    },
+    {
+      "id": "shock-1",
+      "index": 23,
+      "x": 240,
+      "y": 144,
+      "w": 48,
+      "h": 48,
+      "opaque": 153,
+      "source": "assets/vfx/mage/mage-shock-source.png",
+      "sourceAnchor": {
+        "x": 384,
+        "y": 528
+      },
+      "scale": 0.1,
+      "element": null
+    },
+    {
+      "id": "shock-2",
+      "index": 24,
+      "x": 0,
+      "y": 192,
+      "w": 48,
+      "h": 48,
+      "opaque": 203,
+      "source": "assets/vfx/mage/mage-shock-source.png",
+      "sourceAnchor": {
+        "x": 640,
+        "y": 528
+      },
+      "scale": 0.1,
+      "element": null
+    },
+    {
+      "id": "shock-3",
+      "index": 25,
+      "x": 48,
+      "y": 192,
+      "w": 48,
+      "h": 48,
+      "opaque": 121,
+      "source": "assets/vfx/mage/mage-shock-source.png",
+      "sourceAnchor": {
+        "x": 896,
+        "y": 528
+      },
+      "scale": 0.1,
+      "element": null
+    },
+    {
+      "id": "prism-fire-0",
+      "index": 26,
+      "x": 96,
+      "y": 192,
+      "w": 48,
+      "h": 48,
+      "opaque": 65,
+      "source": "assets/vfx/mage/mage-frost-source.png",
+      "sourceAnchor": {
+        "x": 170.66666666666666,
+        "y": 333
+      },
+      "scale": 0.1,
+      "element": "fire"
+    },
+    {
+      "id": "prism-frost-0",
+      "index": 27,
+      "x": 144,
+      "y": 192,
+      "w": 48,
+      "h": 48,
+      "opaque": 65,
+      "source": "assets/vfx/mage/mage-frost-source.png",
+      "sourceAnchor": {
+        "x": 170.66666666666666,
+        "y": 333
+      },
+      "scale": 0.1,
+      "element": "frost"
+    },
+    {
+      "id": "prism-lightning-0",
+      "index": 28,
+      "x": 192,
+      "y": 192,
+      "w": 48,
+      "h": 48,
+      "opaque": 65,
+      "source": "assets/vfx/mage/mage-frost-source.png",
+      "sourceAnchor": {
+        "x": 170.66666666666666,
+        "y": 333
+      },
+      "scale": 0.1,
+      "element": "lightning"
+    }
+  ],
+  "sha256": "7dedc4979f68c8ff22c2cfc9f95b18b06e63e240aecc4d2c58da7a23f7755adb"
+}
