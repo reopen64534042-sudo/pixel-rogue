@@ -56,6 +56,15 @@ export function mageInterval(core: GameCore): number {
   return MB.castInterval / castRate(core);
 }
 
+/** 护咒壁护盾量：最大生命百分比 + 固定值 + 法杖等级成长。 */
+export function mageWardShieldAmount(core: GameCore): number {
+  return (
+    core.player.maxhp * MB.wardShieldPct +
+    MB.wardShieldFlat +
+    MB.wardShieldPerStaffLevel * core.mageStaffLevel
+  );
+}
+
 /** 法阵半径：属性范围 × 法阵扩幅 +8%。 */
 export function mageCircleRadius(core: GameCore): number {
   const p = core.player;
@@ -570,11 +579,7 @@ function detonate(core: GameCore) {
   if (isCharge) {
     core.mageChargeFlashT = MB.chargeFlash;
     if ((p.upCounts["护咒壁"] || 0) > 0)
-      grantMageShield(
-        core,
-        p.maxhp * MB.wardShieldPct,
-        MB.wardShieldDuration,
-      );
+      grantMageShield(core, mageWardShieldAmount(core), MB.wardShieldDuration);
   }
   core.mageCharge = (core.mageCharge + 1) % MB.chargeFull;
   const phaseComplete =

@@ -8,7 +8,7 @@ import type { Profession, WarriorStyle, MageWeapon } from "../core/types";
  *
  * 以下字段按职业分叉，其余字段三职业共用：
  * - 射手：50 HP / 70 移速 / 13 攻击 / 130 索敌 / 2.2 发每秒；
- * - 法师：40 HP（v76 用户裁定） / 62 移速 / 11 攻击 / 150px 施法距离 / 1 / castCycle；
+ * - 法师：20 HP / 68 移速（domain 62） / 11 攻击 / 150px 施法距离 / 1 / castCycle；
  * - 战士：10 护甲 / 1% 吸血；太刀 25 HP、15×2.5/s、移速 68；大剑 28 HP、20×1.5/s、移速 60。
  *   法师的施法前摇与间隔都按「当前施法速度 ÷ 基础施法速度」同比缩放，
  *   因此属性「施法速度」对法师是从施法周期生效的。
@@ -29,7 +29,13 @@ export function statBase(
     ...(mage && mageWeapon === "domain" ? { domainValue: 100 } : {}),
     // v138：射手/法师 20 HP；战士按流派 太刀 25 / 大剑 28。
     maxhp: warrior ? wstyle.maxhp : 20,
-    speed: warrior ? wstyle.speed : mage ? 62 : 70,
+    speed: warrior
+      ? wstyle.speed
+      : mage
+        ? mageWeapon === "arcane"
+          ? 68
+          : 62
+        : 70,
     projSpeed: 260,
     // S1：攻击射程从 AttackSystem 的硬编码 130 提为属性（base 130，数值不变）
     attackRange: warrior
@@ -84,11 +90,11 @@ export function statBase(
     dashLv: 1,
     dashT: -1,
     // 冲刺冷却：#180 起战士单独配置（近战贴身的接近手段，CD 更短）。
-    // v178 起元素使（arcane）2.1 秒，射手沿用 2.4 秒；domain 不改。
+    // v184 起元素使（arcane）1.8 秒，射手/domain 沿用 2.4 秒。
     dashMax: warrior
       ? wstyle.dashMax
       : mage && mageWeapon === "arcane"
-        ? 2.1
+        ? 1.8
         : 2.4,
     dashCharges: 1,
     dashRe: 0,

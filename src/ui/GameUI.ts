@@ -67,7 +67,7 @@ import {
   mageReactionIcd,
   mageDirectDamageMul,
 } from "../game/core/MageProgressionSystem";
-import { mageCircleRadius } from "../game/core/MageSystem";
+import { mageCircleRadius, mageWardShieldAmount } from "../game/core/MageSystem";
 import { statBase } from "../game/data/stats";
 import {
   WARRIOR_BALANCE,
@@ -1429,7 +1429,12 @@ export class GameUI {
           ],
           ["⏱ ICD", `${mageReactionIcd(this.core).toFixed(1)} 秒`],
           ...((this.core.player.upCounts["护咒壁"] || 0) > 0
-            ? ([["⚡ 护咒壁", `${this.core.mageCharge}/${MAGE_BALANCE.chargeFull}`]] as [string, string][])
+            ? ([
+                [
+                  "⚡ 护咒壁",
+                  `护盾 ${Math.round(mageWardShieldAmount(this.core))} · ${this.core.mageCharge}/${MAGE_BALANCE.chargeFull}`,
+                ],
+              ] as [string, string][])
             : []),
           ...((this.core.player.upCounts[MAGE_BUILD.pierce.name] || 0) > 0
             ? ([
