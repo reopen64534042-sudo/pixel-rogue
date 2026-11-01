@@ -9,21 +9,21 @@ import { WORLD, clamp } from "../data/constants";
 import {
   hasMageUpgrade,
   mageCastSpeedMul,
-  mageCircleWidthMul,
+  mageCircleRangeMul,
   mageCurrentElement,
   mageDirectDamageMul,
+  mageGrandmasterElementMul,
   gainStaffXp,
   magePrismTier,
 } from "./MageProgressionSystem";
 import {
   applyElementalBodyHit,
-  applyElementalBurst,
   mageReactionAvailableForHit,
 } from "./ElementSystem";
 import type { GameCore } from "./GameCore";
 import { PLAYER_ATTACK_PROFILES as PA, withDamageType } from "../data/attackProfiles";
 import type { Enemy, MageCastPhase } from "./types";
-import { mageElementDamageBase, mageDirectHitDamage, magePrismDamage, mageRefractedBase } from "./DamageMath";
+import { mageElementDamageBase, mageDirectHitDamage, mageRefractedBase } from "./DamageMath";
 
 /**
  * 元素法师施法系统。
@@ -65,15 +65,15 @@ export function mageWardShieldAmount(core: GameCore): number {
   );
 }
 
-/** 法阵半径：属性范围 × 法阵扩幅 +8%。 */
+/** 法阵半径：属性范围 × 咏唱调律范围。 */
 export function mageCircleRadius(core: GameCore): number {
   const p = core.player;
-  return MB.circleRadius * p.area * mageCircleWidthMul(core);
+  return MB.circleRadius * p.area * mageCircleRangeMul(core);
 }
 
 /** 元素伤害基准（不含元素自身倍率）；原站定 1.5× 已折入基准。 */
 function mageElementBase(core: GameCore): number {
-  return mageElementDamageBase(core.player.damage);
+  return mageElementDamageBase(core.player.damage) * mageGrandmasterElementMul(core);
 }
 
 /**
@@ -113,8 +113,6 @@ function resolveCastPoint(
 /** 法阵爆裂：范围内全体直伤，再逐个结算反应/状态。 */
 interface CircleResult {
   hits: number;
-  /** 本体是否至少触发了一条配对反应（用于分影齐射）。 */
-  reacted: boolean;
 }
 
 function explodeCircle(
@@ -127,7 +125,7 @@ function explodeCircle(
   directMul = 1,
 ): CircleResult {
   const el = mageCurrentElement(core);
-  if (!el) return { hits: 0, reacted: false };
+  if (!el) return { hits: 0 };
   // 直伤另乘 directDamageMul：状态 DoT / 闪电链 / 反应仍用完整元素基准。
   const dmg = mageDirectHitDamage(base, mageDirectDamageMul(core), el, directMul);
   core.mageVisualEvents.push({
@@ -139,7 +137,6 @@ function explodeCircle(
     radius: R,
   });
   let hits = 0;
-  let reacted = false;
   for (const e of core.enemies) {
     if (e.dead) continue;
     const dx = e.x - x;
@@ -156,14 +153,13 @@ function explodeCircle(
     });
     if (hit) core.mageDmgBy.body += hit.effectiveHpLoss;
     if (e.dead) continue;
-    if (applyElementalBodyHit(core, e, el, base, { reactionBudget }))
-      reacted = true;
+    applyElementalBodyHit(core, e, el, base, { reactionBudget });
   }
   if (hits) {
     core.audio.beep(520, 0.1, "sine", 0.05, 180);
     core.shake = Math.min(core.shake + 1.5, 5);
   }
-  return { hits, reacted };
+  return { hits };
 }
 
 /** 成功施法后的轮盘推进：每 4 次切换，获得新元素时不重置当前阶段。 */
@@ -174,66 +170,6 @@ function advanceWheel(core: GameCore): void {
   if (core.mageElements.length > 1)
     core.mageWheelIndex =
       (core.mageWheelIndex + 1) % core.mageElements.length;
-}
-
-/** 回响法阵：把本次法阵的 37.5% 直伤延迟到 0.3 秒后再结算一次。 */
-function queueEcho(
-  core: GameCore,
-  x: number,
-  y: number,
-  R: number,
-  base: number,
-  directMul = 1,
-): void {
-  const el = mageCurrentElement(core);
-  if (!el) return;
-  core.mageEchoes.push({
-    x,
-    y,
-    t: ELEMENTAL_MAGE.echo.delay,
-    maxT: ELEMENTAL_MAGE.echo.delay,
-    R,
-    damage: mageDirectHitDamage(
-      base,
-      mageDirectDamageMul(core),
-      el,
-      ELEMENTAL_MAGE.echo.damageMul * directMul,
-    ),
-    element: el,
-  });
-}
-
-function updateMageEchoes(core: GameCore, dt: number): void {
-  for (let i = core.mageEchoes.length - 1; i >= 0; i--) {
-    const echo = core.mageEchoes[i];
-    echo.t -= dt;
-    if (echo.t > 0) continue;
-    core.mageEchoes.splice(i, 1);
-    core.mageVisualEvents.push({
-      kind: "echo",
-      at: core.time,
-      element: echo.element,
-      x: echo.x,
-      y: echo.y,
-      radius: echo.R,
-    });
-    for (const e of core.enemies) {
-      if (e.dead) continue;
-      const dx = e.x - echo.x;
-      const dy = e.y - echo.y;
-      if (dx * dx + dy * dy > echo.R * echo.R) continue;
-      // 回响只结算伤害：不施加状态、不触发反应、不给武器经验。
-      const hit = core.hurtEnemy(e, echo.damage, 0, 0, {
-        origin: echo,
-        noCrit: true,
-        noChain: true,
-        src: "cast",
-        ...withDamageType(PA.mageEcho, echo.element),
-      });
-      if (hit) core.mageDmgBy.echo += hit.effectiveHpLoss;
-    }
-    core.audio.beep(420, 0.08, "sine", 0.03, 120);
-  }
 }
 
 /** 留下一个元素棱镜（第 4 次成功施法时调用）；记录本次施法元素与档位。 */
@@ -287,68 +223,12 @@ function prismTargets(
 }
 
 /**
- * 棱镜·终极：碎裂时追加 120% 范围冲击 + 元素震爆。
- *
- * 元素震爆按「记录元素 → 当前元素」配对，对范围内每只敌人结算一次反应伤害，
- * 不消耗标记、不施加控制、不递归。
- */
-function shatterPrism(
-  core: GameCore,
-  prism: { x: number; y: number; element: MageElement },
-  current: MageElement,
-  base: number,
-): void {
-  const R = ELEMENTAL_MAGE.prism.ultimateShatterRadius;
-  const dmg = magePrismDamage(base, current);
-  core.mageVisualEvents.push({
-    kind: "burst",
-    at: core.time,
-    element: current,
-    x: prism.x,
-    y: prism.y,
-    radius: R,
-  });
-  for (const e of core.enemies) {
-    if (e.dead) continue;
-    const dx = e.x - prism.x;
-    const dy = e.y - prism.y;
-    if (dx * dx + dy * dy > R * R) continue;
-    const hit = core.hurtEnemy(e, dmg, 0, 0, {
-      origin: prism,
-      noCrit: true,
-      noChain: true,
-      noLifesteal: true,
-      src: "cast",
-      ...withDamageType(PA.magePrism, current),
-    });
-    if (hit) core.mageDmgBy.shatter += hit.effectiveHpLoss;
-    if (e.dead) continue;
-    // 记录元素作为“标记”、当前元素作为“触发”：A 套装火棱镜 + 当前冰 → 急淬；
-    // B 套装火棱镜 + 当前雷 → 超载。顺序与套装定义一致。
-    applyElementalBurst(core, e, prism.element, current, base);
-  }
-  for (let i = 0; i < 16; i++) {
-    const a = (i / 16) * Math.PI * 2;
-    core.parts.push({
-      x: prism.x,
-      y: prism.y,
-      vx: Math.cos(a) * 120,
-      vy: Math.sin(a) * 120,
-      life: 0.4,
-      c: MAGE_ELEMENTS[current].color,
-    });
-  }
-  core.shake = Math.min(core.shake + 4, 8);
-  core.audio.beep(180, 0.2, "sawtooth", 0.07, -80);
-}
-
-/**
  * 本体法阵施放时触发棱镜折射。
  *
  * - 普通折射使用**当前法阵元素与当前基准**，与本体共享每怪每发反应预算；
  *   不触发闪电链、不吸血、不给武器经验。
  * - A 套装在棱镜周围分裂到两个目标点；B 套装集中在主落点。
- * - 史诗棱镜可折射 2 发后碎裂；稀有 1 发。
+ * - 基础/史诗棱镜均为 2 发；预算 60%/80%，耗尽后消失。
  *
  * @returns 折射命中的敌人数（算作本体本次施法的一部分）。
  */
@@ -425,11 +305,7 @@ function refractPrism(
     core.audio.beep(760, 0.1, "triangle", 0.05, 240);
   }
   prism.charges--;
-  if (prism.charges <= 0) {
-    if (hasMageUpgrade(core, "prismUltimate"))
-      shatterPrism(core, prism, element, base);
-    core.magePrism = null;
-  }
+  if (prism.charges <= 0) core.magePrism = null;
   return hits;
 }
 
@@ -463,11 +339,12 @@ function splitShadowTargets(core: GameCore): { x: number; y: number }[] {
 }
 
 /**
- * 分影齐射：本体触发反应后，左右残影各释放一次 55% 法阵。
+ * 分影 / 双影协奏：按元素第 4 下（进阶为第 2、第 4 下）召唤残影。
  *
  * - 使用轮盘中除当前元素外的另外两种元素；
- * - 只施加 60% 持续时间的元素状态，不触发配对反应/闪电链、不给武器经验/吸血；
- * - A 套装打不同目标点，B 套装集火主落点；6 秒冷却。
+ * - 不结算直伤，只施加元素附着/触发反应；
+ * - 残影拥有独立反应预算并忽略本体 ICD；每怪每拍最多一次，不递归；
+ * - 基础：80% 法阵、60% 反应伤害；进阶：100% 法阵、80% 反应伤害。
  */
 function triggerSplitShadows(
   core: GameCore,
@@ -475,50 +352,49 @@ function triggerSplitShadows(
   base: number,
   R: number,
 ): void {
-  if (!hasMageUpgrade(core, "splitShadow") || core.mageShadowCd > 0) return;
+  const plus = hasMageUpgrade(core, "splitShadowPlus");
+  const basic = hasMageUpgrade(core, "splitShadow");
+  if (!basic && !plus) return;
+  const phase = core.mageCastsInPhase;
+  const shouldTrigger = plus ? phase === 1 || phase === 3 : phase === 3;
+  if (!shouldTrigger) return;
   const others = core.mageElements.filter((el) => el !== current);
   if (!others.length) return;
-  core.mageShadowCd = ELEMENTAL_MAGE.shadow.cooldown;
-  const points = splitShadowTargets(core);
   const p = ELEMENTAL_MAGE.shadow;
+  const radius = R * (plus ? p.radiusMulPlus : p.radiusMulBasic);
+  const reactionScale = plus ? p.reactionScalePlus : p.reactionScaleBasic;
+  const points = splitShadowTargets(core);
   for (let i = 0; i < 2; i++) {
     const element = others[i % others.length];
     const point = points[i];
-    core.mageShadows.push({
-      side: i === 0 ? -1 : 1,
-      t: p.lifetime,
-      maxT: p.lifetime,
-      element,
-    });
+    if (!plus) {
+      core.mageShadows.push({
+        side: i === 0 ? -1 : 1,
+        t: p.lifetime,
+        maxT: p.lifetime,
+        element,
+      });
+    }
     core.mageVisualEvents.push({
       kind: "shadow",
       at: core.time,
       element,
       x: point.x,
       y: point.y,
-      radius: R,
+      radius,
     });
-    const dmg = mageDirectHitDamage(base, mageDirectDamageMul(core), element, p.damageMul);
+    const budget = new Set<Enemy>();
     for (const e of core.enemies) {
       if (e.dead) continue;
       const dx = e.x - point.x;
       const dy = e.y - point.y;
-      if (dx * dx + dy * dy > R * R) continue;
-      const hit = core.hurtEnemy(e, dmg, 0, 0, {
-        origin: point,
-        noCrit: true,
-        noChain: true,
-        noLifesteal: true,
-        src: "cast",
-        ...withDamageType(PA.mageShadow, element),
-      });
-      if (hit) core.mageDmgBy.shadow += hit.effectiveHpLoss;
-      if (e.dead) continue;
+      if (dx * dx + dy * dy > radius * radius) continue;
       applyElementalBodyHit(core, e, element, base, {
+        reactionBudget: budget,
         allowChain: false,
-        allowReaction: false,
         noLifesteal: true,
-        statusDurationMul: p.statusDurationMul,
+        ignoreReactionIcd: true,
+        reactionDamageScale: reactionScale,
       });
     }
     for (let k = 0; k < 8; k++) {
@@ -538,7 +414,7 @@ function triggerSplitShadows(
 }
 
 /**
- * 一次施法结算：法阵爆裂 → 回响/棱镜 → 轮盘/法杖经验/充能。
+ * 一次施法结算：法阵爆裂 → 棱镜/分影 → 轮盘/法杖经验/充能。
  *
  * 充能条只服务保留旧卡「护咒壁」；元素系统本身不依赖充能。
  */
@@ -563,11 +439,9 @@ function detonate(core: GameCore) {
     reactionBudget,
     directMul,
   );
-  if (hasMageUpgrade(core, "echoCircle"))
-    queueEcho(core, core.castX, core.castY, R, base, directMul);
   const prismHits = refractPrism(core, el, base, R, reactionBudget);
-  // 分影在棱镜折射之后触发：残影状态不会反过来喂给同一次施法的棱镜反应。
-  if (body.reacted) triggerSplitShadows(core, el, base, R);
+  // 分影按元素第 4 下（进阶第 2/4 下）触发，不再要求本体先触发反应。
+  triggerSplitShadows(core, el, base, R);
   const hits = body.hits + prismHits;
   if (core.tutorialMode && core.tutorialProf === "mage" && hits >= 2)
     core.tutorialProfDone = true;
@@ -702,13 +576,11 @@ export function updateMageCasting(this: GameCore, dt: number) {
     beam.t -= dt;
     if (beam.t <= 0) this.magePrismBeams.splice(i, 1);
   }
-  if (this.mageShadowCd > 0) this.mageShadowCd -= dt;
   for (let i = this.mageShadows.length - 1; i >= 0; i--) {
     const shadow = this.mageShadows[i];
     shadow.t -= dt;
     if (shadow.t <= 0) this.mageShadows.splice(i, 1);
   }
-  updateMageEchoes(this, dt);
   for (let i = this.mageDecoys.length - 1; i >= 0; i--) {
     const d = this.mageDecoys[i];
     d.t -= dt;
@@ -719,7 +591,7 @@ export function updateMageCasting(this: GameCore, dt: number) {
     this.castPhase = "idle";
     return;
   }
-  // 还没有元素（开局选择面板期间）时不施法。元素待选（Lv3/6）时
+  // 还没有元素（开局选择面板期间）时不施法。元素待选（Lv4/7）时
   // 仍可用现有元素继续作战，选择留到休整面板。
   if (!this.mageElements.length) {
     this.castPhase = "idle";

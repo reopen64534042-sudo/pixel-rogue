@@ -4,11 +4,13 @@ import {
   ELEMENTAL_MAGE,
   MAGE_BUILD,
   MAGE_REACTIONS,
+  MAGE_SPECIALIZATIONS,
+  MAGE_SPEC_VALUES,
   reactionForPair,
 } from "../data/elementalMage";
 import type { MageElement, MageReactionId } from "../data/elementalMage";
 import type { DamageTypeId } from "../data/damageTypes";
-import { typeBonusMultiplier, mageElementDamageBase, mageReactionRawDamage, mageReactionEchoDamage,
+import { typeBonusMultiplier, mageElementDamageBase, mageReactionRawDamage,
   mageChainDamage, mageBurnDamage } from "./DamageMath";
 import {
   fireLayers,
@@ -22,6 +24,7 @@ import {
 import {
   hasMageCard,
   hasMageUpgrade,
+  mageGrandmasterElementMul,
   mageStatusDurationBonus,
   mageReactionDamageMul,
   mageReactionIcd,
@@ -126,7 +129,7 @@ export function mageReactionAvailableForHit(
   }
 }
 
-/** 反应伤害：单独记入 reaction 分项，吃脆化/精通/终章；不吃暴击/连锁。 */
+/** 反应伤害：单独记入 reaction 分项，吃脆化/卡牌增伤；不吃暴击/连锁。 */
 function reactionDamage(
   core: GameCore,
   e: Enemy,
@@ -134,8 +137,6 @@ function reactionDamage(
   element: MageElement,
   mul: number,
   noLifesteal = false,
-  finaleEcho = true,
-  controlled = false,
   secondary: MageElement,
   consumedLayers = 1,
 ): number {
@@ -149,10 +150,16 @@ function reactionDamage(
     cardMul *= 1 + MAGE_BUILD.charge.reactionBonus;
   // 双元素增伤：触发元素由 hurtEnemy 结算；配对的另一元素在此补上
   // typeDamageBonus。抗性方向仍按触发元素（见 docs §19）。
-  const amount = mageReactionRawDamage(base, mul, reactionDamageMultiplier(e), mageReactionDamageMul(core),
-    secondary !== element ? typeBonusMultiplier(core.player.typeDamageBonus, secondary) : undefined,
-    hasMageUpgrade(core, "reactionFinale") && core.mageSuit === "B" && controlled,
-    cardMul);
+  const amount = mageReactionRawDamage(
+    base,
+    mul,
+    reactionDamageMultiplier(e),
+    mageReactionDamageMul(core),
+    secondary !== element
+      ? typeBonusMultiplier(core.player.typeDamageBonus, secondary)
+      : undefined,
+    cardMul,
+  );
   if (amount <= 0) return 0;
   const reactionId = reactionForPair(secondary, element) ?? undefined;
   const hit = core.hurtEnemy(e, amount, 0, 0, {
@@ -165,42 +172,6 @@ function reactionDamage(
   });
   if (hit && reactionId)
     core.mageDmgBy.reaction[reactionId] += hit.effectiveHpLoss;
-  // A 套装反应终章：向附近 1 个敌人传播一次低伤害回响。
-  // 只由主反应触发；blaze 小爆炸等次级伤害传 false，避免连锁放大。
-  if (
-    finaleEcho &&
-    hasMageUpgrade(core, "reactionFinale") &&
-    core.mageSuit === "A"
-  ) {
-    let target: Enemy | null = null;
-    let best: number = ELEMENTAL_MAGE.finale.echoRadius;
-    for (const o of core.enemies) {
-      if (o === e || o.dead) continue;
-      const d = Math.hypot(o.x - e.x, o.y - e.y);
-      if (d <= best) {
-        best = d;
-        target = o;
-      }
-    }
-    if (target) {
-      const echoHit = core.hurtEnemy(
-        target,
-        mageReactionEchoDamage(amount),
-        0,
-        0,
-        {
-          noCrit: true,
-          noChain: true,
-          noLifesteal: true,
-          src: "reaction",
-          origin: e,
-          ...withDamageType(PA.mageReactionEcho, element),
-        },
-      );
-      if (echoHit && reactionId)
-        core.mageDmgBy.reaction[reactionId] += echoHit.effectiveHpLoss;
-    }
-  }
   return amount;
 }
 
@@ -356,15 +327,17 @@ function clearFrost(e: Enemy, keepStacks = false): void {
   if (!keepStacks && e.elemFrost) delete e.elemFrost;
 }
 
-/** 退出霜牢并清空凝冰（融化/自然结束）；霜牢碎裂卡在此补脆化。 */
+/** 退出霜牢并清空凝冰（融化/自然结束）；霜牢碎裂专精在此传播凝冰。 */
 function clearFrostLock(core: GameCore, e: Enemy, shatter = true): void {
   if (e.elemFrostLockT !== undefined) delete e.elemFrostLockT;
   if (e.elemFrostLockTotal !== undefined) delete e.elemFrostLockTotal;
   if (e.elemFrostLockExtendAt !== undefined) delete e.elemFrostLockExtendAt;
-  if (!shatter || !hasMageCard(core, MAGE_BUILD.frostShatter.name)) return;
+  if (!shatter || !hasMageUpgrade(core, MAGE_SPECIALIZATIONS.frostbind.id))
+    return;
+  const cfg = MAGE_SPEC_VALUES.frostbind;
   const applyShatterFrost = (o: Enemy) => {
     if (o.dead) return;
-    applyFrost(core, o, MAGE_BUILD.frostShatter.frostStacks);
+    applyFrost(core, o, cfg.stacks);
   };
   if (!e.dead) applyShatterFrost(e);
   const near = core.enemies
@@ -372,14 +345,14 @@ function clearFrostLock(core: GameCore, e: Enemy, shatter = true): void {
       (o) =>
         o !== e &&
         !o.dead &&
-        Math.hypot(o.x - e.x, o.y - e.y) <= MAGE_BUILD.frostShatter.radius,
+        Math.hypot(o.x - e.x, o.y - e.y) <= cfg.radius,
     )
     .sort(
       (a, b) =>
         Math.hypot(a.x - e.x, a.y - e.y) -
         Math.hypot(b.x - e.x, b.y - e.y),
     )
-    .slice(0, MAGE_BUILD.frostShatter.targets);
+    .slice(0, cfg.targets);
   for (const o of near) applyShatterFrost(o);
 }
 
@@ -469,10 +442,13 @@ function resolveReaction(
   switch (id) {
     case "quench": {
       if (snap.burn <= 0) return result;
+      const spec = hasMageUpgrade(core, MAGE_SPECIALIZATIONS.quench.id);
+      const cfg = MAGE_SPEC_VALUES.quench;
       const layers = snap.burn;
       if (e.elemFire) delete e.elemFire;
       if (e.elemFireTickT !== undefined) delete e.elemFireTickT;
-      e.elemBrittleT = ELEMENTAL_MAGE.brittle.duration;
+      e.elemBrittleT =
+        ELEMENTAL_MAGE.brittle.duration + (spec ? cfg.brittleBonus : 0);
       reactionDamage(
         core,
         e,
@@ -480,21 +456,41 @@ function resolveReaction(
         element,
         ELEMENTAL_MAGE.reaction.quenchPerBurn * layers,
         noLifesteal,
-        true,
-        false,
         partner,
         layers,
       );
       spawnReactionFx(core, e, id);
-      if (!e.dead)
+      if (!e.dead) {
         applyFrost(core, e, ELEMENTAL_MAGE.reaction.carryOverStacks);
+        if (spec) {
+          const near = core.enemies
+            .filter(
+              (o) =>
+                o !== e &&
+                !o.dead &&
+                Math.hypot(o.x - e.x, o.y - e.y) <= cfg.spreadRadius,
+            )
+            .sort(
+              (a, b) =>
+                Math.hypot(a.x - e.x, a.y - e.y) -
+                Math.hypot(b.x - e.x, b.y - e.y),
+            )
+            .slice(0, cfg.spreadTargets);
+          for (const o of near) applyFrost(core, o, cfg.spreadStacks);
+        }
+      }
       result.triggered = true;
       result.skipStatus = true;
       return result;
     }
     case "melt": {
       if (!snapshotHasFrostAttachment(snap)) return result;
+      const spec = hasMageUpgrade(core, MAGE_SPECIALIZATIONS.melt.id);
+      const cfg = MAGE_SPEC_VALUES.melt;
       const layers = Math.max(1, snap.frost);
+      const wasControlled = snap.frozen || snap.frostLock;
+      const controlledMul =
+        spec && wasControlled ? 1 + cfg.controlledBonus : 1;
       clearFrost(e);
       clearFrostLock(core, e, snap.frostLock);
       reactionDamage(
@@ -502,21 +498,39 @@ function resolveReaction(
         e,
         base,
         element,
-        ELEMENTAL_MAGE.reaction.meltPerFrost * layers,
+        ELEMENTAL_MAGE.reaction.meltPerFrost * layers * controlledMul,
         noLifesteal,
-        true,
-        snap.frozen || snap.frostLock,
         partner,
         layers,
       );
       spawnReactionFx(core, e, id);
-      if (!e.dead) applyBurn(core, e, ELEMENTAL_MAGE.reaction.carryOverStacks);
+      if (!e.dead) {
+        applyBurn(core, e, ELEMENTAL_MAGE.reaction.carryOverStacks);
+        if (spec) applyBurn(core, e, cfg.extraBurn);
+        if (spec && wasControlled) {
+          if (snap.frozen) {
+            e.elemFrozenT = Math.max(e.elemFrozenT ?? 0, cfg.controlExtend);
+          } else {
+            e.elemFrostLockT = Math.max(
+              e.elemFrostLockT ?? 0,
+              cfg.controlExtend,
+            );
+            e.elemFrostLockTotal = Math.max(
+              e.elemFrostLockTotal ?? 0,
+              cfg.controlExtend,
+            );
+            e.elemFrostLockExtendAt = -1e9;
+          }
+        }
+      }
       result.triggered = true;
       result.skipStatus = true;
       return result;
     }
     case "overload": {
       if (snap.burn <= 0) return result;
+      const spec = hasMageUpgrade(core, MAGE_SPECIALIZATIONS.overload.id);
+      const cfg = MAGE_SPEC_VALUES.overload;
       const layers = snap.burn;
       if (e.elemFire) delete e.elemFire;
       if (e.elemFireTickT !== undefined) delete e.elemFireTickT;
@@ -527,11 +541,26 @@ function resolveReaction(
         element,
         ELEMENTAL_MAGE.reaction.overloadPerBurn * layers,
         noLifesteal,
-        true,
-        snap.frozen || snap.frostLock,
         partner,
         layers,
       );
+      // 超载本身会由后续普通施加获得雷印/麻痹；专精额外补击杀传播。
+      if (spec && e.dead) {
+        const near = core.enemies
+          .filter(
+            (o) =>
+              o !== e &&
+              !o.dead &&
+              Math.hypot(o.x - e.x, o.y - e.y) <= cfg.deathSpreadRadius,
+          )
+          .sort(
+            (a, b) =>
+              Math.hypot(a.x - e.x, a.y - e.y) -
+              Math.hypot(b.x - e.x, b.y - e.y),
+          )
+          .slice(0, cfg.deathSpreadTargets);
+        for (const o of near) applyBurn(core, o, cfg.deathSpreadBurn);
+      }
       spawnReactionFx(core, e, id);
       result.triggered = true;
       return result;
@@ -546,18 +575,17 @@ function resolveReaction(
         element,
         ELEMENTAL_MAGE.reaction.blazeMain,
         noLifesteal,
-        true,
-        snap.frozen || snap.frostLock,
         partner,
       );
       if (!e.dead) applyBurn(core, e, ELEMENTAL_MAGE.reaction.carryOverStacks);
-      const spread = hasMageCard(core, MAGE_BUILD.blazeSpread.name);
+      const spec = hasMageUpgrade(core, MAGE_SPECIALIZATIONS.blaze.id);
+      const cfg = MAGE_SPEC_VALUES.blaze;
       const splashRadius =
         ELEMENTAL_MAGE.reaction.blazeSplashRadius *
-        (spread ? MAGE_BUILD.blazeSpread.radiusMul : 1);
+        (spec ? cfg.radiusMul : 1);
       const splashCount =
         ELEMENTAL_MAGE.reaction.blazeSplashCount +
-        (spread ? MAGE_BUILD.blazeSpread.extraTargets : 0);
+        (spec ? cfg.extraTargets : 0);
       const splash = core.enemies
         .filter(
           (o) =>
@@ -591,12 +619,10 @@ function resolveReaction(
           element,
           ELEMENTAL_MAGE.reaction.blazeSplash,
           noLifesteal,
-          false,
-          false,
           partner,
         );
-        if (spread && !o.dead)
-          applyBurn(core, o, MAGE_BUILD.blazeSpread.burnStacks);
+        if (spec && !o.dead)
+          applyBurn(core, o, cfg.burnStacks);
       }
       spawnReactionFx(core, e, id);
       result.triggered = true;
@@ -614,8 +640,6 @@ function resolveReaction(
         element,
         ELEMENTAL_MAGE.reaction.superconductPerFrost * layers,
         noLifesteal,
-        true,
-        snap.frozen || snap.frostLock,
         partner,
         layers,
       );
@@ -635,8 +659,6 @@ function resolveReaction(
         element,
         ELEMENTAL_MAGE.reaction.frostbindPerShock,
         noLifesteal,
-        true,
-        snap.frozen || snap.frostLock,
         partner,
       );
       if (!e.dead) {
@@ -662,12 +684,16 @@ export interface ElementalHitOptions {
   reactionBudget?: Set<Enemy>;
   /** 棱镜折射不触发闪电链；本体默认允许。 */
   allowChain?: boolean;
-  /** 残影只施加状态，不触发配对反应。 */
+  /** 棱镜等派生只施加状态，不触发配对反应。 */
   allowReaction?: boolean;
   /** 棱镜/残影不吸血。 */
   noLifesteal?: boolean;
   /** 残影施加的元素状态持续时间倍率（0.6 = 60%）。 */
   statusDurationMul?: number;
+  /** 残影反应无视本体反应 ICD；仍受每怪每发预算限制。 */
+  ignoreReactionIcd?: boolean;
+  /** 残影反应伤害倍率（0.6/0.8）；只缩放反应，不缩放附着。 */
+  reactionDamageScale?: number;
 }
 
 /**
@@ -675,7 +701,7 @@ export interface ElementalHitOptions {
  *
  * 直伤由调用方先行结算；反应判定使用命中前快照（直伤不改变状态）。
  *
- * @returns 本发是否触发了一条配对反应（供分影齐射判断）。
+ * @returns 本发是否触发了一条配对反应（用于每怪每发预算）。
  */
 export function applyElementalBodyHit(
   core: GameCore,
@@ -687,11 +713,13 @@ export function applyElementalBodyHit(
   if (e.dead) return false;
   const snap = snapshot(e);
   const inBudget = opts.reactionBudget?.has(e) ?? false;
-  const icdBlocked = (e.elemReactionCd ?? 0) > 0;
+  const icdBlocked =
+    !opts.ignoreReactionIcd && (e.elemReactionCd ?? 0) > 0;
   const canReact =
     opts.allowReaction !== false && !inBudget && !icdBlocked;
+  const reactionBase = base * (opts.reactionDamageScale ?? 1);
   const result = canReact
-    ? resolveReaction(core, e, element, base, snap, opts.noLifesteal ?? false)
+    ? resolveReaction(core, e, element, reactionBase, snap, opts.noLifesteal ?? false)
     : {
         triggered: false,
         skipStatus: false,
@@ -717,15 +745,16 @@ export function applyElementalBodyHit(
   ) {
     const chainResonance =
       result.forceChain &&
-      hasMageCard(core, MAGE_BUILD.chainResonance.name);
+      hasMageUpgrade(core, MAGE_SPECIALIZATIONS.superconduct.id);
+    const chainCfg = MAGE_SPEC_VALUES.superconduct;
     triggerChain(
       core,
       e,
       base,
       result.chainJumps +
-        (chainResonance ? MAGE_BUILD.chainResonance.extraJumps : 0),
+        (chainResonance ? chainCfg.extraJumps : 0),
       result.forceChain,
-      chainResonance ? MAGE_BUILD.chainResonance.damageBonus : 0,
+      chainResonance ? chainCfg.damageBonus : 0,
     );
   }
   return result.triggered;
@@ -782,84 +811,6 @@ export function spreadMageAuraOnDeath(core: GameCore, e: Enemy): void {
   }
 }
 
-/**
- * 元素震爆：棱镜·终极碎裂时的独立事件。
- *
- * 按「记录元素 → 当前元素」的配对，对范围内每只敌人**直接结算一次反应**：
- * - 标记类反应按 3 层上限计算（不读取/不消耗目标当前标记）；
- * - 不施加/解除控制、不触发连锁、不递归；
- * - 超导/霜缚没有直伤，震爆只由 120% 范围冲击负责伤害。
- */
-export function applyElementalBurst(
-  core: GameCore,
-  e: Enemy,
-  from: MageElement,
-  to: MageElement,
-  base: number,
-): void {
-  if (e.dead) return;
-  const id = reactionForPair(from, to);
-  if (!id || !core.mageReactionIds.includes(id)) return;
-  if (core.mageSuit && MAGE_REACTIONS[id].suit !== core.mageSuit) return;
-  switch (id) {
-    case "quench":
-      reactionDamage(
-        core,
-        e,
-        base,
-        to,
-        ELEMENTAL_MAGE.reaction.quenchPerBurn * ELEMENTAL_MAGE.burn.stackCap,
-        true,
-        false,
-        false,
-        from,
-      );
-      return;
-    case "melt":
-      reactionDamage(
-        core,
-        e,
-        base,
-        to,
-        ELEMENTAL_MAGE.reaction.meltPerFrost * ELEMENTAL_MAGE.frost.stackCap,
-        true,
-        false,
-        false,
-        from,
-      );
-      return;
-    case "overload":
-      reactionDamage(
-        core,
-        e,
-        base,
-        to,
-        ELEMENTAL_MAGE.reaction.overloadPerBurn * ELEMENTAL_MAGE.burn.stackCap,
-        true,
-        false,
-        false,
-        from,
-      );
-      return;
-    case "blaze":
-      reactionDamage(
-        core,
-        e,
-        base,
-        to,
-        ELEMENTAL_MAGE.reaction.blazeMain,
-        true,
-        false,
-        false,
-        from,
-      );
-      return;
-    default:
-      // 超导/霜缚没有直伤；震爆不施加控制、不消耗标记。
-      return;
-  }
-}
-
 /** 破法：元素抗性穿透（只削正抗性，不放大弱点）。 */
 export function mageSpellPen(core: GameCore): number {
   return hasMageCard(core, MAGE_BUILD.pierce.name)
@@ -888,7 +839,8 @@ export function applyDotDamage(
 /** 推进元素状态（每帧）。 */
 export function updateMageElements(this: GameCore, dt: number): void {
   if (this.prof === "mage" && this.mageWeapon === "domain") return;
-  const burnBase = mageElementDamageBase(this.player.damage);
+  const burnBase =
+    mageElementDamageBase(this.player.damage) * mageGrandmasterElementMul(this);
   for (const e of this.enemies) {
     if (e.dead) continue;
 

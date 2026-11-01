@@ -69,16 +69,12 @@ export function shooterDistanceBonus(ratio: number): { damage: number; crit: num
 export const mageElementDamageBase = (attack: number) => attack * MB.elementBaseMul;
 export const mageDirectHitDamage = (base: number, upgrade: number, element: MageElement, fraction = 1) =>
   base * MB.directDamageMul * upgrade * MAGE_ELEMENTS[element].damageMul * fraction;
-export const magePrismDamage = (base: number, element: MageElement) =>
-  base * ELEMENTAL_MAGE.prism.ultimateShatterMul * MAGE_ELEMENTS[element].damageMul;
 export function mageReactionRawDamage(base: number, multiplier: number, state: number, upgrades: number,
-  pairedBonus: number | undefined, controlledFinale: boolean, cardMul = 1): number {
+  pairedBonus: number | undefined, cardMul = 1): number {
   let amount = base * multiplier * state * upgrades;
   if (pairedBonus !== undefined) amount *= pairedBonus;
-  if (controlledFinale) amount *= 1 + ELEMENTAL_MAGE.finale.controlledBonus;
   return amount * cardMul;
 }
-export const mageReactionEchoDamage = (damage: number) => damage * ELEMENTAL_MAGE.finale.echoMul;
 export const mageChainDamage = (base: number, mul = 1) => base * ELEMENTAL_MAGE.chain.damageMul * mul;
 export const mageBurnDamage = (base: number, layers: number) => layers * ELEMENTAL_MAGE.burn.damagePerLayer * base;
 

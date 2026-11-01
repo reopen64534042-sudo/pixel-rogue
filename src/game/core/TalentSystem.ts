@@ -201,7 +201,7 @@ export function learnTalent(this: GameCore, u: Talent) {
 export function openLevelPanel(this: GameCore) {
   if (this.bpMode) return;
   this.bpMode = "level";
-  // 法杖 Lv1/3/6：强制元素选择优先于普通三选一。
+  // 法杖 Lv1/4/7：强制元素选择优先于普通三选一。
   if (this.mageElementPickPending) {
     const slots = mageElementPickSlots(this);
     if (slots.length) {
@@ -314,7 +314,7 @@ export function chooseSlot(this: GameCore, index: number) {
     return true;
   }
 
-  // ---- 法杖 Lv1/3/6：元素选择（不消耗天赋次数）----
+  // ---- 法杖 Lv1/4/7：元素选择（不消耗天赋次数）----
   if (this.mageElementPickPending) {
     if (this.bpMode !== "level" || !chooseMageElement(this, slot.u.n))
       return false;

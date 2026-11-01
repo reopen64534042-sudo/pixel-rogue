@@ -65,7 +65,7 @@ export interface MageBalance {
   // —— 节律（第四拍）——
   /** 第四拍：每阶段第 4 次施法前摇倍率（0.6 = −40%）。 */
   fourthBeatWindupMul: number;
-  /** 第四拍：第 4 次施法本体/回响直伤倍率（1.2 = +20%）。 */
+  /** 第四拍：第 4 次施法本体直伤倍率（1.2 = +20%）。 */
   fourthBeatDirectMul: number;
 
   // —— 机动（踏影 / 基础冲刺）——

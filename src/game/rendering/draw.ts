@@ -311,7 +311,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     this.prof === "mage" && this.mageWeapon === "arcane" &&
     (this.castPhase === "windup" || this.castPhase === "cast")
   ) {
-    // 预览圈与实际半径一致（法阵扩幅在 mageCircleRadius 内结算）。
+    // 预览圈与实际半径一致（咏唱调律在 mageCircleRadius 内结算）。
     const R = Math.round(mageCircleRadius(this));
     const total = Math.max(0.001, mageWindup(this));
     const castPart = total * (1 - MB.castWindupInterruptible / MB.castWindup);
@@ -432,23 +432,6 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.arc(Math.round(s.x), Math.round(s.y), r, 0, Math.PI * 2);
       ctx.stroke();
     }
-  }
-  ctx.globalAlpha = 1;
-
-  // 法师：回响法阵的延迟第二击（地面淡环，出伤前提示）
-  for (const echo of this.mageEchoes) {
-    const k = Math.max(0, Math.min(1, 1 - echo.t / echo.maxT));
-    ctx.globalAlpha = 0.16 + k * 0.28;
-    ctx.strokeStyle = MAGE_ELEMENTS[echo.element].color;
-    ctx.beginPath();
-    ctx.arc(
-      Math.round(echo.x),
-      Math.round(echo.y),
-      Math.max(1, Math.round(echo.R * (0.55 + 0.45 * k))),
-      0,
-      Math.PI * 2,
-    );
-    ctx.stroke();
   }
   ctx.globalAlpha = 1;
 
@@ -601,7 +584,43 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   }
   mageVfx?.drawImpacts(ctx);
 
-  // 法师：分影齐射的左右残影（半透明本体 + 元素色环，不参与碰撞）
+  // 法师：双影协奏的左右常驻残影（半透明本体 + 副元素色环）
+  if (
+    this.prof === "mage" &&
+    this.mageWeapon === "arcane" &&
+    this.state === "play" &&
+    this.mageUpgrades.includes("splitShadowPlus") &&
+    this.mageElements.length
+  ) {
+    const current =
+      this.mageElements[this.mageWheelIndex % this.mageElements.length];
+    const others = this.mageElements.filter((el) => el !== current);
+    for (let i = 0; i < 2; i++) {
+      const element = others[i % Math.max(1, others.length)];
+      if (!element) continue;
+      const sx = Math.round(
+        this.player.x + (i === 0 ? -1 : 1) * ELEMENTAL_MAGE.shadow.offset,
+      );
+      const sy = Math.round(this.player.y);
+      ctx.globalAlpha = 0.22;
+      if (!character?.(sx, sy)) {
+        const r = spriteRect("player", sx, sy);
+        if (r) ctx.sprite(r.tex, r.x, r.y, r.w, r.h);
+        else {
+          ctx.fillStyle = MAGE_ELEMENTS[element].color;
+          ctx.fillRect(sx - 4, sy - 6, 8, 10);
+        }
+      }
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = MAGE_ELEMENTS[element].color;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // 法师：分影的左右残影（半透明本体 + 元素色环，不参与碰撞）
   for (const shadow of this.mageShadows) {
     const sx = Math.round(
       this.player.x + shadow.side * ELEMENTAL_MAGE.shadow.offset,

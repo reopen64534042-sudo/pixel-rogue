@@ -2,10 +2,8 @@ import {
   ELEMENTAL_MAGE,
   MAGE_ELEMENTS,
   MAGE_ELEMENT_CHOICES,
-  MAGE_NORMAL_UPGRADES,
-  MAGE_RARE_UPGRADES,
+  MAGE_SPECIALIZATIONS,
   MAGE_REACTIONS,
-  MAGE_ULTIMATE_UPGRADES,
   STAFF_LEVELS,
   STAFF_XP_PER_CAST,
   elementOfChoice,
@@ -15,10 +13,8 @@ import {
 } from "../data/elementalMage";
 import type {
   MageElement,
-  MageEpicUpgradeId,
   MageReactionId,
   MageSuit,
-  MageUltimateUpgradeId,
   MageUpgradeId,
 } from "../data/elementalMage";
 import type { GameCore } from "./GameCore";
@@ -58,18 +54,28 @@ export function hasMageCard(core: GameCore, name: string): boolean {
   return (core.player.upCounts[name] ?? 0) > 0;
 }
 
-/** 元素凝聚：元素状态持续时间加成（秒）。 */
-export function mageStatusDurationBonus(core: GameCore): number {
-  return hasMageUpgrade(core, "elementFocus")
-    ? ELEMENTAL_MAGE.normal.elementFocusBonus
-    : 0;
+/** 元素凝聚已移出法杖成长；保留函数供既有状态调用，P1 不再提供额外持续。 */
+export function mageStatusDurationBonus(_core: GameCore): number {
+  return 0;
 }
 
-/** 咏唱调律：法阵直伤倍率（本体/回响/分影/棱镜折射的直伤）。 */
-export function mageDirectDamageMul(core: GameCore): number {
+/** 咏唱调律：法阵范围倍率。 */
+export function mageCircleRangeMul(core: GameCore): number {
   return hasMageUpgrade(core, "tempo")
-    ? 1 + ELEMENTAL_MAGE.tempo.directDamage
+    ? 1 + ELEMENTAL_MAGE.tempo.circleRange
     : 1;
+}
+
+/** Lv12 占位：全元素伤害 +5%，P2 由大法师替换。 */
+export function mageGrandmasterElementMul(core: GameCore): number {
+  return hasMageUpgrade(core, "grandmasterPlaceholder")
+    ? 1 + ELEMENTAL_MAGE.grandmasterPlaceholder.elementDamageBonus
+    : 1;
+}
+
+/** 咏唱调律：法阵直伤倍率（P1 调律只给施法速度与范围）。 */
+export function mageDirectDamageMul(_core: GameCore): number {
+  return 1;
 }
 
 /** 咏唱调律：施法速度倍率。 */
@@ -79,40 +85,21 @@ export function mageCastSpeedMul(core: GameCore): number {
     : 1;
 }
 
-/** 棱镜档位：0 无 / 1 稀有 / 2 史诗 / 3 史诗 + 终极碎裂。 */
-export function magePrismTier(core: GameCore): 0 | 1 | 2 | 3 {
-  if (hasMageUpgrade(core, "prismUltimate")) return 3;
+/** 棱镜档位：0 无 / 1 基础 / 2 史诗。 */
+export function magePrismTier(core: GameCore): 0 | 1 | 2 {
   if (hasMageUpgrade(core, "prismEpic")) return 2;
   if (hasMageUpgrade(core, "prismRare")) return 1;
   return 0;
 }
 
-/** 反应精通 + 反应终章：反应伤害倍率。 */
-export function mageReactionDamageMul(core: GameCore): number {
-  let mul = 1;
-  if (hasMageUpgrade(core, "reactionMastery"))
-    mul += ELEMENTAL_MAGE.mastery.reactionDamage;
-  if (hasMageUpgrade(core, "reactionFinale"))
-    mul += ELEMENTAL_MAGE.finale.reactionDamage;
-  return mul;
+/** 反应伤害倍率（P1 无通用反应倍率卡）。 */
+export function mageReactionDamageMul(_core: GameCore): number {
+  return 1;
 }
 
-/** 每只敌人两次普通反应之间的间隔；反应精通 −0.1 秒。 */
-export function mageReactionIcd(core: GameCore): number {
-  return Math.max(
-    0,
-    ELEMENTAL_MAGE.reaction.icdBase -
-      (hasMageUpgrade(core, "reactionMastery")
-        ? ELEMENTAL_MAGE.mastery.icdReduction
-        : 0),
-  );
-}
-
-/** 法阵扩幅：法阵半径倍率。 */
-export function mageCircleWidthMul(core: GameCore): number {
-  return hasMageUpgrade(core, "circleWidth")
-    ? ELEMENTAL_MAGE.normal.circleWidthMul
-    : 1;
+/** 每只敌人两次普通反应之间的基础间隔。 */
+export function mageReactionIcd(_core: GameCore): number {
+  return ELEMENTAL_MAGE.reaction.icdBase;
 }
 
 /** 元素选择面板的候选卡：只列尚未持有的元素，并附上套装/反应预览。 */
@@ -161,7 +148,7 @@ function mageElementPreview(core: GameCore, el: MageElement): string {
     .map((r) => reactionLabel(r))
     .join(" / ");
   const suit = core.mageSuit ?? suitOfPair(a, b) ?? "A";
-  return `${suit} 套装；轮盘 ${name(a)} → ${name(b)} → ${name(el)} → ${name(a)}；新增反应候选 ${candidates}（随机领悟一条，Lv9 补齐另一条）`;
+  return `${suit} 套装；轮盘 ${name(a)} → ${name(b)} → ${name(el)} → ${name(a)}；补齐反应 ${candidates}`;
 }
 
 /**
@@ -169,7 +156,7 @@ function mageElementPreview(core: GameCore, el: MageElement): string {
  *
  * - 第一元素：建立轮盘起点；
  * - 第二元素：确定 A/B 套装并领悟 A+B 反应；
- * - 第三元素：随机领悟 B+C 或 C+A 中一条。
+ * - 第三元素：补齐该套装剩余两条反应。
  */
 export function chooseMageElement(
   core: GameCore,
@@ -224,8 +211,9 @@ export function chooseMageElement(
       false,
       true,
     );
+    ensureSpecializationCount(core, core.mageStaffLevel);
   } else {
-    // 第三元素：随机领悟 B+C / C+A 中的一条；另一条留给后续史诗池。
+    // 第三元素：补齐该套装剩余两条反应；Lv8/9 专精随后按等级补齐。
     const a = core.mageElements[0];
     const b = core.mageElements[1];
     const c = core.mageElements[2];
@@ -233,11 +221,7 @@ export function chooseMageElement(
       (id): id is MageReactionId =>
         !!id && !core.mageReactionIds.includes(id),
     );
-    const extra =
-      candidates.length > 0
-        ? candidates[Math.floor(Math.random() * candidates.length)]
-        : null;
-    if (extra) {
+    for (const extra of candidates) {
       core.mageReactionIds.push(extra);
       core.mageReactionUnlockLevels.push(core.mageStaffLevel);
       core.addText(
@@ -247,6 +231,7 @@ export function chooseMageElement(
         MAGE_REACTIONS[extra].color,
       );
     }
+    ensureSpecializationCount(core, core.mageStaffLevel);
   }
   return true;
 }
@@ -291,190 +276,115 @@ function requestElementPick(core: GameCore, kind: "second" | "third"): void {
     core.mageElementPickQueue.push(kind);
 }
 
-/** 到达新法杖等级时发放对应池。 */
+/** 到达新法杖等级时发放对应奖励。 */
 function applyStaffLevelGrant(core: GameCore, level: number): void {
   const p = core.player;
-  if (level === 2) {
-    const pool = MAGE_NORMAL_UPGRADES.filter(
-      (u) => !core.mageUpgrades.includes(u.id),
+  const add = (id: MageUpgradeId, color = "#ffd24a") => {
+    if (core.mageUpgrades.includes(id)) return;
+    core.mageUpgrades.push(id);
+    core.addText(
+      p.x,
+      p.y - 30,
+      `法杖 Lv.${level} · 领悟：${mageUpgradeName(id)}`,
+      color,
     );
-    if (pool.length) {
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      core.mageUpgrades.push(pick.id);
-      core.addText(
-        p.x,
-        p.y - 30,
-        `法杖 Lv.2 · 领悟：${pick.name}`,
-        "#ffd24a",
-      );
-      return;
-    }
-  }
-  if (level === 3) {
-    requestElementPick(core, "second");
-    core.addText(p.x, p.y - 30, "法杖 Lv.3 · 第二元素待领悟", "#57e6ff");
+  };
+  if (level === 2) {
+    add("tempo");
     return;
   }
-  if (level === 4 || level === 5) {
-    grantRareUpgrade(core, level);
+  if (level === 3) {
+    add("prismRare", "#57e6ff");
+    return;
+  }
+  if (level === 4) {
+    requestElementPick(core, "second");
+    core.addText(p.x, p.y - 30, "法杖 Lv.4 · 第二元素待领悟", "#57e6ff");
+    return;
+  }
+  if (level === 5) {
+    ensureSpecializationCount(core, level);
     return;
   }
   if (level === 6) {
+    add("prismEpic", "#c07bff");
+    return;
+  }
+  if (level === 7) {
     requestElementPick(core, "third");
-    core.addText(p.x, p.y - 30, "法杖 Lv.6 · 第三元素待领悟", "#57e6ff");
+    core.addText(p.x, p.y - 30, "法杖 Lv.7 · 第三元素待领悟", "#57e6ff");
     return;
   }
-  if (level === 7 || level === 8) {
-    grantEpicRandom(core, level);
+  if (level === 8 || level === 9) {
+    ensureSpecializationCount(core, level);
     return;
   }
-  if (level === 9) {
-    grantEpicRemaining(core, level);
+  if (level === 10) {
+    add("splitShadow");
     return;
   }
-  if (level === 10 || level === 11) {
-    grantUltimateRandom(core, level);
+  if (level === 11) {
+    add("splitShadowPlus");
     return;
   }
   if (level === 12) {
-    grantUltimateRemaining(core, level);
+    add("grandmasterPlaceholder");
     return;
   }
   core.addText(p.x, p.y - 30, `法杖 Lv.${level}`, "#9aa3c7", false, false, true);
 }
 
-function grantRareUpgrade(core: GameCore, level: number): void {
-  const p = core.player;
-  if (magePrismTier(core) === 0) {
-    core.mageUpgrades.push("prismRare");
+/** Lv5/8/9 目标专精数量；元素未选时先发能发的，选元素后再补齐。 */
+function specializationTarget(level: number): number {
+  if (level >= 9) return 3;
+  if (level >= 8) return 2;
+  if (level >= 5) return 1;
+  return 0;
+}
+
+function specIdForReaction(reaction: MageReactionId): MageUpgradeId {
+  return MAGE_SPECIALIZATIONS[reaction].id;
+}
+
+function ensureSpecializationCount(core: GameCore, level: number): void {
+  const target = specializationTarget(level);
+  const owned = core.mageReactionIds.filter((r) =>
+    core.mageUpgrades.includes(specIdForReaction(r)),
+  ).length;
+  let need = Math.max(0, target - owned);
+  const candidates = core.mageReactionIds.filter(
+    (r) => !core.mageUpgrades.includes(specIdForReaction(r)),
+  );
+  const grant = (reaction: MageReactionId) => {
+    const id = specIdForReaction(reaction);
+    if (core.mageUpgrades.includes(id)) return;
+    core.mageUpgrades.push(id);
     core.addText(
-      p.x,
-      p.y - 30,
-      `法杖 Lv.${level} · 领悟：${mageUpgradeName("prismRare")}`,
-      "#57e6ff",
-    );
-    return;
-  }
-  const pool = MAGE_RARE_UPGRADES.filter(
-    (u) => u.id !== "prismRare" && !core.mageUpgrades.includes(u.id),
-  );
-  if (!pool.length) {
-    core.addText(p.x, p.y - 30, `法杖 Lv.${level} · 稀有池已满`, "#9aa3c7", false, false, true);
-    return;
-  }
-  const pick = pool[Math.floor(Math.random() * pool.length)];
-  core.mageUpgrades.push(pick.id);
-  core.addText(
-    p.x,
-    p.y - 30,
-    `法杖 Lv.${level} · 领悟：${pick.name}`,
-    "#4dff88",
-  );
-}
-
-/** Lv6 未随机到的另一条反应；没有缺失时返回 null。 */
-function missingReactionId(core: GameCore): MageReactionId | null {
-  if (core.mageElements.length < 3) return null;
-  const [, b, c] = core.mageElements;
-  const a = core.mageElements[0];
-  const candidates = [reactionForPair(b, c), reactionForPair(c, a)].filter(
-    (id): id is MageReactionId =>
-      !!id && !core.mageReactionIds.includes(id),
-  );
-  return candidates[0] ?? null;
-}
-
-function epicPool(core: GameCore): MageEpicUpgradeId[] {
-  const pool: MageEpicUpgradeId[] = [];
-  if (missingReactionId(core)) pool.push("missingReaction");
-  if (!hasMageUpgrade(core, "prismEpic")) pool.push("prismEpic");
-  if (!hasMageUpgrade(core, "reactionMastery")) pool.push("reactionMastery");
-  return pool;
-}
-
-function grantEpicItem(
-  core: GameCore,
-  id: MageEpicUpgradeId,
-  level: number,
-): void {
-  const p = core.player;
-  if (id === "missingReaction") {
-    const reaction = missingReactionId(core);
-    if (!reaction) return;
-    core.mageReactionIds.push(reaction);
-    core.mageReactionUnlockLevels.push(level);
-    core.mageUpgrades.push("missingReaction");
-    core.addText(
-      p.x,
-      p.y - 30,
-      `法杖 Lv.${level} · 领悟：${reactionLabel(reaction)}`,
+      core.player.x,
+      core.player.y - 30,
+      `法杖 Lv.${level} · 领悟：${mageUpgradeName(id)}`,
       MAGE_REACTIONS[reaction].color,
     );
-    return;
+    need--;
+  };
+  // 第一专精固定给 R1；Lv8/9 的剩余专精随机。
+  if (need > 0 && owned === 0 && candidates.length) {
+    const first = core.mageReactionIds[0];
+    if (candidates.includes(first)) {
+      grant(first);
+      candidates.splice(candidates.indexOf(first), 1);
+    }
   }
-  core.mageUpgrades.push(id);
-  core.addText(
-    p.x,
-    p.y - 30,
-    `法杖 Lv.${level} · 领悟：${mageUpgradeName(id)}`,
-    "#c07bff",
-  );
-}
-
-function grantEpicRandom(core: GameCore, level: number): void {
-  const pool = epicPool(core);
-  if (!pool.length) {
-    core.addText(core.player.x, core.player.y - 30, `法杖 Lv.${level} · 史诗池已满`, "#9aa3c7", false, false, true);
-    return;
+  while (need > 0 && candidates.length) {
+    const idx = Math.floor(Math.random() * candidates.length);
+    grant(candidates.splice(idx, 1)[0]);
   }
-  grantEpicItem(core, pool[Math.floor(Math.random() * pool.length)], level);
-}
-
-/** Lv9：优先补「三环共鸣」，再补齐其余史诗项。 */
-function grantEpicRemaining(core: GameCore, level: number): void {
-  const missing = missingReactionId(core);
-  if (missing) grantEpicItem(core, "missingReaction", level);
-  for (const id of epicPool(core)) grantEpicItem(core, id, level);
-}
-
-function ultimatePool(core: GameCore): MageUltimateUpgradeId[] {
-  return MAGE_ULTIMATE_UPGRADES.filter(
-    (u) => !core.mageUpgrades.includes(u.id),
-  ).map((u) => u.id);
-}
-
-function grantUltimateItem(
-  core: GameCore,
-  id: MageUltimateUpgradeId,
-  level: number,
-): void {
-  core.mageUpgrades.push(id);
-  core.addText(
-    core.player.x,
-    core.player.y - 30,
-    `法杖 Lv.${level} · 领悟：${mageUpgradeName(id)}`,
-    "#ffd24a",
-  );
-}
-
-function grantUltimateRandom(core: GameCore, level: number): void {
-  const pool = ultimatePool(core);
-  if (!pool.length) {
-    core.addText(core.player.x, core.player.y - 30, `法杖 Lv.${level} · 终极池已满`, "#9aa3c7", false, false, true);
-    return;
-  }
-  grantUltimateItem(core, pool[Math.floor(Math.random() * pool.length)], level);
-}
-
-/** Lv12：补齐剩余终极项。 */
-function grantUltimateRemaining(core: GameCore, level: number): void {
-  for (const id of ultimatePool(core)) grantUltimateItem(core, id, level);
 }
 
 /**
  * DEV：直接配置元素法师成长，供受控冒烟使用。
  *
- * 与正常流程的区别：一次给满传入的元素与**全部**三条反应、普通池两项，
+ * 与正常流程的区别：一次给满传入的元素与**全部**三条反应，
  * 便于逐条验证六反应；不写玩家天赋/属性。
  */
 export function devConfigureElementalMage(
@@ -495,7 +405,7 @@ export function devConfigureElementalMage(
   core.mageCastsInPhase = 0;
   core.mageElementPickPending = null;
   core.mageElementPickQueue = [];
-  core.mageUpgrades = MAGE_NORMAL_UPGRADES.map((u) => u.id);
+  core.mageUpgrades = [];
   core.mageReactionIds = [];
   core.mageReactionUnlockLevels = [];
   core.mageElementPickLevels = [];
@@ -518,31 +428,27 @@ export function devSetStaffLevel(this: GameCore, level: number): void {
     Math.min(STAFF_LEVELS.length, Math.floor(level) || 1),
   );
   const elements: MageElement[] =
-    target >= 6
+    target >= 7
       ? ["fire", "frost", "lightning"]
-      : target >= 3
+      : target >= 4
         ? ["fire", "frost"]
         : ["fire"];
   devConfigureElementalMage.call(core, elements, target);
-  // 作弊服要能直接测试“这个等级应有的能力”，所以按等级补齐全部强化；
-  // 正式成长仍按随机/错过池抽取，不经过这里。
-  const upgrades: MageUpgradeId[] =
-    target >= 2 ? MAGE_NORMAL_UPGRADES.map((u) => u.id) : [];
-  if (target >= 4) upgrades.push("prismRare");
-  if (target >= 5) upgrades.push("echoCircle", "tempo");
-  if (target >= 7) upgrades.push("prismEpic");
-  if (target >= 8) upgrades.push("reactionMastery");
-  if (target >= 9) upgrades.push("missingReaction");
-  if (target >= 10) upgrades.push("prismUltimate");
-  if (target >= 11) upgrades.push("splitShadow");
-  if (target >= 12) upgrades.push("reactionFinale");
+  // 作弊服要能直接测试“这个等级应有的能力”，所以按等级补齐强化；
+  // 正式成长仍按等级节点发放，不经过这里。
+  const upgrades: MageUpgradeId[] = [];
+  if (target >= 2) upgrades.push("tempo");
+  if (target >= 3) upgrades.push("prismRare");
+  if (target >= 6) upgrades.push("prismEpic");
+  if (target >= 10) upgrades.push("splitShadow");
+  if (target >= 11) upgrades.push("splitShadowPlus");
+  if (target >= 12) upgrades.push("grandmasterPlaceholder");
   core.mageUpgrades = upgrades;
-  // 切等级时清掉旧等级的瞬态表现，避免残留棱镜/回响/护盾。
+  ensureSpecializationCount(core, target);
+  // 切等级时清掉旧等级的瞬态表现，避免残留棱镜/分影/护盾。
   core.magePrism = null;
   core.magePrismBeams = [];
-  core.mageEchoes = [];
   core.mageShadows = [];
-  core.mageShadowCd = 0;
   core.mageCharge = 0;
   core.mageChargeFlashT = 0;
   core.mageShield = 0;

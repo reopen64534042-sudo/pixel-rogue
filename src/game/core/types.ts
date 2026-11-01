@@ -503,7 +503,7 @@ export interface Enemy extends Point {
   elemFrostLockExtendAt?: number;
   /**
    * 元素反应内置冷却：每只敌人两次普通反应之间的剩余秒数。
-   * 基础 0.5 秒，反应精通降为 0.4 秒；元素震爆不受此限制。
+   * 基础 0.5 秒；分影/双影协奏的派生反应无视此冷却。
    */
   elemReactionCd?: number;
   /** 最近一次施加的元素附着：死亡传播据此选择传播元素；只在有实际状态时读取。 */

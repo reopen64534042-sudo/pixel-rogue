@@ -153,7 +153,7 @@ export function enterRest(this: GameCore) {
     this.openAttrPanel();
     return;
   }
-  // 元素法师：法杖 Lv3/6 的元素选择优先于普通三选一；
+  // 元素法师：法杖 Lv1/4/7 的元素选择优先于普通三选一；
   // 带待选元素时不放行下一波。
   if (this.mageElementPickPending) {
     this.bpMode = null;
