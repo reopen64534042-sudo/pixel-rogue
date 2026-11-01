@@ -463,16 +463,20 @@ export class GameCore {
   mageStaffXp = 0;
   /** 当前轮盘索引（指向 mageElements）。 */
   mageWheelIndex = 0;
-  /** 当前元素阶段内已完成成功施法次数（0–2）。 */
+  /** 当前元素阶段内已完成成功施法次数（0–3）。 */
   mageCastsInPhase = 0;
   /** 本局套装：第二元素获得后确定。 */
   mageSuit: MageSuit | null = null;
   /** 已领悟的配对反应（Lv3 一条，Lv6 随机一条）。 */
   mageReactionIds: MageReactionId[] = [];
+  /** 与 mageReactionIds 对齐的解锁法杖等级；DEV 直接配装时为 0。 */
+  mageReactionUnlockLevels: number[] = [];
+  /** 与 mageElements 对齐的元素选择等级；DEV 直接配装时为空。 */
+  mageElementPickLevels: number[] = [];
   /** 普通/稀有/史诗池已获得项。 */
   mageUpgrades: MageUpgradeId[] = [];
   /**
-   * 元素棱镜：第 3 次成功施法留下，下一次（或史诗下两次）本体法阵折射。
+   * 元素棱镜：第 4 次成功施法留下，下一次（或史诗下两次）本体法阵折射。
    * 负责存储位置、剩余时间、记录元素、剩余折射次数与折射预算。
    */
   magePrism: {
@@ -900,6 +904,8 @@ export class GameCore {
     this.mageCastsInPhase = 0;
     this.mageSuit = null;
     this.mageReactionIds = [];
+    this.mageReactionUnlockLevels = [];
+    this.mageElementPickLevels = [];
     this.mageUpgrades = [];
     this.magePrism = null;
     this.magePrismBeams = [];

@@ -555,7 +555,7 @@ export class GameUI {
           ? "战士 · 大剑"
           : "战士 · 太刀"
         : core.prof === "mage"
-          ? (core.mageWeapon==='domain'?'法师 · 坍缩领域':'法师 · 元素法杖')
+          ? (core.mageWeapon==='domain'?'法师 · 坍缩领域':'法师 · 元素使')
           : "射手";
     element("over-meta").textContent =
       `第 ${summary.wave} 波 · ${fmtTime(summary.time)} · 等级 ${summary.level}`;
@@ -1245,7 +1245,7 @@ export class GameUI {
     if (specialTitle) {
       specialTitle.style.display = isShooter || isMage ? "" : "none";
       specialTitle.textContent = isMage
-        ? "元素法杖"
+        ? "元素使"
         : isLaser
           ? "激光武器"
           : isMissile
@@ -1365,7 +1365,6 @@ export class GameUI {
             MAGE_ELEMENTS[el].damageMul
           : 0;
         const base = p.damage * MAGE_BALANCE.elementBaseMul;
-        const suit = this.core.mageSuit ?? "未确定";
         const wheel = this.core.mageElements.length
           ? `${elementOrderLabel(this.core.mageElements)} · ${this.core.mageCastsInPhase}/${MAGE_CASTS_PER_ELEMENT}`
           : "未选元素";
@@ -1385,13 +1384,12 @@ export class GameUI {
         );
         specialEl.innerHTML = renderRows([
           ["🔮 当前元素", elementName],
-          ["🎴 元素套装", suit],
-          ["🔁 元素轮盘", wheel],
+          ["🧭 本局元素反应路径", wheel],
           ["☄️ 法阵直伤", direct.toFixed(1)],
           ["✹ 状态/反应基准", base.toFixed(1)],
           ["🌐 法阵半径", mageCircleRadius(this.core).toFixed(0) + " px"],
           ["☯ 已掌握反应", reactionNames],
-        ], (label) => label === "🔁 元素轮盘" || label === "☯ 已掌握反应");
+        ], (label) => label === "🧭 本局元素反应路径" || label === "☯ 已掌握反应");
         const prismTier = magePrismTier(this.core);
         const prism = this.core.magePrism;
         const prismLabel =
@@ -1407,6 +1405,16 @@ export class GameUI {
             "🔮 棱镜",
             prismTier > 0
               ? `${prismLabel}${prism ? ` · ${MAGE_ELEMENTS[prism.element].name}→${elementName} · ${prism.t.toFixed(1)}s · ${prism.charges} 发` : " · 待生成"}`
+              : "未领悟",
+          ],
+          [
+            "🧩 棱镜特化",
+            prismTier > 0
+              ? this.core.mageSuit === "A"
+                ? "A · 分裂 2 点"
+                : this.core.mageSuit === "B"
+                  ? "B · 集火主点"
+                  : "套装未定"
               : "未领悟",
           ],
           [
@@ -1442,7 +1450,7 @@ export class GameUI {
             ],
             [
               "轮盘",
-              "每 3 次成功施法切换；获得新元素不重置当前阶段；Lv1/3/6 选择元素",
+              "每 4 次成功施法切换；获得新元素不重置当前阶段；Lv1/3/6 选择元素",
             ],
             [
               "成长",
@@ -1468,7 +1476,7 @@ export class GameUI {
               ? ([
                   [
                     "棱镜",
-                    "第 3 次成功施法留下 4 秒；A 分裂到两个目标点（稀有各 25%、史诗各 40%），B 集中主落点（50%/80%）；折射按当前法阵元素结算，记录元素用于终极震爆；不触发链/不吸血/不给经验",
+                    "第 4 次成功施法留下 4 秒；A 分裂到两个目标点（稀有各 25%、史诗各 40%），B 集中主落点（50%/80%）；折射按当前法阵元素结算，记录元素用于终极震爆；不触发链/不吸血/不给经验",
                   ],
                 ] as [string, string][])
               : []),
@@ -1481,21 +1489,49 @@ export class GameUI {
                 ] as [string, string][])
               : []),
           ]);
+        const elementHistory = this.core.mageElements.map((id, index) => {
+          const def = MAGE_ELEMENTS[id];
+          const level = this.core.mageElementPickLevels[index] ?? 0;
+          return {
+            name: `${def.ico} 元素 · ${def.name}（${level > 0 ? `Lv${level}` : "DEV"}）`,
+            desc: `本局第 ${index + 1} 元素 · 状态 ${def.statusName}`,
+          };
+        });
+        const reactionHistory = this.core.mageReactionIds.map((id, index) => {
+          const def = MAGE_REACTIONS[id];
+          const level = this.core.mageReactionUnlockLevels[index] ?? 0;
+          return {
+            name: `☯ ${def.name}（${level > 0 ? `Lv${level}` : "DEV"}）`,
+            desc: `${MAGE_ELEMENTS[def.from].name}→${MAGE_ELEMENTS[def.to].name} · ${def.desc}`,
+          };
+        });
         const upgrades = this.core.mageUpgrades.flatMap((id) => {
           const def = mageUpgradeInfo(id);
-          return def ? [def] : [];
+          if (!def) return [];
+          const prismCurrent =
+            (id === "prismRare" || id === "prismEpic") && this.core.mageSuit
+              ? `；当前套装：${this.core.mageSuit === "A" ? "A · 分裂两个目标点" : "B · 集火主落点"}`
+              : "";
+          return [{ ...def, desc: def.desc + prismCurrent }];
         });
+        const cardHtml = (u: { name: string; desc: string }) =>
+          `<div class="special-upgrade"><span class="su-name">${u.name}</span><span class="su-desc">${u.desc}</span></div>`;
         if (specialUpgradesTitle)
-          specialUpgradesTitle.textContent = `当前强化 (${upgrades.length}/${MAGE_UPGRADE_SLOTS})`;
-        if (specialUpgradesList)
-          specialUpgradesList.innerHTML = upgrades.length
-            ? upgrades
-                .map(
-                  (u) =>
-                    `<div class="special-upgrade"><span class="su-name">${u.name}</span><span class="su-desc">${u.desc}</span></div>`,
-                )
-                .join("")
-            : '<div class="special-upgrade-empty">法杖 Lv.2 起自动领悟强化</div>';
+          specialUpgradesTitle.textContent = `当前强化 (${upgrades.length}/${Math.max(MAGE_UPGRADE_SLOTS, upgrades.length)})`;
+        if (specialUpgradesList) {
+          const sections = [
+            elementHistory.length
+              ? `<div class="special-upgrade-sep">本局元素</div>${elementHistory.map(cardHtml).join("")}`
+              : "",
+            reactionHistory.length
+              ? `<div class="special-upgrade-sep">已领悟反应</div>${reactionHistory.map(cardHtml).join("")}`
+              : "",
+            upgrades.length
+              ? `<div class="special-upgrade-sep">法杖强化</div>${upgrades.map(cardHtml).join("")}`
+              : '<div class="special-upgrade-empty">法杖 Lv.2 起自动领悟强化</div>',
+          ];
+          specialUpgradesList.innerHTML = sections.join("");
+        }
       } else if (isShooter) {
         const level = this.core.specialLevel;
         const specialStats = getSpecialLevelStats(level);

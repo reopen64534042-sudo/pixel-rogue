@@ -2,12 +2,26 @@ import { createLaserState } from "../game/data/laser";
 import { isDomain } from '../game/core/DomainSystem';
 import { DOMAIN_UNLOCK_LEVELS } from '../game/data/domain';
 import type { GameCore } from "../game/core/GameCore";
+import { mageElementPickSlots } from "../game/core/MageProgressionSystem";
 import {
   UPGRADES,
   chainDisplayLayer,
   displayTalentTier,
   TIER_COLOR,
 } from "../game/data/talents";
+import {
+  MAGE_ELEMENTS,
+  MAGE_EPIC_UPGRADES,
+  MAGE_NORMAL_UPGRADES,
+  MAGE_RARE_UPGRADES,
+  MAGE_REACTIONS,
+  MAGE_ULTIMATE_UPGRADES,
+} from "../game/data/elementalMage";
+import type {
+  MageElement,
+  MageReactionId,
+  MageUpgradeId,
+} from "../game/data/elementalMage";
 import type { Talent } from "../game/core/types";
 
 /**
@@ -27,6 +41,12 @@ const GROUPS: { key: string; label: string }[] = [
   { key: "warrior", label: "战士" },
   { key: "common", label: "通用" },
 ];
+
+/** 面板控件不应吞掉 WASD；方向键/回车仍由下拉框本地处理。 */
+const MOVE_KEYS = new Set(["w", "a", "s", "d", "W", "A", "S", "D"]);
+const stopNonMovement = (event: KeyboardEvent) => {
+  if (!MOVE_KEYS.has(event.key)) event.stopPropagation();
+};
 
 const el = (tag: string, style: string, text = ""): HTMLElement => {
   const e = document.createElement(tag);
@@ -174,12 +194,13 @@ export class DevPanel {
     const weapon=document.createElement('select');
     weapon.style.cssText='width:100%;margin-bottom:6px;background:#1d2440;color:#cfe0ff';
     const weapons=[['shooter:charged','射手 · 强化弹'],['shooter:laser','射手 · 激光'],['shooter:missile','射手 · 导弹'],
-      ['mage:arcane','法师 · 元素法杖'],['mage:domain','法师 · 坍缩领域'],['warrior:katana','战士 · 太刀'],['warrior:greatsword','战士 · 大剑']] as const;
+      ['mage:arcane','法师 · 元素使'],['mage:domain','法师 · 坍缩领域'],['warrior:katana','战士 · 太刀'],['warrior:greatsword','战士 · 大剑']] as const;
     for (const [value,label] of weapons) {const option=document.createElement('option');option.value=value;option.textContent=label;weapon.appendChild(option);}
     weapon.value=`${this.core.prof}:${this.core.prof==='mage'?this.core.mageWeapon:this.core.prof==='warrior'?this.core.warriorStyle:this.core.shooterWeapon}`;
-    weapon.addEventListener('keydown',e=>e.stopPropagation());weapon.addEventListener('keyup',e=>e.stopPropagation());
+    weapon.addEventListener('keydown',stopNonMovement);weapon.addEventListener('keyup',stopNonMovement);
     weapon.addEventListener('change',()=>{
       const choice=weapon.value;
+      weapon.blur();
       if (choice==='mage:domain'||choice==='mage:arcane') this.core.startGame('mage',undefined,undefined,choice==='mage:domain'?'domain':'arcane');
       else if (choice==='warrior:katana'||choice==='warrior:greatsword') this.core.startGame('warrior',choice==='warrior:katana'?'katana':'greatsword');
       else this.core.startGame('shooter',undefined,choice==='shooter:laser'?'laser':choice==='shooter:missile'?'missile':'charged');
@@ -249,8 +270,9 @@ export class DevPanel {
         specialSel.appendChild(option);
       }
       specialSel.value = String(isDomain(this.core)?this.core.domain.level:this.core.shooterWeapon === "laser" ? this.core.laserLevel : this.core.shooterWeapon === "missile" ? this.core.missile.level : this.core.specialLevel);
-      specialSel.addEventListener("keydown", (e) => e.stopPropagation());
-      specialSel.addEventListener("keyup", (e) => e.stopPropagation());
+      specialSel.addEventListener("keydown", stopNonMovement);
+      specialSel.addEventListener("keyup", stopNonMovement);
+      specialSel.addEventListener("change", () => specialSel.blur());
       specialRow.appendChild(specialSel);
       const specialGo = el(
         "button",
@@ -276,6 +298,19 @@ export class DevPanel {
         valueRow.appendChild(boost);root.appendChild(valueRow);
       }
     } else if (this.core.prof === "mage") {
+      const c = this.core;
+      // DEV 直接改元素/等级后，休整面板可能还停在旧的元素卡上：
+      // 点击会因元素已持有而永远失败。清掉失效待选并重画当前面板。
+      const resyncMagePanel = () => {
+        while (c.mageElementPickPending && !mageElementPickSlots(c).length)
+          c.mageElementPickPending = c.mageElementPickQueue.shift() ?? null;
+        if (c.state !== "play" || c.bpMode !== "level") return;
+        c.bpMode = null;
+        c.slots = [];
+        if (c.mageElementPickPending || c.pendingLevels > 0)
+          c.openLevelPanel();
+        else c.view.level();
+      };
       const staffRow = el(
         "div",
         "display:flex;gap:4px;margin-bottom:6px;align-items:center",
@@ -291,21 +326,247 @@ export class DevPanel {
         staffSel.appendChild(option);
       }
       staffSel.value = String(this.core.mageStaffLevel);
-      staffSel.addEventListener("keydown", (e) => e.stopPropagation());
-      staffSel.addEventListener("keyup", (e) => e.stopPropagation());
+      staffSel.addEventListener("keydown", stopNonMovement);
+      staffSel.addEventListener("keyup", stopNonMovement);
+      staffSel.addEventListener("change", () => staffSel.blur());
       staffRow.appendChild(staffSel);
       const staffGo = el(
         "button",
         "background:#1d2440;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 6px;cursor:pointer",
         "应用",
       );
-      staffGo.title = "按法杖等级重建元素与普通池";
+      staffGo.title = "按法杖等级预设重建（会覆盖下方自由勾选）";
       staffGo.addEventListener("click", () => {
         this.core.devSetStaffLevel(Number(staffSel.value));
-        this.render();
+        resyncMagePanel();
+        this.close();
+        this.build();
       });
       staffRow.appendChild(staffGo);
       root.appendChild(staffRow);
+
+      // 自由配装：元素、当前轮盘、套装、六反应与全部法杖强化逐项开关。
+      const devBox = el(
+        "div",
+        "display:flex;flex-direction:column;gap:4px;margin-bottom:6px",
+      );
+      devBox.appendChild(
+        el(
+          "div",
+          "color:#7d8ec4;border-bottom:1px solid #23305a;margin:2px 0",
+          "元素与强化 · 自由配装",
+        ),
+      );
+      const resetTransient = () => {
+        c.magePrism = null;
+        c.magePrismBeams = [];
+        c.mageEchoes = [];
+        c.mageShadows = [];
+        c.mageShadowCd = 0;
+        c.mageCharge = 0;
+        c.mageChargeFlashT = 0;
+        c.mageShield = 0;
+        c.mageShieldT = 0;
+        c.mageShieldMaxT = 0;
+        c.mageDecoys = [];
+        c.mageVisualEvents = [];
+        c.castPhase = "idle";
+        c.castT = 0;
+        c.castCd = 0;
+      };
+      const elementRow = el(
+        "div",
+        "display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center",
+      );
+      elementRow.appendChild(el("span", "color:#7d8ec4", "元素"));
+      let syncCurrent = () => {};
+      const elementBoxes: { id: MageElement; box: HTMLInputElement }[] = [];
+      for (const id of ["fire", "frost", "lightning"] as const) {
+        const label = document.createElement("label");
+        label.style.cssText =
+          "display:inline-flex;align-items:center;gap:2px;color:#cfe0ff;font-size:10px";
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.checked = c.mageElements.includes(id);
+        box.addEventListener("change", () => {
+          const chosen = elementBoxes
+            .filter((item) => item.box.checked)
+            .map((item) => item.id);
+          if (!chosen.length) {
+            box.checked = true;
+            return;
+          }
+          c.mageElements = chosen;
+          c.mageWheelIndex = 0;
+          c.mageCastsInPhase = 0;
+          c.mageElementPickLevels = [];
+          resetTransient();
+          syncCurrent();
+          resyncMagePanel();
+        });
+        elementBoxes.push({ id, box });
+        label.appendChild(box);
+        label.appendChild(document.createTextNode(MAGE_ELEMENTS[id].name));
+        elementRow.appendChild(label);
+      }
+      const currentSel = document.createElement("select");
+      currentSel.style.cssText =
+        "background:#0e1430;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:1px 3px;font:10px ui-monospace,Consolas,monospace";
+      currentSel.addEventListener("keydown", stopNonMovement);
+      currentSel.addEventListener("keyup", stopNonMovement);
+      currentSel.addEventListener("change", () => {
+        c.mageWheelIndex = Number(currentSel.value) || 0;
+        c.mageCastsInPhase = 0;
+      });
+      syncCurrent = () => {
+        currentSel.replaceChildren(
+          ...c.mageElements.map((id, index) => {
+            const option = document.createElement("option");
+            option.value = String(index);
+            option.textContent = MAGE_ELEMENTS[id].name;
+            return option;
+          }),
+        );
+        currentSel.value = String(
+          Math.min(c.mageWheelIndex, Math.max(0, c.mageElements.length - 1)),
+        );
+      };
+      syncCurrent();
+      elementRow.appendChild(el("span", "color:#7d8ec4", "当前"));
+      elementRow.appendChild(currentSel);
+      devBox.appendChild(elementRow);
+
+      const suitRow = el(
+        "div",
+        "display:flex;gap:4px;align-items:center;color:#7d8ec4",
+      );
+      suitRow.appendChild(el("span", "", "套装"));
+      const suitSel = document.createElement("select");
+      suitSel.style.cssText =
+        "flex:1;background:#0e1430;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:1px 3px;font:10px ui-monospace,Consolas,monospace";
+      for (const value of ["A", "B", "未定"]) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        suitSel.appendChild(option);
+      }
+      suitSel.value = c.mageSuit ?? "未定";
+      suitSel.addEventListener("keydown", stopNonMovement);
+      suitSel.addEventListener("keyup", stopNonMovement);
+      suitSel.addEventListener("change", () => {
+        c.mageSuit = suitSel.value === "未定" ? null : (suitSel.value as "A" | "B");
+        resetTransient();
+      });
+      suitRow.appendChild(suitSel);
+      devBox.appendChild(suitRow);
+
+      const addToggleGrid = (
+        title: string,
+        entries: readonly { id: string; name: string }[],
+        checked: (id: string) => boolean,
+        toggle: (id: string, on: boolean) => void,
+        color?: (id: string) => string,
+      ) => {
+        devBox.appendChild(
+          el(
+            "div",
+            "color:#7d8ec4;border-bottom:1px solid #23305a;margin-top:2px",
+            title,
+          ),
+        );
+        const grid = el(
+          "div",
+          "display:grid;grid-template-columns:1fr 1fr;gap:1px 6px",
+        );
+        for (const entry of entries) {
+          const label = document.createElement("label");
+          label.style.cssText =
+            "display:inline-flex;align-items:center;gap:2px;font-size:10px;color:" +
+            (color?.(entry.id) ?? "#cfe0ff");
+          const box = document.createElement("input");
+          box.type = "checkbox";
+          box.checked = checked(entry.id);
+          box.addEventListener("change", () => {
+            toggle(entry.id, box.checked);
+            resetTransient();
+          });
+          label.appendChild(box);
+          label.appendChild(document.createTextNode(entry.name));
+          grid.appendChild(label);
+        }
+        devBox.appendChild(grid);
+      };
+
+      addToggleGrid(
+        "六反应（仍受套装限制）",
+        Object.values(MAGE_REACTIONS),
+        (id) => c.mageReactionIds.includes(id as MageReactionId),
+        (id, on) => {
+          const reaction = id as MageReactionId;
+          if (on && !c.mageReactionIds.includes(reaction))
+            c.mageReactionIds.push(reaction);
+          if (!on) c.mageReactionIds = c.mageReactionIds.filter((r) => r !== reaction);
+          // DEV 配装没有真实解锁等级；C 面板历史显示 DEV。
+          c.mageReactionUnlockLevels = [];
+        },
+        (id) => MAGE_REACTIONS[id as MageReactionId].color,
+      );
+
+      const upgradeEntries = [
+        ...MAGE_NORMAL_UPGRADES,
+        ...MAGE_RARE_UPGRADES,
+        ...MAGE_EPIC_UPGRADES,
+        ...MAGE_ULTIMATE_UPGRADES,
+      ];
+      addToggleGrid(
+        "法杖强化（逐项开关）",
+        upgradeEntries,
+        (id) => c.mageUpgrades.includes(id as MageUpgradeId),
+        (id, on) => {
+          const upgrade = id as MageUpgradeId;
+          if (on && !c.mageUpgrades.includes(upgrade))
+            c.mageUpgrades.push(upgrade);
+          if (!on) c.mageUpgrades = c.mageUpgrades.filter((u) => u !== upgrade);
+        },
+      );
+
+      const bulkRow = el("div", "display:flex;gap:4px;margin-top:2px");
+      const all = el(
+        "button",
+        "flex:1;background:#1d2440;color:#cfe0ff;border:1px solid #3a4a7a;border-radius:3px;padding:2px 4px;cursor:pointer",
+        "全开",
+      );
+      all.addEventListener("click", () => {
+        c.mageElements = ["fire", "frost", "lightning"];
+        c.mageWheelIndex = 0;
+        c.mageCastsInPhase = 0;
+        c.mageElementPickLevels = [];
+        c.mageSuit = "A";
+        c.mageReactionIds = Object.keys(MAGE_REACTIONS) as MageReactionId[];
+        c.mageReactionUnlockLevels = [];
+        c.mageUpgrades = upgradeEntries.map((u) => u.id);
+        resetTransient();
+        resyncMagePanel();
+        this.close();
+        this.build();
+      });
+      const clear = el(
+        "button",
+        "flex:1;background:#3a2020;color:#ffb4b4;border:1px solid #7a3a3a;border-radius:3px;padding:2px 4px;cursor:pointer",
+        "清空强化/反应",
+      );
+      clear.addEventListener("click", () => {
+        c.mageUpgrades = [];
+        c.mageReactionIds = [];
+        c.mageReactionUnlockLevels = [];
+        resetTransient();
+        this.close();
+        this.build();
+      });
+      bulkRow.appendChild(all);
+      bulkRow.appendChild(clear);
+      devBox.appendChild(bulkRow);
+      root.appendChild(devBox);
     }
 
     const body = el("div", "") as HTMLDivElement;

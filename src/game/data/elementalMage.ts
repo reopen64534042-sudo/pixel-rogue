@@ -8,7 +8,7 @@ export type { MageElement };
  * 这里只放**可被 UI 与 Core 共同读取的规则与系数**；伤害公式仍在
  * DamageMath / DamageSystem，系统文件只引用本表的键。
  *
- * 批次 1 范围：法杖等级、每 3 次施法轮盘、Lv1/3/6 元素、A/B 套装、
+ * 批次 1 范围：法杖等级、每 4 次施法轮盘、Lv1/3/6 元素、A/B 套装、
  * 六反应、普通池。稀有/史诗/终极池与棱镜/分影在后续批次接入。
  */
 
@@ -218,8 +218,8 @@ export const STAFF_LEVELS: readonly StaffLevelDef[] = [
 /** 每次成功施法获得的法杖经验。 */
 export const STAFF_XP_PER_CAST = 1;
 
-/** 每 3 次成功施法切换元素。 */
-export const MAGE_CASTS_PER_ELEMENT = 3;
+/** 每 4 次成功施法切换元素；反应触发条件不变。 */
+export const MAGE_CASTS_PER_ELEMENT = 4;
 
 export interface MageNormalUpgradeDef {
   readonly id: MageNormalUpgradeId;
@@ -281,7 +281,7 @@ export const MAGE_RARE_UPGRADES: readonly MageRareUpgradeDef[] = [
     id: "prismRare",
     name: "元素棱镜",
     ico: "💠",
-    desc: "每第 3 次成功施法留下棱镜 4 秒；下一次法阵从棱镜折射 50% 当前元素伤害。A 套装：分裂到棱镜周围两个分开的目标点，各 25%；B 套装：50% 集中折射到主落点",
+    desc: "每第 4 次成功施法留下棱镜 4 秒；下一次法阵从棱镜折射 50% 当前元素伤害。A 套装：分裂到棱镜周围两个分开的目标点，各 25%；B 套装：50% 集中折射到主落点",
   },
 ];
 

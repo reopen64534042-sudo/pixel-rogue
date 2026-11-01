@@ -28,7 +28,7 @@ import type { Enemy, MageCastPhase } from "./types";
  *
  * 门控仍是**时间**：熬过前摇与施法间隔，被打断则这一发作废。
  * v2 起，成功命中还会：
- * - 推进元素轮盘（每 3 次成功施法切换）；
+ * - 推进元素轮盘（每 4 次成功施法切换）；
  * - 累积法杖经验（Lv1–12，发放元素与能力池）；
  * - 由 ElementSystem 结算当前元素的反应与状态。
  *
@@ -164,7 +164,7 @@ function explodeCircle(
   return { hits, reacted };
 }
 
-/** 成功施法后的轮盘推进：每 3 次切换，获得新元素时不重置当前阶段。 */
+/** 成功施法后的轮盘推进：每 4 次切换，获得新元素时不重置当前阶段。 */
 function advanceWheel(core: GameCore): void {
   core.mageCastsInPhase++;
   if (core.mageCastsInPhase < MAGE_CASTS_PER_ELEMENT) return;
@@ -234,15 +234,16 @@ function updateMageEchoes(core: GameCore, dt: number): void {
   }
 }
 
-/** 留下一个元素棱镜（第 3 次成功施法时调用）；记录本次施法元素与档位。 */
+/** 留下一个元素棱镜（第 4 次成功施法时调用）；记录本次施法元素与档位。 */
 function createPrism(core: GameCore, element: MageElement): void {
   const tier = magePrismTier(core);
   if (!tier) return;
   const p = ELEMENTAL_MAGE.prism;
   const epic = tier >= 2;
   core.magePrism = {
-    x: core.player.x,
-    y: core.player.y,
+    // 棱镜生成在本次法阵的落点，而不是角色脚下。
+    x: core.castX,
+    y: core.castY,
     t: p.life,
     maxT: p.life,
     element,

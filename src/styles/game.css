@@ -579,6 +579,19 @@ p {
   font-size: 1.25vmin;
   line-height: 1.5;
 }
+.special-upgrade-sep {
+  color: #7d8ec4;
+  font-size: 1.05vmin;
+  letter-spacing: 0.08vmin;
+  margin-top: 0.7vmin;
+  padding-top: 0.5vmin;
+  border-top: 0.1vmin solid #2a3356;
+}
+.special-upgrade-sep:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
 .special-upgrade .su-name {
   color: #ffd24a;
   font-weight: bold;

@@ -13,7 +13,7 @@ export const CODEX_WEAPONS = {
   charged: { name: "强化弹", group: "射手", prof: "shooter", icon: "🏹", color: "#ffd24a" },
   laser: { name: "激光", group: "射手", prof: "shooter", icon: "🔆", color: "#57e6ff" },
   missile: { name: "导弹", group: "射手", prof: "shooter", icon: "🚀", color: "#ff9a3d" },
-  arcane: { name: "元素法杖", group: "法师", prof: "mage", icon: "🔮", color: "#c07bff" },
+  arcane: { name: "元素使", group: "法师", prof: "mage", icon: "🔮", color: "#c07bff" },
   domain: { name: "坍缩领域", group: "法师", prof: "mage", icon: "✦", color: "#bda0ff" },
   katana: { name: "太刀", group: "战士", prof: "warrior", icon: "⚔️", color: "#9fe1ff" },
   greatsword: { name: "大剑", group: "战士", prof: "warrior", icon: "🗡️", color: "#ffd24a" },
@@ -53,7 +53,7 @@ export const OTHER_WEAPON_ENTRIES: readonly CodexEntry[] = [
     `每轮主弹爆炸实际命中最多获得1点经验；蜂群、电弧、余烬与其他派生伤害不计。每级所需：${xpText(MISSILE_XP)}。Lv.4起每级获得一项硬件升级，专属天赋发展信标、蜂群与离子打法。`),
   ...MISSILE_UPGRADES.map(u => reference("missile", `upgrade-${u.id}`, u.name, u.desc, "upgrade", `Lv.${u.minLevel} 起进入升级池`)),
 
-  reference("arcane", "", "元素法杖",
+  reference("arcane", "", "元素使",
     `自动法阵攻击最近目标，移动也能施法；每${MAGE_CASTS_PER_ELEMENT}次成功施法轮换元素。Lv.1/3/6选择第一、第二、第三元素，元素顺序决定A/B套装与反应方向。法杖升级、人物升级和专属天赋分别成长。`, "overview", "主武器"),
   reference("arcane", "growth", "法杖成长与反应",
     `本体法阵实际命中至少一个敌人获得1点法杖经验，空放、打断、回响和派生攻击不给经验。每级所需：${xpText(STAFF_LEVELS.map(l => l.xpToNext))}。第二元素领悟第一条反应，第三元素随机领悟另一条；史诗成长补齐。反应需先领悟，只有本体施法触发，链与派生不递归。`),
