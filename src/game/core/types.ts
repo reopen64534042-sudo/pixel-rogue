@@ -772,6 +772,8 @@ export interface HitOptions {
   /** Extra components settle atomically with the primary hit, never as recursive hits. */
   components?: readonly DamageComponent[];
   armorPen?: number;
+  /** 元素抗性穿透（0–1）：只削正抗性，负抗性不放大；缺省按玩家破法来源。 */
+  resistancePen?: number;
   domainHit?: "collapse" | "slash" | "terminal";
   silentSound?: boolean;
   /** Rapid domain cuts use their own trails; avoid keeping the whole enemy solid white. */

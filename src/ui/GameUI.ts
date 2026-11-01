@@ -51,6 +51,7 @@ import {
 } from "../game/data/keybindings";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
 import {
+  MAGE_BUILD,
   MAGE_ELEMENTS,
   MAGE_CASTS_PER_ELEMENT,
   MAGE_REACTIONS,
@@ -1430,6 +1431,14 @@ export class GameUI {
           ...((this.core.player.upCounts["护咒壁"] || 0) > 0
             ? ([["⚡ 护咒壁", `${this.core.mageCharge}/${MAGE_BALANCE.chargeFull}`]] as [string, string][])
             : []),
+          ...((this.core.player.upCounts[MAGE_BUILD.pierce.name] || 0) > 0
+            ? ([
+                [
+                  "✦ 破法",
+                  `${Math.round(MAGE_BUILD.pierce.resistancePen * 100)}% 元素抗性穿透`,
+                ],
+              ] as [string, string][])
+            : []),
         ];
         if (statusEl) statusEl.hidden = false;
         if (statusTitle) statusTitle.textContent = "元素与反应";
@@ -1449,7 +1458,7 @@ export class GameUI {
             ],
             [
               "成长",
-              "Lv2/4–5/7–9/10–12 自动发放普通/稀有/史诗/终极强化；三选一池 10 张（4 张生存/机动 + 1 张节律 + 5 张构筑卡）",
+              "Lv2/4–5/7–9/10–12 自动发放普通/稀有/史诗/终极强化；三选一池 11 张（4 张生存/机动 + 1 张节律 + 1 张穿透 + 5 张构筑卡）",
             ],
             [
               "反应触发",

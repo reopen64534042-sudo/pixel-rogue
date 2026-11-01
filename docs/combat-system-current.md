@@ -76,6 +76,7 @@ StatModel **已经用于运行时**的玩家投影和敌人生成；StatSheets �
 | 元素抗性 | `1 - clamp(res, -0.5, 0.75)` | `0.3` 是 30%；`-0.2` 是对应伤害增加 20% |
 | tough 通用减伤 | `1 - clamp(tough, 0, 0.6)`，与属性防御相乘 | 不是控制抗性，也不是射手动态难度 DR |
 | 护甲穿透 / 破甲 | 敌方快照中的护甲变为 `DEF × (1-破甲比例) × (1-穿透比例)` | 不降低元素抗性；穿透由调用路径提供 |
+| 元素抗性穿透 | 敌方快照中的正抗性变为 `max(0, res - pen)`，再走原 floor/cap；负抗性不放大 | 不是护甲穿透；当前来源为元素使「破法」15% |
 | 难度承伤倍率 | `Enemy.damageTakenMul`，计算器之外最终乘算 | 真实、百分比生命伤害和 DoT 仍受影响 |
 | Boss 状态倍率 | 转阶段无敌；硬直时由 bossDamageTakenMultiplier 提供易伤 | 不应伪装成某一种抗性 |
 
@@ -94,6 +95,8 @@ StatModel **已经用于运行时**的玩家投影和敌人生成；StatSheets �
 当前玩家属性选择有护甲和闪避；战士还有基础护甲及人物等级护甲成长。常规属性候选没有元素抗性、tough、类型/形式/技能增伤条目。Player 和快照“支持字段”，不等于普通玩家“能获得该属性”。
 
 怪物的护甲/抗性直接由 ETYPES / boss 配置，经 EnemyStatSources 生成；负抗性已经用于多种怪物。当前为 17 份配置、18 条图鉴，岩石兽与岩石巨兽精英复用 brute 基础配置。完整基础值与成长见 [monster-numerics.md](monster-numerics.md)，逐配置抗性与图鉴引用见 [覆盖清单](combat-coverage.md)，不要在 skill 再维护数值副本。
+
+元素抗性穿透当前由元素使天赋「破法」提供：`hurtEnemy` 在敌方防守快照传入 `resistancePen`，只削正抗性；灼烧 DoT 经 `EnemyDotOptions.resistancePen` 继承。它不是玩家通用属性，也不改变敌方→玩家的伤害。
 
 玩家现在也有统一的键控来源链路：属性候选/选择携带 stat+key，由 attributeStatSources 拆成标量和映射来源，在学习/重算时交给 PlayerCombatSources。来源声明稳定 ownedKeys，失效时以空 modifiers 清旧值；同一键多个来源合并后解析，不与上次投影累加。本轮只提供接线能力，没有添加新的抗性卡或类型增伤数值。
 

@@ -32,6 +32,8 @@ export interface EnemyDotOptions {
   readonly src: DamageSource;
   readonly skillId?: string;
   readonly attackerStats?: Readonly<CombatStatsSnapshot>;
+  /** 元素抗性穿透（0–1）：只削正抗性；法师灼烧由调用侧传入破法来源。 */
+  readonly resistancePen?: number;
 }
 
 /**
@@ -55,7 +57,7 @@ export function applyEnemyDotDamage(
     precision: "preserve-float",
     isCritical: false,
     attackerStats: opts.attackerStats ?? getPlayerCombatStats(core.player),
-    defenderStats: getEnemyCombatStats(enemy),
+    defenderStats: getEnemyCombatStats(enemy, 0, opts.resistancePen ?? 0),
   });
   const taken = bossInvulnerable(core, enemy) ? 0 : enemyDotTakenDamage(
     calc.settledDamage, enemy.damageTakenMul ?? 1, bossDamageTakenMultiplier(core, enemy),

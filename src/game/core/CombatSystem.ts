@@ -28,7 +28,7 @@ import {
 import { calculateDamage } from "./DamageSystem";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { extendFrostLock, isFrostLocked } from "./ElementMath";
-import { spreadMageAuraOnDeath } from "./ElementSystem";
+import { mageSpellPen, spreadMageAuraOnDeath } from "./ElementSystem";
 import type {
   AttackProfile,
   DamageCause,
@@ -178,6 +178,9 @@ export function hurtEnemy(
     opts.armorPen ?? (this.prof === "warrior" && opts.form === "melee"
       ? WARRIOR_BALANCE.armorPen
       : 0);
+  const resistancePen =
+    opts.resistancePen ??
+    (this.prof === "mage" ? mageSpellPen(this) : 0);
   // §3.4 步骤 4：数值交给 DamageSystem。敌方离散命中用 round-min-one，
   // 与旧 Math.max(1, Math.round(dmg × 暴击倍率（含 #41 觉醒）× 易伤)) 一致
   const calc = calculateDamage(DAMAGE_TYPES, {
@@ -190,7 +193,7 @@ export function hurtEnemy(
     precision: opts.continuous ? "preserve-float" : "round-min-one",
     isCritical: crit,
     attackerStats: effectiveAttackerStats,
-    defenderStats: getEnemyCombatStats(e, armorPen),
+    defenderStats: getEnemyCombatStats(e, armorPen, resistancePen),
   });
   let settled = calc.settledDamage;
   const primarySettled = settled;
@@ -212,7 +215,7 @@ export function hurtEnemy(
         formDamageBonus: {},
         skillDamageBonus: undefined,
       },
-      defenderStats: getEnemyCombatStats(e, armorPen),
+      defenderStats: getEnemyCombatStats(e, armorPen, resistancePen),
     });
     const amount=extra.settledDamage;
     settled+=amount;
@@ -230,7 +233,7 @@ export function hurtEnemy(
       precision: opts.continuous ? "preserve-float" : "round-min-one",
       isCritical: crit,
       attackerStats: effectiveAttackerStats,
-      defenderStats: getEnemyCombatStats(e, armorPen),
+      defenderStats: getEnemyCombatStats(e, armorPen, resistancePen),
     });
     trueDamage += trueCalc.settledDamage;
     settled += trueCalc.settledDamage;

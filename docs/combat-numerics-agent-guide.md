@@ -38,7 +38,7 @@
 | 数值公式 | data/combatBalance.ts；core/DamageMath.ts | 新增/修改伤害系数与纯公式在此；各系统负责何时调用、打谁、应用状态 |
 | 技能分类声明 | data/attackProfiles.ts：PLAYER / ENEMY / BOSS / HOSTILE_ATTACK_PROFILES | 七武器/派生、怪物技能、旧弹丸/接触/地面全部登记；type/form/skillId 独立，时变 type 用 withDamageType |
 | 静态覆盖核对 | scripts/audit-combat-contracts.mjs；docs/combat-coverage.md | TypeScript AST/类型核对实际入口必填字段、HP扣除和图鉴引用；--write 刷新清单，不执行战斗 |
-| 战斗快照 | core/CombatStats.ts：getPlayerCombatStats / getEnemyCombatStats | 发射/引爆/接触/每跳时机；映射复制；破甲与 armorPen 在敌方防守快照生效 |
+| 战斗快照 | core/CombatStats.ts：getPlayerCombatStats / getEnemyCombatStats | 发射/引爆/接触/每跳时机；映射复制；破甲/armorPen 与元素抗性穿透在敌方防守快照生效 |
 | 纯伤害计算 | core/DamageSystem.ts：calculateDamage | 四增伤区、暴击、armor/resistance/none、tough、精度；不碰 HP/RNG/Phaser |
 | 通用受击/死亡 | core/CombatSystem.ts：hurtEnemy / damagePlayer / killEnemy / applyFireDot | 盾/闪避/无敌、最终倍率、Boss 同步、击杀掉落、实际损失、统计 |
 | 敌方伤害应用 | core/EnemyDamageApplication.ts：resolveEnemyHitDamage / applyEnemyDotDamage / applyEnemyHpDamage | 公共最终承伤与 HP 写入；DoT 包含 Boss 门禁/同步与记账，死亡仍由调用侧处理 |
@@ -92,6 +92,7 @@
 
 - 新元素：DAMAGE_TYPES 注册既有策略 → 来源配置/键控解析 → 实体/快照 → 实际攻击 type → 防守方对应抗性 → 面板/图鉴/飘字。frost 和 gravity **已经存在**，不可重新按示例重复注册。
 - 抗性是键控映射，不是每元素一个 StatId；family 为 `resistance`，实体字段为 `resistances`，勿混淆单复数。
+- 元素抗性穿透由来源参数 `resistancePen` 在敌方防守快照削正抗性；不得通过新增 `resistances` 键或修改实体实现；负抗性保持原值。
 - 新类型如果仍用 armor/resistance/none，不在 DamageSystem 加具体类型 switch；若确需第四种策略，需先明确公式及适用对象，再扩展纯计算契约。
 - 护盾、闪避、无敌、方向格挡和控制抗性属于编排/状态规则；不能只给 resistances 添加一个键。
 - AttributePoint 与 AttrDef 现支持 key：键控候选明确 stat / key / stage，toAttributePoint → attributeStatSources → TalentSystem → PlayerCombatSources 完成投影。来源与显示均需核对，本轮没有新增抗性候选或数值。

@@ -38,10 +38,21 @@ export function getPlayerCombatStats(p: Player): CombatStatsSnapshot {
 export function getEnemyCombatStats(
   e?: Enemy,
   armorPen = 0,
+  resistancePen = 0,
 ): CombatStatsSnapshot {
   const armorBreak =
     e && (e.armorBreakT ?? 0) > 0 ? (e.armorBreakPct ?? 0) : 0;
   const pen = Math.max(0, Math.min(1, armorPen));
+  const resistances = { ...e?.resistances };
+  const resPen = Math.max(0, Math.min(1, resistancePen));
+  if (resPen > 0) {
+    for (const key of Object.keys(resistances) as (keyof typeof resistances)[]) {
+      const value = resistances[key];
+      // 只削正抗性；负抗性是弱点，穿透不能把它变成更大的弱点。
+      if (value !== undefined && value > 0)
+        resistances[key] = Math.max(0, value - resPen);
+    }
+  }
   return {
     attack: e ? e.dmg : 0,
     defense: (e?.defense ?? 0) * (1 - armorBreak) * (1 - pen),
@@ -49,7 +60,7 @@ export function getEnemyCombatStats(
     critChance: 0,
     critMultiplier: 1,
     tough: e?.tough ?? 0,
-    resistances: { ...e?.resistances },
+    resistances,
     globalDamageBonus: e?.globalDamageBonus ?? 0,
     typeDamageBonus: { ...e?.typeDamageBonus },
     formDamageBonus: { ...e?.formDamageBonus },
