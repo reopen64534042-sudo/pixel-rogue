@@ -55,6 +55,10 @@ export interface MageBalance {
   chargeFlash: number;
   /** 护咒壁：最大生命百分比。 */
   wardShieldPct: number;
+  /** 护咒壁：固定护盾值。 */
+  wardShieldFlat: number;
+  /** 护咒壁：每法杖等级增加的护盾值。 */
+  wardShieldPerStaffLevel: number;
   /** 护咒壁持续时间（秒）。 */
   wardShieldDuration: number;
 
@@ -64,9 +68,11 @@ export interface MageBalance {
   /** 第四拍：第 4 次施法本体/回响直伤倍率（1.2 = +20%）。 */
   fourthBeatDirectMul: number;
 
-  // —— 机动（踏影）——
+  // —— 机动（踏影 / 基础冲刺）——
   /** 踏影：冲刺起点残影吸引仇恨的持续时间（秒）。 */
   shadowStepDecoyDuration: number;
+  /** 元素使（arcane）基础冲刺距离倍率：280×0.16×1.45≈65px。 */
+  dashDistMul: number;
 
   // —— 脱离（保留旧卡）——
   /** 相位：传送搜索半径（px）。 */
@@ -98,12 +104,15 @@ export const MAGE_BALANCE: MageBalance = {
   chargeFlash: 0.35,
 
   wardShieldPct: 0.2,
+  wardShieldFlat: 2,
+  wardShieldPerStaffLevel: 2,
   wardShieldDuration: 3,
 
   fourthBeatWindupMul: 0.6,
   fourthBeatDirectMul: 1.2,
 
   shadowStepDecoyDuration: 1.5,
+  dashDistMul: 1.45,
 
   phaseRange: 80,
   phaseCooldown: 10,

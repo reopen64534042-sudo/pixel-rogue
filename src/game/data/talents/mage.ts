@@ -54,12 +54,13 @@ export const MAGE_TALENTS: Talent[] = [
     slot: "循环",
     layer: 1,
     prof: "mage",
-    d: `每 ${MB.chargeFull} 次成功施法获得护盾（最大生命 ${Math.round(MB.wardShieldPct * 100)}%，持续 ${MB.wardShieldDuration} 秒；不可叠层，重复触发刷新）`,
+    d: `每 ${MB.chargeFull} 次成功施法获得护盾（最大生命 ${Math.round(MB.wardShieldPct * 100)}% + ${MB.wardShieldFlat} + ${MB.wardShieldPerStaffLevel}×法杖等级，持续 ${MB.wardShieldDuration} 秒；不可叠层，重复触发刷新）`,
     max: 1,
     pv: () =>
-      `护盾 ${Math.round(MB.wardShieldPct * 100)}% 最大生命 · 持续 ${MB.wardShieldDuration} 秒`,
+      `护盾 ${Math.round(MB.wardShieldPct * 100)}% 最大生命 + ${MB.wardShieldFlat} + ${MB.wardShieldPerStaffLevel}×法杖等级 · 持续 ${MB.wardShieldDuration} 秒`,
     f: () => {},
-    cur: () => `每 ${MB.chargeFull} 次施法获得 ${Math.round(MB.wardShieldPct * 100)}% 护盾`,
+    cur: () =>
+      `每 ${MB.chargeFull} 次施法 · 护盾 ${Math.round(MB.wardShieldPct * 100)}% 最大生命 + ${MB.wardShieldFlat} + ${MB.wardShieldPerStaffLevel}×法杖等级`,
   },
 
   // ================= 机动槽：冲刺留下仇恨残影 =================

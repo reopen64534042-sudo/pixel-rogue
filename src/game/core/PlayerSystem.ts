@@ -227,10 +227,16 @@ export function updatePlayer(this: GameCore, dt: number) {
           ? WB.triDash.distMul2
           : WB.triDash.distMul3
       : 1;
+    const classDashMul =
+      this.prof === "warrior"
+        ? WB.baseDashMul
+        : this.prof === "mage" && this.mageWeapon === "arcane"
+          ? MAGE_BALANCE.dashDistMul
+          : 1;
     const dashSpeed =
       280 *
       p.dashDistMul *
-      (this.prof === "warrior" ? WB.baseDashMul : 1) *
+      classDashMul *
       (this.prof === "warrior" && (p.upCounts["斩浪"] || 0) > 0
         ? WB.dashDistMul
         : 1) *
