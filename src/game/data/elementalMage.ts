@@ -103,7 +103,7 @@ export const MAGE_REACTIONS: Record<MageReactionId, MageReactionDef> = {
     to: "frost",
     suit: "A",
     color: "#9fe1ff",
-    desc: "冰击命中带灼烧且未冻结的目标：消耗灼烧、挂脆化，按灼烧层数 × 80% 结算，再叠 2 层凝冰",
+    desc: "冰击命中带灼烧的目标：消耗灼烧、挂脆化，按灼烧层数 × 80% 结算，并留 1 层凝冰",
   },
   melt: {
     id: "melt",
@@ -112,7 +112,7 @@ export const MAGE_REACTIONS: Record<MageReactionId, MageReactionDef> = {
     to: "fire",
     suit: "B",
     color: "#e8f7ff",
-    desc: "火击命中冻结或霜牢目标：退出控制、清空凝冰，消耗本次灼烧，按凝冰层数 × 95% 结算",
+    desc: "火击命中带凝冰的目标：退出冻结/霜牢、清空凝冰，按凝冰层数 × 95% 结算，并留 1 层灼烧",
   },
   overload: {
     id: "overload",
@@ -130,7 +130,7 @@ export const MAGE_REACTIONS: Record<MageReactionId, MageReactionDef> = {
     to: "fire",
     suit: "A",
     color: "#ff6a2b",
-    desc: "火击命中带雷印目标：消耗雷印与本次灼烧，主目标爆炸 + 附近 3 个小爆炸",
+    desc: "火击命中带雷印目标：消耗雷印，主目标爆炸 + 附近 3 个小爆炸，并留 1 层灼烧",
   },
   superconduct: {
     id: "superconduct",
@@ -139,7 +139,7 @@ export const MAGE_REACTIONS: Record<MageReactionId, MageReactionDef> = {
     to: "lightning",
     suit: "A",
     color: "#d9a6ff",
-    desc: "雷击命中冻结目标：退出冻结、清空凝冰，必定触发闪电链并 +1 跳，链上目标获得雷印",
+    desc: "雷击命中带凝冰的目标：退出冻结、清空凝冰，按凝冰层数 × 45% 结算，必定触发闪电链并 +1 跳，链上目标获得雷印",
   },
   frostbind: {
     id: "frostbind",
@@ -148,7 +148,7 @@ export const MAGE_REACTIONS: Record<MageReactionId, MageReactionDef> = {
     to: "frost",
     suit: "B",
     color: "#57e6ff",
-    desc: "冰击命中带雷印目标：清空雷印，施加霜牢；霜牢优先于冻结",
+    desc: "冰击命中带雷印目标：清空雷印，造成 40% 反应伤害，施加霜牢；霜牢优先于冻结",
   },
 };
 
@@ -397,14 +397,25 @@ export const ELEMENTAL_MAGE = {
   reaction: {
     /** 每只敌人两次反应之间的基础间隔；低于基础施法周期，避免前期误伤；精通再降低。 */
     icdBase: 0.5,
+    /** 反应后留下的触发元素附着层数；急淬不再额外挂 2 层。 */
+    carryOverStacks: 1,
     quenchPerBurn: 0.8,
-    quenchFrostStacks: 2,
     meltPerFrost: 0.95,
     overloadPerBurn: 1.25,
     blazeMain: 1.2,
     blazeSplash: 0.6,
     blazeSplashCount: 3,
     blazeSplashRadius: 80,
+    /** 超导：按凝冰层数结算的低倍率反应伤害（同时保留闪电链）。 */
+    superconductPerFrost: 0.45,
+    /** 霜缚：固定低倍率反应伤害（雷印为单层标记）。 */
+    frostbindPerShock: 0.4,
+  },
+  death: {
+    /** 死亡传播：带附着的敌人死亡时，向附近最多 2 个敌人传播 1 层最近附着。 */
+    spreadRadius: 90,
+    spreadTargets: 2,
+    spreadStacks: 1,
   },
   normal: {
     elementFocusBonus: 1,

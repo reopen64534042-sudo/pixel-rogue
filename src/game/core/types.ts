@@ -1,5 +1,5 @@
 import type { DamageTypeId } from "../data/damageTypes";
-import type { MageReactionId } from "../data/elementalMage";
+import type { MageElement, MageReactionId } from "../data/elementalMage";
 export type Mode = "start" | "play" | "stats" | "pause" | "over";
 export type Panel = "level" | "rest" | "box" | "attr" | null;
 export type GameState = Mode | "levelup" | "report" | "swap";
@@ -499,9 +499,11 @@ export interface Enemy extends Point {
   elemFrostLockExtendAt?: number;
   /**
    * 元素反应内置冷却：每只敌人两次普通反应之间的剩余秒数。
-   * 基础 0.8 秒，反应精通降为 0.7 秒；元素震爆不受此限制。
+   * 基础 0.5 秒，反应精通降为 0.4 秒；元素震爆不受此限制。
    */
   elemReactionCd?: number;
+  /** 最近一次施加的元素附着：死亡传播据此选择传播元素；只在有实际状态时读取。 */
+  elemLastAura?: MageElement;
   seed: number;
   shootCd: number;
   fuse: number;

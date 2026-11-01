@@ -28,6 +28,7 @@ import {
 import { calculateDamage } from "./DamageSystem";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { extendFrostLock, isFrostLocked } from "./ElementMath";
+import { spreadMageAuraOnDeath } from "./ElementSystem";
 import type {
   AttackProfile,
   DamageCause,
@@ -482,6 +483,8 @@ export function hurtEnemy(
 export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   if (e.dead) return;
   e.dead = true;
+  // v176 元素使死亡传播：带附着死亡时把最近附着传给附近敌人；只施加状态，不触发反应。
+  spreadMageAuraOnDeath(this, e);
   this.kills++;
   if (e.boss) {
     this.runBossKills++;
