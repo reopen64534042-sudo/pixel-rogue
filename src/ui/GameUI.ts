@@ -750,7 +750,7 @@ export class GameUI {
       // 稀有度文字只在非普通时显示——S2 的射手池暂定全普通（稀有度待讨论），
       // 全普通时逐卡标「普通」纯属噪声；将来恢复分级后自动生效。
       // S3：补上**链层级与前置**（设计文档 §3.4「变体与流派必须可见」）。
-      // 玩家只有能看见「这是 L2、它的前置是速咏」，才知道自己在构筑一条链
+      // 玩家只有能看见「这是 L2、它的前置是哪张卡」，才知道自己在构筑一条链
       // 而不是随手拿一张卡。
       const chainLayer = chainDisplayLayer(u, UPGRADES);
       const chainInfo = chainLayer
@@ -954,10 +954,18 @@ export class GameUI {
       isMage
         ? [
             "⚡ 施法速度",
-            (
-              (p.fireRate * mageCastSpeedMul(this.core) * MAGE_BALANCE.castCycle) /
-              (MAGE_BALANCE.castWindup + MAGE_BALANCE.castInterval)
-            ).toFixed(2) + " 次/秒",
+            (() => {
+              const castRate =
+                p.fireRate *
+                mageCastSpeedMul(this.core) *
+                MAGE_BALANCE.castCycle;
+              const rate =
+                castRate /
+                (MAGE_BALANCE.castWindup + MAGE_BALANCE.castInterval);
+              const windup = MAGE_BALANCE.castWindup / castRate;
+              const interval = MAGE_BALANCE.castInterval / castRate;
+              return `${rate.toFixed(2)} 次/秒 · 周期 ${(1 / rate).toFixed(2)}s（前摇 ${windup.toFixed(2)} / 间隔 ${interval.toFixed(2)}）`;
+            })(),
           ]
         : isLaser
           ? ["⚡ 光束输出速率", "×" + (laserOutputRate(p) / statBase("shooter").fireRate).toFixed(2)]
@@ -1441,7 +1449,7 @@ export class GameUI {
             ],
             [
               "成长",
-              "Lv2/4–5/7–9/10–12 自动发放普通/稀有/史诗/终极强化；三选一池 11 张（6 张通用/生存 + 5 张构筑卡）",
+              "Lv2/4–5/7–9/10–12 自动发放普通/稀有/史诗/终极强化；三选一池 10 张（4 张生存/机动 + 1 张节律 + 5 张构筑卡）",
             ],
             [
               "反应触发",

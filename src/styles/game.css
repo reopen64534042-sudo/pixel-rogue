@@ -1126,7 +1126,7 @@ p {
   align-items: center;
   justify-content: center;
 }
-/* S3 职业池：链层级与前置（L2 · 需 速咏）。
+/* S3 职业池：链层级与前置（L2 · 需 前置卡）。
    让玩家看得见「我在构筑一条链」而不是随手拿卡（设计文档 §3.4）。 */
 #bp-cards .card .chain {
   color: #c07bff;
