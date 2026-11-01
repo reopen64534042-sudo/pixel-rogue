@@ -53,6 +53,11 @@ export function hasMageUpgrade(
   return core.mageUpgrades.includes(id);
 }
 
+/** 玩家三选一构筑卡是否已持有；以卡名为 upCounts 键。 */
+export function hasMageCard(core: GameCore, name: string): boolean {
+  return (core.player.upCounts[name] ?? 0) > 0;
+}
+
 /** 元素凝聚：元素状态持续时间加成（秒）。 */
 export function mageStatusDurationBonus(core: GameCore): number {
   return hasMageUpgrade(core, "elementFocus")
@@ -110,12 +115,53 @@ export function mageCircleWidthMul(core: GameCore): number {
     : 1;
 }
 
-/** 元素选择面板的候选卡：只列尚未持有的元素。 */
+/** 元素选择面板的候选卡：只列尚未持有的元素，并附上套装/反应预览。 */
 export function mageElementPickSlots(core: GameCore): Slot[] {
   return MAGE_ELEMENT_CHOICES.filter((card) => {
     const el = elementOfChoice(card.n);
     return !!el && !core.mageElements.includes(el);
-  }).map((u) => ({ u, used: true }));
+  }).map((card) => {
+    const el = elementOfChoice(card.n);
+    const preview = el ? mageElementPreview(core, el) : "";
+    return {
+      u: {
+        ...card,
+        d: `${card.d}；【选择预览】${preview}`,
+      },
+      used: true,
+    };
+  });
+}
+
+/** 元素选择卡上的即时预览：A/B 套装、首条反应与轮盘路径。 */
+function mageElementPreview(core: GameCore, el: MageElement): string {
+  const name = (e: MageElement) => MAGE_ELEMENTS[e].name;
+  const pending = core.mageElementPickPending;
+  if (pending === "first") {
+    return "第一元素起手；第二元素将决定 A/B 套装与首条反应";
+  }
+  if (pending === "second") {
+    const first = core.mageElements[0];
+    if (!first) return "";
+    const r = reactionForPair(first, el);
+    if (!r) return `轮盘 ${name(first)} → ${name(el)} → ${name(first)}`;
+    const suit = MAGE_REACTIONS[r].suit;
+    const rest = Object.values(MAGE_REACTIONS)
+      .filter((x) => x.suit === suit && x.id !== r)
+      .map((x) => x.name)
+      .join("/");
+    return `${suit} 套装；首条 ${reactionLabel(r)}；轮盘 ${name(first)} → ${name(el)} → ${name(first)}；第三元素补齐 ${rest}`;
+  }
+  const [a, b] = core.mageElements;
+  if (!a || !b) return "";
+  const r1 = reactionForPair(b, el);
+  const r2 = reactionForPair(el, a);
+  const candidates = [r1, r2]
+    .filter((r): r is MageReactionId => !!r)
+    .map((r) => reactionLabel(r))
+    .join(" / ");
+  const suit = core.mageSuit ?? suitOfPair(a, b) ?? "A";
+  return `${suit} 套装；轮盘 ${name(a)} → ${name(b)} → ${name(el)} → ${name(a)}；新增反应候选 ${candidates}（随机领悟一条，Lv9 补齐另一条）`;
 }
 
 /**

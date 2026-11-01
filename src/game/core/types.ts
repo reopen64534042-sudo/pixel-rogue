@@ -312,6 +312,10 @@ export interface Talent {
   /** 射手主武器归属；旧射手卡缺省为 charged。 */
   shooterWeapon?: ShooterWeapon;
   mageWeapon?: MageWeapon;
+  /** 元素使专属：必须已领悟该反应才进入三选一池。 */
+  mageRequiresReaction?: MageReactionId;
+  /** 元素使专属：至少持有 N 个元素（通常 2，确保有反应循环）才进入三选一池。 */
+  mageMinElements?: number;
   /** Offer a Domain enhancement only after its weapon ability is unlocked. */
   requiresDomainUpgrade?: 'slash' | 'void';
   /** 变体组：同一组在一局内只能取一张。与 excludes 的区别是组合规模可变（N 选 1）。 */

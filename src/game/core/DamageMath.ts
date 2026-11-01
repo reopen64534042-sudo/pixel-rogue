@@ -72,14 +72,14 @@ export const mageDirectHitDamage = (base: number, upgrade: number, element: Mage
 export const magePrismDamage = (base: number, element: MageElement) =>
   base * ELEMENTAL_MAGE.prism.ultimateShatterMul * MAGE_ELEMENTS[element].damageMul;
 export function mageReactionRawDamage(base: number, multiplier: number, state: number, upgrades: number,
-  pairedBonus: number | undefined, controlledFinale: boolean): number {
+  pairedBonus: number | undefined, controlledFinale: boolean, cardMul = 1): number {
   let amount = base * multiplier * state * upgrades;
   if (pairedBonus !== undefined) amount *= pairedBonus;
   if (controlledFinale) amount *= 1 + ELEMENTAL_MAGE.finale.controlledBonus;
-  return amount;
+  return amount * cardMul;
 }
 export const mageReactionEchoDamage = (damage: number) => damage * ELEMENTAL_MAGE.finale.echoMul;
-export const mageChainDamage = (base: number) => base * ELEMENTAL_MAGE.chain.damageMul;
+export const mageChainDamage = (base: number, mul = 1) => base * ELEMENTAL_MAGE.chain.damageMul * mul;
 export const mageBurnDamage = (base: number, layers: number) => layers * ELEMENTAL_MAGE.burn.damagePerLayer * base;
 
 export const warriorWaveDamage = (attack: number, kind: "qi" | "fissure") =>

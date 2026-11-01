@@ -470,6 +470,36 @@ export const ELEMENTAL_MAGE = {
   },
 } as const;
 
+/** v177 元素使玩家三选一构筑卡的规则与初始占位数值。 */
+export const MAGE_BUILD = {
+  chainResonance: {
+    name: "霜雷共振",
+    extraJumps: 1,
+    damageBonus: 0.15,
+  },
+  blazeSpread: {
+    name: "焰尾扩散",
+    radiusMul: 1.2,
+    extraTargets: 1,
+    burnStacks: 1,
+  },
+  rotation: {
+    name: "轮转",
+    reactionBonus: 0.2,
+  },
+  frostShatter: {
+    name: "霜牢碎裂",
+    radius: 80,
+    targets: 2,
+    frostStacks: 2,
+  },
+  charge: {
+    name: "满印成势",
+    layers: 3,
+    reactionBonus: 0.2,
+  },
+} as const;
+
 /**
  * 元素选择面板的伪卡。它们**不进 UPGRADES**，只在法杖 Lv1/3/6 的
  * 强制选择里作为 `slots` 展示；选择结果写入 GameCore.mageElements，
