@@ -12,6 +12,8 @@
 - src/game/rendering/characters/：职业人物表现；KatanaCharacter / GreatswordCharacter / ShooterCharacter / MageCharacter 由 Scene 只读模拟状态取帧，射手身体与独立瞄准的武器分层、折光剪影复用同套素材，法师接入魔女人物本体；MageVfx 按 Core 的只读 mageVisualEvents 绘制法阵/状态/棱镜/反应爆发，缺失素材回退原程序化表现，不修改战斗状态。
 - DomainSystem / data/domain 管理法师独立坍缩领域武器；Simulation 调度，DamageMath 形成分量，CombatSystem 同次应用主爆发/真伤/生命压缩。DomainRenderer / DomainCharacter 只读实际状态；AudioService 缓存领域 WAV 并在暂停/清理时停播，见 docs/domain-weapon-design.md 与 docs/domain-character-art.md。
 - 领域保留三场合成，收拢中心锁定并跟随目标（范围内可攻击Boss→捕获目标→最近敌人），仅失效重选、无目标保留最后位置；捕获名单仍独立快照。W/M独立增强场/洞伤害，全域连斩去重，无量真实过载，形成后黑洞按实际位置向怪群巡游。V2四次强化已撤回。
+- codex/weaponCodex提供七武器归属与只读资料；升级/元素/反应从现有配置派生。CodexUI职业页合并武器资料和天赋、按武器分组；资料数量独立于v1天赋/敌人收藏进度。
+- TutorialSystem复用练习场提供领域八步教程，data/domainTutorial拥有步骤与观察状态；法杖/领域已看记录独立，教程不授领域经验、结束重置演示构筑。
 - src/ui/：DOM 显示及命令适配；src/services/：音频、战绩；src/styles/：样式。
 - public/：随产物发布的字体、许可证与第三方说明。
 - tests/：规则、原版对照及 browser 冒烟；docs/migration.md：阶段记录。

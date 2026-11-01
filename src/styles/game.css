@@ -1671,7 +1671,8 @@ p {
 #ov-tutorial-pick {
   z-index: 95;
 }
-#ov-warrior-style {
+#ov-warrior-style,
+#ov-mage-weapon {
   z-index: 96;
 }
 #tutorial-hud {

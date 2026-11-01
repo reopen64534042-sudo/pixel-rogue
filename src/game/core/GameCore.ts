@@ -2,6 +2,7 @@ import { clearBossTransient } from "./BossSystem";
 import { createLaserState, type LaserUpgradeId } from "../data/laser";
 import { createMissileState } from "../data/missile";
 import { createDomainState } from '../data/domain';
+import { createDomainTutorialProgress } from '../data/domainTutorial';
 import { clearDomainTransient, devSetDomainLevel } from './DomainSystem';
 import { clearMissileTransient, devSetMissileLevel, missileDash } from "./MissileSystem";
 import { devSetLaserLevel, laserDash } from "./LaserSystem";
@@ -59,6 +60,7 @@ import type { WarriorLeapState } from "./WarriorSystem";
 import {
   advanceTutorial,
   finishTutorial,
+  noteTutorialStatsOpened,
   startTutorial,
   updateTutorial,
 } from "./TutorialSystem";
@@ -400,6 +402,7 @@ export class GameCore {
   tutorialMoved = false;
   tutorialGemPicked = false;
   tutorialGemSpawned = false;
+  tutorialDomain = createDomainTutorialProgress();
   /* —— S3 法师池运行态 ——
    *
    * 全部放 GameCore 而不是 Player：`recompute` 会用
@@ -810,6 +813,7 @@ export class GameCore {
     this.tutorialHeavyDone = false;
     this.tutorialGemPicked = false;
     this.tutorialGemSpawned = false;
+    this.tutorialDomain = createDomainTutorialProgress();
     this.player = {
       x: WORLD.w / 2,
       y: WORLD.h / 2,
@@ -1070,6 +1074,7 @@ export class GameCore {
     if (this.state === "play") {
       this.statsFrom = "play";
       this.state = "stats";
+      noteTutorialStatsOpened(this);
       this.view.stats(true);
     } else if (this.state === "stats") {
       this.view.stats(false);
@@ -1092,6 +1097,7 @@ export class GameCore {
     this.statsFrom = "pause";
     this.state = "stats";
     this.view.paused(false);
+    noteTutorialStatsOpened(this);
     this.view.stats(true);
     return true;
   }

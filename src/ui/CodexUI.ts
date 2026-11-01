@@ -2,13 +2,13 @@ import type { GameCore } from "../game/core/GameCore";
 import {
   CODEX_ENTRIES,
   ENEMY_ENTRIES,
-  TALENT_ENTRIES,
   WEAPON_ENTRIES,
   type CodexEntry,
 } from "../game/codex/codexData";
 import { ETYPES } from "../game/data/enemies";
-import { BOSS_HP_GROWTH } from "../game/data/boss";
-import type { CodexProgress } from "../game/codex/CodexSystem";
+import { BOSS, BOSS_HP_GROWTH } from "../game/data/boss";
+import { ELITE_XP_STEP, ELITE_BOX_DROP_RATE } from "../game/data/constants";
+import { CODEX_WEAPONS, type CodexWeaponId } from "../game/codex/weaponCodex";
 import { TIERS, TIER_COLOR } from "../game/data/talents";
 import { spriteImageSrc } from "../game/rendering/assetRegistry";
 import { element } from "./dom";
@@ -28,6 +28,7 @@ function tierName(entry: CodexEntry): string {
 
 /** 强调色：天赋按稀有度，敌人按是否精英（精英金色，普通怪浅白）。 */
 function accentColor(entry: CodexEntry): string {
+  if (entry.cat === "weapon" && entry.weapon) return CODEX_WEAPONS[entry.weapon].color;
   if (entry.cat === "enemy") return entry.boss ? "#ff8c3a" : entry.elite ? "#ffd24a" : "#c7cff2";
   return TIER_COLOR[entry.tier ?? 0] ?? TIER_COLOR[0];
 }
@@ -68,29 +69,29 @@ function enemyStatsHtml(entry: CodexEntry): string {
   const rows: [string, string, string][] = [
     ["生命", String(cfg.hp), entry.boss
       ? `基础生命；第 ${BOSS_HP_GROWTH.fromWave} 波 ${BOSS_HP_GROWTH.baseHp.toLocaleString()} HP，之后每 ${BOSS_HP_GROWTH.everyWaves} 波 ×${BOSS_HP_GROWTH.multiplier}`
-      : "基础生命；生成时按波次成长"],
-    ["攻击", String(cfg.dmg), "基础攻击；生成时按波次成长"],
+      : entry.elite ? "精英倍率前的基础生命；生成时再乘精英倍率与波次成长" : "基础生命；生成时按波次成长"],
+    ["攻击", String(cfg.dmg), entry.elite ? "精英倍率前的基础攻击；生成时再乘精英倍率与波次成长" : "基础攻击；生成时按波次成长"],
     ["移速", String(cfg.speed), "像素/秒，越大移动越快"],
     ["半径", String(cfg.r), "碰撞与受击体积"],
-    ["经验", entry.boss ? "精英 ×8" : String(cfg.xp), entry.boss ? "(25+(波次-1)×4)×8，再乘难度经验倍率" : "击杀获得的基础经验"],
+    ["经验", entry.boss ? `精英 ×${BOSS.reward.xpMul}` : entry.elite ? `25 + (波次−1) ×${ELITE_XP_STEP}` : String(cfg.xp), entry.boss ? `按当波精英经验×${BOSS.reward.xpMul}，再乘难度经验倍率` : entry.elite ? "再乘难度经验倍率；不是普通物种的基础经验" : "击杀获得的基础经验；无掉落子体除外"],
     ["护甲", def > 0 ? String(def) : "—", armorNote],
     ["抗性", resText, "正值减伤、负值增伤（弱点）；减伤上限 75%、弱点下限 -50%；— 表示无抗性"],
     [
       "解锁波次",
-      entry.boss ? "10 / 20 / 30…" : cfg.eliteOnly ? (entry.link === "shooter_elite" ? "12（精英槽2）" : "21（精英槽3，逢10波为Boss）") : cfg.w0 < 999 ? String(cfg.w0) : "特殊生成",
-      entry.boss ? "每 10 波替代普通怪与精英，不进入随机池" : cfg.w0 < 999 ? "首次出现的波次" : "由其他敌人的机制生成，不进入随机刷新池",
+      entry.boss ? "10 / 20 / 30…" : entry.spawnWave !== undefined ? String(entry.spawnWave) : cfg.w0 < 999 ? String(cfg.w0) : "特殊生成",
+      entry.boss ? "每 10 波替代普通怪与精英，不进入随机池" : entry.spawnHint ?? (cfg.w0 < 999 ? "首次进入普通刷新池的波次" : "由其他敌人的机制生成，不进入随机刷新池"),
     ],
     [
       "初始权重",
-      cfg.wt > 0 ? String(cfg.wt) : "—",
-      "刷新池中的基础权重，后期会随波次变化",
+      entry.elite || entry.boss || cfg.w0 >= 999 ? "不进入普通池" : cfg.wt > 0 ? String(cfg.wt) : "—",
+      entry.elite ? "由精英槽位决定物种，不按基础物种权重随机抽取" : "实际普通刷新权重随波次主题变化",
     ],
   ];
   if (entry.elite)
     rows.push([
       "精英强化",
       "生命 ×5 · 攻击 ×1.6 · 移速 ×0.8 · 半径 ×1.8",
-      "普通宝箱 50% 概率（品质祝福）；经验 25+(波次-1)×4",
+      `普通宝箱 ${Math.round(ELITE_BOX_DROP_RATE*100)}% 概率（品质祝福），血包与经验必掉；分裂词缀产生非精英基础物种且无掉落`,
     ]);
   return `<div class="cx-d-stats">
     <div class="cx-d-stats-title">怪物属性</div>
@@ -145,6 +146,7 @@ export class CodexUI {
     this.selected = null;
     element("ov-codex").classList.remove("hidden");
     this.render();
+    element("codex-grid").scrollTop = 0;
   }
 
   close(): void {
@@ -161,6 +163,7 @@ export class CodexUI {
     this.filter = group as Filter;
     this.selected = null;
     this.render();
+    element("codex-grid").scrollTop = 0;
   }
 
   private pickEntry(event: MouseEvent): void {
@@ -173,43 +176,70 @@ export class CodexUI {
     this.render();
   }
 
-  private visibleEntries(): readonly CodexEntry[] {
-    if (this.filter === ALL) return CODEX_ENTRIES;
-    if (this.filter === ENEMY) return ENEMY_ENTRIES;
-    if (this.filter === WEAPON) return WEAPON_ENTRIES;
-    return TALENT_ENTRIES.filter((entry) => entry.group === this.filter);
+  private visibleEntries(filter: Filter = this.filter): readonly CodexEntry[] {
+    if (filter === ALL) return CODEX_ENTRIES;
+    if (filter === ENEMY) return ENEMY_ENTRIES;
+    if (filter === WEAPON) return WEAPON_ENTRIES;
+    return CODEX_ENTRIES.filter(entry => entry.group === filter);
   }
 
-  private bucketFor(
-    group: Filter,
-    progress: CodexProgress,
-  ): { unlocked: number; total: number } {
-    if (group === ALL)
-      return {
-        unlocked: progress.unlocked + progress.enemies.unlocked + WEAPON_ENTRIES.length,
-        total: progress.total + progress.enemies.total + WEAPON_ENTRIES.length,
-      };
-    if (group === ENEMY) return progress.enemies;
-    if (group === WEAPON) return {unlocked:WEAPON_ENTRIES.length,total:WEAPON_ENTRIES.length};
-    return progress.byGroup[group] ?? { unlocked: 0, total: 0 };
+  /** Reference pages are always readable, separate from earned collection progress. */
+  private countLabel(entries: readonly CodexEntry[]): string {
+    const references = entries.filter(entry => entry.cat === "weapon").length;
+    const collection = entries.filter(entry => entry.cat !== "weapon");
+    const unlocked = collection.filter(entry => this.core.codex.isUnlocked(entry.id)).length;
+    return [references ? `资料 ${references}` : "", collection.length ? `已收集 ${unlocked}/${collection.length}` : ""].filter(Boolean).join(" · ");
+  }
+
+  private sectionHtml(title: string, entries: readonly CodexEntry[]): string {
+    if (!entries.length) return "";
+    const categories: readonly [string, (entry: CodexEntry) => boolean][] = [
+      ["武器介绍", entry => entry.cat === "weapon" && entry.referenceKind === "overview"],
+      ["武器升级", entry => entry.cat === "weapon" && entry.referenceKind === "upgrade"],
+      ["机制说明", entry => entry.cat === "weapon" && entry.referenceKind === "mechanic"],
+      ["天赋", entry => entry.cat === "talent"],
+      ["敌人", entry => entry.cat === "enemy"],
+    ];
+    return `<section class="cx-section"><h3 class="cx-section-title">${title}<span>${this.countLabel(entries)}</span></h3>${categories.map(([label, matches]) => {
+      const items = entries.filter(matches);
+      return items.length ? `<h4 class="cx-section-kind">${label} · ${items.length}</h4><div class="cx-section-grid">${items.map(entry => this.cellHtml(entry)).join("")}</div>` : "";
+    }).join("")}</section>`;
+  }
+
+  private groupedEntriesHtml(): string {
+    const entries = this.visibleEntries();
+    const weapons = (Object.keys(CODEX_WEAPONS) as CodexWeaponId[]).map(id => {
+      const weapon = CODEX_WEAPONS[id];
+      return this.sectionHtml(`${weapon.icon} ${weapon.group} · ${weapon.name}`, entries.filter(entry => entry.weapon === id));
+    }).join("");
+    const shared = [...new Set(entries.filter(entry => entry.cat === "talent" && !entry.weapon).map(entry => entry.group ?? "通用"))]
+      .map(group => this.sectionHtml(`${group} · 共通天赋`, entries.filter(entry => entry.cat === "talent" && !entry.weapon && (entry.group ?? "通用") === group))).join("");
+    const enemies = entries.filter(entry => entry.cat === "enemy");
+    return weapons + shared +
+      this.sectionHtml("普通怪", enemies.filter(entry => !entry.elite && !entry.boss && (ETYPES[entry.link ?? ""]?.w0 ?? 999) < 999)) +
+      this.sectionHtml("衍生怪", enemies.filter(entry => !entry.elite && !entry.boss && (ETYPES[entry.link ?? ""]?.w0 ?? 999) >= 999)) +
+      this.sectionHtml("精英", enemies.filter(entry => entry.elite)) +
+      this.sectionHtml("首领", enemies.filter(entry => entry.boss));
   }
 
   private cellHtml(entry: CodexEntry): string {
     const codex = this.core.codex;
+    const selected = entry.id === this.selected;
+    const selectedClass = selected ? " selected" : "";
     if (!codex.isUnlocked(entry.id)) {
       // 未解锁：灰度剪影 + ???，不暴露描述与数值
       const meta = entry.cat === "enemy" ? "未击杀" : tierName(entry);
-      return `<button class="cx-cell locked" data-id="${entry.id}">
+      return `<button class="cx-cell locked${selectedClass}" data-id="${entry.id}" aria-pressed="${selected}">
         ${iconHtml(entry)}
         <span class="cx-name">???</span>
         <span class="cx-meta">${meta}</span>
       </button>`;
     }
     const meta =
-      entry.cat==='weapon' ? entry.slot??'武器资料' : entry.cat === "enemy"
+      entry.cat==='weapon' ? entry.slot ?? '武器资料' : entry.cat === "enemy"
         ? `击杀 ${codex.killCount(entry.id)}`
         : `${tierName(entry)} · Lv.${codex.maxLevel(entry.id)}`;
-    return `<button class="cx-cell" data-id="${entry.id}" style="border-color:${accentColor(entry)}">
+    return `<button class="cx-cell${selectedClass}" data-id="${entry.id}" aria-pressed="${selected}" style="border-color:${accentColor(entry)}">
       ${iconHtml(entry)}
       <span class="cx-name" style="color:${accentColor(entry)}">${entry.name}</span>
       <span class="cx-meta">${meta}</span>
@@ -220,17 +250,15 @@ export class CodexUI {
     const codex = this.core.codex;
     const progress = codex.progress();
     element("codex-progress").textContent =
-      `天赋 ${progress.unlocked} / ${progress.total} ｜ 敌人 ${progress.enemies.unlocked} / ${progress.enemies.total}`;
+      `天赋 ${progress.unlocked} / ${progress.total} ｜ 敌人 ${progress.enemies.unlocked} / ${progress.enemies.total} ｜ 武器资料 ${WEAPON_ENTRIES.length}（直接查看）`;
 
     element("codex-tabs").innerHTML = FILTERS.map((group) => {
-      const bucket = this.bucketFor(group, progress);
+      const count = this.countLabel(this.visibleEntries(group));
       const active = group === this.filter ? " active" : "";
-      return `<button class="cx-tab${active}" data-group="${group}">${group}<span>${bucket.unlocked}/${bucket.total}</span></button>`;
+      return `<button class="cx-tab${active}" data-group="${group}" aria-pressed="${group === this.filter}">${group}<span>${count}</span></button>`;
     }).join("");
 
-    element("codex-grid").innerHTML = this.visibleEntries()
-      .map((entry) => this.cellHtml(entry))
-      .join("");
+    element("codex-grid").innerHTML = this.groupedEntriesHtml();
 
     this.renderDetail();
   }
@@ -263,7 +291,7 @@ export class CodexUI {
     }
 
     const meta =
-      entry.cat==='weapon' ? entry.slot??'武器资料' : entry.cat === "enemy"
+      entry.cat==='weapon' ? `${entry.weapon ? CODEX_WEAPONS[entry.weapon].name : entry.group} · ${entry.slot ?? '武器资料'} · 直接查看` : entry.cat === "enemy"
         ? `${entry.boss ? "首领" : "敌人"} · 累计击杀 ${codex.killCount(entry.id)}`
         : `${tierName(entry)} · ${entry.group ?? ""}${chainMeta(entry) ? ` · ${chainMeta(entry)}` : ""} · 历史最高 Lv.${codex.maxLevel(entry.id)}`;
     detail.innerHTML = `

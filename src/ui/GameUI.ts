@@ -2,6 +2,7 @@ import { BOSS, isBossWave } from "../game/data/boss";
 import { buildDomainStats } from './DomainStats';
 import { isDomain } from '../game/core/DomainSystem';
 import { DOMAIN_UNLOCK_LEVELS } from '../game/data/domain';
+import { DOMAIN_TUTORIAL_STEPS as DS } from '../game/data/domainTutorial';
 import { LASER, LASER_UPGRADES, LASER_XP } from "../game/data/laser";
 import { MISSILE, MISSILE_UPGRADES, MISSILE_XP } from "../game/data/missile";
 import { missileDamage, missileRadius, missileRange, missileReload } from "../game/core/MissileSystem";
@@ -214,6 +215,8 @@ export class GameUI {
   private settingsHint = "";
   private tutorialPickOpen = false;
   private shooterPickMode: "start" | "tutorial" = "start";
+  private magePickMode: "start" | "tutorial" = "start";
+  private magePickOpen = false;
   private warriorPickMode: "start" | "tutorial" = "start";
   private tutorialHudEl: HTMLElement | null = null;
   private tutorialSig = "";
@@ -240,6 +243,7 @@ export class GameUI {
         this.keybindsOpen = false;
         this.captureAction = null;
         this.tutorialPickOpen = false;
+        this.magePickOpen = false;
         this.tutorialHudEl?.classList.add("hidden");
         this.tutorialSig = "";
         this.clearResumeCountdown();
@@ -312,9 +316,9 @@ export class GameUI {
       show(this.shooterPickMode === "start" ? "ov-prof-pick" : "ov-tutorial-pick");
     };
     element("btn-pick-mage").onclick = () => this.startProfession("mage");
-    element('btn-mage-arcane').onclick=()=>{hide('ov-mage-weapon');this.startProfession('mage',undefined,undefined,'arcane');};
-    element('btn-mage-domain').onclick=()=>{hide('ov-mage-weapon');this.startProfession('mage',undefined,undefined,'domain');};
-    element('btn-mage-weapon-back').onclick=()=>{hide('ov-mage-weapon');show('ov-prof-pick');};
+    element("btn-mage-arcane").onclick = () => this.chooseMageWeapon("arcane");
+    element("btn-mage-domain").onclick = () => this.chooseMageWeapon("domain");
+    element("btn-mage-weapon-back").onclick = () => this.closeMageWeapon();
     element("btn-pick-warrior").onclick = () =>
       this.openWarriorStyle("start");
     element("btn-prof-pick-back").onclick = () => this.closeProfessionPick();
@@ -337,6 +341,10 @@ export class GameUI {
     element("btn-tutorial-pick-back").onclick = () => this.closeTutorialPick();
     element("btn-tutorial-skip").onclick = () => this.skipTutorial();
     element("btn-tutorial-next").onclick = () => this.core.advanceTutorial();
+    element("btn-tutorial-stats").onclick = () => {
+      if (this.core.tutorialMode && isDomain(this.core) && this.core.tutorialStep === DS.growth && this.core.state === "play")
+        this.core.toggleStats();
+    };
     element("btn-tutorial-start").onclick = () => this.finishTutorialRun();
     element("btn-changelog").onclick = () => {
       element("changelog-list").innerHTML = CHANGELOG.map(
@@ -500,6 +508,7 @@ export class GameUI {
     this.keybindsOpen = false;
     this.captureAction = null;
     this.tutorialPickOpen = false;
+    this.magePickOpen = false;
     this.tutorialHudEl?.classList.add("hidden");
     this.tutorialSig = "";
     if (this.lowHpEl) this.lowHpEl.style.opacity = "0";
@@ -2075,7 +2084,10 @@ export class GameUI {
     shooterWeapon?: ShooterWeapon,
     mageWeapon?: MageWeapon,
   ): void {
-    if (prof==='mage' && !mageWeapon) {hide('ov-prof-pick');show('ov-mage-weapon');return;}
+    if (prof === "mage" && !mageWeapon) {
+      this.openMageWeapon("start");
+      return;
+    }
     if (prof === "shooter" && !shooterWeapon) {
       this.openShooterWeapon("start");
       return;
@@ -2084,8 +2096,28 @@ export class GameUI {
       this.openWarriorStyle("start");
       return;
     }
-    if (mageWeapon==='domain' || tutorialSeen(prof)) this.core.startGame(prof, warriorStyle, shooterWeapon, mageWeapon);
-    else this.core.startTutorial(prof, warriorStyle, shooterWeapon);
+    if (tutorialSeen(prof, mageWeapon)) this.core.startGame(prof, warriorStyle, shooterWeapon, mageWeapon);
+    else this.core.startTutorial(prof, warriorStyle, shooterWeapon, mageWeapon);
+  }
+
+  private openMageWeapon(mode: "start" | "tutorial"): void {
+    this.magePickMode = mode;
+    this.magePickOpen = true;
+    hide(mode === "start" ? "ov-prof-pick" : "ov-tutorial-pick");
+    show("ov-mage-weapon");
+  }
+
+  private closeMageWeapon(): void {
+    this.magePickOpen = false;
+    hide("ov-mage-weapon");
+    show(this.magePickMode === "start" ? "ov-prof-pick" : "ov-tutorial-pick");
+  }
+
+  private chooseMageWeapon(weapon: MageWeapon): void {
+    this.magePickOpen = false;
+    hide("ov-mage-weapon");
+    if (this.magePickMode === "tutorial") this.startTutorialFor("mage", undefined, undefined, weapon);
+    else this.startProfession("mage", undefined, undefined, weapon);
   }
 
   private openShooterWeapon(mode: "start" | "tutorial"): void {
@@ -2143,13 +2175,18 @@ export class GameUI {
     prof: "shooter" | "mage" | "warrior",
     warriorStyle?: WarriorStyle,
     shooterWeapon?: ShooterWeapon,
+    mageWeapon?: MageWeapon,
   ): void {
+    if (prof === "mage" && !mageWeapon) {
+      this.openMageWeapon("tutorial");
+      return;
+    }
     if (prof === "shooter" && !shooterWeapon) {
       this.openShooterWeapon("tutorial");
       return;
     }
     this.closeTutorialPick();
-    this.core.startTutorial(prof, warriorStyle, shooterWeapon);
+    this.core.startTutorial(prof, warriorStyle, shooterWeapon, mageWeapon);
   }
 
   /** 教程内跳过 / 完成后开始正式战斗；两者都记该职业已看。 */
@@ -2165,7 +2202,7 @@ export class GameUI {
   handleTutorialKey(key: string): boolean {
     if (!this.core.tutorialMode || this.core.state !== "play") return false;
     const prof = this.core.tutorialProf ?? this.core.prof;
-    const total = tutorialTotalSteps(prof);
+    const total = tutorialTotalSteps(prof, this.core.mageWeapon);
     const kb = this.core.keybinds;
     if (
       [kb.up, kb.down, kb.left, kb.right, kb.dash, kb.pause, kb.stats].includes(
@@ -2195,7 +2232,7 @@ export class GameUI {
   private completeTutorial(): void {
     if (!this.core.tutorialMode) return;
     const prof = this.core.tutorialProf ?? this.core.prof;
-    if (prof !== "common") markTutorialSeen(prof);
+    if (prof !== "common") markTutorialSeen(prof, this.core.mageWeapon);
     this.tutorialSig = "";
     this.core.finishTutorial();
   }
@@ -2213,21 +2250,23 @@ export class GameUI {
     }
     const prof = this.core.tutorialProf ?? this.core.prof;
     const step = this.core.tutorialStep;
-    const total = tutorialTotalSteps(prof);
+    const total = tutorialTotalSteps(prof, this.core.mageWeapon);
     const kb = this.core.keybinds;
-    const sig = `${prof}:${step}:${this.core.tutorialStepReady ? 1 : 0}:${kb.up}:${kb.down}:${kb.left}:${kb.right}:${kb.dash}`;
+    const sig = `${prof}:${this.core.mageWeapon}:${step}:${this.core.tutorialStepReady ? 1 : 0}:${kb.up}:${kb.down}:${kb.left}:${kb.right}:${kb.dash}:${kb.stats}`;
     if (sig === this.tutorialSig) return;
     this.tutorialSig = sig;
     hud.classList.remove("hidden");
     const content = this.tutorialContent(prof, step);
+    const course = isDomain(this.core) ? "领域师教程" : "新手教程";
     element("tutorial-step").textContent =
-      step >= total ? "新手教程" : `新手教程 · ${step + 1} / ${total}`;
+      step >= total ? course : `${course} · ${step + 1} / ${total}${this.core.tutorialStepReady ? " · 已达成" : ""}`;
     element("tutorial-title").textContent = content.title;
     element("tutorial-body").textContent = content.body;
     element("btn-tutorial-next").classList.toggle(
       "hidden",
       !(this.core.tutorialStepReady && step < total),
     );
+    element("btn-tutorial-stats").classList.toggle("hidden", !(isDomain(this.core) && step === DS.growth));
     element("btn-tutorial-skip").classList.toggle("hidden", step >= total);
     element("btn-tutorial-start").classList.toggle("hidden", step < total);
   }
@@ -2247,6 +2286,36 @@ export class GameUI {
         title: "冲刺",
         body: `按 ${keyLabel(kb.dash)} 冲刺。冲刺期间短暂无敌，被围住时用来脱身。`,
       };
+    if (isDomain(this.core)) {
+      if (step === DS.field) return {
+        title: "领域 · 持续吸入与伤害",
+        body: "靠近木桩，领域会自动落在最近目标附近。观察至少三次持续伤害：吸入途中和中心都会受伤，紫色血条闪动表示实际命中。",
+      };
+      if (step === DS.collapse) return {
+        title: "三域收拢 · 黑洞命中",
+        body: "等三片领域向目标收拢，观察黑洞形成爆发命中木桩。正式对局中，每次形成爆发实际命中才得 1 点武器经验；空落和后续伤害不计。本练习不授经验。",
+      };
+      if (step === DS.slash) return {
+        title: `空间斩 · 临时演示 Lv.${DOMAIN_UNLOCK_LEVELS.slash}`,
+        body: `已临时解锁空间斩。靠近木桩，观察领域内每个目标身上反复出现刀光；实际连续命中五轮后可继续。正式对局从武器 Lv.${DOMAIN_UNLOCK_LEVELS.slash} 解锁。`,
+      };
+      if (step === DS.void) return {
+        title: `无量空处 · 临时演示 Lv.${DOMAIN_UNLOCK_LEVELS.void}`,
+        body: "观察深空领域展开：信息灌满后，木桩会出现青白停滞标记，行动与牵引暂停，恢复后继续吸入。精英停滞更短，Boss 免疫硬控。",
+      };
+      if (step === DS.growth) return {
+        title: "领域值与两种成长",
+        body: `按 ${keyLabel(kb.stats)} 或点“查看属性”，再关闭面板继续。领域值从 100 起，上限 200，独立增强伤害、牵引与控制。脚下从上到下是冲刺、领域数量、武器经验；人物经验来自经验球。`,
+      };
+      if (step === DS.gems) return {
+        title: "人物经验 · 拾取经验球",
+        body: "走近地上的经验球。正式对局中它提升人物等级和属性点；黑洞命中积累的是另一条武器经验。领域师每升人物等级，基础伤害 +0.4、领域值 +0.5。",
+      };
+      return {
+        title: "领域师教程完成",
+        body: "三域收拢、黑洞命中、空间斩与无量已练习完毕。点击开始正式战斗，将以领域武器 Lv.1 开局；教程的临时升级和练习数据不会带入。",
+      };
+    }
     if (step === 2)
       return {
         title: "自动攻击",
@@ -2287,7 +2356,7 @@ export class GameUI {
             body: "大剑自带重斩：每第 3 次挥砍重击，范围 +50%。破甲→剑气→裂地会依次强化它；试着打出一次重斩。",
           };
     }
-    if (step === tutorialGemStep(prof))
+    if (step === tutorialGemStep(prof, this.core.mageWeapon))
       return {
         title: "经验球",
         body: "地上有一颗经验球，走过去即可拾取。正式战斗中清完怪也会掉落，升级和波末会给你属性 / 天赋选择。",
@@ -2420,6 +2489,10 @@ export class GameUI {
 
   /** 关闭最上层覆盖面板；返回是否关闭了某层（键位路由据此决定是否继续处理）。 */
   dismissOverlay(): boolean {
+    if (this.magePickOpen) {
+      this.closeMageWeapon();
+      return true;
+    }
     if (this.tutorialPickOpen) {
       this.closeTutorialPick();
       return true;
@@ -2445,7 +2518,8 @@ export class GameUI {
       this.codex.isOpen ||
       this.settingsOpen ||
       this.keybindsOpen ||
-      this.tutorialPickOpen
+      this.tutorialPickOpen ||
+      this.magePickOpen
     );
   }
 
@@ -2554,6 +2628,7 @@ export class GameUI {
       'ov-mage-weapon',
     ].forEach(hide);
     this.tutorialPickOpen = false;
+    this.magePickOpen = false;
     this.tutorialHudEl?.classList.add("hidden");
     this.tutorialSig = "";
     show("ov-start");

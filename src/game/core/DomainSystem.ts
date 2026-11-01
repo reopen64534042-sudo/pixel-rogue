@@ -102,6 +102,7 @@ export function devSetDomainLevel(this:GameCore,level:number) {
 }
 /** Called once after a black-hole formation burst actually damages at least one target. */
 function gainBlackHoleHitXp(c:GameCore) {
+  if (c.tutorialMode) return;
   const s=c.domain;
   if (s.level>=C.maxLevel) return;
   s.xp++;
@@ -208,6 +209,15 @@ function hit(c:GameCore,e:Enemy,s:DomainSnapshot,amount:number,kind:'dot'|'slash
     e.domainDamageAt=c.time;
     e.domainDamageUntil=c.time+.65;
   }
+  if (c.tutorialMode && result && result.effectiveHpLoss>0) {
+    const progress=c.tutorialDomain;
+    if (kind==='dot' && !hole && c.time>progress.lastFieldHitAt+1e-8) {
+      progress.fieldTicks++;progress.lastFieldHitAt=c.time;
+    }
+    if (kind==='slash' && c.time>progress.lastSlashHitAt+1e-8) {
+      progress.slashTicks++;progress.lastSlashHitAt=c.time;
+    }
+  }
   return result;
 }
 function refund(c:GameCore,s:DomainSnapshot,killed:boolean) {
@@ -297,7 +307,10 @@ function birth(c:GameCore) {
   if (count && domainHas(s,'重力碾压')) layers.push('gravity-crush');
   for (const layer of layers.slice(0,2)) domainSound(c,layer);
   // Award after all formation hits: kills count, crowds count once, and this hole keeps its snapshot.
-  if (count>0) gainBlackHoleHitXp(c);
+  if (count>0) {
+    if (c.tutorialMode) c.tutorialDomain.collapseHit=true;
+    gainBlackHoleHitXp(c);
+  }
 }
 /** Follow a dense nearby group with a bounded speed; never teleport or repeat the birth hit. */
 function moveHole(c:GameCore,h:DomainHole,dt:number) {

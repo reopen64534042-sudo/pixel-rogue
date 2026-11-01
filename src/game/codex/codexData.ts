@@ -1,5 +1,9 @@
 import { UPGRADES } from "../data/talents";
-import { DOMAIN_UPGRADES, DOMAIN_UNLOCK_LEVELS } from '../data/domain';
+import { ETYPES, MONSTER_SKILLS as MS, BULWARK_GUARD, ELITE_DRUMMER_AURA, EYE_SLOW, ELITE_AFFIX_FROM } from "../data/enemies";
+import type { Talent } from "../core/types";
+import { CODEX_WEAPONS, OTHER_WEAPON_ENTRIES, type CodexWeaponId, type WeaponReferenceKind } from "./weaponCodex";
+import { DOMAIN, DOMAIN_UPGRADES, DOMAIN_UNLOCK_LEVELS } from '../data/domain';
+import { DOMAIN_VALUE_GAINS } from '../data/attributeBalance';
 
 /**
  * 图鉴条目模型与静态数据。
@@ -22,6 +26,9 @@ export type CodexCategory = "talent" | "enemy" | 'weapon';
 export interface CodexEntry {
   id: string;
   cat: CodexCategory;
+  /** Weapon ownership is independent of talent slot/category and persisted ids. */
+  weapon?: CodexWeaponId;
+  referenceKind?: WeaponReferenceKind;
   name: string;
   desc: string;
   /** 展示图标：天赋复用 `Talent.ico`；敌人不设 emoji，走贴图 */
@@ -46,6 +53,9 @@ export interface CodexEntry {
   variant?: string;
   elite?: boolean;
   boss?: boolean;
+  /** Explicit encounter schedule for elite slots; their config is not a normal spawn pool. */
+  spawnWave?: number;
+  spawnHint?: string;
   status?: "live" | "planned";
 }
 
@@ -81,6 +91,18 @@ const PROF_GROUP: Record<string, string> = {
   warrior: "战士",
 };
 
+function talentWeapon(talent: Talent): CodexWeaponId | undefined {
+  if (talent.prof === "shooter") return talent.shooterWeapon ?? "charged";
+  if (talent.prof === "mage") return talent.mageWeapon ?? "arcane";
+  if (talent.prof === "warrior") return talent.warriorStyle;
+  return undefined;
+}
+
+function talentSlot(talent: Talent): string | undefined {
+  const weapon = talentWeapon(talent);
+  return [weapon ? CODEX_WEAPONS[weapon].name : undefined, talent.slot].filter(Boolean).join(" · ") || undefined;
+}
+
 export const TALENT_ENTRIES: readonly CodexEntry[] = UPGRADES.filter(
   // v165：旧表与退役卡已从 UPGRADES 删除，图鉴同步不再生成条目。
   // 旧存档里的已解锁键仍由 CodexStore 原样保留，不覆盖、不损坏。
@@ -97,7 +119,8 @@ export const TALENT_ENTRIES: readonly CodexEntry[] = UPGRADES.filter(
     tier: u.t,
     group: (u.prof && PROF_GROUP[u.prof]) || u.cat,
     prof: u.prof,
-    slot: u.mageWeapon==='domain' ? '坍缩领域 · '+u.slot : u.shooterWeapon === "laser" ? "激光 · " + u.slot : u.shooterWeapon === "missile" ? "导弹 · " + u.slot : u.slot,
+    weapon: talentWeapon(u),
+    slot: talentSlot(u),
     layer: u.layer,
     variant: u.variant,
     status: "live",
@@ -122,15 +145,15 @@ export function enemyId(key: string): string {
  */
 export const ENEMY_ENTRIES: readonly CodexEntry[] = [
   { id: enemyId("lobber"), cat: "enemy", name: "熔岩投手", spr: "lobber", link: "lobber", status: "live",
-    desc: "第15波解锁。0.8秒圆形落点预警后炮击，留下持续3秒的火地；保持移动并绕开火地。" },
+    desc: `第${ETYPES.lobber.w0}波解锁。圆形落点预警${MS.lob.windup}秒后造成火焰炮击，爆炸半径${MS.lob.radius}px；留下半径${MS.lob.groundRadius}px、持续${MS.lob.groundLife}秒的火地，每${MS.lob.tick}秒结算。技能冷却${MS.lob.cooldown}秒；保持移动并绕开火地。` },
   { id: enemyId("bulwark"), cat: "enemy", name: "晶甲虫", spr: "bulwark", link: "bulwark", status: "live",
-    desc: "第16波解锁。正面120°护盾减伤60%，真实伤害和持续伤害忽略方向护盾。短距突进前有0.6秒预警，结束后护盾关闭0.8秒。绕侧或抓住破绽。" },
+    desc: `第${ETYPES.bulwark.w0}波解锁。正面${Math.round(BULWARK_GUARD.arc*180/Math.PI)}°方向护盾减伤${Math.round((1-BULWARK_GUARD.mul)*100)}%，真实伤害与持续伤害忽略方向护盾；忽略方向护盾不等于忽略护甲。短距突进预警${MS.thrust.windup}秒，冲出${MS.thrust.distance}px，结束后护盾关闭${MS.thrust.guardDown}秒。绕侧或抓住破绽输出。` },
   { id: enemyId("tether"), cat: "enemy", name: "缚电水母", spr: "tether", link: "tether", status: "live",
-    desc: "第19波解锁。0.8秒直线预警后，沿锁定方向持续放电1.2秒，每0.3秒检查一次；横移出线可躲避，直接受击或硬控制可打断。" },
-  { id: enemyId("shooter_elite"), cat: "enemy", name: "飞行眼魔", spr: "shooter_elite", link: "shooter_elite", elite: true, status: "live",
-    desc: "第12波起的第二精英槽位。凝视射线与重力塌缩都有预警，命中减速30%持续2秒；近身时向外闪烁140px。分裂词缀产生普通射手。" },
-  { id: enemyId("drummer_elite"), cat: "enemy", name: "战鼓祭司", spr: "drummer_elite", link: "drummer_elite", elite: true, status: "live",
-    desc: "第21波起的第三精英槽位（第20波为Boss）。140px内友军+20%移速和伤害，不叠加；预警0.7秒后释放150px音爆环，经过的友军获得3秒移速强化。" },
+    desc: `第${ETYPES.tether.w0}波解锁。直线预警${MS.tether.windup}秒后，沿锁定方向持续放电${MS.tether.duration}秒；光束长${MS.tether.length}px、宽${MS.tether.width}px，每${MS.tether.tick}秒检查一次。横移出线可躲避，直接受击或硬控制可打断蓄力与持续放电。` },
+  { id: enemyId("shooter_elite"), cat: "enemy", name: "飞行眼魔", spr: "shooter_elite", link: "shooter_elite", elite: true, spawnWave: 12, spawnHint: "非Boss波的第二精英槽；不由普通刷新池抽取", status: "live",
+    desc: `第12波起占第二精英槽，Boss波不出现。凝视射线预警${MS.gaze.windup}秒，长${MS.gaze.length}px、宽${MS.gaze.width}px；重力塌缩预警${MS.collapse.windup}秒、半径${MS.collapse.radius}px，两者造成雷电伤害，实际受伤后减速${Math.round(EYE_SLOW.factor*100)}%持续${EYE_SLOW.duration}秒。近身时预警${MS.blink.windup}秒后向外闪烁${MS.blink.distance}px。分裂词缀产生普通射手。` },
+  { id: enemyId("drummer_elite"), cat: "enemy", name: "战鼓祭司", spr: "drummer_elite", link: "drummer_elite", elite: true, spawnWave: 21, spawnHint: "非Boss波的第三精英槽；第20波为Boss，首次在第21波出现", status: "live",
+    desc: `第21波起占第三精英槽，Boss波不出现。${ELITE_DRUMMER_AURA.radius}px内友军移速+${Math.round((ELITE_DRUMMER_AURA.speedMul-1)*100)}%、伤害+${Math.round((ELITE_DRUMMER_AURA.dmgMul-1)*100)}%，光环同项取最高、不叠加。预警${MS.sonic.windup}秒后释放半径${MS.sonic.radius}px的物理音爆环，经过的友军获得${MS.sonic.rally}秒移速强化。分裂词缀产生普通战鼓手。` },
   {
     id: enemyId("boss_three"), cat: "enemy", name: "三首巨兽", spr: "boss_three", link: "boss_three", boss: true,
     desc: "每 10 波出现的首领。70% / 35% 生命切换火焰、冰霜、雷霆首；转阶段短暂无敌。免疫硬控与击退、减速效果减半；冲锋结束后硬直 1 秒，承伤 +15%。冰环贴身可躲，雷击落点锁定施放位置。阶段随从无经验和掉落。必掉 2 普通宝箱、1 血包及 8 倍精英经验。",
@@ -239,21 +262,26 @@ export const ENEMY_ENTRIES: readonly CodexEntry[] = [
     id: enemyId("brute_elite"),
     cat: "enemy",
     name: "岩石巨兽",
-    desc: "近战精英：120px内触发0.7秒践踏预警，80px内造成物理伤害并击退80px，冷却6秒。生命 ×5、攻击 ×1.6；第8波起携带词缀，普通宝箱50%概率，血包与经验必掉。",
+    desc: `近战精英，第4波首次出现。${MS.stomp.range}px内触发${MS.stomp.windup}秒践踏预警，半径${MS.stomp.radius}px内造成物理伤害，实际受伤时击退${MS.stomp.knock}px，冷却${MS.stomp.cooldown}秒。生命×5、攻击×1.6；第${ELITE_AFFIX_FROM}波起携带词缀。`,
     spr: "brute_elite",
     link: "brute",
     elite: true,
+    spawnWave: 4,
+    spawnHint: "第一精英槽：第4、8波及第12波起的非Boss波",
     status: "live",
   },
 ];
 
 /** Readable reference entries; do not add weapon references to saved talent progress. */
 export const WEAPON_ENTRIES:readonly CodexEntry[]=[
-  {id:'w:domain',cat:'weapon',name:'坍缩领域',icon:'✦',group:'法师',slot:'领域武器',status:'live',
+  ...OTHER_WEAPON_ENTRIES,
+  {id:'w:domain',cat:'weapon',weapon:'domain',referenceKind:'overview',prof:'mage',name:'坍缩领域',icon:'✦',group:'法师',slot:'领域武器',status:'live',
     desc:`向最近敌人部署领域，落地首跳后每0.25秒持续伤害。三领域合成优先锁定范围内可攻击Boss，0.35秒收拢跟随目标。武器仅在黑洞形成落地的爆发实际命中至少一个目标后+1经验；同次多人仍只计1点，空落、普通领域、后续跳伤或斩击不给经验。Lv.1–4伤害倍率0.80/0.97/1.14/1.31，Lv.5起回原曲线，满级×2.32。Lv.${DOMAIN_UNLOCK_LEVELS.slash}固定连斩、Lv.${DOMAIN_UNLOCK_LEVELS.void}固定无量；Lv.2–3先取得基础升级，满级全拿。人物每级基础伤害+0.4/领域值+0.5，领域值强化+6/+9/+12/+18、上限200。`},
-  {id:'w:domain-hole',cat:'weapon',name:'黑洞',icon:'🌀',group:'法师',slot:'领域技能',status:'live',
-    desc:'形成时 2DW 引力主爆发（可暴击）+0.4DW 非暴击真伤+min(4%伤前生命,1DW) 非暴击引力生命压缩，再各乘一次领域倍率M；W为武器等级倍率。基础持续1秒，每0.2秒造成0.12DWM。黑洞以24px/s缓慢巡游，优先追向240px内较密集的敌群；引力增幅后30px/s。实际伤害/牵引/全域空间斩跟随当前位置，不重复形成爆发，不刷新寿命；无目标停留。生命压缩比例保持4%，仅攻击上限随W成长，不吃B/F/暴击或全局增伤。'},
-  ...DOMAIN_UPGRADES.map(u=>({id:`w:domain-${u.id}`,cat:'weapon' as const,name:u.name,icon:'🔮',group:'法师',slot:`领域升级 · Lv.${u.minLevel} 起`,desc:u.desc,status:'live' as const})),
+  {id:'w:domain-hole',cat:'weapon',weapon:'domain',referenceKind:'mechanic',prof:'mage',name:'黑洞',icon:'🌀',group:'法师',slot:'领域技能',status:'live',
+    desc:'形成时 2DW 引力主爆发（可暴击）+0.4DW 非暴击真伤+min(4%伤前生命,1DW) 非暴击引力生命压缩，再各乘一次领域倍率M；D为人物基础伤害，W为武器伤害倍率，M为领域值除以100。基础持续1秒，每0.2秒造成0.12DWM。黑洞以24px/s缓慢巡游，优先追向240px内较密集的敌群；引力增幅后30px/s。实际伤害/牵引/全域空间斩跟随当前位置，不重复形成爆发，不刷新寿命；无目标停留。4%是领域值100时的基准比例，攻击上限随W成长；生命压缩不受捕获质量、质量聚焦、暴击或全局增伤影响。'},
+  {id:'w:domain-value',cat:'weapon',weapon:'domain',referenceKind:'mechanic',prof:'mage',name:'领域值',icon:'🔮',group:'法师',slot:'独立属性',status:'live',
+    desc:`基础${DOMAIN.valueBase}，上限${DOMAIN.valueCap}；倍率为领域值÷100，与攻击和全局增伤独立。增强已解锁的领域伤害、牵引、控制及辅助效果，各项只应用一次；不改变范围、施放间隔、持续时间、领域数量或坍缩锁。属性强化按品质增加${DOMAIN_VALUE_GAINS.join(' / ')}；减速、硬控、护盾与回复仍受各自最终上限约束。`},
+  ...DOMAIN_UPGRADES.map(u=>({id:`w:domain-${u.id}`,cat:'weapon' as const,weapon:'domain' as const,referenceKind:'upgrade' as const,prof:'mage',name:u.name,icon:'🔮',group:'法师',slot:`领域升级 · Lv.${u.minLevel} 起`,desc:u.desc,status:'live' as const})),
 ];
 export const CODEX_ENTRIES: readonly CodexEntry[] = [
   ...TALENT_ENTRIES,

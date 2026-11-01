@@ -56,7 +56,7 @@
 .codex-grid {
   display: grid;
   gap: 0.9vmin;
-  grid-template-columns: repeat(auto-fill, minmax(13vmin, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   /*
    * 高度随内容、超出上限才滚动，**不能用 flex:1 拉伸**：
    * 条目少时（如 6 个敌人只占一行）拉伸出的空白区会被 Chromium 重复绘制，
@@ -78,7 +78,38 @@
 .codex-grid::-webkit-scrollbar-track {
   background: transparent;
 }
+/* Consistent weapon sections on All / profession / weapon tabs. */
+.cx-section { min-width: 0; text-align: left; }
+.cx-section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6vmin 1.4vmin;
+  margin: 1.2vmin 0 0;
+  padding: 0.7vmin 0;
+  border-bottom: 1px solid #3d4a7a;
+  color: #c7cff2;
+  font-size: clamp(12px, 1.6vmin, 18px);
+}
+.cx-section-title span, .cx-section-kind {
+  color: #9aa3c7;
+  font-size: clamp(10px, 1.2vmin, 14px);
+  font-weight: normal;
+}
+.cx-section-kind { margin: 0.9vmin 0 0.5vmin; }
+.cx-section-grid {
+  display: grid;
+  gap: 0.9vmin;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13vmin), 1fr));
+}
+.cx-cell.selected, .cx-cell:focus-visible {
+  outline: 2px solid #ffd24a;
+  outline-offset: 1px;
+}
 .cx-cell {
+  min-width: 0;
+  overflow-wrap: anywhere;
   align-items: center;
   background: #161a2e;
   border: 0.3vmin solid #3d4a7a;

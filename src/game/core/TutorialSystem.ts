@@ -1,15 +1,19 @@
-import type { Profession, ShooterWeapon, WarriorStyle } from "./types";
+import type { MageWeapon, Profession, ShooterWeapon, WarriorStyle } from "./types";
 import type { GameCore } from "./GameCore";
 import { WORLD, clamp } from "../data/constants";
 import { WARRIOR_BALANCE } from "../data/warriorBalance";
+import { DOMAIN_UNLOCK_LEVELS, createDomainState } from "../data/domain";
+import { DOMAIN_TUTORIAL_STEPS as DS, createDomainTutorialProgress } from "../data/domainTutorial";
+import { clearDomainTransient, isDomain } from "./DomainSystem";
 
-/** 教程经验球步骤：战士多一个核心演示步，所以整体后移一位。 */
-export function tutorialGemStep(prof: string | null): number {
+/** 武器专属课排在拾取经验球之前；不改变其他职业的既有步骤。 */
+export function tutorialGemStep(prof: string | null, mageWeapon: MageWeapon = "arcane"): number {
+  if (prof === "mage" && mageWeapon === "domain") return DS.gems;
   return prof === "warrior" ? 5 : 4;
 }
 
-export function tutorialTotalSteps(prof: string | null): number {
-  return tutorialGemStep(prof) + 1;
+export function tutorialTotalSteps(prof: string | null, mageWeapon: MageWeapon = "arcane"): number {
+  return tutorialGemStep(prof, mageWeapon) + 1;
 }
 
 /**
@@ -19,7 +23,8 @@ export function tutorialTotalSteps(prof: string | null): number {
  * 放几个 0 伤害高血量木桩。完成或跳过后直接 startGame(prof) 正式开局，
  * 练习场的经验/构筑不会带进正式局。
  *
- * 步骤：0 移动 → 1 冲刺 → 2 自动攻击命中 → 3 职业课 → 4 经验球 → 5 完成。
+ * 基础步骤：移动 → 冲刺 → 自动攻击命中 → 职业课 → 经验球 → 完成。
+ * 领域师：移动 → 冲刺 → 持续伤害 → 黑洞命中 → 连斩 → 无量 → 属性面板 → 经验球。
  * 敌人 0 伤害、无掉落；玩家不会在教程里死亡。
  *
  * 每步条件满足后**不自动推进**：HUD 出现「下一步」按钮，由玩家点击进入下一步。
@@ -30,8 +35,9 @@ export function startTutorial(
   prof: Profession,
   warriorStyle: WarriorStyle = "katana",
   shooterWeapon: ShooterWeapon = "charged",
+  mageWeapon: MageWeapon = "arcane",
 ) {
-  this.resetGame(prof, warriorStyle, shooterWeapon);
+  this.resetGame(prof, warriorStyle, shooterWeapon, mageWeapon);
   this.tutorialMode = true;
   this.tutorialStep = 0;
   this.tutorialStepReady = false;
@@ -74,7 +80,7 @@ export function startTutorial(
   }
   // 法师教程临时给火元素：正式开局会重置并要求选择第一元素。
   // 否则练习场没有可施放元素，命中/法阵教学步骤永远无法完成。
-  if (prof === "mage") {
+  if (prof === "mage" && mageWeapon === "arcane") {
     this.mageElements = ["fire"];
     this.mageElementPickPending = null;
     this.mageElementPickQueue = [];
@@ -85,7 +91,10 @@ export function startTutorial(
     this.mageStaffLevel = 1;
     this.mageStaffXp = 0;
   }
+  if (isDomain(this)) this.audio.warmDomain();
   this.view.started();
+  // 领域教程先练移动/冲刺；进入输出课时再放木桩，避免提前演完机制。
+  if (isDomain(this)) return;
   const p = this.player;
   if (prof === "mage") {
     // 三只木桩靠在一起，方便教「法阵落最近目标 + 一次命中多个」。
@@ -119,15 +128,46 @@ function spawnDummy(this: GameCore, x: number, y: number) {
   e.resistances = {};
 }
 
+/** Each domain lesson starts with fresh targets and snapshots at the player's position. */
+function prepareDomainLesson(core: GameCore): void {
+  clearDomainTransient(core);
+  core.domain = createDomainState();
+  core.tutorialDomain = createDomainTutorialProgress();
+  core.enemies = [];
+  core.texts = [];
+  core.player.dashT = -1;
+  const step = core.tutorialStep;
+  // A legal, fixed demonstration build. These grants never enter the real run.
+  if (step >= DS.slash) {
+    core.domain.level = DOMAIN_UNLOCK_LEVELS.slash;
+    core.domain.upgrades = ["radius", "pull", "slash"];
+  }
+  if (step >= DS.void) {
+    core.domain.level = DOMAIN_UNLOCK_LEVELS.void;
+    core.domain.upgrades.push("void");
+  }
+  if (step < DS.field || step > DS.void) return;
+  const p = core.player;
+  const direction = p.x + 110 < WORLD.w - 20 ? 1 : -1;
+  for (const [dx, dy] of [[65, 0], [95, -28], [95, 28]])
+    spawnDummy.call(core, clamp(p.x + direction * dx, 20, WORLD.w - 20), clamp(p.y + dy, 20, WORLD.h - 20));
+}
+
+/** Both keyboard and pause-menu entry count; progression waits until play resumes. */
+export function noteTutorialStatsOpened(core: GameCore): void {
+  if (core.tutorialMode && isDomain(core) && core.tutorialStep === DS.growth)
+    core.tutorialDomain.statsOpened = true;
+}
+
 /** 每帧检查教程条件；满足后置 ready，等玩家点「下一步」。 */
-export function updateTutorial(this: GameCore, _dt: number) {
+export function updateTutorial(this: GameCore, dt: number) {
   if (!this.tutorialMode) return;
   const prof = this.tutorialProf ?? this.prof;
-  const total = tutorialTotalSteps(prof);
+  const total = tutorialTotalSteps(prof, this.mageWeapon);
   if (this.tutorialStep >= total || this.tutorialStepReady) return;
   const p = this.player;
   const step = this.tutorialStep;
-  const gemStep = tutorialGemStep(prof);
+  const gemStep = tutorialGemStep(prof, this.mageWeapon);
   let done = false;
 
   if (step === 0) {
@@ -136,6 +176,16 @@ export function updateTutorial(this: GameCore, _dt: number) {
       Math.hypot(p.x - this.tutorialStartX, p.y - this.tutorialStartY) >= 40;
   } else if (step === 1) {
     done = this.tutorialDashed;
+  } else if (isDomain(this) && step < gemStep) {
+    const progress = this.tutorialDomain;
+    if (step === DS.field) done = progress.fieldTicks >= 3;
+    else if (step === DS.collapse) done = progress.collapseHit;
+    else if (step === DS.slash) done = progress.slashTicks >= 5;
+    else if (step === DS.void) {
+      if (this.enemies.some(e => !e.dead && (e.domainStunUntil ?? 0) > this.time))
+        progress.overloadTime += dt;
+      done = progress.overloadTime >= 0.45;
+    } else if (step === DS.growth) done = progress.statsOpened;
   } else if (step === 2) {
     done = this.tutorialHit;
   } else if (step === 3) {
@@ -178,7 +228,7 @@ export function updateTutorial(this: GameCore, _dt: number) {
 export function advanceTutorial(this: GameCore) {
   if (!this.tutorialMode || !this.tutorialStepReady) return false;
   const prof = this.tutorialProf ?? this.prof;
-  const total = tutorialTotalSteps(prof);
+  const total = tutorialTotalSteps(prof, this.mageWeapon);
   if (this.tutorialStep >= total) return false;
   this.tutorialStep += 1;
   this.tutorialStepReady = false;
@@ -195,7 +245,8 @@ export function advanceTutorial(this: GameCore) {
     this.warriorFlowT = 0;
     this.warriorSwingCount = 0;
   }
-  if (step === tutorialGemStep(prof)) this.tutorialGemPicked = false;
+  if (isDomain(this)) prepareDomainLesson(this);
+  if (step === tutorialGemStep(prof, this.mageWeapon)) this.tutorialGemPicked = false;
   return true;
 }
 
@@ -203,5 +254,5 @@ export function advanceTutorial(this: GameCore) {
 export function finishTutorial(this: GameCore) {
   if (!this.tutorialMode) return;
   const prof = this.tutorialProf ?? this.prof;
-  this.startGame(prof, this.warriorStyle, this.shooterWeapon);
+  this.startGame(prof, this.warriorStyle, this.shooterWeapon, this.mageWeapon);
 }
