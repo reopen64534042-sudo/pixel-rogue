@@ -77,7 +77,7 @@ function enemyStatsHtml(entry: CodexEntry): string {
     ["抗性", resText, "正值减伤、负值增伤（弱点）；减伤上限 75%、弱点下限 -50%；— 表示无抗性"],
     [
       "解锁波次",
-      entry.boss ? "10 / 20 / 30…" : cfg.w0 < 999 ? String(cfg.w0) : "特殊生成",
+      entry.boss ? "10 / 20 / 30…" : cfg.eliteOnly ? (entry.link === "shooter_elite" ? "12（精英槽2）" : "21（精英槽3，逢10波为Boss）") : cfg.w0 < 999 ? String(cfg.w0) : "特殊生成",
       entry.boss ? "每 10 波替代普通怪与精英，不进入随机池" : cfg.w0 < 999 ? "首次出现的波次" : "由其他敌人的机制生成，不进入随机刷新池",
     ],
     [

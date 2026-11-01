@@ -4,11 +4,11 @@ import { MISSILE_DAMAGE as MD } from "../data/combatBalance";
 import { missileArcDamage, missileBlastDamage, missileBurnDps, missileDecodeDamage,
   missileDotAmount, missileGroundPower, missileHealing, missileResonanceDamage } from "./DamageMath";
 import type { GameCore } from "./GameCore";
-import type { CombatStatsSnapshot, DamageSource, Enemy } from "./types";
+import type { CombatStatsSnapshot, DamageSource, Enemy, Point } from "./types";
 
 function auxiliary(core: GameCore, enemy: Enemy, raw: number, volley: MissileVolley,
-  type: "physical" | "lightning" | "true", src: DamageSource) {
-  return core.hurtEnemy(enemy, raw, 0, 0, { type, src, form: "ranged", noCrit: true,
+  type: "physical" | "lightning" | "true", src: DamageSource, origin?: Point) {
+  return core.hurtEnemy(enemy, raw, 0, 0, { type, src, origin, form: "ranged", noCrit: true,
     noOnHit: true, noChain: true, noLifesteal: true, fromExplode: true, attackerStats: volley.stats });
 }
 
@@ -68,7 +68,7 @@ function arcs(core: GameCore, x: number, y: number, hits: readonly Enemy[], v: M
   const roots: Enemy[] = [];
   for (let i = 0; i < M.arcRoots; i++) { const e = next(x, y); if (!e) break; v.arcVisited.add(e); roots.push(e); }
   const hit = (px: number, py: number, e: Enemy, relay: boolean) => {
-    const result = auxiliary(core, e, missileArcDamage(v.damage, relay), v, "lightning", "missileArc");
+    const result = auxiliary(core, e, missileArcDamage(v.damage, relay), v, "lightning", "missileArc", { x: px, y: py });
     if (!result || result.effectiveHpLoss <= 0) return;
     core.missile.arcs.push({ x: px, y: py, x2: e.x, y2: e.y, at: core.time, ...(relay ? { relay: true } : {}) });
     charge(core, e, v, bursts);
@@ -106,6 +106,7 @@ export function detonateMissile(core: GameCore, p: GuidedMissile, direct: Enemy)
     const result = core.hurtEnemy(e, raw, distance ? (e.x - p.x) / distance * knock : 0,
       distance ? (e.y - p.y) / distance * knock : 0, {
         src: micro ? "missileSwarm" : "missileMain", type: ion ? "lightning" : "physical", form: "ranged",
+        origin: p,
         noCrit: !main, critical: main ? v.critical : undefined,
         noOnHit: !(firstContact && e === direct), noChain: !(firstContact && e === direct),
         noLifesteal: true, fromExplode: true, attackerStats: v.stats,
@@ -138,7 +139,7 @@ export function detonateMissile(core: GameCore, p: GuidedMissile, direct: Enemy)
       if (e.dead) continue;
       const d = Math.max(0, Math.hypot(e.x - burst.x, e.y - burst.y) - e.r);
       if (d <= v.resonanceRadius) auxiliary(core, e,
-        missileBlastDamage(missileResonanceDamage(v.damage), 1, d, v.resonanceRadius, false, false), v, "lightning", "missileArc");
+        missileBlastDamage(missileResonanceDamage(v.damage), 1, d, v.resonanceRadius, false, false), v, "lightning", "missileArc", burst);
     }
   }
   if (main && v.traits["余烬滞留"]) s.grounds.push({ x: p.x, y: p.y,

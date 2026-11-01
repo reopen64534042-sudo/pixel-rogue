@@ -1,0 +1,48 @@
+{
+  "tool": "built-in image_gen.imagegen",
+  "date": "2026-11-01",
+  "purpose": "Transparent design references. Shipping sprites are hand-authored native pixel matrices in src/game/data/monsterArt.ts; references are not downsampled into gameplay.",
+  "seed": null,
+  "seedNote": "The built-in tool does not expose a reproducible seed or exact model identifier. Do not invent either.",
+  "images": [
+    {
+      "key": "lobber",
+      "file": "lobber-reference.png",
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Asset type: production sprite reference for an existing top-down 2D pixel action roguelike. Primary request: ONE lava lobber monster, squat dark basalt beetle with six tiny legs, two small dark eyes under brow, large raised orange-red molten magma sac on its BACK, clear golden hot center and dark shell rim. Three-quarter front view from slightly above, facing downward, no props, no floor, no cast shadow. Entire creature centered with transparent space around all sides, genuine transparent alpha background. Extremely simple readable retro pixel art, as if drawn on an exact 16 by 16 logical pixel grid and enlarged using only nearest-neighbor square pixels. Chunky flat clusters, 6 to 8 colors maximum, dark purple-brown outline, orange body highlights and pale gold magma core, no smooth curves, no gradients, no blur, no text, no UI. Preserve a squat insect silhouette, distinct from a round bomb bug."
+    },
+    {
+      "key": "bulwark",
+      "file": "bulwark-reference.png",
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Asset type: transparent sprite reference for top-down pixel action roguelike. Primary request: ONE crystal bulwark beetle monster. Slow stocky six-legged beetle, dark blue segmented abdomen, large convex cyan crystalline shield shell covering FRONT of head, three bright pale-cyan angular crystal plates on the frontal shell, small dark eye slit underneath, body narrower at back. Clearly armored insect, not a humanoid, no weapons. Three-quarter frontal view slightly from above, facing downward. Entire creature centered, empty genuinely transparent background, no ground shadow. Make the design extremely simple and readable as a tiny 16x16 retro pixel sprite, nearest neighbor enlarged square pixel clusters, thick dark purple outline, limited 7-color navy/cyan/ice-white palette. No glow halos outside silhouette, no gradients, no smooth shading, no words, no UI, only one monster."
+    },
+    {
+      "key": "tether",
+      "file": "tether-reference.png",
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Asset type: single transparent monster sprite reference for tiny top-down pixel roguelike. ONE electricity tether jellyfish monster: small floating round dome shaped pale lavender electric jellyfish, broad bell with dark violet lower rim, TWO cyan luminous small eyes on front, exactly four long thin jagged tentacles hanging below, tentacles pale blue with dark purple outline and separated transparent gaps, a small cyan lightning marking inside dome. Three-quarter frontal view slightly from above, facing downward. Entire figure centered with clear margin. Genuinely transparent alpha background, no water, no floor or shadow, no extra objects. Very simple compact retro pixel art designed to read at 16x16 logical pixels, enlarged crisp square pixels, 6 colors maximum, dark purple outlines, muted violet bell, cyan highlights, no smooth gradients, no blur, no halos, no text."
+    },
+    {
+      "key": "shooter_elite",
+      "file": "shooter_elite-reference.png",
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Asset type: single transparent elite monster sprite reference for a top-down pixel roguelike. ONE flying eye demon elite: giant floating single eyeball, pale ivory sclera, vivid green slit iris with dark pupil, thick violet armored eyelids, three short swept-back purple horn-like fins, exactly four short curled dark-purple tentacles below. Intimidating but readable tiny game monster, no humanoid body, no wings. Slightly top-down frontal view, centered entire creature, roughly square silhouette with transparent margin on every side. True transparent alpha background, no ground or shadow. Extremely simple retro pixel art for 24x24 logical sprite, large crisp square clusters enlarged nearest neighbor, 7-color palette of midnight purple, plum, ivory and lime green. No gradients, no blurry glow, no text or symbols or UI, one monster only."
+    },
+    {
+      "key": "drummer_elite",
+      "file": "drummer_elite-reference.png",
+      "selected": false,
+      "transparent_background": true,
+      "prompt": "Use case: stylized-concept. Asset type: single transparent elite monster sprite reference for tiny top-down pixel roguelike. ONE war drum priest elite monster: squat purple-robed goblin shaman, tall split gold ceremonial horn crown, small green face with two narrow yellow eyes in hood, huge round golden war drum strapped across stomach, dark plum drum rim with gold spokes and a small red center. Each little hand holds a short ivory drumstick raised at shoulder level. Small feet visible. Entire centered full body in three-quarter frontal view slightly from above, no floor, no shadow, genuinely transparent alpha background with ample margin. Very simple retro pixel art intended for 24x24 logical grid, crisp chunky square pixels enlarged nearest neighbor. At most 8 colors: dark purple outline, plum and lavender cloth, gold and pale yellow drum/crown, green face. Strong broad shoulder silhouette distinguishes it from normal drummer. No words, no UI, no gradient, no glowing halo, one creature only."
+    },
+    {
+      "key": "drummer_elite",
+      "file": "drummer_elite-final-reference.png",
+      "selected": true,
+      "editTarget": "drummer_elite-reference.png",
+      "transparent_background": true,
+      "prompt": "Use case: precise-object-edit. Edit this single transparent elite war drum priest sprite reference to align with the approved monster document. Keep the centered full-body silhouette, raised ivory drumsticks, large gold-rimmed pale drum and split horned helmet, same chunky pixel art and transparent background. Change all purple/lavender robes to dark oxblood RED cloth, shoulders to CHARCOAL gray armor, and green face to shadowed dark red with gold eyes. The helmet/crown should read as a horned armored helm with gold bone charms. Palette restricted to very dark purple outline #1a0a2a, dark red #3a0d0d, muted red #c05050, charcoal #4a5062, gold #ffd24a, bone #e8e8f0. No purple fabric, no green skin. No added objects, no words, no UI, no floor, preserve transparent alpha."
+    }
+  ]
+}

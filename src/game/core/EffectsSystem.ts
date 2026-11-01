@@ -2,6 +2,7 @@ import { SHAKE_MAX } from "../data/constants";
 import type { GameCore } from "./GameCore";
 
 export function updateEffects(this: GameCore, dt: number) {
+  this.enemyVisualEvents = this.enemyVisualEvents.filter(v => this.time - v.at < v.duration);
   // ---- 粒子 / 飘字 / 闪电 ----
   for (let i = this.parts.length - 1; i >= 0; i--) {
     const q = this.parts[i];

@@ -6,6 +6,16 @@
     "2": "天赋图标，上限 ¥14，抽检 10 张可识别性"
   },
   "assets": [
+    { "key": "lobber", "name": "熔岩投手", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a basalt beetle with a raised orange lava sac on its back" },
+    { "key": "bulwark", "name": "晶甲虫", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a blue beetle with a broad cyan crystal shield shell on its front" },
+    { "key": "tether", "name": "缚电水母", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a violet electric jellyfish with cyan eyes and long separated tentacles" },
+    { "key": "drummer_elite", "name": "战鼓祭司", "size": [24, 24], "cat": "combat", "batch": 1, "prompt": "a dark red war priest with charcoal armor, a gold horned helm and a large pale war drum" },
+    { "key": "splitter", "name": "裂胶史莱姆", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a twin lobed green slime with two cyan cores" },
+    { "key": "splitling", "name": "小史莱姆", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a tiny pale green slime child with a cyan core" },
+    { "key": "charger", "name": "角兽", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a red quadruped with a long ivory forward horn" },
+    { "key": "drummer", "name": "战鼓手", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a small purple robed drummer with a gold drum" },
+    { "key": "spinner", "name": "织网蛛", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a violet eight legged spider with cyan eyes" },
+    { "key": "burrower", "name": "掘地虫", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a brown plated digging insect with ivory claws and gold eyes" },
     { "key": "player", "name": "玩家", "size": [16, 20], "cat": "combat", "batch": 1, "prompt": "a small knight in a gold helmet and blue cape holding a short staff" },
     { "key": "slime", "name": "史莱姆", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a green slime blob with two dark eyes" },
     { "key": "bat", "name": "蝙蝠", "size": [16, 16], "cat": "combat", "batch": 1, "prompt": "a purple bat with spread wings and red eyes" },

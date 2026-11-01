@@ -3,9 +3,25 @@ import { BOSS_DAMAGE } from "../data/combatBalance";
 import { ELITE_XP_STEP } from "../data/constants";
 import type { DamageTypeId } from "../data/damageTypes";
 import type { LaserLane } from "../data/laser";
-import type { Player } from "./types";
+import type { Enemy, Player, Point } from "./types";
 import { LASER_DAMAGE as LD, MISSILE_DAMAGE as MD } from "../data/combatBalance";
 import { COMBAT_BALANCE as CB } from "../data/combatBalance";
+import { ENEMY_SKILL_DAMAGE } from "../data/combatBalance";
+
+export function enemySkillDamage(attack: number, skill: keyof typeof ENEMY_SKILL_DAMAGE, aura = 1, seconds = 1): number {
+  return attack * ENEMY_SKILL_DAMAGE[skill] * aura * seconds;
+}
+
+/** Directional guard affects direct non-true damage; DoT has no incoming direction. */
+export function enemyGuardMultiplier(e: Enemy, origin: Readonly<Point>, type: DamageTypeId, kind: "hit" | "dot"): number {
+  const g = e.guard;
+  if (!g || g.downT > 0 || type === "true" || kind === "dot") return 1;
+  const dx = origin.x - e.x, dy = origin.y - e.y;
+  if (dx * dx + dy * dy < 1e-8) return 1;
+  const angle = Math.atan2(dy, dx);
+  const delta = Math.atan2(Math.sin(angle - g.angle), Math.cos(angle - g.angle));
+  return Math.abs(delta) <= g.arc / 2 ? g.mul : 1;
+}
 import { DOMAIN_DAMAGE as DD } from "../data/combatBalance";
 import { DOMAIN, domainHas, domainUpgrade, type DomainSnapshot } from "../data/domain";
 

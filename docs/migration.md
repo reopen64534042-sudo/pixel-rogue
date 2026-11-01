@@ -1,5 +1,48 @@
 # 迁移记录与验收基线
 
+## PR #234 同步主分支并解决冲突（2026-11-01）
+
+- 怪物扩展dcd7d25与动画/范围调整4747397已推送origin/codex/monster-expansion，PR为https://github.com/reopen64534042-sudo/pixel-rogue/pull/234，目标upstream/main。用户进一步明确允许同步主分支并解决冲突，不包含合并PR到main。
+- 常规合入upstream/main的ecb8c15，保留PR #233的Boss独立生命成长、图鉴说明和数值文档。三处冲突为CHANGELOG.md、src/game/data/changelog.ts、docs/monster-numerics.md：按v169动画→v168新怪→v167首领生命→v166历史顺序保留全部日志，数值快照为18条怪物且包含上游首领生命曲线。
+- 自动合并后核对EnemySystem同时保留精英物种/词缀/动画事件与Boss生成标记，CodexUI同时保留精英槽位与Boss生命说明；Boss动画/特效模块和素材继续不改。合并后typecheck/build/diff检查通过（144模块，仅既有大chunk提醒），以常规合并提交更新同一PR；不强推、不合并PR，旧测试仍留待授权批次。
+
+## 怪物扩展推送与PR准备（2026-11-01）
+
+- 用户认可最终效果，明确授权提交剩余改动、推送并创建PR，不含合并PR。当前独立分支`codex/monster-expansion`，推送至origin，PR目标为upstream/main（reopen64534042-sudo/pixel-rogue）。
+- fetch确认上游新增PR #233的Boss生命成长（v167，ecb8c15）；本次怪物扩展与动画日志顺延为v168/v169，保留dcd7d25原始里程碑提交。素材目录的monsters-v167/monsters-v168是原产物标识，保留路径以免破坏已查看链接。两个既有autostash保持原样。
+- 用户认可的是怪物素材/动态预览及80px践踏范围；不将其扩大为自然对局、性能或完整玩法验收。继续只执行typecheck/build/diff检查，旧测试和parity基线留待授权批次，提交信息与PR中留痕。
+
+## 岩石巨兽践踏范围削弱（v168，2026-11-01）
+
+- 用户查看预览后反馈范围偏大，明确要求削弱。仅将岩石巨兽精英的践踏半径从110px降至80px；触发距离120px、伤害、0.7秒预警、6秒冷却与击退不变。三首巨兽Boss的代码与素材不变。
+- 命中、预警及释放事件共用`MONSTER_SKILLS.stomp.radius`，正式表现随配置自动缩小；离线素材卡的归一化半径从37调至27，使当前预览同步反映本次削弱。图鉴、设计/数值说明与双端更新日志同步。
+- `npm run typecheck`、`npm run build`、`git diff --check`通过（144模块，仅既有Vite大chunk提醒）；23段离线预览与GIF重新导出。未新增/修改测试或基线，相关范围断言留待授权批次。5175服务正常，正式配置已返回80px；Boss三个表现模块与认可提交无差异。
+
+## 普通怪与精英攻击动画特效重做（v168，2026-11-01）
+
+- 已按用户授权将认可的怪物机制和静态素材提交为`dcd7d25`（v167），未推送/创建PR/合并。之后在同一独立任务分支继续动画与VFX，本批保持未提交，供查看动态效果。
+- 17套/204帧原生动作独立于认可的静态PNG，帧0锁定检查全部通过；以实际位移/AI阶段/真实攻击尝试和释放事件取帧。用户后续明确原Boss不用改，已将BossAnimation/BossArt/BossVfx恢复到dcd7d25；Boss动画、特效和图集加载沿用原版。
+- 新增有界`enemyVisualEvents`（最多192），由实际攻击点写入，不推进RNG、不改战斗规则。重开/换波/返回开始/死亡清理，清场收球保留已释放短效果。控制/暂停沿用模拟状态。
+- `MonsterFxRecipes`提供普通/精英像素材质，`MonsterVfx`接入正式绘制。移出draw.ts中的旧攻击块，保留状态染色、血条、玩家技能及UI；敌弹、网、火地、晶盾、通道与词缀走新表现。撤回本轮Boss改动，并移除未使用的新Boss绘制器及预览条目。
+- 23段自包含动态素材预览与48帧GIF/PNG总览位于`docs/previews/monsters-v168`。预览共享正式纯绘制配方，布局/范围归一化，仅为素材编排，不是Core/Phaser运行验收。
+- 最终`npm run typecheck`、`npm run build`、`git diff --check`通过（排除Boss后复核，144模块），仅有既有Vite大chunk提醒。17套204帧产线锁定检查通过，23段/48帧离线总览导出成功；修正形变像素空隙与逐卡裁切，确认认可的静态PNG/原稿/Boss本体图集无差异。不新增/修改测试、不跑Vitest/Playwright；渲染入口/状态形状相关旧断言留待授权批次。浏览器实机、自然对局、性能与视觉舒适度未验收。
+- 用户要求开服务器查看：独立工作区开发服务运行在`http://127.0.0.1:5175/`，独立Vite缓存位于`output/vite-cache-preview`，避开已有5173服务。首页、GameScene模块、普通怪动画条带、原版Boss特效图集和23段预览页HTTP均为200；这些是服务可用性检查，不代替浏览器玩法验收。
+
+## 怪物素材认可与里程碑提交（2026-11-01）
+
+- 用户确认现有怪物素材没有问题，授权先提交v167，并继续重做全部怪物攻击动画与特效。本次授权为本地提交，不含推送、PR或合并。
+- v167提交保留已完成的新怪机制、17张静态素材、来源和预览，以及类型检查/构建/差异检查结果；旧测试断言更新仍留待授权批次。动画/VFX作为下一批改动，保留认可的静态本体与战斗规则。
+
+## 新怪物与精英扩展（v167，2026-11-01）
+
+- 用户指定`E:\AllProjects\pixel-rogue-monster-design`为独立工作区，要求按`docs/elite-and-minion-design.md`添加怪物并升级旧怪美术。检查时原`feat/monster-design`干净，fetch发现上游已到v166，包含Boss/元素法杖/领域师；因此从origin/main创建`codex/monster-expansion`，带入设计稿，保留原设计分支。两个现有autostash不动。未提交、推送、创建PR或合并。
+- 新增3小怪（投手/晶甲虫/水母）与2精英（眼魔/祭司），旧岩石巨兽加践踏。非Boss波精英槽固定，沿用通用倍率/掉落/seed词缀，分裂子体走baseType。W20为Boss独占，三精英组合首次在W21出现。
+- 新行为单独分派，旧十种普通怪AI保持；新增统一方向护盾入口及技能来源坐标，真实与DoT不被护盾减免。新怪硬控打断，水母直接受击打断。眼魔减速与音爆加速为运行态，死亡/重开/换波清理。
+- `HostileHazards.ts`共用Boss/投手地面池，`hazards`与`bossHazards`为同一数组别名；共4片、保存来源与快照，在Simulation独立推进。Boss旧地面更新循环已移出，不能在updateBosses中重复更新。既有Boss源图/图集未修改。
+- 重绘17张普通/子体/精英像素素材，保留5种新怪的内置生图参考与提示词；原生矩阵使用现有色板，产线经过pixelize导出PNG，比较成品与运行时fallback像素一致。预览在`docs/previews/monsters-v167/index.html`，来源在`assets/monsters`。
+- 新怪/精英配置、图鉴18条、说明/双端更新日志同步。旧图鉴数量、精英槽位/词缀、敌人状态/素材尺寸及Boss地面入口相关测试断言可能过期；按2026-10-29裁定不新增/修改测试或parity基线、不运行Vitest/Playwright，留待授权批次。
+- 最终`npm run typecheck`、`npm run build`、`git diff --check`均通过，139模块；仅有Vite既有大chunk提醒。复查修正闪烁落点预览与实际位移一致、自身预警跟随受击位移、线段判定圆端与预警轮廓一致，并用本波词缀记录避免先出精英早死后重复抽词缀。17张素材产线校验与成品/备用矩阵像素一致检查通过。自然对局、TTK/平衡、浏览器视觉、实际控制中断与性能未验收。
+
 ## 领域师提交与上游同步准备（v166，2026-11-01）
 
 - 用户认可最终界面，明确授权同步上游、提交/推送并创建PR；本轮不包含合并PR到main的授权。目标为当前feat/domain-weapon，推送到origin，向upstream/main提出PR。

@@ -1,10 +1,11 @@
 import { preloadBossArt, registerBossPortrait } from "../rendering/BossArt";
+import { MonsterAnimation, preloadMonsterAnimation } from "../rendering/MonsterAnimation";
 import { preloadLaserVfx } from "../rendering/vfx/laser/LaserVfxPhaser";
 import { preloadMissileVfx } from "../rendering/vfx/missile/MissileVfxPhaser";
 import { clearMissileTransient } from "../core/MissileSystem";
 import { DomainCharacter, DOMAIN_CHARACTER, registerDomainCharacter } from '../rendering/characters/DomainCharacter';
 import { DomainNumbers, preloadDomainArt } from '../rendering/DomainRenderer';
-import type { FloatingText } from '../core/types';
+import type { Enemy, FloatingText } from '../core/types';
 import { LaserV137Bridge } from "../rendering/vfx/laser/LaserV137Bridge";
 import { LaserVfxPlayer, type LaserVfxCommand } from "../rendering/vfx/laser/LaserVfxPlayer";
 import { drawLaserVfxPainter } from "../rendering/vfx/laser/LaserVfxPainter";
@@ -90,6 +91,8 @@ export class GameScene extends Phaser.Scene {
   private readonly shooterCharacter = new ShooterCharacter();
   private readonly mageCharacter = new MageCharacter();
   private readonly mageVfx = new MageVfx();
+  private readonly monsterAnimation = new MonsterAnimation();
+  private readonly drawMonster = (e: Enemy) => this.monsterAnimation.draw(this.painter, e);
   private readonly drawCharacter = (x: number, y: number) =>
     this.domainCharacter.draw(this.painter, x, y) || this.katanaCharacter.draw(this.painter, x, y) || this.greatswordCharacter.draw(this.painter, x, y) || this.shooterCharacter.drawBody(this.painter, x, y) || this.mageCharacter.draw(this.painter, x, y);
   private readonly drawShooterWeapon = () => this.shooterCharacter.drawWeapon(this.painter);
@@ -118,6 +121,7 @@ export class GameScene extends Phaser.Scene {
     super("Game");
   }
   preload() {
+    preloadMonsterAnimation(this);
     preloadDomainArt(this);
     preloadBossArt(this);
     preloadLaserVfx(this);
@@ -252,6 +256,7 @@ export class GameScene extends Phaser.Scene {
       this.shooterCharacter.reset();
       this.mageCharacter.reset();
       this.mageVfx.reset();
+      this.monsterAnimation.reset();
       if (import.meta.env.DEV) delete window.__PIXEL_ROGUE__;
     });
     // Explicit test mode only; production bundles contain no control bridge.
@@ -727,6 +732,7 @@ export class GameScene extends Phaser.Scene {
         this.shooterCharacter.capture(this.core);
         this.mageCharacter.capture(this.core);
         this.mageVfx.capture(this.core);
+        this.monsterAnimation.capture(this.core);
         this.captureLaserAnimation();
       });
     else this.clock.reset();
@@ -742,6 +748,7 @@ export class GameScene extends Phaser.Scene {
     this.shooterCharacter.capture(this.core);
     this.mageCharacter.capture(this.core);
     this.mageVfx.capture(this.core);
+    this.monsterAnimation.capture(this.core);
     this.painter.begin();
     this.domainNumbers.begin(this.core.texts);
     if (this.core.state === "start") {
@@ -765,7 +772,7 @@ export class GameScene extends Phaser.Scene {
         Math.round(this.core.cam.x + (shake ? (Math.random() - 0.5) * shake : 0)),
         Math.round(this.core.cam.y + (shake ? (Math.random() - 0.5) * shake : 0)),
       );
-      draw.call(this.core, this.painter, this.drawLaserAnimation, this.drawCharacter, this.drawShooterWeapon, this.drawShooterEcho, this.mageVfx, this.drawDomainNumber);
+      draw.call(this.core, this.painter, this.drawLaserAnimation, this.drawCharacter, this.drawShooterWeapon, this.drawShooterEcho, this.mageVfx, this.drawDomainNumber, this.drawMonster);
     }
     // v77：低血量屏幕边缘提示（DOM 覆盖层；只改 opacity，不碰画布）
     this.ui.syncLowHp();

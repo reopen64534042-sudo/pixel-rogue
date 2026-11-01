@@ -1,4 +1,8 @@
 import { BOSS } from "../data/boss";
+import { enemyCodexKey, ETYPES } from "../data/enemies";
+import { enemyGuardMultiplier } from "./DamageMath";
+import { interruptEnemyAction } from "./EnemyBehaviors";
+import { emitEnemyVisual } from "./EnemyVisualEvents";
 import { bossDamageTakenMultiplier, bossInvulnerable, clearBossTransient, syncBossPhase } from "./BossSystem";
 import type { GameCore } from "./GameCore";
 import {
@@ -173,7 +177,7 @@ export function hurtEnemy(
   // §3.4 步骤 4：数值交给 DamageSystem。敌方离散命中用 round-min-one，
   // 与旧 Math.max(1, Math.round(dmg × 暴击倍率（含 #41 觉醒）× 易伤)) 一致
   const calc = calculateDamage(DAMAGE_TYPES, {
-    rawAmount: dmg,
+    rawAmount: dmg * enemyGuardMultiplier(e, opts.origin ?? p, opts.type ?? "physical", opts.kind ?? "hit"),
     type: opts.type ?? "physical",
     form: opts.form ?? "other",
     origin: opts.src ?? "hit",
@@ -188,7 +192,7 @@ export function hurtEnemy(
   let trueDamage = 0;
   for (const component of opts.components ?? []) {
     const extra = calculateDamage(DAMAGE_TYPES, {
-      rawAmount:component.rawAmount, type:component.type, form:opts.form ?? 'other',
+      rawAmount:component.rawAmount * enemyGuardMultiplier(e, opts.origin ?? p, component.type, opts.kind ?? "hit"), type:component.type, form:opts.form ?? 'other',
       origin:opts.src ?? 'hit',kind:opts.kind ?? 'hit',precision:'preserve-float',isCritical:false,
       attackerStats:component.inheritBonuses ? effectiveAttackerStats : {
         ...effectiveAttackerStats,globalDamageBonus:0,typeDamageBonus:{},formDamageBonus:{},skillDamageBonus:undefined,
@@ -328,6 +332,7 @@ export function hurtEnemy(
   // v148：吸血按目标实际损失的生命结算，溢出伤害不回血。
   const dealtHpLoss = Math.max(0, Math.min(hpBefore, dmg));
   e.hp -= dmg;
+  if (dmg > 0 && opts.kind !== "dot" && e.action?.kind === "tether") interruptEnemyAction(e);
   // 霜牢：受到直接伤害延长 0.4 秒（0.2 秒内最多一次，总时长至多 4.5 秒）。
   // DoT 不是直接伤害，不延长。
   if (e.hp > 0 && (opts.kind ?? "hit") !== "dot" && isFrostLocked(e))
@@ -394,6 +399,7 @@ export function hurtEnemy(
     let px = e.x,
       py = e.y;
     for (const o of near) {
+      const incoming = { x: px, y: py };
       this.bolts.push({ x1: px, y1: py, x2: o.x, y2: o.y, life: 0.15 });
       px = o.x;
       py = o.y;
@@ -401,6 +407,7 @@ export function hurtEnemy(
         noChain: true,
         noCrit: true,
         src: "chain",
+        origin: incoming,
         type: "lightning",
         form: "other",
       });
@@ -478,7 +485,7 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   // Issue #82 图鉴：只登记类型与数量，不参与任何战斗计算。
   // 写普通字段 killLog（不依赖 CodexSystem），波末 / 局末由图鉴消费后清空。
   // 重构本函数时必须保留：删除后图鉴的敌人击杀数会静默归零（tests/codex.test.ts 会红）。
-  const codexKey = e.boss ? "boss_three" : e.elite ? `${e.type}_elite` : e.type;
+  const codexKey = e.boss ? "boss_three" : enemyCodexKey(e.type, e.elite);
   this.killLog[codexKey] = (this.killLog[codexKey] ?? 0) + 1;
   const p = this.player;
   // 击杀狂热
@@ -551,8 +558,9 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   }
   // 精英「分裂」词缀：死亡裂成两只非精英小一号本体，不产生额外掉落。
   if (e.elite && e.affix === "split") {
+    emitEnemyVisual(this, e, "split", e, e.r * 2);
     for (let i = 0; i < 2 && this.enemies.length < 160; i++) {
-      this.spawnEnemy(e.type);
+      this.spawnEnemy(ETYPES[e.type]?.baseType ?? e.type);
       const child = this.enemies[this.enemies.length - 1];
       if (!child || child.elite) continue;
       child.maxhp = Math.max(1, Math.round(e.maxhp * 0.25));
@@ -579,6 +587,7 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
   // 裂胶史莱姆：先分裂再结算击杀爆炸，让范围伤害有机会连子体一起清掉。
   // 子体不占波次配额、不再分裂、不掉落，同屏数量仍受 160 上限约束。
   if (e.type === "splitter") {
+    emitEnemyVisual(this, e, "split", e, 18);
     for (let i = 0; i < 2 && this.enemies.length < 160; i++) {
       this.spawnEnemy("splitling");
       const child = this.enemies[this.enemies.length - 1];
@@ -623,6 +632,7 @@ export function killEnemy(this: GameCore, e: Enemy, fromExplode?: boolean) {
             noCrit: true,
             fromExplode: true,
             src: "explode",
+            origin: e,
             type: "fire",
             form: "other",
           },
@@ -711,6 +721,7 @@ export function damagePlayer(
   dmg: number,
   opts: PlayerHitOptions = {},
 ): DamageResult {
+  if (opts.cause === "contact" && opts.src) emitEnemyVisual(this, opts.src, "contact", this.player, opts.src.r + 5);
   const p = this.player;
   if (
     this.prof === "shooter" && this.shooterWeapon === "laser" &&

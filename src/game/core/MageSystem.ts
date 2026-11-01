@@ -144,6 +144,7 @@ function explodeCircle(
     if (dx * dx + dy * dy > R * R) continue;
     hits++;
     const hit = core.hurtEnemy(e, dmg, 0, 0, {
+      origin: { x, y },
       noChain: true,
       src: "cast",
       type: el,
@@ -220,6 +221,7 @@ function updateMageEchoes(core: GameCore, dt: number): void {
       if (dx * dx + dy * dy > echo.R * echo.R) continue;
       // 回响只结算伤害：不施加状态、不触发反应、不给武器经验。
       const hit = core.hurtEnemy(e, echo.damage, 0, 0, {
+        origin: echo,
         noCrit: true,
         noChain: true,
         src: "cast",
@@ -310,6 +312,7 @@ function shatterPrism(
     const dy = e.y - prism.y;
     if (dx * dx + dy * dy > R * R) continue;
     const hit = core.hurtEnemy(e, dmg, 0, 0, {
+      origin: prism,
       noCrit: true,
       noChain: true,
       noLifesteal: true,
@@ -400,6 +403,7 @@ function refractPrism(
       if (dx * dx + dy * dy > R * R) continue;
       hits++;
       const hit = core.hurtEnemy(e, dmg, 0, 0, {
+        origin: point,
         noChain: true,
         noLifesteal: true,
         src: "cast",
@@ -511,6 +515,7 @@ function triggerSplitShadows(
       const dy = e.y - point.y;
       if (dx * dx + dy * dy > R * R) continue;
       const hit = core.hurtEnemy(e, dmg, 0, 0, {
+        origin: point,
         noCrit: true,
         noChain: true,
         noLifesteal: true,

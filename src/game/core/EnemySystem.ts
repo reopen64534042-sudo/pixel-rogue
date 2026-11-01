@@ -9,7 +9,11 @@ import {
   WEB_ZONE,
   enemyWeight,
   ETYPES,
+  BULWARK_GUARD,
+  ELITE_DRUMMER_AURA,
 } from "../data/enemies";
+import { interruptEnemyAction, updateEnemyBehavior } from "./EnemyBehaviors";
+import { emitEnemyVisual } from "./EnemyVisualEvents";
 import { ELEMENTAL_MAGE } from "../data/elementalMage";
 import { resolveDifficulty } from "../data/difficulty";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
@@ -31,14 +35,18 @@ function drummerAura(
   e: Enemy,
   drummers: readonly Enemy[],
 ): { speed: number; dmg: number } {
+  let speed = 1, dmg = 1;
   for (const d of drummers) {
     if (d === e) continue;
     const dx = d.x - e.x;
     const dy = d.y - e.y;
-    if (dx * dx + dy * dy <= DRUMMER_AURA.radius * DRUMMER_AURA.radius)
-      return { speed: DRUMMER_AURA.speedMul, dmg: DRUMMER_AURA.dmgMul };
+    const aura = d.type === "drummer_elite" ? ELITE_DRUMMER_AURA : DRUMMER_AURA;
+    if (dx * dx + dy * dy <= aura.radius * aura.radius) {
+      speed = Math.max(speed, aura.speedMul);
+      dmg = Math.max(dmg, aura.dmgMul);
+    }
   }
-  return { speed: 1, dmg: 1 };
+  return { speed, dmg };
 }
 
 /** 麻痹：敌人下一次行动冷却 ×1.3（攻击间隔 +30%）。 */
@@ -55,7 +63,7 @@ export function spawnEnemy(
   if (!type) {
     // 按波次解锁 + 权重抽取
     const unlocked = Object.keys(ETYPES).filter(
-      (k) => this.waveN >= ETYPES[k].w0,
+      (k) => !ETYPES[k].eliteOnly && this.waveN >= ETYPES[k].w0 && enemyWeight(k, this.waveN) > 0,
     );
     let total = 0;
     for (const k of unlocked) total += enemyWeight(k, this.waveN);
@@ -70,6 +78,7 @@ export function spawnEnemy(
     if (!type) type = "slime";
   }
   const T = ETYPES[type];
+  elite ||= T.eliteOnly === true;
   const difficulty = resolveDifficulty(
     this.prof,
     this.waveN,
@@ -146,10 +155,20 @@ export function spawnEnemy(
     ...resolveEnemyAttackBonuses(T),
   });
   const spawned = this.enemies[this.enemies.length - 1];
+  if (T.behavior === "bulwark") spawned.guard = {
+    angle: Math.atan2(this.player.y - sy, this.player.x - sx), ...BULWARK_GUARD, downT: 0,
+  };
   if (elite && this.waveN >= ELITE_AFFIX_FROM) {
     // 用生成 seed 做确定性抽取，避免多消耗一次 Math.random 打乱既有序列。
     const roll = hash01(spawned.seed, this.waveN + 0.37);
-    spawned.affix = ELITE_AFFIXES[Math.floor(roll * ELITE_AFFIXES.length)];
+    const used = new Set(this.waveEliteAffixes);
+    const first = Math.floor(roll * ELITE_AFFIXES.length);
+    spawned.affix = ELITE_AFFIXES[first];
+    for (let offset = 0; offset < ELITE_AFFIXES.length; offset++) {
+      const affix = ELITE_AFFIXES[(first + offset) % ELITE_AFFIXES.length];
+      if (!used.has(affix)) { spawned.affix = affix; break; }
+    }
+    this.waveEliteAffixes.push(spawned.affix);
   }
   return spawned;
 }
@@ -187,11 +206,11 @@ export function updateEnemies(this: GameCore, dt: number) {
   }
   const drummers = this.enemies.filter(
     (d) =>
-      d.type === "drummer" &&
+      (d.type === "drummer" || d.type === "drummer_elite") &&
       !d.dead &&
       d.frozenT <= 0 &&
       !isFrozen(d) &&
-      !isFrostLocked(d),
+      !isFrostLocked(d) && (d.type !== "drummer_elite" || ((d.stunT ?? 0) <= 0 && (d.domainStunUntil ?? 0) <= this.time)),
   );
   // ---- 敌人 AI ----
   for (let i = this.enemies.length - 1; i >= 0; i--) {
@@ -267,6 +286,8 @@ export function updateEnemies(this: GameCore, dt: number) {
     }
     // Issue #38：冰冻定身（仍可受伤害/灼烧）
     e.frostImmuneT = Math.max(0, e.frostImmuneT - dt);
+    if (e.action && (e.frozenT > 0 || isFrozen(e) || isFrostLocked(e) ||
+      (e.stunT ?? 0) > 0 || (e.domainStunUntil ?? 0) > this.time)) interruptEnemyAction(e);
     if (e.frozenT > 0) {
       e.frozenT -= dt;
       continue;
@@ -307,6 +328,7 @@ export function updateEnemies(this: GameCore, dt: number) {
     let a = Math.atan2(targetY - e.y, targetX - e.x);
     if (e.type === "bat") a += Math.sin(this.time * 6 + e.seed) * 0.5;
     const aura = drummerAura(e, drummers);
+    if ((e.rallyUntil ?? 0) > this.time) aura.speed = Math.max(aura.speed, ELITE_DRUMMER_AURA.speedMul);
     // 精英词缀：召唤蝙蝠 / 冰霜新星；分裂在 killEnemy 结算。
     if (e.elite && e.affix) {
       if (e.affix === "summon") {
@@ -327,6 +349,7 @@ export function updateEnemies(this: GameCore, dt: number) {
               bat.xp = 0;
             }
             this.addText(e.x, e.y - e.r - 12, "召唤", "#b05cff");
+            emitEnemyVisual(this, e, "summon", e, 26);
             this.audio.beep(520, 0.12, "triangle", 0.05, 120);
           }
           e.affixT = 5 * paraActionMul(e);
@@ -335,6 +358,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         if ((e.novaT ?? 0) > 0) {
           e.novaT = (e.novaT ?? 0) - dt;
           if (e.novaT <= 0) {
+            emitEnemyVisual(this, e, "nova", e, ELITE_NOVA.radius);
             const hit =
               Math.hypot(p.x - e.x, p.y - e.y) < ELITE_NOVA.radius;
             if (hit)
@@ -380,7 +404,9 @@ export function updateEnemies(this: GameCore, dt: number) {
       (e.slowT > 0 ? 1 - e.slowF : 1) *
       (1 - frostSlowFactor(e)) *
       (isParalyzed(e) ? 1 - ELEMENTAL_MAGE.paralyze.moveSlow : 1) * domainMove;
-    if (e.type === "shooter") {
+    if (updateEnemyBehavior(this, e, { x: targetX, y: targetY }, spd, aura.dmg, dt)) {
+      if (this.state !== "play") return true;
+    } else if (e.type === "shooter") {
       // 远程: 远则靠近、近则后撤、中距离横向游走并射击
       // S3：距离改用当前目标（默认玩家；存在镜像残影时是残影），
       // 无残影时 target 就是玩家，行为与旧版逐位一致。
@@ -428,6 +454,7 @@ export function updateEnemies(this: GameCore, dt: number) {
           // 发射时攻击者快照：发射者可能在命中前死亡/移除，不依赖存活引用
           stats: getEnemyCombatStats(e),
         });
+        emitEnemyVisual(this, e, "shot", e, 12, a);
         this.audio.beep(340, 0.08, "square", 0.03, -60);
       }
     } else if (e.type === "bomber") {
@@ -442,6 +469,7 @@ export function updateEnemies(this: GameCore, dt: number) {
       } else {
         e.fuse -= dt;
         if (e.fuse <= 0) {
+          emitEnemyVisual(this, e, "explosion", e, 38 + p.r);
           const d2p = Math.hypot(p.x - e.x, p.y - e.y);
           if (
             d2p < 38 + p.r &&
@@ -548,6 +576,7 @@ export function updateEnemies(this: GameCore, dt: number) {
           e.burrowState = undefined;
           e.burrowT = 0;
           e.burrowCd = BURROWER.cooldown * paraActionMul(e);
+          emitEnemyVisual(this, e, "emerge", e, 24);
           this.audio.beep(90, 0.12, "sawtooth", 0.04, 20);
           for (let i = 0; i < 8; i++) {
             const dustA = (i / 8) * Math.PI * 2;
@@ -609,6 +638,7 @@ export function updateEnemies(this: GameCore, dt: number) {
           arm: WEB_ZONE.arm,
         });
         e.webCd = WEB_ZONE.cooldown * paraActionMul(e);
+        emitEnemyVisual(this, e, "web", e, 12, a);
         this.audio.beep(260, 0.08, "triangle", 0.03, -30);
       }
     } else if (e.type === "charger") {
@@ -635,6 +665,7 @@ export function updateEnemies(this: GameCore, dt: number) {
         e.y = clamp(ny, 20, WORLD.h - 20);
         if (hitWall || e.chargeT <= 0) {
           e.chargeState = "stun";
+          emitEnemyVisual(this, e, "charge", e, 24, Math.atan2(e.chargeDy ?? 0, e.chargeDx ?? 1));
           e.chargeT = CHARGER_CHARGE.stun;
           e.chargeCd = CHARGER_CHARGE.cooldown * paraActionMul(e);
           this.shake = Math.min(this.shake + 1.5, 6);

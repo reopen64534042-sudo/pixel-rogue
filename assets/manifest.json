@@ -1,0 +1,514 @@
+{
+  "entries": [
+    {
+      "key": "slime",
+      "at": "2026-11-01T02:45:17.531Z",
+      "source": {
+        "file": "slime.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/slime.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 4,
+        "sha256": "0f44bd36f48ed455a38292e3841dbf66e12618312379d1852c790b52c8d45a0f"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#slime"
+      }
+    },
+    {
+      "key": "bat",
+      "at": "2026-11-01T02:45:17.697Z",
+      "source": {
+        "file": "bat.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/bat.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 6,
+        "sha256": "4c00db6b653c24721dd469b5275be9e96561fa88838e9fdd7d7345e4d1ed327e"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#bat"
+      }
+    },
+    {
+      "key": "shooter",
+      "at": "2026-11-01T02:45:17.853Z",
+      "source": {
+        "file": "shooter.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/shooter.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 6,
+        "sha256": "f64450c9ef8270f5c00828e2c2ab2ba63e4931f2085ae49aa85ffd1086d407db"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#shooter"
+      }
+    },
+    {
+      "key": "bomber",
+      "at": "2026-11-01T02:45:18.015Z",
+      "source": {
+        "file": "bomber.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/bomber.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 5,
+        "sha256": "60f74a29288172151491008fb83ee8b76bfa3307d6fd21c087ec7383b5820c4f"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#bomber"
+      }
+    },
+    {
+      "key": "brute",
+      "at": "2026-11-01T02:45:18.183Z",
+      "source": {
+        "file": "brute.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/brute.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 4,
+        "sha256": "f943eda80012f08b38ab1c11297f1dcb2bbda6467eba91a337348611cb80f492"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#brute"
+      }
+    },
+    {
+      "key": "splitter",
+      "at": "2026-11-01T02:45:18.365Z",
+      "source": {
+        "file": "splitter.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/splitter.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 5,
+        "sha256": "6a9bc0d7b164b6d7436bf38f66dc87ace3dddfcae0083a8fc3c50e89e177867b"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#splitter"
+      }
+    },
+    {
+      "key": "splitling",
+      "at": "2026-11-01T02:45:18.524Z",
+      "source": {
+        "file": "splitling.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/splitling.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 4,
+        "sha256": "95a77ccf2716baf12c0a8e258f3bd688a8064bf0c44fc221047fd5610592b841"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#splitling"
+      }
+    },
+    {
+      "key": "charger",
+      "at": "2026-11-01T02:45:18.680Z",
+      "source": {
+        "file": "charger.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/charger.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 6,
+        "sha256": "dfe3711bf83a76b47197dfe88b7e386b16b3f54a43bc32e8f0b6670b922872a8"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#charger"
+      }
+    },
+    {
+      "key": "drummer",
+      "at": "2026-11-01T02:45:18.846Z",
+      "source": {
+        "file": "drummer.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/drummer.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 6,
+        "sha256": "ae2bef14c6236c6790efeaa8e12394269088dc396dc26b6d36e84b993c831186"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#drummer"
+      }
+    },
+    {
+      "key": "spinner",
+      "at": "2026-11-01T02:45:18.997Z",
+      "source": {
+        "file": "spinner.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/spinner.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 4,
+        "sha256": "6e8094d20ac6412ff5dbcb21c255dcf49c5469e8d830e21218c110fb95516851"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#spinner"
+      }
+    },
+    {
+      "key": "burrower",
+      "at": "2026-11-01T02:45:19.177Z",
+      "source": {
+        "file": "burrower.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/burrower.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 6,
+        "sha256": "b5777237c4a7d1b6200a82438cb5d067c5599f2c964b511988ee392419d787ea"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#burrower"
+      }
+    },
+    {
+      "key": "lobber",
+      "at": "2026-11-01T02:45:19.331Z",
+      "source": {
+        "file": "lobber.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/lobber.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 6,
+        "sha256": "fe09e171f716f2e8445b47560af9747ac98cd5754721b10cb092077f2f640769"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#lobber"
+      }
+    },
+    {
+      "key": "bulwark",
+      "at": "2026-11-01T02:45:19.490Z",
+      "source": {
+        "file": "bulwark.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/bulwark.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 6,
+        "sha256": "2c257d7d86084a47ef1dfa2c0b9125350e06d9ccb38d9ed61e5397537ac0e202"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#bulwark"
+      }
+    },
+    {
+      "key": "tether",
+      "at": "2026-11-01T02:45:19.647Z",
+      "source": {
+        "file": "tether.png",
+        "size": [
+          16,
+          16
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/tether.png",
+        "size": [
+          16,
+          16
+        ],
+        "colors": 5,
+        "sha256": "d42f02d2e2a348fc1a17c4ba117c2933997d43f0dfa40143880d1ecd5284360f"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#tether"
+      }
+    },
+    {
+      "key": "brute_elite",
+      "at": "2026-11-01T02:45:19.803Z",
+      "source": {
+        "file": "brute_elite.png",
+        "size": [
+          24,
+          24
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/brute_elite.png",
+        "size": [
+          24,
+          24
+        ],
+        "colors": 7,
+        "sha256": "73bfaea776427e0be078111b6cd34c77ceb4a493fbabaf9a722afa354e067cba"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#brute_elite"
+      }
+    },
+    {
+      "key": "shooter_elite",
+      "at": "2026-11-01T02:45:19.958Z",
+      "source": {
+        "file": "shooter_elite.png",
+        "size": [
+          24,
+          24
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/shooter_elite.png",
+        "size": [
+          24,
+          24
+        ],
+        "colors": 6,
+        "sha256": "f86a9d8388366caf8ce97c00395b2e7b3273468856896197dfca6dba7e0f7fb2"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#shooter_elite"
+      }
+    },
+    {
+      "key": "drummer_elite",
+      "at": "2026-11-01T02:45:20.117Z",
+      "source": {
+        "file": "drummer_elite.png",
+        "size": [
+          24,
+          24
+        ]
+      },
+      "output": {
+        "file": "public/assets/sprites/drummer_elite.png",
+        "size": [
+          24,
+          24
+        ],
+        "colors": 7,
+        "sha256": "bf3a017c7e8fa6ae993d8cdacd58d6541e0d85a13b38bba94abdab0ca2bd7110"
+      },
+      "params": {
+        "outline": false,
+        "alphaThreshold": 128,
+        "quantize": "lab-nearest"
+      },
+      "provenance": {
+        "model": "native-pixel-matrix",
+        "seed": null,
+        "prompt": "Editable source: src/game/data/monsterArt.ts#drummer_elite"
+      }
+    }
+  ]
+}

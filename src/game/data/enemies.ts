@@ -1,6 +1,18 @@
 import type { EliteAffix, EnemyConfig } from "../core/types";
 import { THREE_HEADED_BEAST } from "./boss";
 export const ETYPES: Record<string, EnemyConfig> = {
+  lobber: { hp: 30, dmg: 14, speed: 32, r: 5, xp: 2, spr: "lobber", w0: 15, wt: 8,
+    defense: 18, resistances: { fire: 0.55, frost: -0.15 }, behavior: "lobber" },
+  bulwark: { hp: 55, dmg: 12, speed: 28, r: 6, xp: 3, spr: "bulwark", w0: 16, wt: 6,
+    defense: 45, resistances: { frost: 0.2, fire: -0.1 }, behavior: "bulwark" },
+  tether: { hp: 24, dmg: 10, speed: 38, r: 4, xp: 2, spr: "tether", w0: 19, wt: 8,
+    defense: 10, resistances: { lightning: 0.4, frost: -0.1 }, behavior: "tether" },
+  shooter_elite: { hp: 32, dmg: 12, speed: 34, r: 4, xp: 2, spr: "shooter", w0: 999, wt: 0,
+    defense: 12, resistances: { fire: 0.1, frost: 0.15, lightning: 0.45 },
+    baseType: "shooter", eliteOnly: true, behavior: "eyeElite" },
+  drummer_elite: { hp: 40, dmg: 8, speed: 30, r: 5, xp: 2, spr: "drummer", w0: 999, wt: 0,
+    defense: 12, resistances: { fire: 0.1, lightning: 0.2 },
+    baseType: "drummer", eliteOnly: true, behavior: "drummerElite" },
   boss_three: THREE_HEADED_BEAST,
   slime: {
     hp: 19,
@@ -16,6 +28,7 @@ export const ETYPES: Record<string, EnemyConfig> = {
   },
   bat: { hp: 13, speed: 62, dmg: 8, r: 3, xp: 1, spr: "bat", w0: 3, wt: 18, defense: 10, resistances: { fire: 0.15 } },
   brute: {
+    baseType: "brute",
     hp: 65,
     speed: 22,
     dmg: 18,
@@ -143,6 +156,26 @@ export const DRUMMER_AURA = {
   dmgMul: 1.15,
 } as const;
 
+/** Shared geometry/timing for simulation and telegraphs. Width means full corridor width. */
+export const MONSTER_SKILLS = {
+  lob: { windup: 0.8, cooldown: 3.5, range: 280, radius: 50, groundRadius: 24, groundLife: 3, tick: 0.25 },
+  thrust: { windup: 0.6, cooldown: 4.5, range: 110, length: 110, width: 30, distance: 80, duration: 0.25, guardDown: 0.8 },
+  tether: { windup: 0.8, cooldown: 5, range: 260, length: 240, width: 20, duration: 1.2, tick: 0.3, ticks: 4 },
+  stomp: { windup: 0.7, cooldown: 6, range: 120, radius: 80, knock: 80 },
+  gaze: { windup: 0.8, cooldown: 5, range: 280, length: 280, width: 24 },
+  collapse: { windup: 0.9, cooldown: 7, range: 280, radius: 90 },
+  blink: { windup: 0.3, cooldown: 4, range: 90, distance: 140 },
+  sonic: { windup: 0.7, cooldown: 6, range: 180, radius: 150, duration: 0.6, rally: 3 },
+} as const;
+export const BULWARK_GUARD = { arc: Math.PI * 2 / 3, mul: 0.4 } as const;
+export const ELITE_DRUMMER_AURA = { radius: 140, speedMul: 1.2, dmgMul: 1.2 } as const;
+export const EYE_SLOW = { factor: 0.3, duration: 2 } as const;
+export const ELITE_SPECIES = ["brute", "shooter_elite", "drummer_elite"] as const;
+export function eliteSpeciesForSlot(slot: number): string { return ELITE_SPECIES[slot] ?? "brute"; }
+export function enemyCodexKey(type: string, elite: boolean): string {
+  return elite && !ETYPES[type]?.eliteOnly ? `${type}_elite` : type;
+}
+
 /** 织网蛛的蛛网：落点预警后生效，玩家在网内移速 ×0.6；同屏最多 12 张。 */
 export const WEB_ZONE = {
   radius: 40,
@@ -207,6 +240,7 @@ const WAVE_THEMES: readonly WaveTheme[] = [
     from: 21,
     name: "狂潮",
     weights: {
+      lobber: 6, bulwark: 6, tether: 8,
       slime: 10,
       bat: 10,
       brute: 6,
@@ -223,6 +257,7 @@ const WAVE_THEMES: readonly WaveTheme[] = [
     from: 17,
     name: "混合",
     weights: {
+      lobber: 8, bulwark: 8, tether: 8,
       slime: 12,
       bat: 12,
       brute: 6,
@@ -240,6 +275,7 @@ const WAVE_THEMES: readonly WaveTheme[] = [
     name: "伏击",
     signature: "burrower",
     weights: {
+      lobber: 6, bulwark: 6,
       slime: 14,
       bat: 12,
       brute: 6,

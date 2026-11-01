@@ -146,6 +146,7 @@ export function drawBossWorld(core: BossView, ctx: PixelPainter): void {
   if (!s || s.enemy.dead || core.state === "start" || core.state === "over") return;
   const e = s.enemy, t = core.time;
   for (const h of core.bossHazards) {
+    if (h.source && !h.source.boss) continue;
     const fade = sat(h.t / 0.6), fire = h.kind === "fire";
     ring(ctx, h.x, h.y, h.r, fire ? P.fireDeep : P.iceDeep, fade * 0.45, 2);
     for (let i = 0; i < 14; i++) {
