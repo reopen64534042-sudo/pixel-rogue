@@ -4471,3 +4471,9 @@ dmg = Math.ceil(e.hp - 1);
 - 根因：`devSetStaffLevel` 会清空待选、自由配装会直接改 `mageElements`，但都没有同步已经打开的 `bpMode='level'` / `slots`；`chooseSlot` 的元素待选分支失败时静默返回 false。
 - 修复：`DevPanel` 在法杖等级应用、元素勾选与「全开」后调用 `resyncMagePanel`：清理没有候选的元素待选与队列；若升级面板已打开则重开，有待选显示元素卡，否则显示普通天赋卡，两者都没有则收起并回休整栏。
 - 验证：先用受控 e2e 复现原死锁（`pending='third'` + 已持有雷，点击连续返回 false）；再通过真实 DevPanel 勾选雷元素，面板从「元素·雷」刷新为「速咏 / 广域符印 / 镜像」，点击「速咏」成功消耗天赋次数并收起面板。typecheck / build 通过；未运行 Vitest/Playwright 测试套件。
+
+## 元素使四段施法条等宽（v174，2026-11-01）
+
+- 现象：脚底 4 段施法条各段宽度不一致。原因是条宽 18px 无法被 4 整除，刻度取整落在 5/9/14px，实际段宽为 5/4/5/4px。
+- 修复：施法条与法杖经验条同步从 18px 改为 20px，每段固定 5px；仍保持两条等长，y+16 / y+20 位置不变。
+- 验证：受控截图检查 1/4、2/4、3/4 段宽一致；typecheck / build 通过。未运行 Vitest/Playwright 测试套件。
