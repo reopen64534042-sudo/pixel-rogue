@@ -111,10 +111,10 @@ function drawPlayerSprite(ctx: PixelPainter, character: CharacterDrawing | undef
 }
 
 /**
- * 冻结冰壳：低饱和青蓝冰面 + 顶部冷光 + 底部冰棱 + 侧面霜点。
+ * 冻结冰壳边缘：顶部冷光 + 底部冰棱 + 侧面霜点。
  *
- * 不用整圈矩形描边与折线裂纹——小怪会被框成一个 UI 方框，很像“选中框”。
- * 冻结状态靠冰面染色、底部冰棱和霜点表达，保留贴图轮廓。
+ * 不画整块冰面/整圈描边——小怪会被框成一个浅色方框，很像“选中框”。
+ * 冻结状态靠 MageVfx 素材与这些边缘细节表达，保留贴图轮廓。
  */
 function drawFrozenOverlay(
   ctx: PixelPainter,
@@ -123,10 +123,6 @@ function drawFrozenOverlay(
   w: number,
   h: number,
 ) {
-  // 冰面：低透明度，保留贴图细节
-  ctx.globalAlpha = 0.28;
-  ctx.fillStyle = "#9fe1ff";
-  ctx.fillRect(x, y, w, h);
   // 顶部冷光：一条细高光 + 左上小霜点
   ctx.globalAlpha = 0.55;
   ctx.fillStyle = "#e8f7ff";

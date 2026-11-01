@@ -1,5 +1,12 @@
 # 迁移记录与验收基线
 
+## 冻结冰壳整块填充清理（v182，2026-11-02）
+
+- 用户确认 #267：只删除 `drawFrozenOverlay` 的整块 28% 淡蓝 `#9fe1ff` `fillRect`，保留顶部冷光/底部冰棱/两侧霜点与 MageVfx 冻结素材。
+- 前后对比截图（`output/frozen-tight-compare.png`）用红框标出被删填充、青框标出保留的 MageVfx 素材；用户确认“删对了”。
+- 冻结与霜牢共用 `drawFrozenOverlay`，因此两者同步生效；不改冻结/霜牢时长、控制规则、`slowT` 减速框、雷印/脆化细线。
+- 验证：typecheck/build 通过；受控截图删除后红框位置无淡蓝填充；未跑 Vitest/Playwright 测试套件/自然长局。
+
 ## 元素使表现清理与四段条修复（v181，2026-11-02）
 
 - 处理 #250/#256/#257/#259，仅改 `src/game/rendering/draw.ts` 表现层；不改伤害、命中、施法节奏或元素规则。
