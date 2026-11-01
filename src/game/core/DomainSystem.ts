@@ -2,6 +2,7 @@ import { DOMAIN as C, DOMAIN_UPGRADE_STATS as U, DOMAIN_TALENT_NAMES, DOMAIN_MIL
   type DomainEffect, type DomainHole, type DomainSnapshot, type DomainTalentName, type GravityField } from '../data/domain';
 import { DOMAIN_UPGRADE_AUDIO, type DomainSoundId } from '../data/domainAudio';
 import { DOMAIN_DAMAGE } from '../data/combatBalance';
+import { PLAYER_ATTACK_PROFILES as PA } from '../data/attackProfiles';
 import { WORLD, clamp } from '../data/constants';
 import { getPlayerCombatStats } from './CombatStats';
 import { bossInvulnerable } from './BossSystem';
@@ -201,7 +202,9 @@ function echo(c:GameCore,h:DomainHole,killed:boolean) {
   h.extension+=add;h.life+=add;domainSound(c,'echo-singularity',.2);
 }
 function hit(c:GameCore,e:Enemy,s:DomainSnapshot,amount:number,kind:'dot'|'slash'|'terminal',hole=false,origin?:Point) {
-  const result=c.hurtEnemy(e,amount,0,0,{src:'domain',type:'gravity',form:'other',continuous:true,
+  const profile=kind==='terminal'?PA.domainTerminal:kind==='slash'
+    ?hole?PA.domainHoleSlash:PA.domainFieldSlash:hole?PA.domainHole:PA.domainField;
+  const result=c.hurtEnemy(e,amount,0,0,{src:'domain',...profile,continuous:true,
     kind:kind==='dot'?'dot':'hit',attackerStats:s.attacker,noCrit:kind!=='slash',noOnHit:true,
     noChain:true,noLifesteal:true,silent:kind==='dot'||kind==='slash',silentSound:true,noFlash:kind==='slash',
     armorPen:hole?s.armorPen:0,domainHit:kind==='dot'?undefined:kind,origin});
@@ -282,10 +285,10 @@ function birth(c:GameCore) {
   for (const e of c.enemies) {
     if (!valid(e) || !near(e,h,s.holeR) || bossInvulnerable(c,e)) continue;
     const stunned=domainStunned(c,e);
-    const result=c.hurtEnemy(e,domainDamage(s,'birth',!!e.boss,stunned),0,0,{src:'domain',type:'gravity',form:'other',continuous:true,
+    const result=c.hurtEnemy(e,domainDamage(s,'birth',!!e.boss,stunned),0,0,{src:'domain',...PA.domainBirth,continuous:true,
       attackerStats:s.attacker,noOnHit:true,noChain:true,noLifesteal:true,silentSound:true,armorPen:s.armorPen,domainHit:'collapse',origin:h,
-      components:[{rawAmount:domainDamage(s,'true',!!e.boss,stunned),type:'true',inheritBonuses:true},
-        {rawAmount:domainCurrentHpDamage(s,e.hp),type:'gravity',inheritBonuses:false}]});
+      components:[{rawAmount:domainDamage(s,'true',!!e.boss,stunned),type:PA.domainTrue.type,skillId:PA.domainTrue.skillId,inheritBonuses:true},
+        {rawAmount:domainCurrentHpDamage(s,e.hp),type:PA.domainCompression.type,skillId:PA.domainCompression.skillId,inheritBonuses:false}]});
     if (!result) continue;
     if (c.domain!==d || c.state!=='play') return;
     primaryLoss+=result.primaryHpLoss??0;if (result.effectiveHpLoss>0) count++;

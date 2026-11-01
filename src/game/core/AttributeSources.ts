@@ -1,5 +1,6 @@
 import type { Profession } from "./types";
-import type { ModifierStage, StatId, StatModifier } from "./StatModel";
+import { KEYED_STAT_FAMILIES, type KeyedStatFamily, type ModifierStage, type StatId, type StatModifier } from "./StatModel";
+import type { PlayerKeyedStatSource } from "./PlayerCombatSources";
 
 /**
  * 伤害重做 S1：属性强化的**权威来源**（Attribute Sources）。
@@ -22,6 +23,8 @@ import type { ModifierStage, StatId, StatModifier } from "./StatModel";
 export interface AttributePoint {
   /** 目标属性（必须是 StatModel 白名单里的 StatId） */
   readonly stat: StatId;
+  /** 键控属性必填，例如 resistance + fire；标量属性不得携带 key。 */
+  readonly key?: string;
   /** 进入哪个区：flat 加算 / percent 同区加算 / final 连乘 */
   readonly stage: ModifierStage;
   /** 数值：flat 为绝对值，percent 为小数（0.12 = +12%），final 为倍率（1.12） */
@@ -29,7 +32,7 @@ export interface AttributePoint {
 }
 
 /**
- * 属性点 → 修饰符列表。
+ * 历史标量兼容接口；生产学习/重算使用 attributeStatSources，以免丢掉键控来源。
  *
  * `sourceId` 带序号：同一属性可以被多次加点（10 次 +2 攻击 = 10 条 flat），
  * 序号保证来源可追溯，也避免同一来源多条的歧义。
@@ -37,15 +40,41 @@ export interface AttributePoint {
 export function attributeModifiers(
   points: readonly AttributePoint[],
 ): StatModifier[] {
-  return points.map((point, index) => ({
-    sourceId: `attr:${index}:${point.stat}`,
-    stat: point.stat,
-    // 兼容本局已选的旧全局增伤记录：旧卡错误标成 percent，数值仍是增伤百分点。
-    stage: point.stat === "globalDamageBonus" && point.stage === "percent"
-      ? "flat"
-      : point.stage,
-    value: point.value,
-  }));
+  return attributeStatSources(points).scalars;
+}
+
+function isKeyedStat(stat: StatId): stat is KeyedStatFamily {
+  return KEYED_STAT_FAMILIES.some((family) => family === stat);
+}
+
+/** 属性选择统一拆为标量与键控来源，学习天赋和重算均使用完整结果。 */
+export function attributeStatSources(points: readonly AttributePoint[]): {
+  scalars: StatModifier[];
+  keyed: PlayerKeyedStatSource[];
+} {
+  const scalars: StatModifier[] = [];
+  const keyed: PlayerKeyedStatSource[] = [];
+  points.forEach((point, index) => {
+    const modifier: StatModifier = {
+      sourceId: `attr:${index}:${point.stat}`,
+      stat: point.stat,
+      // 兼容本局已选的旧全局增伤：数值是百分点，不能从 0 乘 percent。
+      stage: point.stat === "globalDamageBonus" && point.stage === "percent"
+        ? "flat" : point.stage,
+      value: point.value,
+    };
+    if (isKeyedStat(point.stat)) {
+      if (point.key === undefined)
+        throw new TypeError(`键控属性缺少 key：${point.stat}`);
+      keyed.push({ stat: point.stat, ownedKeys: [point.key],
+        modifiers: [{ ...modifier, key: point.key }] });
+    } else {
+      if (point.key !== undefined)
+        throw new TypeError(`标量属性不能携带 key：${point.stat}`);
+      scalars.push(modifier);
+    }
+  });
+  return { scalars, keyed };
 }
 
 /**

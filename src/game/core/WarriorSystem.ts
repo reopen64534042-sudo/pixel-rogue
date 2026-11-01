@@ -7,6 +7,9 @@ import { KNOCK, KNOCK_DAMP } from "../data/knockback";
 import type { GameCore } from "./GameCore";
 import type { Enemy, Point } from "./types";
 import type { MeleeSwingOptions } from "./MeleeSystem";
+import { PLAYER_ATTACK_PROFILES as PA } from "../data/attackProfiles";
+import { warriorFlowDamageMultiplier, warriorWaveDamage, warriorWaveHitDamage, warriorLeapDamage,
+  warriorTriDamage, warriorDashDamage as warriorDashHitDamage, warriorResolvedDamage, warriorEchoDamage } from "./DamageMath";
 
 interface WarriorSwingSnapshot {
   angle: number;
@@ -156,9 +159,7 @@ function iaiReady(core: GameCore): { cap: number } | null {
 
 /** 「流」只增幅居合斩伤害（不再给普通挥砍/冲刺路径通用增伤）。 */
 function flowIaiMul(core: GameCore): number {
-  return flowOwned(core)
-    ? 1 + WB.flow.dmgPerStack * core.warriorFlowStacks
-    : 1;
+  return warriorFlowDamageMultiplier(core.warriorFlowStacks, flowOwned(core));
 }
 
 /**
@@ -288,10 +289,11 @@ export function warriorLeap(
     {
       kind: "leap",
       impact: {
+        attackProfile: tri ? PA.warriorTri : PA.warriorLeap,
         angle: 0,
         spread: Math.PI * 2,
         radius: p.attackRange * (tri ? WB.triDash.leapRadiusMul : 1.2),
-        dmg: p.damage * (tri ? WB.triDash.leapDmgMul : WB.leapDamageMul),
+        dmg: warriorLeapDamage(p.damage, tri),
         knock:
           KNOCK.warrior.leap *
           KNOCK_DAMP *
@@ -338,7 +340,7 @@ function spawnWarriorHeavyWaves(this: GameCore, angle: number): void {
         max: cfg.life,
         halfW: cfg.halfW,
         halfH: cfg.halfH,
-        dmg: p.damage * cfg.dmgMul,
+        dmg: warriorWaveDamage(p.damage, "fissure"),
         knock: KNOCK.warrior.fissure,
         stun: cfg.stunT,
         scale: cfg.scale,
@@ -363,7 +365,7 @@ function spawnWarriorHeavyWaves(this: GameCore, angle: number): void {
       max: cfg.life,
       halfW: cfg.halfW,
       halfH: cfg.halfH,
-      dmg: p.damage * cfg.dmgMul,
+      dmg: warriorWaveDamage(p.damage, "qi"),
       knock: KNOCK.warrior.qi,
       stun: 0,
       scale: 1,
@@ -398,15 +400,10 @@ function updateWarriorWaves(this: GameCore, dt: number): void {
       )
         continue;
       w.hit.push(e);
-      const armorBonus =
-        w.kind === "fissure" && (e.armorBreakT ?? 0) > 0
-          ? 1 + WB.energyWaves.fissure.armorBonus
-          : 1;
-      this.hurtEnemy(e, w.dmg * armorBonus, cos * w.knock, sin * w.knock, {
+      this.hurtEnemy(e, warriorWaveHitDamage(w.dmg, w.kind === "fissure", (e.armorBreakT ?? 0) > 0), cos * w.knock, sin * w.knock, {
         origin: w,
         src: w.kind === "qi" ? "qi" : "fissure",
-        type: "physical",
-        form: "melee",
+        ...(w.kind === "qi" ? PA.qi : PA.fissure),
       });
       if (!e.boss && w.stun > 0) e.stunT = Math.max(e.stunT ?? 0, w.stun);
     }
@@ -435,16 +432,11 @@ export function finishWarriorTriDash(this: GameCore): void {
   const leapOwned = (p.upCounts["跃击"] || 0) > 0;
   const spin = stage === 2 || (stage === 1 && leapOwned);
   this.meleeSwing({
+    attackProfile: PA.warriorTri,
     angle,
     spread: spin ? Math.PI * 2 : style.spread,
     radius: p.attackRange,
-    dmg:
-      p.damage *
-      (stage === 0
-        ? WB.triDash.dmgMul1
-        : spin
-          ? WB.triDash.dmgMul3
-          : WB.triDash.dmgMul2),
+    dmg: warriorTriDamage(p.damage, stage, spin),
     knock: style.knock * KNOCK_DAMP,
     color: style.color,
     particleColor: style.particle,
@@ -467,15 +459,14 @@ export function warriorDashDamage(
   const p = this.player;
   if (this.prof !== "warrior" || (p.upCounts["斩浪"] || 0) === 0) return;
   const style = WB.styles[this.warriorStyle];
-  const dmg = p.damage * WB.dashDamageMul;
+  const dmg = warriorDashHitDamage(p.damage);
   for (const e of this.enemies) {
     if (e.dead) continue;
     if (pointSegmentDistance(e.x, e.y, fromX, fromY, p.x, p.y) > 12 + e.r)
       continue;
     this.hurtEnemy(e, dmg, 0, 0, {
       src: "melee",
-      type: "physical",
-      form: "melee",
+      ...PA.warriorDash,
     });
   }
   this.warriorQi.push({
@@ -591,6 +582,7 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     if (echo.t > 0) continue;
     this.warriorEchoes.splice(i, 1);
     this.meleeSwing({
+      attackProfile: PA.warriorEcho,
       angle: echo.angle,
       spread: echo.spread,
       radius: echo.radius,
@@ -654,7 +646,6 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
   // 居合核心：势满时这一刀必为 360° 旋斩；迅/极只做可选增幅。
   const iai = iaiReady(this);
   const greatIai = iai !== null && (p.upCounts["居合·极"] || 0) > 0;
-  const iaiMul = iai ? 1 + WB.iai.perStack * iai.cap : 1;
   const iaiKnock = iai
     ? greatIai
       ? WB.iai.upgradeKnockMul
@@ -665,16 +656,9 @@ export function updateWarriorCombat(this: GameCore, dt: number) {
     (p.upCounts["流·极"] || 0) > 0 &&
     this.warriorFlowStacks >= WB.flow.cap3;
   const flowIai = iai ? flowIaiMul(this) : 1;
-  const consumeMul = flowConsume ? 1 + WB.flow.iaiConsumeBonus : 1;
   // #178：基准伤害统一走 warriorSwingDamage（面板显示同一个函数），
   // 条件倍率在外层相乘，避免「面板值」与「实战值」两处公式各自漂移。
-  const dmg =
-    warriorSwingDamage(this) *
-    (heavy ? WB.heavyDamageMul : 1) *
-    (breakout ? WB.breakoutDamageMul : 1) *
-    iaiMul *
-    flowIai *
-    consumeMul;
+  const dmg = warriorResolvedDamage(warriorSwingDamage(this), heavy, breakout, iai?.cap ?? null, flowIai, flowConsume);
   const radius =
     p.attackRange *
     (heavy ? WB.heavyRangeMul : 1) *
@@ -729,7 +713,7 @@ function resolveWarriorSwing(
       angle,
       spread,
       radius,
-      dmg: dmg * WB.resolveEchoMul,
+      dmg: warriorEchoDamage(dmg),
       spin: iai !== null,
     });
     this.warriorResolveT = 0;

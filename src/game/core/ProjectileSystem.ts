@@ -1,17 +1,15 @@
 import { WORLD } from "../data/constants";
 import {
-  CURRENT_HP_DAMAGE_FRACTION,
   HOMING_RANGE,
   HOMING_TURN_RATE,
-  HP_DAMAGE_CAP_MUL,
-  MAX_HP_DAMAGE_FRACTION,
   PARTIAL_TRUE_FRACTION,
   SPECIAL_LIFESTEAL_MUL,
-  TRUE_DAMAGE_MUL,
 } from "../data/specialShot";
 import { KNOCK } from "../data/knockback";
 import { WARRIOR_BALANCE as WB } from "../data/warriorBalance";
 import type { GameCore } from "./GameCore";
+import { HOSTILE_ATTACK_PROFILES as HA, PLAYER_ATTACK_PROFILES as PA, withDamageType } from "../data/attackProfiles";
+import { projectileTrailDamage, projectileHitDamage, projectilePierceDamage, ricochetDamage, reflectedProjectileDamage } from "./DamageMath";
 
 export function updateProjectiles(this: GameCore, dt: number) {
   const p = this.player;
@@ -65,7 +63,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
           y: b.y,
           R: 7,
           t: 0.6,
-          dmg: b.dmg * 0.15,
+          dmg: projectileTrailDamage(b.dmg),
           hit: [],
           ...(b.special ? { lifestealMul: SPECIAL_LIFESTEAL_MUL } : {}),
         });
@@ -93,29 +91,17 @@ export function updateProjectiles(this: GameCore, dt: number) {
         const isTrue =
           (special && this.specialUpgrades.includes("trueDamage")) ||
           b.inheritTrue === true;
-        let hitDmg = b.dmg;
-        if (special && this.specialUpgrades.includes("currentHpDamage")) {
-          // %生命部分与强化弹同一结算：默认吃护甲，完全真实伤害升级后一起转为真伤。
-          hitDmg += Math.min(
-            e.hp * CURRENT_HP_DAMAGE_FRACTION,
-            b.dmg * HP_DAMAGE_CAP_MUL,
-          );
-        }
-        if (special && this.specialUpgrades.includes("maxHpDamage")) {
-          hitDmg += Math.min(
-            e.maxhp * MAX_HP_DAMAGE_FRACTION,
-            b.dmg * HP_DAMAGE_CAP_MUL,
-          );
-        }
+        const hitDmg = projectileHitDamage(b.dmg, e.hp, e.maxhp,
+          special && this.specialUpgrades.includes("currentHpDamage"),
+          special && this.specialUpgrades.includes("maxHpDamage"), isTrue);
         const partialTrue =
           special && this.specialUpgrades.includes("partialTrue");
         // 完全真实伤害：无视防御，但直伤只结算 80%；分裂/穿透衰减仍作用在 b.dmg 上。
         // 强化普通弹继承真伤时同样吃 80%，但仍不是 special（不叠标记/裂变/强化弹经验）。
-        if (isTrue) hitDmg *= TRUE_DAMAGE_MUL;
         this.hurtEnemy(e, hitDmg, kx, ky, {
           src: "bullet",
-          type: isTrue ? "true" : "physical",
-          form: "ranged",
+          ...withDamageType(b.attackProfile ?? (special ? PA.chargedBullet : PA.bullet),
+            isTrue ? "true" : b.attackProfile?.type ?? "physical"),
           attackerStats: stats,
           specialHit: special,
           ...(special
@@ -132,10 +118,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
           b.pierce--;
           // S2：衰减系数从硬编码 0.85 改为发射时固化的属性值
           //（射手职业 0.5、快速装填 0.8；超载装填改为 30% 地板，不再回到 100%）
-          b.dmg *= b.falloff;
-          if (b.pierceFloor && b.launchDmg !== undefined) {
-            b.dmg = Math.max(b.dmg, b.launchDmg * b.pierceFloor);
-          }
+          b.dmg = projectilePierceDamage(b.dmg, b.falloff, b.launchDmg, b.pierceFloor);
         } else if (b.jumps > 0) {
           // 弹射: 转向最近的未命中敌人
           const t = this.nearestEnemy(b.x, b.y, 95, e);
@@ -144,7 +127,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
             const sp = Math.hypot(b.vx, b.vy);
             b.vx = Math.cos(a) * sp;
             b.vy = Math.sin(a) * sp;
-            b.dmg *= 0.85;
+            b.dmg = ricochetDamage(b.dmg);
             b.jumps--;
             b.life = 1.1;
             this.audio.beep(900, 0.04, "square", 0.02, 200);
@@ -184,8 +167,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
         z.hit.push(e);
         this.hurtEnemy(e, z.dmg, 0, 0, {
           src: "bullet",
-          type: "physical",
-          form: "ranged",
+          ...PA.trail,
           ...(z.lifestealMul !== undefined
             ? { lifestealMul: z.lifestealMul }
             : {}),
@@ -224,7 +206,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
           b.vx = -b.vx;
           b.vy = -b.vy;
           if (warriorReflect)
-            b.dmg += p.damage * WB.antiRanged.reflectMeleeMul;
+            b.dmg = reflectedProjectileDamage(b.dmg, p.damage);
           b.reflected = true;
           b.life = Math.max(b.life, 3);
           this.addText(b.x, b.y - 6, "反弹", "#9fe1ff");
@@ -246,8 +228,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
             ky = (b.vy / 200) * KNOCK.shooter.reflect;
           this.hurtEnemy(e, b.dmg, kx, ky, {
             src: "reflect",
-            type: "physical",
-            form: "ranged",
+            ...PA.reflect,
           });
           hit = true;
           break;
@@ -272,8 +253,7 @@ export function updateProjectiles(this: GameCore, dt: number) {
     ) {
       this.ebullets.splice(i, 1);
       const hit = this.damagePlayer(b.dmg, {
-        type: "physical",
-        form: "ranged",
+        ...(b.attackProfile ?? HA.projectile),
         cause: "projectile",
         attackerStats: b.stats,
       });

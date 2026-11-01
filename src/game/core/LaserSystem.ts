@@ -8,6 +8,7 @@ import {
   laserFocusMultiplier, laserLaneDamage, laserPierceMultiplier, laserPierceRetention, laserPulseDamage,
 } from "./DamageMath";
 import type { GameCore } from "./GameCore";
+import { PLAYER_ATTACK_PROFILES as PA } from "../data/attackProfiles";
 import type { CombatStatsSnapshot, Enemy } from "./types";
 
 const has = (core: GameCore, name: string) => (core.player.upCounts[name] ?? 0) > 0;
@@ -130,7 +131,7 @@ function settleExposure(core: GameCore) {
     const distance = Math.hypot(e.x - p.x, e.y - p.y) || 1;
     const result = core.hurtEnemy(e, raw, (e.x - p.x) / distance * pressure,
       (e.y - p.y) / distance * pressure, {
-        src: "laser", type: "physical", form: "ranged", continuous: true,
+        src: "laser", ...PA.laserMain, continuous: true,
         critical: proc?.crit ?? false, noOnHit: !ready, noChain: !ready,
         noLifesteal: true, silent: true, attackerStats: l.stats ?? undefined,
       });
@@ -156,7 +157,7 @@ function settleExposure(core: GameCore) {
     for (const [stats, raw] of snapshots) {
       if (e.dead || raw <= 0) break;
       const result = core.hurtEnemy(e, raw, 0, 0, {
-        src: "laser", type: "physical", form: "ranged", continuous: true,
+        src: "laser", ...PA.laserAux, continuous: true,
         noCrit: true, noOnHit: true, noChain: true, noLifesteal: true,
         fromExplode: true, silent: true, attackerStats: stats,
       });
@@ -228,7 +229,7 @@ function firePulse(core: GameCore) {
     addAux(core, line);
   }
   for (const [e, raw] of damage) {
-    core.hurtEnemy(e, raw, 0, 0, { src: "laser", type: "physical", form: "ranged", noCrit: true,
+    core.hurtEnemy(e, raw, 0, 0, { src: "laser", ...PA.laserPulse, noCrit: true,
       noOnHit: true, noChain: true, noLifesteal: true, fromExplode: true });
   }
   for (const aim of melted) aim.focus = 0;
@@ -249,7 +250,7 @@ function emergencyScatter(core: GameCore) {
     const a = Math.atan2(e.y - p.y, e.x - p.x);
     if (distance > LB.escapeRange + e.r || Math.abs(angleDifference(a, angle)) > LB.escapeArc / 2) continue;
     core.hurtEnemy(e, laserEscapeDamage(p), Math.cos(a) * LB.escapeKnock, Math.sin(a) * LB.escapeKnock,
-      { src: "laser", type: "physical", form: "ranged", noCrit: true, noChain: true,
+      { src: "laser", ...PA.laserScatter, noCrit: true, noChain: true,
         noOnHit: true, noLifesteal: true, fromExplode: true });
   }
   for (const offset of [-LB.escapeArc / 2, 0, LB.escapeArc / 2]) {

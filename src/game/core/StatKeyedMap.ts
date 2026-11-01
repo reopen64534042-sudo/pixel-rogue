@@ -4,6 +4,14 @@ import {
   type StatModifier,
   type StatSheet,
 } from "./StatModel";
+import type { DamageTypeId } from "../data/damageTypes";
+
+export type KeyedModifier<F extends KeyedStatFamily> = StatModifier & {
+  stat: F;
+  key: string;
+};
+export type TypeDamageBonusModifier = KeyedModifier<"typeDamageBonus"> & { key: DamageTypeId };
+export type ResistanceModifier = KeyedModifier<"resistance"> & { key: DamageTypeId };
 
 /**
  * 类型化映射解析：每个 key 一张子属性表（槽位 = 族，修饰符 = 该 key 的

@@ -18,11 +18,12 @@ import { ELEMENTAL_MAGE } from "../data/elementalMage";
 import { resolveDifficulty } from "../data/difficulty";
 import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
 import { professionPierce } from "./AttributeSources";
-import { boltDamage, chargedShotDamage } from "./DamageMath";
+import { counterShotDamage, enemyAttackDamage, enemyContactDamage } from "./DamageMath";
 import { getSpecialLevelStats } from "../data/specialShot";
 import { frostSlowFactor, isFrostLocked, isFrozen, isParalyzed } from "./ElementMath";
 import { resolveEnemyAttackBonuses, resolveEnemyDefense, resolveEnemySpawnStats } from "./EnemyStatSources";
 import type { GameCore } from "./GameCore";
+import { HOSTILE_ATTACK_PROFILES as HA, PLAYER_ATTACK_PROFILES as PA } from "../data/attackProfiles";
 import { applyKnockback } from "./MeleeSystem";
 import { constrainDomainWalking } from './DomainSystem';
 import type { Enemy, MageDecoy } from "./types";
@@ -362,9 +363,8 @@ export function updateEnemies(this: GameCore, dt: number) {
             const hit =
               Math.hypot(p.x - e.x, p.y - e.y) < ELITE_NOVA.radius;
             if (hit)
-              this.damagePlayer(e.dmg * ELITE_NOVA.damageMul * aura.dmg, {
-                type: "frost",
-                form: "other",
+              this.damagePlayer(enemyAttackDamage(e.dmg, aura.dmg, ELITE_NOVA.damageMul), {
+                ...HA.eliteNova,
                 src: e,
                 cause: "explosion",
               });
@@ -444,11 +444,12 @@ export function updateEnemies(this: GameCore, dt: number) {
         // 元素法师：麻痹使攻击间隔 +30%。
         e.shootCd = 2.0 * paraActionMul(e);
         this.ebullets.push({
+          attackProfile: HA.projectile,
           x: e.x,
           y: e.y,
           vx: Math.cos(a) * 95,
           vy: Math.sin(a) * 95,
-          dmg: e.dmg * aura.dmg,
+          dmg: enemyAttackDamage(e.dmg, aura.dmg),
           r: 2,
           life: 4,
           // 发射时攻击者快照：发射者可能在命中前死亡/移除，不依赖存活引用
@@ -478,9 +479,8 @@ export function updateEnemies(this: GameCore, dt: number) {
             this.warriorLeapInvulnT <= 0 &&
             this.warriorLeapState?.triStage3 !== true
           )
-            this.damagePlayer(e.dmg * aura.dmg, {
-              type: "fire",
-              form: "other",
+            this.damagePlayer(enemyAttackDamage(e.dmg, aura.dmg), {
+              ...HA.bomber,
               src: e,
               cause: "explosion",
               attackerStats: getEnemyCombatStats(e),
@@ -735,11 +735,12 @@ export function updateEnemies(this: GameCore, dt: number) {
         const a = Math.atan2(e.y - p.y, e.x - p.x);
         const specialStats = getSpecialLevelStats(this.specialLevel);
         this.bullets.push({
+          attackProfile: PA.counterShot,
           x: p.x,
           y: p.y - 3,
           vx: Math.cos(a) * p.projSpeed,
           vy: Math.sin(a) * p.projSpeed,
-          dmg: chargedShotDamage(boltDamage(p) * 1.5, specialStats.mul),
+          dmg: counterShotDamage(p, specialStats.mul),
           pierce:
             p.pierce +
             professionPierce(this.prof) +
@@ -773,16 +774,12 @@ export function updateEnemies(this: GameCore, dt: number) {
         this.warriorLeapState?.triStage3 !== true &&
         this.magePhaseT <= 0
       ) {
-        const contactDmg =
-          (e.type === "charger" && e.chargeState === "dash"
-            ? e.dmg * 1.3
-            : e.dmg) * aura.dmg;
+        const contactDmg = enemyContactDamage(e.dmg, e.type === "charger" && e.chargeState === "dash", aura.dmg);
         const hit = this.damagePlayer(contactDmg, {
           melee: true,
           src: e,
           cause: "contact",
-          type: "physical",
-          form: "melee",
+          ...(e.type === "charger" && e.chargeState === "dash" ? HA.chargeContact : HA.contact),
         });
         if (hit.killed) return true;
       }

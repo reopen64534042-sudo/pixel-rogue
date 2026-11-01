@@ -96,9 +96,10 @@
 import { ATTRIBUTE_CAPS, lifestealCap } from "../data/attributeBalance";
 import { statBase } from "../data/stats";
 import { WARRIOR_BALANCE } from "../data/warriorBalance";
-import { resolveStats, type StatModifier } from "./StatModel";
+import { KEYED_STAT_FAMILIES, resolveStats, type StatModifier } from "./StatModel";
 import { levelGrowthFor, levelGrowthSteps } from "../data/levelGrowth";
-import { resolveKeyedMap, type TypeDamageBonusModifier } from "./StatSheets";
+import type { TypeDamageBonusModifier } from "./StatKeyedMap";
+import { applyPlayerCombatSources, type PlayerKeyedStatSource } from "./PlayerCombatSources";
 import type { Player, Profession, WarriorStyle, MageWeapon } from "./types";
 
 /** 十三张已迁移卡（C1/C2）+ 两张生命卡（C3-A）的来源贡献：标量区（含 attack 与五字段 final）+ 类型化火雷增伤区 */
@@ -119,9 +120,8 @@ export interface PersistentStatSources {
 }
 
 /**
- * 「元素亲和」贡献的 typeDamageBonus 键 = C1 投影对类型化映射的**全部所有权
- * 范围**（第一轮评审 P2 定界）：投影只写/删这两个键；physical 等其余键属
- * 未知外部来源，不在所有权内，学习无关天赋时保持不动（见投影函数说明）。
+ * 历史「元素亲和」只管理 fire/lightning；其他来源通过 keyedSources 显式
+ * 声明自己的键。未被任何来源接管的外部键不在学习时删除。
  */
 const ELEMENT_TDB_KEYS = ["fire", "lightning"] as const;
 
@@ -481,11 +481,8 @@ export function talentStatModifiers(
  * potionMaxHpGrow，见该处注释）。
  *
  * 可选字段存在性沿用旧语义：磐石来源存在才写 `defense` 键，无来源删键。
- * typeDamageBonus 为**键级所有权**（第一轮评审 P2）：投影只管理 fire/lightning
- * 两键（ELEMENT_TDB_KEYS，即本表声明的全部映射键）——有来源时以解析结果
- * **绝对覆写**（每次从 picks 全量解析，不与旧值相加，无重复叠加），无来源
- * 时删除这两键（映射因此为空则连映射一并删除）；其余键（physical 等）属
- * 未知外部来源，不在所有权内，学习任何天赋都保持不动。
+ * 键控来源通过 PlayerCombatSources 合并解析；历史来源仍只接管 fire/lightning，
+ * 新来源必须声明 ownedKeys。已接管键绝对覆写，失效时删键，其他键保持。
  *
  * `damage`（C2-A）、`boltDmgMul/fireRate/speed/magnet/area`（C2-B）与
  * `maxhp`（C3-A）、`shieldMax`（C3-B）、`hasteLv/dashLv/dashMax/dashChargeLv/
@@ -502,8 +499,8 @@ export function talentStatModifiers(
  * 不烘焙进 fireRate（C2-B 纪律延续）。
  *
  * 兼容边界（明示，不猜测恢复）：
- * - 外部来源若也写 fire/lightning，与元素亲和贡献无法区分，投影覆写为
- *   权威值——当前无此类运行时写入者，外部写入者须避开这两键；
+ * - 直接写 fire/lightning 仍会被来源投影覆写；合法的新来源须通过 keyedSources
+ *   合并，不能先把结果写入实体再让投影猜测贡献；
  * - recompute/melt 路径沿用历史行为：recompute 先整体删除 typeDamageBonus
  *   键再重放（S3-B 语义），外部键在该路径不保留——原有状态行为，本轮不动。
  */
@@ -527,7 +524,11 @@ export function applyTalentStatProjection(
   prof: Profession = "shooter",
   warriorStyle: WarriorStyle = "katana",
   mageWeapon: MageWeapon = "arcane",
+  /** 键控来源与标量在同次重建中投影；失效时保留 ownedKeys 并清空 modifiers。 */
+  keyedSources: readonly PlayerKeyedStatSource[] = [],
 ): void {
+  if (externalModifiers.some((modifier) => KEYED_STAT_FAMILIES.some((family) => family === modifier.stat)))
+    throw new TypeError("键控属性必须通过 keyedSources 声明 key 和所有权");
   const base = statBase(prof, warriorStyle, mageWeapon);
   const { scalars, typeDamageBonus } = talentStatModifiers(
     p.picks,
@@ -717,17 +718,9 @@ export function applyTalentStatProjection(
   // defense 无 base（键缺席 = 0），有来源才出现——与旧 f 的键存在性一致
   if (resolved.defense !== undefined) p.defense = resolved.defense;
   else delete p.defense;
-  // typeDamageBonus 键级所有权（见函数说明与 ELEMENT_TDB_KEYS）
-  const element = resolveKeyedMap("typeDamageBonus", {}, typeDamageBonus);
-  if (typeDamageBonus.length > 0) {
-    const map = p.typeDamageBonus ?? (p.typeDamageBonus = {});
-    for (const key of ELEMENT_TDB_KEYS) {
-      const v = element[key];
-      if (v !== undefined) map[key] = v;
-      else delete map[key];
-    }
-  } else if (p.typeDamageBonus) {
-    for (const key of ELEMENT_TDB_KEYS) delete p.typeDamageBonus[key];
-    if (Object.keys(p.typeDamageBonus).length === 0) delete p.typeDamageBonus;
-  }
+  // 保留历史火/雷键所有权；新增抗性/类型/形式/技能来源通过同一映射投影接入。
+  applyPlayerCombatSources(p, [
+    { stat: "typeDamageBonus", ownedKeys: ELEMENT_TDB_KEYS, modifiers: typeDamageBonus },
+    ...keyedSources,
+  ]);
 }

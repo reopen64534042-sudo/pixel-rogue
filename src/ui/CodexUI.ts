@@ -7,6 +7,8 @@ import {
 } from "../game/codex/codexData";
 import { ETYPES } from "../game/data/enemies";
 import { BOSS, BOSS_HP_GROWTH } from "../game/data/boss";
+import { COMBAT_BALANCE } from "../game/data/combatBalance";
+import { DAMAGE_TYPES, RESISTANCE_TYPES } from "../game/data/damageTypes";
 import { ELITE_XP_STEP, ELITE_BOX_DROP_RATE } from "../game/data/constants";
 import { CODEX_WEAPONS, type CodexWeaponId } from "../game/codex/weaponCodex";
 import { TIERS, TIER_COLOR } from "../game/data/talents";
@@ -42,7 +44,6 @@ function chainMeta(entry: CodexEntry): string {
   return entry.layer ? `${entry.slot} · L${entry.layer}` : entry.slot;
 }
 
-const RES_LABEL = { fire: "火", frost: "冰", lightning: "雷" } as const;
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 /**
@@ -56,14 +57,15 @@ function enemyStatsHtml(entry: CodexEntry): string {
   const cfg = ETYPES[entry.link];
   if (!cfg) return "";
   const def = cfg.defense ?? 0;
+  const armorK = COMBAT_BALANCE.armorK;
   const armorNote =
     def > 0
-      ? `物理/引力承伤 ${Math.round((50 / (50 + def)) * 100)}%（减伤 ${Math.round((def / (50 + def)) * 100)}%）；元素与真实伤害无视护甲`
+      ? `物理/引力承伤 ${Math.round((armorK / (armorK + def)) * 100)}%（减伤 ${Math.round((def / (armorK + def)) * 100)}%）；元素与真实伤害无视护甲`
       : "无物理护甲";
-  const resText = (["fire", "frost", "lightning"] as const)
+  const resText = RESISTANCE_TYPES
     .map((k) => {
       const v = cfg.resistances?.[k];
-      return `${RES_LABEL[k]} ${v !== undefined ? pct(v) : "—"}`;
+      return `${DAMAGE_TYPES[k].label} ${v !== undefined ? pct(v) : "—"}`;
     })
     .join(" · ");
   const rows: [string, string, string][] = [
@@ -75,7 +77,7 @@ function enemyStatsHtml(entry: CodexEntry): string {
     ["半径", String(cfg.r), "碰撞与受击体积"],
     ["经验", entry.boss ? `精英 ×${BOSS.reward.xpMul}` : entry.elite ? `25 + (波次−1) ×${ELITE_XP_STEP}` : String(cfg.xp), entry.boss ? `按当波精英经验×${BOSS.reward.xpMul}，再乘难度经验倍率` : entry.elite ? "再乘难度经验倍率；不是普通物种的基础经验" : "击杀获得的基础经验；无掉落子体除外"],
     ["护甲", def > 0 ? String(def) : "—", armorNote],
-    ["抗性", resText, "正值减伤、负值增伤（弱点）；减伤上限 75%、弱点下限 -50%；— 表示无抗性"],
+    ["抗性", resText, `正值减伤、负值增伤（弱点）；减伤上限 ${pct(COMBAT_BALANCE.resistanceCap)}、弱点下限 ${pct(COMBAT_BALANCE.resistanceFloor)}；— 表示无抗性`],
     [
       "解锁波次",
       entry.boss ? "10 / 20 / 30…" : entry.spawnWave !== undefined ? String(entry.spawnWave) : cfg.w0 < 999 ? String(cfg.w0) : "特殊生成",

@@ -1,15 +1,14 @@
-import { bossDamageTakenMultiplier, bossInvulnerable, syncBossPhase } from "./BossSystem";
+import { applyEnemyDotDamage } from "./EnemyDamageApplication";
+import { PLAYER_ATTACK_PROFILES as PA, withDamageType } from "../data/attackProfiles";
 import {
   ELEMENTAL_MAGE,
   MAGE_REACTIONS,
   reactionForPair,
 } from "../data/elementalMage";
 import type { MageElement, MageReactionId } from "../data/elementalMage";
-import { MAGE_BALANCE as MB } from "../data/mageBalance";import { DAMAGE_TYPES } from "../data/damageTypes";
 import type { DamageTypeId } from "../data/damageTypes";
-import { getEnemyCombatStats, getPlayerCombatStats } from "./CombatStats";
-import { calculateDamage } from "./DamageSystem";
-import { typeBonusMultiplier } from "./DamageMath";
+import { typeBonusMultiplier, mageElementDamageBase, mageReactionRawDamage, mageReactionEchoDamage,
+  mageChainDamage, mageBurnDamage } from "./DamageMath";
 import {
   fireLayers,
   frostLayers,
@@ -128,18 +127,11 @@ function reactionDamage(
   controlled = false,
   secondary?: MageElement,
 ): number {
-  let amount =
-    base * mul * reactionDamageMultiplier(e) * mageReactionDamageMul(core);
   // 双元素增伤：触发元素由 hurtEnemy 结算；配对的另一元素在此补上
   // typeDamageBonus。抗性方向仍按触发元素（见 docs §19）。
-  if (secondary && secondary !== element)
-    amount *= typeBonusMultiplier(core.player.typeDamageBonus, secondary);
-  if (
-    hasMageUpgrade(core, "reactionFinale") &&
-    core.mageSuit === "B" &&
-    controlled
-  )
-    amount *= 1 + ELEMENTAL_MAGE.finale.controlledBonus;
+  const amount = mageReactionRawDamage(base, mul, reactionDamageMultiplier(e), mageReactionDamageMul(core),
+    secondary && secondary !== element ? typeBonusMultiplier(core.player.typeDamageBonus, secondary) : undefined,
+    hasMageUpgrade(core, "reactionFinale") && core.mageSuit === "B" && controlled);
   if (amount <= 0) return 0;
   const reactionId =
     (secondary ? reactionForPair(secondary, element) : null) ??
@@ -149,8 +141,7 @@ function reactionDamage(
     noChain: true,
     reactionId: reactionId ?? undefined,
     src: "reaction",
-    type: element,
-    form: "other",
+    ...withDamageType(PA.mageReaction, element),
     noLifesteal,
   });
   if (hit && reactionId)
@@ -175,7 +166,7 @@ function reactionDamage(
     if (target) {
       const echoHit = core.hurtEnemy(
         target,
-        amount * ELEMENTAL_MAGE.finale.echoMul,
+        mageReactionEchoDamage(amount),
         0,
         0,
         {
@@ -184,8 +175,7 @@ function reactionDamage(
           noLifesteal: true,
           src: "reaction",
           origin: e,
-          type: element,
-          form: "other",
+          ...withDamageType(PA.mageReactionEcho, element),
         },
       );
       if (echoHit && reactionId)
@@ -383,7 +373,7 @@ function triggerChain(
     py = o.y;
     core.hurtEnemy(
       o,
-      base * ELEMENTAL_MAGE.chain.damageMul,
+      mageChainDamage(base),
       0,
       0,
       {
@@ -391,8 +381,7 @@ function triggerChain(
         noChain: true,
         src: "chain",
         origin: incoming,
-        type: "lightning",
-        form: "other",
+        ...PA.mageChain,
       },
     );
     if (o.dead) continue;
@@ -729,8 +718,7 @@ export function applyElementalBurst(
 /**
  * 通用 DoT 结算：preserve-float、不暴击、不产生飘字。
  *
- * 灼烧每 0.5 秒调用一次；绝不能走 hurtEnemy（round-min-one 会把每帧
- * 小伤害取整成 1，并每帧生成一条飘字）。
+ * 灼烧每 0.5 秒调用一次，复用无命中触发的公共 DoT 应用入口。
  */
 export function applyDotDamage(
   core: GameCore,
@@ -738,27 +726,13 @@ export function applyDotDamage(
   rawAmount: number,
   type: DamageTypeId,
 ): void {
-  const calc = calculateDamage(DAMAGE_TYPES, {
-    rawAmount,
-    type,
-    form: "other",
-    origin: "element",
-    kind: "dot",
-    precision: "preserve-float",
-    isCritical: false,
-    attackerStats: getPlayerCombatStats(core.player),
-    defenderStats: getEnemyCombatStats(e),
-  });
-  const taken = bossInvulnerable(core, e) ? 0 : calc.settledDamage * (e.damageTakenMul ?? 1) * bossDamageTakenMultiplier(core, e);
-  e.hp -= taken;
-  syncBossPhase(core, e);
-  core.dmgBy.element += taken;
+  applyEnemyDotDamage(core, e, rawAmount, { ...withDamageType(PA.mageBurn, type), src: "element" });
 }
 
 /** 推进元素状态（每帧）。 */
 export function updateMageElements(this: GameCore, dt: number): void {
   if (this.prof === "mage" && this.mageWeapon === "domain") return;
-  const burnBase = this.player.damage * MB.elementBaseMul;
+  const burnBase = mageElementDamageBase(this.player.damage);
   for (const e of this.enemies) {
     if (e.dead) continue;
     const wasFrozen = isFrozen(e);
@@ -779,7 +753,7 @@ export function updateMageElements(this: GameCore, dt: number): void {
           applyDotDamage(
             this,
             e,
-            layers * ELEMENTAL_MAGE.burn.damagePerLayer * burnBase,
+            mageBurnDamage(burnBase, layers),
             "fire",
           );
           if (e.hp <= 0) {

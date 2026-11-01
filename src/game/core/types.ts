@@ -63,11 +63,17 @@ export interface RunSummary {
   bossKills: number;
   talents: string[];
   upCounts: Record<string, number>;
-  attributePicks: ReadonlyArray<{ stat: string; value: number }>;
+  attributePicks: ReadonlyArray<{ stat: string; key?: string; value: number }>;
 }
-/* ---------- Combat Foundation v1（S1 契约，未接入运行时战斗） ---------- */
+/* ---------- Combat Foundation：运行时共用的伤害契约 ---------- */
 /** 攻击方式：决定近战/远程增伤乘区适用范围；由技能显式指定，不按距离推断 */
 export type AttackForm = "melee" | "ranged" | "other";
+/** 技能明确声明属性、形式及技能增伤键，三个维度不能相互推断。 */
+export interface AttackProfile {
+  readonly type: DamageTypeId;
+  readonly form: AttackForm;
+  readonly skillId: string;
+}
 /** 结算方式：hit=离散命中；dot=持续伤害（固定 preserve-float 且不得暴击，运行时校验） */
 export type DamageKind = "hit" | "dot";
 /**
@@ -86,12 +92,12 @@ export type ResistanceMap<T extends string = DamageTypeId> = Partial<
 export interface CombatStatsSnapshot<T extends string = DamageTypeId> {
   /** 统一攻击力。S1 计算不消费：rawAmount 已含技能系数，禁止再叠 ATK */
   attack: number;
-  /** 物理护甲（physical 减伤策略使用） */
+  /** 护甲（physical / gravity 的 armor 策略使用） */
   defense: number;
   /** 暴击率与暴伤倍率由编排层判定使用；纯计算只按 isCritical 应用 critMultiplier */
   critChance: number;
   critMultiplier: number;
-  /** 通用减伤（韧性）：physical/fire/lightning 生效，true 无视 */
+  /** 通用减伤：所有非 none 策略生效，true 无视；与控制抗性无关 */
   tough: number;
   resistances: ResistanceMap<T>;
   /** 增伤乘区（§3.1 同乘区加算、跨乘区乘算）：适配器先把同区来源聚合为单一数值，默认 0 */
@@ -350,6 +356,8 @@ export interface BossState {
   castTickT: number;
 }
 export interface BossHazard extends Point {
+  /** 地面效果创建时声明攻击身份；旧构造可缺省，按 kind 使用公共声明。 */
+  attackProfile?: Readonly<AttackProfile>;
   kind: "fire" | "frost" | "lightning";
   r: number;
   t: number;
@@ -577,6 +585,8 @@ export interface EnemyConfig {
   skillDamageBonus?: Readonly<Record<string, number>>;
 }
 export interface Bullet extends Point {
+  /** 发射时保留攻击身份，派生弹与普通弹不混用技能增伤键。 */
+  attackProfile?: Readonly<AttackProfile>;
   vx: number;
   vy: number;
   dmg: number;
@@ -620,6 +630,7 @@ export interface Missile extends Point {
 }
 
 export interface EnemyBullet extends Point {
+  attackProfile?: Readonly<AttackProfile>;
   vx: number;
   vy: number;
   dmg: number;
@@ -742,11 +753,18 @@ export interface Slash extends Point {
   /** 大剑跃击落地：使用全向地面冲击素材，绘制在角色下层。 */
   impact?: boolean;
 }
+export interface DamageComponent {
+  readonly rawAmount: number;
+  readonly type: DamageTypeId;
+  readonly inheritBonuses: boolean;
+  /** 继承增伤时可覆盖主攻击的技能键；否则不应用技能增伤。 */
+  readonly skillId?: string;
+}
 export interface HitOptions {
   /** Incoming direction for shields. Direct attacks default to player position; AoE passes its center. */
   origin?: Readonly<Point>;
   /** Extra components settle atomically with the primary hit, never as recursive hits. */
-  components?: readonly { rawAmount: number; type: DamageTypeId; inheritBonuses: boolean }[];
+  components?: readonly DamageComponent[];
   armorPen?: number;
   domainHit?: "collapse" | "slash" | "terminal";
   silentSound?: boolean;
@@ -784,6 +802,8 @@ export interface HitOptions {
   type?: DamageTypeId;
   /** Combat Foundation S2（§5）：攻击方式，缺省 other */
   form?: AttackForm;
+  /** 精确技能增伤键，与伤害统计来源 src 独立。 */
+  skillId?: string;
   /** 发射时攻击者快照（S3-B）：玩家弹丸命中按发射时属性结算；缺省读当前实体 */
   attackerStats?: Readonly<CombatStatsSnapshot>;
   /**
@@ -803,6 +823,8 @@ export interface PlayerHitOptions {
   type?: DamageTypeId;
   /** Combat Foundation S2（§5）：攻击方式，缺省 other */
   form?: AttackForm;
+  /** 攻击者快照中的 skillDamageBonus 按此键消费。 */
+  skillId?: string;
   /** 发射时/引爆时攻击者快照（PR #2 评审 P2-3）：优先于 opts.src 构造默认快照 */
   attackerStats?: Readonly<CombatStatsSnapshot>;
 }

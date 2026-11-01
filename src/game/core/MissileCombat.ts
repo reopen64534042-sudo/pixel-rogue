@@ -4,11 +4,12 @@ import { MISSILE_DAMAGE as MD } from "../data/combatBalance";
 import { missileArcDamage, missileBlastDamage, missileBurnDps, missileDecodeDamage,
   missileDotAmount, missileGroundPower, missileHealing, missileResonanceDamage } from "./DamageMath";
 import type { GameCore } from "./GameCore";
-import type { CombatStatsSnapshot, DamageSource, Enemy, Point } from "./types";
+import type { AttackProfile, CombatStatsSnapshot, DamageSource, Enemy, Point } from "./types";
+import { PLAYER_ATTACK_PROFILES as PA, withDamageType } from "../data/attackProfiles";
 
 function auxiliary(core: GameCore, enemy: Enemy, raw: number, volley: MissileVolley,
-  type: "physical" | "lightning" | "true", src: DamageSource, origin?: Point) {
-  return core.hurtEnemy(enemy, raw, 0, 0, { type, src, origin, form: "ranged", noCrit: true,
+  profile: Readonly<AttackProfile>, src: DamageSource, origin?: Point) {
+  return core.hurtEnemy(enemy, raw, 0, 0, { ...profile, src, origin, noCrit: true,
     noOnHit: true, noChain: true, noLifesteal: true, fromExplode: true, attackerStats: volley.stats });
 }
 
@@ -68,7 +69,7 @@ function arcs(core: GameCore, x: number, y: number, hits: readonly Enemy[], v: M
   const roots: Enemy[] = [];
   for (let i = 0; i < M.arcRoots; i++) { const e = next(x, y); if (!e) break; v.arcVisited.add(e); roots.push(e); }
   const hit = (px: number, py: number, e: Enemy, relay: boolean) => {
-    const result = auxiliary(core, e, missileArcDamage(v.damage, relay), v, "lightning", "missileArc", { x: px, y: py });
+    const result = auxiliary(core, e, missileArcDamage(v.damage, relay), v, PA.missileArc, "missileArc", { x: px, y: py });
     if (!result || result.effectiveHpLoss <= 0) return;
     core.missile.arcs.push({ x: px, y: py, x2: e.x, y2: e.y, at: core.time, ...(relay ? { relay: true } : {}) });
     charge(core, e, v, bursts);
@@ -105,7 +106,8 @@ export function detonateMissile(core: GameCore, p: GuidedMissile, direct: Enemy)
     const knock = main ? M.mainKnock : micro ? M.microKnock : 0;
     const result = core.hurtEnemy(e, raw, distance ? (e.x - p.x) / distance * knock : 0,
       distance ? (e.y - p.y) / distance * knock : 0, {
-        src: micro ? "missileSwarm" : "missileMain", type: ion ? "lightning" : "physical", form: "ranged",
+        src: micro ? "missileSwarm" : "missileMain",
+        ...withDamageType(micro ? PA.missileSwarm : PA.missileMain, ion ? "lightning" : "physical"),
         origin: p,
         noCrit: !main, critical: main ? v.critical : undefined,
         noOnHit: !(firstContact && e === direct), noChain: !(firstContact && e === direct),
@@ -124,7 +126,7 @@ export function detonateMissile(core: GameCore, p: GuidedMissile, direct: Enemy)
       s.decode++;
       if (s.decode >= M.decodeThreshold) {
         s.decode -= M.decodeCost;
-        const result = auxiliary(core, direct, missileDecodeDamage(v.damage), v, "true", "missileMain");
+        const result = auxiliary(core, direct, missileDecodeDamage(v.damage), v, PA.missileDecode, "missileMain");
         if (result?.killed) { killedAny = true; killedBeacon = true; }
       }
     }
@@ -139,7 +141,7 @@ export function detonateMissile(core: GameCore, p: GuidedMissile, direct: Enemy)
       if (e.dead) continue;
       const d = Math.max(0, Math.hypot(e.x - burst.x, e.y - burst.y) - e.r);
       if (d <= v.resonanceRadius) auxiliary(core, e,
-        missileBlastDamage(missileResonanceDamage(v.damage), 1, d, v.resonanceRadius, false, false), v, "lightning", "missileArc", burst);
+        missileBlastDamage(missileResonanceDamage(v.damage), 1, d, v.resonanceRadius, false, false), v, PA.missileResonance, "missileArc", burst);
     }
   }
   if (main && v.traits["余烬滞留"]) s.grounds.push({ x: p.x, y: p.y,
@@ -188,7 +190,7 @@ export function updateMissileGround(core: GameCore, dt: number) {
   s.groundTick = 0;
   for (const [e, byStats] of s.groundDamage) for (const [stats, raw] of byStats) {
     if (e.dead) break;
-    core.hurtEnemy(e, raw, 0, 0, { src: "missileBurn", type: "fire", form: "ranged", kind: "dot", continuous: true,
+    core.hurtEnemy(e, raw, 0, 0, { src: "missileBurn", ...PA.missileBurn, kind: "dot", continuous: true,
       noCrit: true, noOnHit: true, noChain: true, noLifesteal: true, fromExplode: true, attackerStats: stats });
   }
   s.groundDamage.clear();

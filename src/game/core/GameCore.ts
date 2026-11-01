@@ -1281,8 +1281,9 @@ export class GameCore {
       bossKills: this.runBossKills,
       talents: p.picks.slice(),
       upCounts: { ...p.upCounts },
-      attributePicks: this.attributePicks.map(({ stat, value }) => ({
+      attributePicks: this.attributePicks.map(({ stat, key, value }) => ({
         stat,
+        ...(key !== undefined ? { key } : {}),
         value,
       })),
     };

@@ -1,7 +1,7 @@
 import { WORLD, clamp } from "../data/constants";
 import { BULWARK_GUARD, ETYPES, EYE_SLOW, MONSTER_SKILLS as S } from "../data/enemies";
 import { ELEMENTAL_MAGE } from "../data/elementalMage";
-import type { DamageTypeId } from "../data/damageTypes";
+import { ENEMY_ATTACK_PROFILES } from "../data/attackProfiles";
 import type { Enemy, EnemyAction, EnemyActionKind, Point } from "./types";
 import type { GameCore } from "./GameCore";
 import { enemySkillDamage } from "./DamageMath";
@@ -26,11 +26,11 @@ function begin(e: Enemy, kind: EnemyActionKind, at: Point, angle: number): void 
 }
 
 function hit(core: GameCore, e: Enemy, skill: Exclude<EnemyActionKind, "blink">,
-  type: DamageTypeId, aura: number, slow = false, knock = 0): void {
+  aura: number, slow = false, knock = 0): void {
   const p = core.player;
   if (p.hurtCd > 0 || p.dashT > 0) return;
   const result = core.damagePlayer(enemySkillDamage(e.dmg, skill, aura), {
-    src: e, type, form: type === "physical" ? "melee" : "ranged",
+    ...ENEMY_ATTACK_PROFILES[skill], src: e,
     cause: skill === "tether" || skill === "gaze" ? "projectile" : "explosion",
   });
   if (core.state !== "play" || result.effectiveHpLoss <= 0) return;
@@ -55,20 +55,20 @@ function advance(core: GameCore, e: Enemy, a: EnemyAction, dt: number, aura: num
     emitEnemyVisual(core, e, a.kind, a, radius, a.angle);
     switch (a.kind) {
       case "lob":
-        if (circle(core, a, S.lob.radius)) hit(core, e, "lob", "fire", aura);
+        if (circle(core, a, S.lob.radius)) hit(core, e, "lob", aura);
         if (core.state !== "play") return;
         addHostileHazard(core, { kind: "fire", x: a.x, y: a.y, r: S.lob.groundRadius,
           t: S.lob.groundLife, tickT: S.lob.tick, interval: S.lob.tick,
           dmg: enemySkillDamage(e.dmg, "fireGround", aura, S.lob.tick), slowF: 0, source: e });
         break;
       case "gaze":
-        if (enemyLineContains(core.player, a, S.gaze.length, S.gaze.width, core.player.r)) hit(core, e, "gaze", "lightning", aura, true);
+        if (enemyLineContains(core.player, a, S.gaze.length, S.gaze.width, core.player.r)) hit(core, e, "gaze", aura, true);
         break;
       case "collapse":
-        if (circle(core, a, S.collapse.radius)) hit(core, e, "collapse", "lightning", aura, true);
+        if (circle(core, a, S.collapse.radius)) hit(core, e, "collapse", aura, true);
         break;
       case "stomp":
-        if (circle(core, a, S.stomp.radius)) hit(core, e, "stomp", "physical", aura, false, S.stomp.knock);
+        if (circle(core, a, S.stomp.radius)) hit(core, e, "stomp", aura, false, S.stomp.knock);
         break;
       case "blink":
         e.x = clamp(a.x + Math.cos(a.angle) * S.blink.distance, 20, WORLD.w - 20);
@@ -92,7 +92,7 @@ function advance(core: GameCore, e: Enemy, a: EnemyAction, dt: number, aura: num
     if (a.tickT <= 1e-8 && a.t >= -1e-8 && a.ticks < S.tether.ticks) {
       a.tickT += S.tether.tick;
       a.ticks++;
-      if (enemyLineContains(core.player, a, S.tether.length, S.tether.width, core.player.r)) hit(core, e, "tether", "lightning", aura);
+      if (enemyLineContains(core.player, a, S.tether.length, S.tether.width, core.player.r)) hit(core, e, "tether", aura);
     }
   } else if (a.kind === "thrust") {
     const remaining = Math.max(0, a.t + dt);
@@ -102,7 +102,7 @@ function advance(core: GameCore, e: Enemy, a: EnemyAction, dt: number, aura: num
     e.y = clamp(e.y + Math.sin(a.angle) * moved, 20, WORLD.h - 20);
     if (!a.hit && enemyLineContains(core.player, old, moved, S.thrust.width, core.player.r)) {
       a.hit = true;
-      hit(core, e, "thrust", "physical", aura);
+      hit(core, e, "thrust", aura);
     }
   } else if (a.kind === "sonic") {
     const r0 = S.sonic.radius * Math.max(0, 1 - (a.t + dt) / a.max);
@@ -110,7 +110,7 @@ function advance(core: GameCore, e: Enemy, a: EnemyAction, dt: number, aura: num
     const d = Math.hypot(core.player.x - a.x, core.player.y - a.y);
     if (!a.hit && d + core.player.r >= r0 && d - core.player.r <= r1) {
       a.hit = true;
-      hit(core, e, "sonic", "physical", aura);
+      hit(core, e, "sonic", aura);
     }
     for (const ally of core.enemies) {
       if (ally === e || ally.dead || ally.boss) continue;

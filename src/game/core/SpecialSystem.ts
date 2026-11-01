@@ -1,22 +1,20 @@
 import {
-  LASER_DAMAGE_MUL,
   LASER_RANGE_MUL,
   LASER_WIDTH,
-  MISSILE_BURN_DPS_MUL,
   MISSILE_BURN_DURATION,
-  MISSILE_DAMAGE_MUL,
   MISSILE_LATERAL_KICK,
   MISSILE_RADIUS,
   MISSILE_TURN_RATE,
   OFFHAND_OFFSET,
   SPECIAL_LEVELS,
   SPECIAL_UPGRADES,
-  TRUE_DAMAGE_MUL,
   getSpecialLevelStats,
 } from "../data/specialShot";
 import { KNOCK } from "../data/knockback";
 import type { GameCore } from "./GameCore";
+import { PLAYER_ATTACK_PROFILES as PA, withDamageType } from "../data/attackProfiles";
 import type { Enemy } from "./types";
+import { legacyLaserDamage, legacyMissileDamage, legacyMissileGroundDps } from "./DamageMath";
 
 function pointSegmentDistance(
   px: number,
@@ -78,17 +76,13 @@ export function fireSpecialLaser(
   const x2 = x1 + Math.cos(angle) * length;
   const y2 = y1 + Math.sin(angle) * length;
   const type = this.specialUpgrades.includes("trueDamage") ? "true" : "physical";
-  const laserDamage =
-    damage *
-    LASER_DAMAGE_MUL *
-    (this.specialUpgrades.includes("trueDamage") ? TRUE_DAMAGE_MUL : 1);
+  const laserDamage = legacyLaserDamage(damage, this.specialUpgrades.includes("trueDamage"));
   for (const e of this.enemies) {
     if (e.dead) continue;
     if (pointSegmentDistance(e.x, e.y, x1, y1, x2, y2) <= LASER_WIDTH + e.r) {
       this.hurtEnemy(e, laserDamage, 0, 0, {
         src: "bullet",
-        type,
-        form: "other",
+        ...withDamageType(PA.legacyLaser, type),
         noCrit: true,
         noChain: true,
         noLifesteal: true,
@@ -123,7 +117,7 @@ export function launchSpecialMissile(
       Math.sin(angle) * speed +
       Math.sin(perp) * MISSILE_LATERAL_KICK,
     target,
-    damage: damage * MISSILE_DAMAGE_MUL,
+    damage: legacyMissileDamage(damage),
     t: 1.2,
   });
   this.audio.beep(300, 0.12, "sawtooth", 0.03, 180);
@@ -180,8 +174,7 @@ export function updateSpecialMissiles(this: GameCore, dt: number) {
           ((e.y - m.y) / d) * KNOCK.shooter.missile,
           {
             src: "explode",
-            type: "physical",
-            form: "other",
+            ...PA.legacyMissile,
             fromExplode: true,
             noChain: true,
             noLifesteal: true,
@@ -194,7 +187,7 @@ export function updateSpecialMissiles(this: GameCore, dt: number) {
       y: m.y,
       R: MISSILE_RADIUS * 0.8,
       t: MISSILE_BURN_DURATION,
-      dps: m.damage * MISSILE_BURN_DPS_MUL,
+      dps: legacyMissileGroundDps(m.damage),
       showDamage: true,
       tickT: 0.5,
       tickDmg: 0,

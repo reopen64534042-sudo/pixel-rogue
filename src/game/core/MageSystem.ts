@@ -21,7 +21,9 @@ import {
   mageReactionAvailableForHit,
 } from "./ElementSystem";
 import type { GameCore } from "./GameCore";
+import { PLAYER_ATTACK_PROFILES as PA, withDamageType } from "../data/attackProfiles";
 import type { Enemy, MageCastPhase } from "./types";
+import { mageElementDamageBase, mageDirectHitDamage, magePrismDamage, mageRefractedBase } from "./DamageMath";
 
 /**
  * 元素法师施法系统。
@@ -67,7 +69,7 @@ export function mageCircleRadius(core: GameCore): number {
 
 /** 元素伤害基准（不含元素自身倍率）；原站定 1.5× 已折入基准。 */
 function mageElementBase(core: GameCore): number {
-  return core.player.damage * MB.elementBaseMul;
+  return mageElementDamageBase(core.player.damage);
 }
 
 /**
@@ -122,11 +124,7 @@ function explodeCircle(
   const el = mageCurrentElement(core);
   if (!el) return { hits: 0, reacted: false };
   // 直伤另乘 directDamageMul：状态 DoT / 闪电链 / 反应仍用完整元素基准。
-  const dmg =
-    base *
-    MB.directDamageMul *
-    mageDirectDamageMul(core) *
-    MAGE_ELEMENTS[el].damageMul;
+  const dmg = mageDirectHitDamage(base, mageDirectDamageMul(core), el);
   core.mageVisualEvents.push({
     kind: "body",
     at: core.time,
@@ -147,8 +145,7 @@ function explodeCircle(
       origin: { x, y },
       noChain: true,
       src: "cast",
-      type: el,
-      form: "other",
+      ...withDamageType(PA.mageBody, el),
       // 有会造成伤害的已领悟反应时，直伤最多留 1 HP，让反应完成击杀。
       lethalCap: mageReactionAvailableForHit(core, e, el, reactionBudget),
     });
@@ -190,12 +187,7 @@ function queueEcho(
     t: ELEMENTAL_MAGE.echo.delay,
     maxT: ELEMENTAL_MAGE.echo.delay,
     R,
-    damage:
-      base *
-      MB.directDamageMul *
-      mageDirectDamageMul(core) *
-      MAGE_ELEMENTS[el].damageMul *
-      ELEMENTAL_MAGE.echo.damageMul,
+    damage: mageDirectHitDamage(base, mageDirectDamageMul(core), el, ELEMENTAL_MAGE.echo.damageMul),
     element: el,
   });
 }
@@ -225,8 +217,7 @@ function updateMageEchoes(core: GameCore, dt: number): void {
         noCrit: true,
         noChain: true,
         src: "cast",
-        type: echo.element,
-        form: "other",
+        ...withDamageType(PA.mageEcho, echo.element),
       });
       if (hit) core.mageDmgBy.echo += hit.effectiveHpLoss;
     }
@@ -297,8 +288,7 @@ function shatterPrism(
   base: number,
 ): void {
   const R = ELEMENTAL_MAGE.prism.ultimateShatterRadius;
-  const dmg =
-    base * ELEMENTAL_MAGE.prism.ultimateShatterMul * MAGE_ELEMENTS[current].damageMul;
+  const dmg = magePrismDamage(base, current);
   core.mageVisualEvents.push({
     kind: "burst",
     at: core.time,
@@ -318,8 +308,7 @@ function shatterPrism(
       noChain: true,
       noLifesteal: true,
       src: "cast",
-      type: current,
-      form: "other",
+      ...withDamageType(PA.magePrism, current),
     });
     if (hit) core.mageDmgBy.shatter += hit.effectiveHpLoss;
     if (e.dead) continue;
@@ -379,13 +368,8 @@ function refractPrism(
     maxT: 0.3,
   });
   const share = prism.budget / targets.length;
-  const refractedBase = base * share;
-  const dmg =
-    base *
-    MB.directDamageMul *
-    mageDirectDamageMul(core) *
-    MAGE_ELEMENTS[element].damageMul *
-    share;
+  const refractedBase = mageRefractedBase(base, share);
+  const dmg = mageDirectHitDamage(base, mageDirectDamageMul(core), element, share);
   for (const point of targets)
     core.mageVisualEvents.push({
       kind: "refract",
@@ -408,8 +392,7 @@ function refractPrism(
         noChain: true,
         noLifesteal: true,
         src: "cast",
-        type: element,
-        form: "other",
+        ...withDamageType(PA.mageRefract, element),
         lethalCap: mageReactionAvailableForHit(
           core,
           e,
@@ -504,12 +487,7 @@ function triggerSplitShadows(
       y: point.y,
       radius: R,
     });
-    const dmg =
-      base *
-      MB.directDamageMul *
-      mageDirectDamageMul(core) *
-      MAGE_ELEMENTS[element].damageMul *
-      p.damageMul;
+    const dmg = mageDirectHitDamage(base, mageDirectDamageMul(core), element, p.damageMul);
     for (const e of core.enemies) {
       if (e.dead) continue;
       const dx = e.x - point.x;
@@ -521,8 +499,7 @@ function triggerSplitShadows(
         noChain: true,
         noLifesteal: true,
         src: "cast",
-        type: element,
-        form: "other",
+        ...withDamageType(PA.mageShadow, element),
       });
       if (hit) core.mageDmgBy.shadow += hit.effectiveHpLoss;
       if (e.dead) continue;
