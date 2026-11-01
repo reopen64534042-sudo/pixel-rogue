@@ -99,7 +99,7 @@ import { WARRIOR_BALANCE } from "../data/warriorBalance";
 import { resolveStats, type StatModifier } from "./StatModel";
 import { levelGrowthFor, levelGrowthSteps } from "../data/levelGrowth";
 import { resolveKeyedMap, type TypeDamageBonusModifier } from "./StatSheets";
-import type { Player, Profession, WarriorStyle } from "./types";
+import type { Player, Profession, WarriorStyle, MageWeapon } from "./types";
 
 /** 十三张已迁移卡（C1/C2）+ 两张生命卡（C3-A）的来源贡献：标量区（含 attack 与五字段 final）+ 类型化火雷增伤区 */
 export interface TalentStatContribution {
@@ -526,15 +526,16 @@ export function applyTalentStatProjection(
    */
   prof: Profession = "shooter",
   warriorStyle: WarriorStyle = "katana",
+  mageWeapon: MageWeapon = "arcane",
 ): void {
-  const base = statBase(prof, warriorStyle);
+  const base = statBase(prof, warriorStyle, mageWeapon);
   const { scalars, typeDamageBonus } = talentStatModifiers(
     p.picks,
     persistent,
     warriorStyle,
   );
   // v149：等级自动成长与属性点同一次解析，避免 recompute 覆盖或双写。
-  const growth = levelGrowthFor(prof);
+  const growth = levelGrowthFor(prof, mageWeapon);
   const growthSteps = levelGrowthSteps(p.lvl);
   const growthModifiers: StatModifier[] = [];
   if (growth && growthSteps > 0) {
@@ -557,6 +558,13 @@ export function applyTalentStatProjection(
         stat: "critChance",
         stage: "flat",
         value: growth.critChance * growthSteps,
+      });
+    if (growth.domainValue !== undefined)
+      growthModifiers.push({
+        sourceId: "levelGrowth",
+        stat: "domainValue",
+        stage: "flat",
+        value: growth.domainValue * growthSteps,
       });
     if (growth.fireRate !== undefined)
       growthModifiers.push({
@@ -583,6 +591,7 @@ export function applyTalentStatProjection(
   const resolved = resolveStats({
     base: {
       attack: base.damage,
+      ...(prof === "mage" && mageWeapon === "domain" ? {domainValue: 100} : {}),
       tough: base.tough,
       // S5：闪避 base = 0；来源为属性池「闪避」与旧卡「闪避本能」
       dodge: base.dodge,
@@ -656,6 +665,9 @@ export function applyTalentStatProjection(
   // C2-A：attack 解析结果写回既有 damage 字段（base=statBase().damage，
   // final 区按 picks 顺序连乘——与旧 f 重放运算序列逐位一致）
   p.damage = resolved.attack ?? base.damage;
+  if (prof === "mage" && mageWeapon === "domain")
+    p.domainValue = Math.min(ATTRIBUTE_CAPS.domainValue, Math.max(100, resolved.domainValue ?? 100));
+  else delete p.domainValue;
   // C2-B：五字段解析结果写回既有 Player 字段（speed 字段 = moveSpeed StatId）
   p.boltDmgMul = resolved.boltDmgMul ?? base.boltDmgMul;
   // 属性硬顶：攻速/移速按本职业基础值封顶；临时 Buff 在消费点乘算，不在此投影内

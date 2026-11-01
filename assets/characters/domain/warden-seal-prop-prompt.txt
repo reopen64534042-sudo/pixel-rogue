@@ -1,0 +1,5 @@
+Use case: background-extraction / precise-object-edit.
+Edit target: the approved masked Boundary Warden concept. Extract and redraw exactly ONE of the small floating seal plates near the left supporting hand as a standalone prop, removing the person and everything else.
+Keep its identity: a compact upright dark-ink rectangular plaque with cut corners, a thick bone/silver border and one simple violet diamond seal at center. Slightly angled, broad visible face. Simplify to an effective 5-by-7 logical-pixel design with bold flat clusters, so the core pattern survives at tiny game size. No writing or micro-runes. No extra chains, handles, particle cloud or character parts.
+Only colors from #1a0a2a #22223a #4a5062 #8b8f9a #e8e8f0 #8a5cff #b05cff, with at most one tiny cyan #57e6ff glint. No gradients or soft glow.
+One isolated plate centered on a square genuinely transparent canvas, generous clear padding, no floor, cast shadow, scenery, border, checkerboard, captions or text. The final actor will reuse this same prop three times; do not draw three plates in this image.

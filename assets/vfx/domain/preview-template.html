@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>坍缩领域 · 特效动效草案</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,"Microsoft YaHei",sans-serif;background:#10121d;color:#e8e8f0}*{box-sizing:border-box}body{max-width:1100px;margin:auto;padding:24px}h1{font-size:24px;margin:0 0 8px}p{color:#adb1c7;line-height:1.65;margin:8px 0 18px}.stage{display:flex;gap:12px;justify-content:space-between;align-items:center;margin:12px 0}.canvas-wrap{background:#141725;border:1px solid #35304d}canvas{display:block;width:100%;height:auto;image-rendering:pixelated}.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0}button,select{font:inherit;color:inherit;background:#28243b;border:1px solid #5c497b;padding:8px 14px;border-radius:6px}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #57e6ff;outline-offset:3px}input[type=range]{width:100%;accent-color:#b05cff}.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}.seed{background:#171a2a;border:1px solid #35304d;padding:12px;text-align:center}.seed img{width:min(100%,256px);height:auto;image-rendering:pixelated}.seed h2{font-size:15px;font-weight:600;margin:6px}.tag{font-size:13px;color:#b9a4e5}small{color:#adb1c7}@media(max-width:560px){body{padding:12px}.gallery{grid-template-columns:1fr}h1{font-size:20px}}
+</style></head><body>
+<h1>坍缩领域 · 特效动效草案</h1>
+<p>三领域围猎 → 结界闭合 → 向心收拢 → 黑洞形成爆发。墨黑裂隙与紫色结界为主体，青白高光只点亮边缘。</p>
+<div class="stage"><strong id="stage-name">部署</strong><span class="tag">480 × 270 · 整数像素参照</span></div>
+<div class="canvas-wrap"><canvas id="preview" width="480" height="270" aria-label="三领域收拢与黑洞特效循环预览"></canvas></div>
+<div class="controls"><button id="play" type="button">暂停</button><button id="restart" type="button">重播</button><label>速度 <select id="speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label><label><input id="loop" type="checkbox" checked> 循环</label><output id="time">0.00 / 6.20s</output></div>
+<input id="seek" type="range" min="0" max="6.199" step="0.033333" value="0" aria-label="动画时间轴">
+<p><small>离线素材编排，含无量空处、多重斩击、禁锢、终末与余烬的造型示意；单位仅作尺寸和遮挡参照。未运行索敌、伤害、控制或战斗模拟，飘字只展示样式。这些关键帧尚未作为正式逐帧条带接入游戏。</small></p>
+<div class="gallery" id="seeds"></div>
+<script>
+const data=/*__DOMAIN_PREVIEW_DATA__*/;
+const names={deploy:'领域部署 · 0.25s',hunt:'三领域围猎',collapse:'结界收拢 · 0.35s',impact:'黑洞形成 · 集中爆发',blackhole:'奇点旋流 · L3 叠加示意',terminal:'终末脉冲',remnant:'余烬领域',clear:'消散'};
+const seedNames={field:'普通领域 · 中空结界',blackhole:'黑洞 · 三股向心旋流',impact:'形成爆发 · 空间剪切'};
+const canvas=document.getElementById('preview'),ctx=canvas.getContext('2d');
+if(!ctx)throw new Error('Canvas context unavailable');
+ctx.imageSmoothingEnabled=false;
+const atlas=new Image();
+const play=document.getElementById('play'),seek=document.getElementById('seek'),speed=document.getElementById('speed'),loop=document.getElementById('loop');
+let t=0,playing=true,last=null;
+function draw(){if(!atlas.complete||!atlas.naturalWidth)return;const f=data.frames[Math.min(data.frameCount-1,Math.floor(t*data.fps))];ctx.clearRect(0,0,480,270);ctx.drawImage(atlas,f.x,f.y,f.w,f.h,0,0,480,270);document.getElementById('stage-name').textContent=names[f.stage];document.getElementById('time').textContent=t.toFixed(2)+' / '+data.duration.toFixed(2)+'s';seek.value=String(t);play.textContent=playing?'暂停':'播放';}
+play.addEventListener('click',()=>{playing=!playing;draw()});document.getElementById('restart').addEventListener('click',()=>{t=0;playing=true;draw()});seek.addEventListener('input',()=>{t=Number(seek.value);playing=false;draw()});
+data.seeds.forEach(s=>{const box=document.createElement('div');box.className='seed';const img=document.createElement('img');img.src=s.image;img.alt=seedNames[s.key];const title=document.createElement('h2');title.textContent=seedNames[s.key];box.append(img,title);document.getElementById('seeds').append(box)});
+atlas.addEventListener('load',()=>{draw();requestAnimationFrame(function tick(now){if(last!==null&&playing){t+=(now-last)/1000*Number(speed.value);if(t>=data.duration){if(loop.checked)t%=data.duration;else{t=data.duration-1/data.fps;playing=false}}draw()}last=now;requestAnimationFrame(tick)})});atlas.addEventListener('error',()=>{document.getElementById('stage-name').textContent='预览图集加载失败'});atlas.src=data.atlas;
+</script></body></html>

@@ -1,0 +1,135 @@
+{
+  "sources": [
+    {
+      "key": "field",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha": {
+        "visible": {
+          "x": 0,
+          "y": 9,
+          "w": 1248,
+          "h": 1245
+        },
+        "transparent": 852683,
+        "semi": 719610,
+        "opaque": 223
+      },
+      "prototype": {
+        "visible": {
+          "x": 4,
+          "y": 4,
+          "w": 121,
+          "h": 120
+        },
+        "transparent": 12791,
+        "semi": 0,
+        "opaque": 3593
+      }
+    },
+    {
+      "key": "blackhole",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha": {
+        "visible": {
+          "x": 0,
+          "y": 9,
+          "w": 1244,
+          "h": 1245
+        },
+        "transparent": 767004,
+        "semi": 804962,
+        "opaque": 550
+      },
+      "prototype": {
+        "visible": {
+          "x": 10,
+          "y": 9,
+          "w": 112,
+          "h": 112
+        },
+        "transparent": 11397,
+        "semi": 0,
+        "opaque": 4987
+      }
+    },
+    {
+      "key": "impact",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha": {
+        "visible": {
+          "x": 0,
+          "y": 9,
+          "w": 1254,
+          "h": 1245
+        },
+        "transparent": 783583,
+        "semi": 788221,
+        "opaque": 712
+      },
+      "prototype": {
+        "visible": {
+          "x": 9,
+          "y": 11,
+          "w": 114,
+          "h": 109
+        },
+        "transparent": 10296,
+        "semi": 0,
+        "opaque": 6088
+      }
+    }
+  ],
+  "preview": {
+    "width": 480,
+    "height": 270,
+    "fps": 30,
+    "duration": 6.2,
+    "frameCount": 186,
+    "atlas": [
+      5760,
+      4320
+    ],
+    "timeline": {
+      "deploy": [
+        0,
+        0.25
+      ],
+      "fieldLand": [
+        0.25,
+        1.15,
+        2.05
+      ],
+      "collapse": [
+        2.05,
+        2.4
+      ],
+      "impact": [
+        2.4,
+        2.64
+      ],
+      "blackhole": [
+        2.4,
+        4.6
+      ],
+      "terminal": [
+        4.6,
+        4.82
+      ],
+      "remnant": [
+        4.6,
+        5.8
+      ]
+    },
+    "note": "One composed spectacle cycle with L3 motifs, terminal and remnant examples. Not combat, CC, TTK or actual animation-strip playback. Damage labels are style examples."
+  },
+  "plannedClips": 14
+}

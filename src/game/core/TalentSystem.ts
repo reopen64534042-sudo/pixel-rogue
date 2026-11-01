@@ -1,4 +1,5 @@
 import { hash01 } from "../data/constants";
+import { DOMAIN_TALENT_AUDIO } from '../data/domainAudio';
 import { statBase } from "../data/stats";
 import { LEGACY_UPGRADES, MAGE_ELEMENT_CARDS, MAGE_VARIANT_ELEMENT, RAMP, UPGRADES, mageElements } from "../data/talents";
 import type { GameCore } from "./GameCore";
@@ -68,6 +69,8 @@ export function canOffer(this: GameCore, u: Talent) {
   )
     return false;
   if (u.prof === "shooter" && (u.shooterWeapon ?? "charged") !== this.shooterWeapon) return false;
+  if (u.prof === "mage" && (u.mageWeapon ?? "arcane") !== this.mageWeapon) return false;
+  if (u.requiresDomainUpgrade && (this.prof!=='mage' || this.mageWeapon!=='domain' || !this.domain.upgrades.includes(u.requiresDomainUpgrade))) return false;
   const picks = this.player.picks;
   // S2 链式依赖（混合式抽取）：未持有前置时 L2/L3 不进池。
   if (u.requires && !picks.includes(u.requires)) return false;
@@ -114,7 +117,7 @@ export function recompute(this: GameCore) {
   // （R-4 修复）
   const capsBefore = effectiveCaps(this.player);
   const runtime = captureRuntimeState(this.player);
-  Object.assign(this.player, statBase(this.prof));
+  Object.assign(this.player, statBase(this.prof, this.warriorStyle, this.mageWeapon));
   // Combat Foundation S3-B：statBase 不含可选战斗属性键，Object.assign 不会清除
   // 残留值——磐石/元素亲和等增量型天赋重放前必须清键，否则在旧值上叠加
   for (const key of [
@@ -146,6 +149,7 @@ export function recompute(this: GameCore) {
     attributeModifiers(this.attributePicks),
     this.prof,
     this.warriorStyle,
+    this.mageWeapon,
   );
   // C3-B/C3-C：属性重建完成后原样回写全部运行状态（不恢复资源、不刷新
   // 倒计时、不重放获得时效果），再按「上限降低」方向协调——置换移除层级
@@ -178,11 +182,16 @@ export function learnTalent(this: GameCore, u: Talent) {
     attributeModifiers(this.attributePicks),
     this.prof,
     this.warriorStyle,
+    this.mageWeapon,
   );
   // C3-A：获得时效果在投影**之后**执行（生命之泉回满依赖新有效 maxhp）；
   // 仅对已登记卡生效（未登记 no-op），melt 输出卡路径经本函数自动复用，
   // recompute 绝不经过此处（D-C3-02/03：重算不得重放获得时效果）
   applyOnAcquireEffect(u.n, this.player, lvBefore);
+  if (this.prof==='mage' && this.mageWeapon==='domain') {
+    const sound=DOMAIN_TALENT_AUDIO[u.n as keyof typeof DOMAIN_TALENT_AUDIO];
+    if (sound) this.audio.domainSound(sound);
+  }
   return true;
 }
 export function openLevelPanel(this: GameCore) {

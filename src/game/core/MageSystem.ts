@@ -642,7 +642,7 @@ function updateMeteorRoute(core: GameCore, dt: number) {
  */
 export function updateMageCasting(this: GameCore, dt: number) {
   const p = this.player;
-  if (this.prof !== "mage") return;
+  if (this.prof !== "mage" || this.mageWeapon === 'domain') return;
   // 站定判定的移动追踪：Simulation 里本模块紧随 updatePlayer，读到的就是
   // 本帧位移。0.05px 阈值忽略浮点噪声；只有真正移动才刷新计时。
   if (Math.hypot(p.x - this.magePrevX, p.y - this.magePrevY) > 0.05)

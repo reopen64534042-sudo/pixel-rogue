@@ -171,9 +171,9 @@ export function hurtEnemy(
     : attackerStats;
   // 战士职业底座：近战无视 30% 护甲。其他职业与伤害形式保持原状。
   const armorPen =
-    this.prof === "warrior" && opts.form === "melee"
+    opts.armorPen ?? (this.prof === "warrior" && opts.form === "melee"
       ? WARRIOR_BALANCE.armorPen
-      : 0;
+      : 0);
   // §3.4 步骤 4：数值交给 DamageSystem。敌方离散命中用 round-min-one，
   // 与旧 Math.max(1, Math.round(dmg × 暴击倍率（含 #41 觉醒）× 易伤)) 一致
   const calc = calculateDamage(DAMAGE_TYPES, {
@@ -188,7 +188,21 @@ export function hurtEnemy(
     defenderStats: getEnemyCombatStats(e, armorPen),
   });
   let settled = calc.settledDamage;
+  const primarySettled = settled;
   let trueDamage = 0;
+  for (const component of opts.components ?? []) {
+    const extra = calculateDamage(DAMAGE_TYPES, {
+      rawAmount:component.rawAmount, type:component.type, form:opts.form ?? 'other',
+      origin:opts.src ?? 'hit',kind:opts.kind ?? 'hit',precision:'preserve-float',isCritical:false,
+      attackerStats:component.inheritBonuses ? effectiveAttackerStats : {
+        ...effectiveAttackerStats,globalDamageBonus:0,typeDamageBonus:{},formDamageBonus:{},skillDamageBonus:undefined,
+      },
+      defenderStats:getEnemyCombatStats(e,armorPen),
+    });
+    const amount=extra.settledDamage*elementDamageMultiplier(e,component.type);
+    settled+=amount;
+    if (component.type==='true') trueDamage+=amount;
+  }
   if (opts.trueFraction && opts.trueFraction > 0) {
     // 附带真实伤害是额外一层，不替换主伤害；同样吃暴击与增伤，但绕过减伤。
     const trueCalc = calculateDamage(DAMAGE_TYPES, {
@@ -202,8 +216,8 @@ export function hurtEnemy(
       attackerStats: effectiveAttackerStats,
       defenderStats: getEnemyCombatStats(e, armorPen),
     });
-    trueDamage = trueCalc.settledDamage;
-    settled += trueDamage;
+    trueDamage += trueCalc.settledDamage;
+    settled += trueCalc.settledDamage;
   }
   dmg = settled;
   if (dmg > this.runHighestHit.amount)
@@ -261,6 +275,13 @@ export function hurtEnemy(
       opts.iaiHit === true,
       opts.triHit === true,
     );
+    if (opts.domainHit) {
+      mainText.domainDmg=opts.domainHit;
+      mainText.domainTrue=trueDamage;
+      mainText.life=opts.domainHit==='collapse'?(crit?.82:.68):opts.domainHit==='slash'?.32:.48;
+      mainText.domainMaxLife=mainText.life;
+      mainText.s=String(Math.max(1,Math.round(mainDamage)));
+    }
     if (crit) {
       // 暴击火花：不推进随机数，按敌人 seed 给四向金色/白色短粒子。
       for (let i = 0; i < 4; i++) {
@@ -275,7 +296,7 @@ export function hurtEnemy(
         });
       }
     }
-    if (trueDamage > 0) {
+    if (trueDamage > 0 && !opts.domainHit) {
       const subLabel = `+${trueDamage}`;
       // Press Start 2P 近似等宽：按字号估宽，给主数字和 +N 之间留 3px 空隙。
       const mainCharW = mainIsTrue ? (crit ? 16 : 12) : mainSpecial ? 9 : 8;
@@ -304,7 +325,7 @@ export function hurtEnemy(
   const dealtHpLoss = Math.max(0, Math.min(hpBefore, dmg));
   e.hp -= dmg;
   syncBossPhase(this, e);
-  e.flash = 0.08;
+  if (opts.kind !== 'dot' && !opts.noFlash) e.flash = 0.08;
   // 裂甲：非引爆命中叠层；第 3 层命中已在上方加伤，这里清空并破甲。
   if (lieJiaOwned) {
     if (lieJiaBurst) {
@@ -378,7 +399,7 @@ export function hurtEnemy(
     }
     if (near.length) this.audio.beep(1200, 0.08, "sawtooth", 0.04, -600);
   }
-  if (!opts.silent) this.audio.beep(200 + Math.random() * 80, 0.04, "square", 0.025, -80);
+  if (!opts.silent && !opts.silentSound) this.audio.beep(200 + Math.random() * 80, 0.04, "square", 0.025, -80);
   if (e.hp <= 0) {
     // 「裂变」：强化弹击杀时向附近敌人发射碎片；碎片是普通弹，不再触发裂变。
     if (opts.specialHit && this.specialUpgrades.includes("fission")) {
@@ -429,6 +450,7 @@ export function hurtEnemy(
     ...calc,
     settledDamage: dmg,
     effectiveHpLoss: dealtHpLoss,
+    ...(opts.components ? {primaryHpLoss: settled > 0 ? dealtHpLoss * primarySettled / settled : 0} : {}),
     dodged: false,
     shieldUsed: "none",
     lethal: e.hp <= 0,
@@ -789,6 +811,13 @@ export function damagePlayer(
     if (dmg <= 0)
       return blockedHit(rawDmg, { dodged: false, shieldUsed: "temporary" });
   }
+  if (this.prof==='mage' && this.mageWeapon==='domain' && this.domain.shield>0) {
+    const absorbed=Math.min(this.domain.shield,dmg);
+    this.domain.shield-=absorbed;dmg-=absorbed;
+    this.audio.domainSound(this.domain.shield>0?'shield-hit':'shield-break');
+    this.addText(p.x,p.y-10,Math.round(absorbed),'#a98cff');
+    if (dmg<=0) return blockedHit(rawDmg,{dodged:false,shieldUsed:'temporary'});
+  }
   // S3 法师：受击打断抬手段（前摇）。收束段不可打断。
   this.interruptMageCast();
   // S3 法师「脱离」槽：相位（传送规避本次伤害）/ 镜像（残影 + 1 秒虚影）。
@@ -813,6 +842,7 @@ export function damagePlayer(
   const hpBefore = p.hp;
   p.hurtCd = 0.6;
   p.hp -= dmg;
+  if (this.prof==='mage' && this.mageWeapon==='domain') this.domain.hurtUntil=this.time+.25;
   // 死亡总结：只记录实际掉血；护盾/闪避/无敌在上方已提前返回。
   const cause: DamageCause =
     opts.cause ?? (opts.melee ? "contact" : "unknown");

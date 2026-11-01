@@ -601,6 +601,96 @@ p {
   font-weight: normal;
 }
 
+/* 领域师面板：常用数值短行对齐，长规则单独展开；仅作用于领域武器。 */
+#ov-stats[data-weapon="domain"] .stats-col-right {
+  --stats-accent: #c8afff;
+}
+#ov-stats[data-weapon="domain"] .stat-group-grid,
+#ov-stats[data-weapon="domain"] .special-upgrade,
+#ov-stats[data-weapon="domain"] .weapon-progress-label,
+#ov-stats[data-weapon="domain"] .stats-help {
+  font-family: "Microsoft YaHei", sans-serif;
+  font-size: clamp(12px, 1.6vmin, 15px);
+  line-height: 1.6;
+}
+#ov-stats[data-weapon="domain"] .stat-group-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 2vmin;
+  row-gap: 0;
+}
+#ov-stats[data-weapon="domain"] .stat-group-grid .row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: baseline;
+  column-gap: 0.8vmin;
+  min-width: 0;
+  min-height: 3vmin;
+  padding: 0.55vmin 0;
+}
+#ov-stats[data-weapon="domain"] .stat-group-grid .k {
+  min-width: 0;
+}
+#ov-stats[data-weapon="domain"] .stat-group-grid .k,
+#ov-stats[data-weapon="domain"] .special-upgrade .su-name {
+  display: grid;
+  grid-template-columns: 1.25em minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.4em;
+}
+#ov-stats[data-weapon="domain"] .stat-icon {
+  display: inline-block;
+  width: 1.25em;
+  text-align: center;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+}
+#ov-stats[data-weapon="domain"] .row.dim .stat-icon {
+  opacity: 0.45;
+}
+#ov-stats[data-weapon="domain"] .stat-group-grid .v {
+  text-align: right;
+  white-space: nowrap;
+  font-family: Consolas, "Microsoft YaHei", monospace;
+  font-variant-numeric: tabular-nums;
+}
+#ov-stats[data-weapon="domain"] .weapon-rules .stat-group-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+#ov-stats[data-weapon="domain"] .weapon-rules .row {
+  grid-template-columns: 6.5em minmax(0, 1fr);
+  align-items: start;
+  gap: 1.2vmin;
+  padding: 0.75vmin 0;
+}
+#ov-stats[data-weapon="domain"] .weapon-rules .v {
+  text-align: left;
+  white-space: normal;
+  font-family: "Microsoft YaHei", sans-serif;
+  font-weight: normal;
+}
+#ov-stats[data-weapon="domain"] .special-upgrade {
+  display: grid;
+  grid-template-columns: 7em minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 1.2vmin;
+  padding: 0.75vmin 0;
+}
+#ov-stats[data-weapon="domain"] .weapon-progress-label {
+  font-variant-numeric: tabular-nums;
+}
+#ov-stats[data-weapon="domain"] .weapon-progress .stats-help {
+  margin: 0.45vmin 0 0;
+}
+@media (max-width: 600px) {
+  #ov-stats[data-weapon="domain"] .stat-group-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #ov-stats[data-weapon="domain"] .special-upgrade,
+  #ov-stats[data-weapon="domain"] .weapon-rules .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3vmin;
+  }
+}
+
 /* 右栏天赋列表与分类 */
 #talent-list {
   min-height: 0;

@@ -2,6 +2,9 @@ import { preloadBossArt, registerBossPortrait } from "../rendering/BossArt";
 import { preloadLaserVfx } from "../rendering/vfx/laser/LaserVfxPhaser";
 import { preloadMissileVfx } from "../rendering/vfx/missile/MissileVfxPhaser";
 import { clearMissileTransient } from "../core/MissileSystem";
+import { DomainCharacter, DOMAIN_CHARACTER, registerDomainCharacter } from '../rendering/characters/DomainCharacter';
+import { DomainNumbers, preloadDomainArt } from '../rendering/DomainRenderer';
+import type { FloatingText } from '../core/types';
 import { LaserV137Bridge } from "../rendering/vfx/laser/LaserV137Bridge";
 import { LaserVfxPlayer, type LaserVfxCommand } from "../rendering/vfx/laser/LaserVfxPlayer";
 import { drawLaserVfxPainter } from "../rendering/vfx/laser/LaserVfxPainter";
@@ -78,8 +81,11 @@ export class GameScene extends Phaser.Scene {
   private readonly laserPlayer = new LaserVfxPlayer();
   private readonly katanaCharacter = new KatanaCharacter();
   private readonly greatswordCharacter = new GreatswordCharacter();
+  private readonly domainCharacter = new DomainCharacter();
+  private domainNumbers = new DomainNumbers(this);
+  private readonly drawDomainNumber=(t:FloatingText)=>this.domainNumbers.draw(this.painter,t);
   private readonly drawCharacter = (x: number, y: number) =>
-    this.katanaCharacter.draw(this.painter, x, y) || this.greatswordCharacter.draw(this.painter, x, y);
+    this.domainCharacter.draw(this.painter,x,y) || this.katanaCharacter.draw(this.painter, x, y) || this.greatswordCharacter.draw(this.painter, x, y);
   private laserCommands: readonly LaserVfxCommand[] = [];
   private readonly drawLaserAnimation = () => drawLaserVfxPainter(this.painter, this.laserCommands);
   private specialTest:
@@ -103,6 +109,7 @@ export class GameScene extends Phaser.Scene {
     super("Game");
   }
   preload() {
+    preloadDomainArt(this);
     preloadBossArt(this);
     preloadLaserVfx(this);
     preloadMissileVfx(this);
@@ -197,7 +204,7 @@ export class GameScene extends Phaser.Scene {
       )
         this.core.chooseAttr(Number(key) - 1);
       if (this.core.state === "over" && key === "r")
-        this.core.startGame(this.core.prof, this.core.warriorStyle, this.core.shooterWeapon);
+        this.core.startGame(this.core.prof, this.core.warriorStyle, this.core.shooterWeapon, this.core.mageWeapon);
     };
     const up = (event: KeyboardEvent) => {
       this.core.keys[event.key.toLowerCase()] = false;
@@ -232,6 +239,7 @@ export class GameScene extends Phaser.Scene {
       this.laserCommands = [];
       this.katanaCharacter.reset();
       this.greatswordCharacter.reset();
+      this.domainCharacter.reset();this.domainNumbers.dispose();
       if (import.meta.env.DEV) delete window.__PIXEL_ROGUE__;
     });
     // Explicit test mode only; production bundles contain no control bridge.
@@ -248,6 +256,7 @@ export class GameScene extends Phaser.Scene {
     void this.loadIaiSpinSlash();
     void this.loadGreatswordSlashes();
     void this.loadKatanaDash();
+    void this.loadDomainCharacter();
     void this.loadKatanaCharacter();
     void this.loadGreatswordCharacter();
     const testName = new URLSearchParams(window.location.search).get("test");
@@ -651,6 +660,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private async loadDomainCharacter() {
+    try {
+      const [body,seal]=await Promise.all([loadImageElement(`${import.meta.env.BASE_URL}${DOMAIN_CHARACTER.image}`),loadImageElement(`${import.meta.env.BASE_URL}${DOMAIN_CHARACTER.sealImage}`)]);
+      if (this.sys.isActive()) registerDomainCharacter(this.textures,body,seal);
+    } catch (error) { console.warn('[assets] Domain character loading failed; using original sprite',error); }
+  }
+
   update(_now: number, delta: number) {
     if (!this.painter) return;
     // Issue #95：输入在模拟推进前落盘，否则摇杆方向会晚一帧生效
@@ -660,6 +676,7 @@ export class GameScene extends Phaser.Scene {
         this.core.step(dt);
         this.katanaCharacter.capture(this.core);
         this.greatswordCharacter.capture(this.core);
+        this.domainCharacter.capture(this.core);
         this.captureLaserAnimation();
       });
     else this.clock.reset();
@@ -668,7 +685,12 @@ export class GameScene extends Phaser.Scene {
     this.captureLaserAnimation();
     this.katanaCharacter.capture(this.core);
     this.greatswordCharacter.capture(this.core);
+    this.domainCharacter.capture(this.core);
+    const d=this.core.domain;
+    this.core.audio.syncDomainAudio(this.core.state==='play' && !this.core.audio.muted,
+      this.core.prof==='mage' && this.core.mageWeapon==='domain' ? d.blackHole?'blackhole-loop':d.remnant?'remnant-loop':null : null);
     this.painter.begin();
+    this.domainNumbers.begin(this.core.texts);
     if (this.core.state === "start") {
       this.cameras.main.setScroll(0, 0);
       this.painter.fillStyle = "#0b0c14";
@@ -690,7 +712,7 @@ export class GameScene extends Phaser.Scene {
         Math.round(this.core.cam.x + (shake ? (Math.random() - 0.5) * shake : 0)),
         Math.round(this.core.cam.y + (shake ? (Math.random() - 0.5) * shake : 0)),
       );
-      draw.call(this.core, this.painter, this.drawLaserAnimation, this.drawCharacter);
+      draw.call(this.core, this.painter, this.drawLaserAnimation, this.drawCharacter,this.drawDomainNumber);
     }
     // v77：低血量屏幕边缘提示（DOM 覆盖层；只改 opacity，不碰画布）
     this.ui.syncLowHp();

@@ -1,4 +1,4 @@
-import type { Profession } from "../core/types";
+import type { MageWeapon, Profession } from "../core/types";
 
 /**
  * v149：等级自动成长。
@@ -15,6 +15,7 @@ export interface LevelGrowth {
   readonly fireRate?: number;
   readonly defense?: number;
   readonly lifesteal?: number;
+  readonly domainValue?: number;
 }
 
 export type LevelGrowthProfession = Exclude<Profession, "common">;
@@ -25,7 +26,11 @@ export const LEVEL_GROWTH: Record<LevelGrowthProfession, LevelGrowth> = {
   warrior: { maxHp: 0.5, defense: 0.3, lifesteal: 0.0015 },
 };
 
-export function levelGrowthFor(prof: Profession): LevelGrowth | undefined {
+/** Domain character growth is separate from both weapon levels and elemental mage growth. */
+export const DOMAIN_LEVEL_GROWTH: LevelGrowth = { maxHp: 0.5, attack: 0.4, fireRate: 0.002, domainValue: 0.5 };
+
+export function levelGrowthFor(prof: Profession, mageWeapon: MageWeapon = 'arcane'): LevelGrowth | undefined {
+  if (prof === 'mage' && mageWeapon === 'domain') return DOMAIN_LEVEL_GROWTH;
   return prof === "common" ? undefined : LEVEL_GROWTH[prof];
 }
 
@@ -35,8 +40,8 @@ export function levelGrowthSteps(lvl: number): number {
 }
 
 /** 面向飘字与 C 面板的每 steps 级成长摘要。 */
-export function levelGrowthSummary(prof: Profession, steps: number): string {
-  const growth = levelGrowthFor(prof);
+export function levelGrowthSummary(prof: Profession, steps: number, mageWeapon: MageWeapon = 'arcane'): string {
+  const growth = levelGrowthFor(prof, mageWeapon);
   if (!growth) return "—";
   const amount = (value: number) => {
     const rounded = Math.round(value * 100) / 100;
@@ -45,7 +50,9 @@ export function levelGrowthSummary(prof: Profession, steps: number): string {
   const percent = (value: number) => `${amount(value * 100)}%`;
   const parts = [`生命 +${amount(growth.maxHp * steps)}`];
   if (growth.attack !== undefined)
-    parts.push(`${prof === "mage" ? "元素伤害" : "攻击"} +${amount(growth.attack * steps)}`);
+    parts.push(`${prof === "mage" ? (mageWeapon === 'domain' ? '基础伤害' : '元素伤害') : "攻击"} +${amount(growth.attack * steps)}`);
+  if (growth.domainValue !== undefined)
+    parts.push(`领域值 +${amount(growth.domainValue * steps)}`);
   if (growth.critChance !== undefined)
     parts.push(`暴击 +${percent(growth.critChance * steps)}`);
   if (growth.fireRate !== undefined)

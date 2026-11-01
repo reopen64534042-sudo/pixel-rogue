@@ -26,7 +26,11 @@ export const ATTRIBUTE_CAPS = {
   moveSpeedMul: 2,
   /** 激光回充效率最多 +300%：快速回充 0.2 秒在此达到 0.05 秒下限。 */
   laserRechargeEfficiency: 3,
+  domainValue: 200,
 } as const;
+
+/** Domain growth revision: white/green/purple/gold; shares the total cap with character growth. */
+export const DOMAIN_VALUE_GAINS=[6,9,12,18] as const;
 
 export function lifestealCap(prof: Profession): number {
   return prof === "shooter"

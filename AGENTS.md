@@ -10,6 +10,8 @@
 - src/game/data/：常量、初始属性、旧表 39 张通用卡与射手/法师职业池（talents/ 分文件）、敌人配置及伤害类型注册与战斗基准。
 - src/game/rendering/：原像素纹理、Phaser 绘制和对象复用；BossAnimation / BossArt / BossVfx / BossGeneratedVfx 采样三首巨兽的八姿态图集与招式表现，离线预览用 scripts/build-boss-preview.mjs；vfx/laser 的桥接器与播放器由 Scene 按固定步采集，LaserVfxPainter 复用原绘制顺序。MissileRenderer 与 vfx/missile 只读实际飞行和引爆事件，复用 PixelPainter 的深度与对象池。
 - src/game/rendering/characters/：职业人物表现；KatanaCharacter / GreatswordCharacter 由 Scene 按模拟时间、实际位移与攻击 / 跃击状态取帧，素材缺失回退原图，不修改战斗状态。
+- DomainSystem / data/domain 管理法师独立坍缩领域武器；Simulation 调度，DamageMath 形成分量，CombatSystem 同次应用主爆发/真伤/生命压缩。DomainRenderer / DomainCharacter 只读实际状态；AudioService 缓存领域 WAV 并在暂停/清理时停播，见 docs/domain-weapon-design.md 与 docs/domain-character-art.md。
+- 领域保留三场合成，收拢中心锁定并跟随目标（范围内可攻击Boss→捕获目标→最近敌人），仅失效重选、无目标保留最后位置；捕获名单仍独立快照。W/M独立增强场/洞伤害，全域连斩去重，无量真实过载，形成后黑洞按实际位置向怪群巡游。V2四次强化已撤回。
 - src/ui/：DOM 显示及命令适配；src/services/：音频、战绩；src/styles/：样式。
 - public/：随产物发布的字体、许可证与第三方说明。
 - tests/：规则、原版对照及 browser 冒烟；docs/migration.md：阶段记录。
@@ -51,6 +53,8 @@
 - node scripts/build-missile-vfx-preview.mjs：导出导弹完整周期的自包含 HTML 与原速／慢放 GIF；预览为独立素材编排，正式游戏使用相同图集与采样器，见 docs/missile-vfx-assets.md。
 - node scripts/build-katana-character-assets.mjs：重建太刀人物 32 帧精灵表与来源 / 锚点检查记录；python scripts/export-katana-character-preview.py 导出离线 GIF（不代表实机验收），见 docs/character-art-upgrade.md。
 - node scripts/build-greatsword-character-assets.mjs：重建大剑人物 64 帧精灵表；python scripts/export-greatsword-character-preview.py 导出动作 / 跃击离线 GIF（不代表实机验收），见 docs/greatsword-character-art.md。
+- node scripts/build-domain-character-assets.mjs：重建领域师B的64帧身体与独立牌；node scripts/publish-domain-assets.mjs发布领域纹理/字形/56WAV；人物GIF为离线预览。武器Lv.4固定斩击、Lv.5固定无量，其余九项在Lv.2–3/6–12获得；DOMAIN_UNLOCK_LEVELS拥有解锁等级。经验仅由黑洞形成爆发实际命中发放，每次黑洞最多1点，普通场和后续伤害不提供；本次黑洞保留结算前快照。
+- 领域实际绘制器对照（仅DEV）：`/assets/vfx/domain/live-preview.html`，左连斩/右叠加无量，可慢放/逐帧/导出图与WebM；`python assets/vfx/domain/export-live-preview.py` 转为GIF/MP4。使用正式Core/Phaser/Renderer的受控高生命目标，不写战绩，不作为自然玩法验收。
 - node scripts/preview-laser-vfx.mjs：旧程序化激光回退的离线预览。
 - npm run palette:export：从 src/game/data/palette.ts 导出 assets/palette.gpl（美术产线，改动色板后必跑）。
 - node scripts/pixelize.mjs <png> --key <assetKey>：贴图后处理（规格见 docs/art-assets.md 第 7 节）。

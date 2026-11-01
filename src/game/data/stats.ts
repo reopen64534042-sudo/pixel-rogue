@@ -1,6 +1,6 @@
 import { MAGE_BALANCE } from "./mageBalance";
 import { WARRIOR_BALANCE } from "./warriorBalance";
-import type { Profession, WarriorStyle } from "../core/types";
+import type { Profession, WarriorStyle, MageWeapon } from "../core/types";
 
 /**
  * 职业基础形态（S3）。
@@ -19,11 +19,13 @@ import type { Profession, WarriorStyle } from "../core/types";
 export function statBase(
   prof: Profession = "shooter",
   warriorStyle: WarriorStyle = "katana",
+  mageWeapon: MageWeapon = "arcane",
 ) {
   const mage = prof === "mage";
   const warrior = prof === "warrior";
   const wstyle = WARRIOR_BALANCE.styles[warriorStyle];
   return {
+    ...(mage && mageWeapon === "domain" ? { domainValue: 100 } : {}),
     // v138：射手/法师 20 HP；战士按流派 太刀 25 / 大剑 28。
     maxhp: warrior ? wstyle.maxhp : 20,
     speed: warrior ? wstyle.speed : mage ? 62 : 70,

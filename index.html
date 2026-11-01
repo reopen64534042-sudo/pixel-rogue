@@ -110,7 +110,7 @@
         </span>
       </button>
       <button class="btn prof-btn prof-card" id="btn-pick-mage" disabled aria-busy="true">
-        法 师<small>范围 · 站定增伤</small>
+        法 师<small>范围 · 法术掌控</small>
         <span class="prof-stats">
           <span class="prof-stat"><span>❤️ 生命</span><b data-prof="mage" data-stat="maxhp"></b></span>
           <span class="prof-stat"><span>👟 移速</span><b data-prof="mage" data-stat="speed"></b></span>
@@ -157,6 +157,17 @@
   </div>
 
   <!-- 战士流派选择（开始界面 / 教程入口共用） -->
+  <div id="ov-mage-weapon" class="overlay hidden">
+    <h2>选择法师武器</h2>
+    <p class="settings-hint">选择决定独立的武器成长与天赋池；重开本局保留选择。</p>
+    <div class="prof-select">
+      <button class="btn prof-btn" id="btn-mage-arcane">法 阵<small>元素反应 · 站定施法 · 星陨余域</small></button>
+      <button class="btn prof-btn" id="btn-mage-domain">坍 缩 领 域<small>三域围猎 · 向心收拢 · 黑洞重击</small></button>
+    </div>
+    <p class="settings-hint">坍缩领域：三域向锁定目标收拢，Boss优先；黑洞落地命中获得武器经验。</p>
+    <p class="settings-hint" id="domain-weapon-unlocks">武器升级解锁空间斩与无量空处；领域值独立强化伤害、控制与辅助效果。</p>
+    <button class="btn" id="btn-mage-weapon-back">返 回</button>
+  </div>
   <div id="ov-warrior-style" class="overlay hidden">
     <h2>选择流派</h2>
     <p class="settings-hint">流派决定核心链与基础形态；另一流派的卡不会进入本局池。</p>
@@ -202,7 +213,7 @@
       <div id="stat-grid" class="stats-col stats-col-left">
         <div class="stats-group-title">输出</div>
         <div id="stat-combat" class="stat-group-grid"></div>
-        <div class="stats-group-title">击退（弱 / 中 / 强）</div>
+        <div class="stats-group-title" id="stat-control-title">击退（弱 / 中 / 强）</div>
         <div id="stat-knockback" class="stat-group-grid"></div>
         <div class="stats-group-title">生存</div>
         <div id="stat-defense" class="stat-group-grid"></div>
@@ -233,7 +244,7 @@
         </section>
         <section class="stats-section" aria-labelledby="stat-talents-title">
           <h3 class="stats-group-title" id="stat-talents-title">已学天赋</h3>
-          <p class="stats-help">悬停或点按天赋，查看完整效果</p>
+          <p class="stats-help" id="stat-talents-help">悬停或点按天赋，查看完整效果</p>
           <div id="talent-list" class="talent-groups-wrap"></div>
         </section>
       </div>

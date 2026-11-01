@@ -1,0 +1,21 @@
+{
+  "source": "domain-incision-void.webm",
+  "sourceSha256": "3af106c47cdbe6c5d0faacd35a58a00375f0299cb400801c623555c99f38403b",
+  "sourceFrames": 90,
+  "exportFrames": 90,
+  "fps": 30,
+  "size": [
+    960,
+    440
+  ],
+  "gifSize": [
+    720,
+    330
+  ],
+  "duration": 3.0,
+  "files": [
+    "domain-incision-void.gif",
+    "domain-incision-void.mp4"
+  ],
+  "scope": "Controlled Phaser playback using production Core/renderer. High-HP targets, muted. Not natural combat acceptance."
+}

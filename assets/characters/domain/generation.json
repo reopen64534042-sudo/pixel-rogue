@@ -1,0 +1,153 @@
+{
+  "status": "B boundary warden selected; concepts retained; production frames described by asset-record.json",
+  "selection": {
+    "key": "b-boundary-warden",
+    "date": "2026-11-01",
+    "userResponse": "B · 结界执律者（半面具、三枚封印牌）"
+  },
+  "generator": "built-in image_gen",
+  "model": null,
+  "randomSeed": null,
+  "sourceScale": 0.02226027397260274,
+  "sourceAlphaBoundsThreshold": 192,
+  "outputAlphaThreshold": 128,
+  "paletteSource": "src/game/data/palette.ts",
+  "paletteKeys": [
+    "ink0",
+    "ink1",
+    "steelDark",
+    "steelMid",
+    "bone",
+    "sand",
+    "pBrown",
+    "pBlueDk",
+    "pBlue",
+    "psiPurple",
+    "psiViolet",
+    "iceCyan"
+  ],
+  "canvas": [
+    64,
+    64
+  ],
+  "anchor": [
+    32,
+    59
+  ],
+  "footOffsetY": 5,
+  "note": "Premultiplied area sampling with one shared scale, per-candidate foot translation only. Concept comparison, not production frames.",
+  "candidates": [
+    {
+      "key": "a-sealweaver",
+      "label": "A",
+      "name": "印契术师",
+      "source": "concepts/a-sealweaver-source.png",
+      "prompt": "concepts/a-sealweaver-prompt.txt",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceHash": "06015c6029220ed3bc8da7e4042696f28d17e738f80820376e5d9c3512f533a1",
+      "sourceBounds": {
+        "x": 291,
+        "y": 61,
+        "w": 730,
+        "h": 1144,
+        "visiblePixels": 412100,
+        "semiPixels": 463326
+      },
+      "scaleCheck": "concepts/a-sealweaver-scale-check-64.png",
+      "outputBounds": {
+        "x": 25,
+        "y": 34,
+        "w": 16,
+        "h": 25,
+        "visiblePixels": 209,
+        "semiPixels": 0
+      },
+      "outputHash": "eff71b449d34d40c76a06449dfd93bebec86faf00f6fc433d5fb206e8141d473",
+      "footShift": 0
+    },
+    {
+      "key": "b-boundary-warden",
+      "label": "B",
+      "name": "结界执律者",
+      "source": "concepts/b-boundary-warden-source.png",
+      "prompt": "concepts/b-boundary-warden-prompt.txt",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceHash": "797977f4131901abea5fb82bb9be9b070def53cfb8d0312e93c1e26e936ebaad",
+      "sourceBounds": {
+        "x": 250,
+        "y": 44,
+        "w": 796,
+        "h": 1168,
+        "visiblePixels": 469426,
+        "semiPixels": 528760
+      },
+      "scaleCheck": "concepts/b-boundary-warden-scale-check-64.png",
+      "outputBounds": {
+        "x": 24,
+        "y": 33,
+        "w": 17,
+        "h": 26,
+        "visiblePixels": 234,
+        "semiPixels": 0
+      },
+      "outputHash": "e896fa72ecb3761b49d28ce9690b0e0bebec05dffde70e5c81916f6457866db0",
+      "footShift": 0
+    },
+    {
+      "key": "c-orbit-weaver",
+      "label": "C",
+      "name": "星环织域者",
+      "source": "concepts/c-orbit-weaver-source.png",
+      "prompt": "concepts/c-orbit-weaver-prompt.txt",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceHash": "8b3c4d862abeb27b7e5d04293c2d1f7395b6a606bb7527fdc6fa401384d7d072",
+      "sourceBounds": {
+        "x": 250,
+        "y": 109,
+        "w": 788,
+        "h": 1105,
+        "visiblePixels": 346980,
+        "semiPixels": 414759
+      },
+      "scaleCheck": "concepts/c-orbit-weaver-scale-check-64.png",
+      "outputBounds": {
+        "x": 24,
+        "y": 34,
+        "w": 17,
+        "h": 25,
+        "visiblePixels": 171,
+        "semiPixels": 0
+      },
+      "outputHash": "d2b6d58fb970d0e4702b06aa9be4eb9e620735892aac54a8b84872e22d081536",
+      "footShift": 0
+    }
+  ],
+  "plannedAnimation": {
+    "directions": [
+      "right",
+      "left"
+    ],
+    "framesPerAction": 4,
+    "actions": [
+      "idle",
+      "run",
+      "deploy",
+      "run-deploy",
+      "collapse",
+      "run-collapse",
+      "dash",
+      "hurt"
+    ],
+    "totalFrames": 64,
+    "requirement": "select an approved game-scale seed before generating whole strips; actions follow real simulation and never change combat timing"
+  }
+}

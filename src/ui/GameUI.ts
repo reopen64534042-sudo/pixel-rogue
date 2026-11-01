@@ -1,4 +1,7 @@
 import { BOSS, isBossWave } from "../game/data/boss";
+import { buildDomainStats } from './DomainStats';
+import { isDomain } from '../game/core/DomainSystem';
+import { DOMAIN_UNLOCK_LEVELS } from '../game/data/domain';
 import { LASER, LASER_UPGRADES, LASER_XP } from "../game/data/laser";
 import { MISSILE, MISSILE_UPGRADES, MISSILE_XP } from "../game/data/missile";
 import { missileDamage, missileRadius, missileRange, missileReload } from "../game/core/MissileSystem";
@@ -11,6 +14,7 @@ import { tutorialGemStep, tutorialTotalSteps } from "../game/core/TutorialSystem
 import type {
   RunSummary,
   ShooterWeapon,
+  MageWeapon,
   WarriorStyle,
 } from "../game/core/types";
 import { ENEMY_ENTRIES } from "../game/codex/codexData";
@@ -94,6 +98,7 @@ const DMG_NAMES: Record<string, string> = {
   cast: "🔮法阵",
   element: "✹元素",
   reaction: "☯反应",
+  domain: '✦坍缩领域',
 };
 
 /** 伤害来源 → 主要解锁它的卡；只用于死亡总结的说明，不反推精确伤害归因。 */
@@ -213,6 +218,7 @@ export class GameUI {
           "ov-tutorial-pick",
           "ov-warrior-style",
           "ov-shooter-weapon",
+          'ov-mage-weapon',
         ].forEach(hide);
         this.settingsOpen = false;
         this.keybindsOpen = false;
@@ -290,6 +296,9 @@ export class GameUI {
       show(this.shooterPickMode === "start" ? "ov-prof-pick" : "ov-tutorial-pick");
     };
     element("btn-pick-mage").onclick = () => this.startProfession("mage");
+    element('btn-mage-arcane').onclick=()=>{hide('ov-mage-weapon');this.startProfession('mage',undefined,undefined,'arcane');};
+    element('btn-mage-domain').onclick=()=>{hide('ov-mage-weapon');this.startProfession('mage',undefined,undefined,'domain');};
+    element('btn-mage-weapon-back').onclick=()=>{hide('ov-mage-weapon');show('ov-prof-pick');};
     element("btn-pick-warrior").onclick = () =>
       this.openWarriorStyle("start");
     element("btn-prof-pick-back").onclick = () => this.closeProfessionPick();
@@ -325,7 +334,7 @@ export class GameUI {
     element("btn-changelog-close").onclick = () => hide("ov-changelog");
     // 重开保留当前职业（S3：玩家不该被强制退回射手）
     element("btn-retry").onclick = () =>
-      this.core.startGame(this.core.prof, this.core.warriorStyle, this.core.shooterWeapon);
+      this.core.startGame(this.core.prof, this.core.warriorStyle, this.core.shooterWeapon, this.core.mageWeapon);
     element("btn-over-home").onclick = () => this.returnToStart();
     element("btn-resume").onclick = () => this.startResumeCountdown();
     element("btn-pause-codex").onclick = () => this.codex.open();
@@ -469,6 +478,7 @@ export class GameUI {
       "ov-tutorial-pick",
       "ov-warrior-style",
       "ov-shooter-weapon",
+      'ov-mage-weapon',
     ].forEach(hide);
     this.settingsOpen = false;
     this.keybindsOpen = false;
@@ -520,7 +530,7 @@ export class GameUI {
           ? "战士 · 大剑"
           : "战士 · 太刀"
         : core.prof === "mage"
-          ? "法师"
+          ? (core.mageWeapon==='domain'?'法师 · 坍缩领域':'法师 · 法阵')
           : "射手";
     element("over-meta").textContent =
       `第 ${summary.wave} 波 · ${fmtTime(summary.time)} · 等级 ${summary.level}`;
@@ -748,6 +758,15 @@ export class GameUI {
     });
   }
   buildStats() {
+    const domain=isDomain(this.core),statsPanel=document.getElementById('ov-stats');
+    if (statsPanel) statsPanel.dataset.weapon=domain?'domain':'other';
+    const controlTitle=document.getElementById('stat-control-title');
+    if (controlTitle) controlTitle.textContent=domain?'牵引与控制':'击退（弱 / 中 / 强）';
+    const talentHelp=document.getElementById('stat-talents-help');
+    if (talentHelp) talentHelp.hidden=domain;
+    const statusTitle=document.getElementById('stat-special-status-title');
+    if (statusTitle) statusTitle.textContent='专属机制';
+    if (domain) {buildDomainStats(this.core);return;}
     const p = this.core.player;
     // S3-C：UI 与战斗系统同源——魔弹读 DamageMath.boltDamage、暴伤读有效值
     // critMultiplier（含致命觉醒），不再各自复算公式；基础攻击与增伤乘区分展示
@@ -1110,11 +1129,11 @@ export class GameUI {
     const infoRows: [string, string | number][] = [
       ["📈 等级", p.lvl],
       ["📘 下级所需经验", p.xpNext],
-      ["🌱 等级成长/级", levelGrowthSummary(this.core.prof, 1)],
+      ["🌱 等级成长/级", levelGrowthSummary(this.core.prof, 1, this.core.mageWeapon)],
       [
         "🌿 等级成长累计",
         levelGrowthSteps(p.lvl) > 0
-          ? levelGrowthSummary(this.core.prof, levelGrowthSteps(p.lvl))
+          ? levelGrowthSummary(this.core.prof, levelGrowthSteps(p.lvl), this.core.mageWeapon)
           : "—",
       ],
       [
@@ -1824,6 +1843,8 @@ export class GameUI {
 
   /** 职业卡属性与 statBase 同源，数值调整后不会与卡片说明漂移。 */
   private renderProfessionStats(): void {
+    const domainUnlocks=document.getElementById('domain-weapon-unlocks');
+    if (domainUnlocks) domainUnlocks.textContent=`武器Lv.${DOMAIN_UNLOCK_LEVELS.slash}解锁空间斩，Lv.${DOMAIN_UNLOCK_LEVELS.void}解锁无量空处；领域值独立强化伤害、控制与辅助效果。`;
     document
       .querySelectorAll<HTMLElement>("[data-prof][data-stat]")
       .forEach((el) => {
@@ -1854,7 +1875,9 @@ export class GameUI {
     prof: "shooter" | "mage" | "warrior",
     warriorStyle?: WarriorStyle,
     shooterWeapon?: ShooterWeapon,
+    mageWeapon?: MageWeapon,
   ): void {
+    if (prof==='mage' && !mageWeapon) {hide('ov-prof-pick');show('ov-mage-weapon');return;}
     if (prof === "shooter" && !shooterWeapon) {
       this.openShooterWeapon("start");
       return;
@@ -1863,7 +1886,7 @@ export class GameUI {
       this.openWarriorStyle("start");
       return;
     }
-    if (tutorialSeen(prof)) this.core.startGame(prof, warriorStyle, shooterWeapon);
+    if (mageWeapon==='domain' || tutorialSeen(prof)) this.core.startGame(prof, warriorStyle, shooterWeapon, mageWeapon);
     else this.core.startTutorial(prof, warriorStyle, shooterWeapon);
   }
 
@@ -2314,6 +2337,7 @@ export class GameUI {
     this.codex.close();
     this.core.clearTouchInput();
     this.core.resetMissileWeapon();
+    this.core.clearDomainTransient();
     this.core.clearBossEncounter();
     this.core.state = "start";
     this.core.view.reset();
@@ -2329,6 +2353,7 @@ export class GameUI {
       "ov-tutorial-pick",
       "ov-warrior-style",
       "ov-shooter-weapon",
+      'ov-mage-weapon',
     ].forEach(hide);
     this.tutorialPickOpen = false;
     this.tutorialHudEl?.classList.add("hidden");

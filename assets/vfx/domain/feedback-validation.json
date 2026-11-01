@@ -1,0 +1,470 @@
+{
+  "status": "offline audiovisual draft; not runtime acceptance",
+  "video": {
+    "file": "domain-feedback-av.mp4",
+    "duration": 6.2,
+    "size": [
+      960,
+      540
+    ],
+    "streams": [
+      {
+        "type": "video",
+        "codec": "h264",
+        "duration": 6.2
+      },
+      {
+        "type": "audio",
+        "codec": "aac",
+        "duration": 6.2
+      }
+    ],
+    "sha256": "b179787a6ee418023977988939eccf1b2d01b96649a498c5bcaabacaad7093c7"
+  },
+  "numbersGif": {
+    "file": "numbers/number-motion-3x.gif",
+    "sourceFrames": 108,
+    "durationMs": 3600
+  },
+  "audio": {
+    "uniqueClips": 54,
+    "talentsMapped": 15,
+    "upgradesMapped": 9,
+    "minimumMonoRmsRatio": 0.6638830419643001,
+    "demoPeakDbfs": -6.283241510391235,
+    "checks": [
+      {
+        "id": "field-deploy",
+        "peak": 0.23859370708334604,
+        "dc": 3.560492772191587e-07,
+        "monoRmsRatio": 0.8595296205429017,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "field-link",
+        "peak": 0.2584917752616962,
+        "dc": 3.4253847875397898e-06,
+        "monoRmsRatio": 0.9142489469350877,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "triangle-close",
+        "peak": 0.2488784447767571,
+        "dc": 4.2136351151527745e-06,
+        "monoRmsRatio": 0.9694420312126769,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "collapse-in",
+        "peak": 0.3486129337443159,
+        "dc": 2.6322214423053156e-06,
+        "monoRmsRatio": 0.7978817007353849,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "blackhole-impact",
+        "peak": 0.47520371105075226,
+        "dc": 9.784290653758373e-07,
+        "monoRmsRatio": 0.9699660207787936,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "blackhole-loop",
+        "peak": 0.1533555101168859,
+        "dc": 4.4506159650636734e-08,
+        "monoRmsRatio": 0.9431768438666387,
+        "loopBoundaryStep": 0.005859553819391461,
+        "adjacentStepP999": 0.009827051606799878
+      },
+      {
+        "id": "blackhole-release",
+        "peak": 0.29856257820368054,
+        "dc": 1.1881555121518833e-06,
+        "monoRmsRatio": 0.8823584811873079,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "terminal-impact",
+        "peak": 0.46388134403515735,
+        "dc": 3.7446105159984763e-06,
+        "monoRmsRatio": 0.966589931211672,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "remnant-loop",
+        "peak": 0.14737388225959044,
+        "dc": 7.735594415779008e-08,
+        "monoRmsRatio": 0.929886116183225,
+        "loopBoundaryStep": 0.003631702627643665,
+        "adjacentStepP999": 0.010498367259743034
+      },
+      {
+        "id": "void-stun",
+        "peak": 0.32874538407544174,
+        "dc": 2.3397523931726204e-07,
+        "monoRmsRatio": 0.9067770443753855,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "slash-a",
+        "peak": 0.2625812555314798,
+        "dc": 1.5161439002499564e-06,
+        "monoRmsRatio": 0.677445825575767,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "slash-b",
+        "peak": 0.21976378673665578,
+        "dc": 1.671251709400142e-06,
+        "monoRmsRatio": 0.6958324745805816,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "slash-c",
+        "peak": 0.24280526139103367,
+        "dc": 1.398765017649771e-06,
+        "monoRmsRatio": 0.6638830419643001,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "binding-lock",
+        "peak": 0.2978606524857326,
+        "dc": 3.0404973354434943e-06,
+        "monoRmsRatio": 0.9369156792666027,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "gravity-shield",
+        "peak": 0.2261726737266152,
+        "dc": 2.1844349788618914e-06,
+        "monoRmsRatio": 0.906363920194515,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "shield-hit",
+        "peak": 0.25055696279793693,
+        "dc": 6.061315076483584e-06,
+        "monoRmsRatio": 0.9316877358240884,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "shield-break",
+        "peak": 0.39078951384014404,
+        "dc": 1.022582001539499e-06,
+        "monoRmsRatio": 0.7653360645095864,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "escape-boost",
+        "peak": 0.28864406262398146,
+        "dc": 2.0519073605929913e-07,
+        "monoRmsRatio": 0.8750705733101142,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "mass-recycle",
+        "peak": 0.19067964720603045,
+        "dc": 1.3828699606301872e-06,
+        "monoRmsRatio": 0.9568760055772774,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "gravity-crush",
+        "peak": 0.3988464003418073,
+        "dc": 4.198838262079954e-06,
+        "monoRmsRatio": 0.9708714754097273,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "absolute-gravity",
+        "peak": 0.16986602374340037,
+        "dc": 1.9709870703244396e-06,
+        "monoRmsRatio": 0.9774946502153928,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "echo-singularity",
+        "peak": 0.3239844965971862,
+        "dc": 2.958925998875155e-06,
+        "monoRmsRatio": 0.9470181114241837,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "horizon-resonance",
+        "peak": 0.20395519882808924,
+        "dc": 2.6953475258932744e-06,
+        "monoRmsRatio": 0.9041270657880206,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "mass-focus",
+        "peak": 0.20126956999420148,
+        "dc": 4.6890418205296153e-07,
+        "monoRmsRatio": 0.9564632358687534,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "singularity-step",
+        "peak": 0.2836085085604419,
+        "dc": 8.477363743312754e-08,
+        "monoRmsRatio": 0.8559171846535802,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "mass-siphon",
+        "peak": 0.2966093935972167,
+        "dc": 3.814813684482216e-08,
+        "monoRmsRatio": 0.8622320761981838,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "gravity-core",
+        "peak": 0.1748405407879879,
+        "dc": 3.9737642546818844e-07,
+        "monoRmsRatio": 0.9722836739776073,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "collapse-theory",
+        "peak": 0.26105533005768,
+        "dc": 1.986882127345028e-06,
+        "monoRmsRatio": 0.9752113687070278,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "critical-impact",
+        "peak": 0.3074434644611957,
+        "dc": 2.2348450168318516e-06,
+        "monoRmsRatio": 0.9624718560751325,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "true-tear",
+        "peak": 0.271645252845851,
+        "dc": 1.730290492612099e-06,
+        "monoRmsRatio": 0.6818196507339398,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-gravity-core",
+        "peak": 0.21430097354045227,
+        "dc": 1.824476109978329e-06,
+        "monoRmsRatio": 0.9800345045870466,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-collapse-theory",
+        "peak": 0.21979430524613178,
+        "dc": 8.43129111429926e-07,
+        "monoRmsRatio": 0.9779471391461048,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-void",
+        "peak": 0.2196111941892758,
+        "dc": 7.11822118664755e-07,
+        "monoRmsRatio": 0.9753134461102319,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-multislash",
+        "peak": 0.2618793298135319,
+        "dc": 8.500400057855066e-07,
+        "monoRmsRatio": 0.9722772796707836,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-binding",
+        "peak": 0.2195806756797998,
+        "dc": 8.514221846569019e-07,
+        "monoRmsRatio": 0.9693673312797069,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-shield",
+        "peak": 0.23288674581133456,
+        "dc": 5.694576949323184e-07,
+        "monoRmsRatio": 0.9657641706750146,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-escape",
+        "peak": 0.23166600543229468,
+        "dc": 1.6309710680097223e-06,
+        "monoRmsRatio": 0.9618725335304305,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-recycle",
+        "peak": 0.2196722312082278,
+        "dc": 1.0877747716304859e-06,
+        "monoRmsRatio": 0.9574823601345659,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-crush",
+        "peak": 0.22531815546128728,
+        "dc": 7.187330130213515e-07,
+        "monoRmsRatio": 0.9534551164821663,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-absolute",
+        "peak": 0.2205572679830317,
+        "dc": 1.566008661065043e-06,
+        "monoRmsRatio": 0.9483698109601169,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-echo",
+        "peak": 0.22128971221045565,
+        "dc": 1.1693233250311666e-06,
+        "monoRmsRatio": 0.9429759152959268,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-resonance",
+        "peak": 0.25949888607440413,
+        "dc": 1.0615133730787955e-06,
+        "monoRmsRatio": 0.9370706271923037,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-focus",
+        "peak": 0.23618274483474228,
+        "dc": 8.956519085344312e-07,
+        "monoRmsRatio": 0.9785379980053812,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-step",
+        "peak": 0.2294076357310709,
+        "dc": 9.716717464511579e-07,
+        "monoRmsRatio": 0.9763244471899121,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "learn-siphon",
+        "peak": 0.21945860164189582,
+        "dc": 6.731211102719474e-07,
+        "monoRmsRatio": 0.9739393044278752,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "upgrade-radius",
+        "peak": 0.21790215765861995,
+        "dc": 2.576672400939096e-07,
+        "monoRmsRatio": 0.9704211626798401,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "upgrade-pull",
+        "peak": 0.21695608386486404,
+        "dc": 1.4891158680730602e-06,
+        "monoRmsRatio": 0.9674378901912185,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "upgrade-duration",
+        "peak": 0.2269356364635151,
+        "dc": 1.2649119059118924e-06,
+        "monoRmsRatio": 0.9633824995332875,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "upgrade-projection",
+        "peak": 0.21066927091280863,
+        "dc": 3.6474972948310546e-07,
+        "monoRmsRatio": 0.9591484404827842,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "upgrade-extension",
+        "peak": 0.22009949034089174,
+        "dc": 1.2582192503258667e-06,
+        "monoRmsRatio": 0.9546029640113952,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "upgrade-horizon",
+        "peak": 0.19507431257057406,
+        "dc": 1.8371339585876703e-06,
+        "monoRmsRatio": 0.9503921297499078,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "upgrade-ember",
+        "peak": 0.24057741019928586,
+        "dc": 1.2816435448793495e-06,
+        "monoRmsRatio": 0.9446457313609947,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "upgrade-confluence",
+        "peak": 0.2119815668202765,
+        "dc": 1.490789031968748e-06,
+        "monoRmsRatio": 0.9387184770521251,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      },
+      {
+        "id": "upgrade-terminal",
+        "peak": 0.2196417126987518,
+        "dc": 9.603960767118125e-07,
+        "monoRmsRatio": 0.9333751189541472,
+        "loopBoundaryStep": null,
+        "adjacentStepP999": null
+      }
+    ]
+  }
+}

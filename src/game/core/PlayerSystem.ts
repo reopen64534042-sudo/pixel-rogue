@@ -1,4 +1,5 @@
 import { BOSS } from "../data/boss";
+import { domainDash } from './DomainSystem';
 import { WORLD, clamp } from "../data/constants";
 import { WEB_ZONE } from "../data/enemies";
 import {
@@ -38,7 +39,8 @@ export function playerMoveSpeed(core: GameCore): number {
     if (h.kind === "frost" && h.t > 0 && Math.hypot(p.x - h.x, p.y - h.y) <= h.r)
       bossSlow = Math.min(bossSlow, 1 - h.slowF);
   }
-  return p.speed * boost * webSlow * bossSlow;
+  const escape=core.prof==='mage' && core.mageWeapon==='domain' && core.domain.escapeUntil>core.time ? 1+core.domain.escapeBonus : 1;
+  return p.speed * boost * webSlow * bossSlow * escape;
 }
 
 /** 走路与冲刺共用的「势」积累；满层后清空余量，避免触发后立刻又攒一层。 */
@@ -169,6 +171,7 @@ export function updatePlayer(this: GameCore, dt: number) {
     if (!leap) {
       this.laserDash();
       this.missileDash();
+      domainDash(this);
       p.dashT = 0.16;
       if (triOwned) {
         this.warriorTriSlotRe[this.warriorTriDashStage] =

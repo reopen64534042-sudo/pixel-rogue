@@ -463,6 +463,7 @@ function applyElementDot(
  * 死亡判定留在调用侧（与旧 burn 的处理一致）。
  */
 export function updateMageElements(this: GameCore, dt: number) {
+  if (this.prof==='mage' && this.mageWeapon==='domain') return;
   const p = this.player;
   for (const e of this.enemies) {
     if (e.elemFire?.length) {

@@ -1,0 +1,21 @@
+{
+  "source": "domain-hit-slash-void.webm",
+  "sourceSha256": "1809f4d440db04ed95a32c647f1d6e17729c6f7ea2d8a5018cab1efd0f0f66a2",
+  "sourceFrames": 90,
+  "exportFrames": 90,
+  "fps": 30,
+  "size": [
+    960,
+    440
+  ],
+  "gifSize": [
+    720,
+    330
+  ],
+  "duration": 3.0,
+  "files": [
+    "domain-hit-slash-void.gif",
+    "domain-hit-slash-void.mp4"
+  ],
+  "scope": "Controlled Phaser playback using production Core/renderer. High-HP targets, muted. Not natural combat acceptance."
+}

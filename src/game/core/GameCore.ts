@@ -1,6 +1,8 @@
 import { clearBossTransient } from "./BossSystem";
 import { createLaserState, type LaserUpgradeId } from "../data/laser";
 import { createMissileState } from "../data/missile";
+import { createDomainState } from '../data/domain';
+import { clearDomainTransient, devSetDomainLevel } from './DomainSystem';
 import { clearMissileTransient, devSetMissileLevel, missileDash } from "./MissileSystem";
 import { devSetLaserLevel, laserDash } from "./LaserSystem";
 import { AudioService } from "../../services/AudioService";
@@ -110,6 +112,7 @@ import type {
   WavePhase,
   WarriorStyle,
   ShooterWeapon,
+  MageWeapon,
 } from "./types";
 import { silentView } from "./types";
 import { cardsOfTier, enterRest, startNextWave, waveQuota } from "./WaveSystem";
@@ -247,6 +250,8 @@ export class GameCore {
   /** 战士开局流派；非战士恒为 katana。 */
   warriorStyle: WarriorStyle = "katana";
   shooterWeapon: ShooterWeapon = "charged";
+  mageWeapon: MageWeapon = 'arcane';
+  domain = createDomainState();
   missile = createMissileState();
   laser = createLaserState();
   laserLevel = 1;
@@ -532,7 +537,7 @@ export class GameCore {
   waveDamage(): DamageTotals {
     const result = { ...this.dmgBy };
     for (const source of Object.keys(result) as (keyof DamageTotals)[])
-      result[source] -= this.waveStartDamage[source];
+      result[source] = (result[source] ?? 0) - (this.waveStartDamage[source] ?? 0);
     return result;
   }
   bpMode: Panel = null;
@@ -641,6 +646,8 @@ export class GameCore {
   devSetSpecialLevel = devSetSpecialLevel.bind(this);
   devSetLaserLevel = devSetLaserLevel.bind(this);
   devSetMissileLevel = devSetMissileLevel.bind(this);
+  devSetDomainLevel = devSetDomainLevel.bind(this);
+  clearDomainTransient() { clearDomainTransient(this); }
   missileDash = missileDash.bind(this);
   clearMissileTransient(clearInventory = false) { clearMissileTransient(this, clearInventory); }
   /** 返回开始页的 Boss 清理命令，UI 不直接改危险区或敌人字段。 */
@@ -659,10 +666,14 @@ export class GameCore {
     prof: Profession = "shooter",
     warriorStyle: WarriorStyle = "katana",
     shooterWeapon: ShooterWeapon = "charged",
+    mageWeapon: MageWeapon = 'arcane',
   ) {
     // S3：职业必须在重建 Player 之前确定——属性投影以 statBase(prof) 重建，
     // 法师的施法速度/施法距离与战士的武器形态来自职业 base。
     this.prof = prof;
+    this.audio.stopDomainAudio();
+    this.mageWeapon = prof === 'mage' ? mageWeapon : 'arcane';
+    this.domain = createDomainState();
     this.shooterWeapon = prof === "shooter" ? shooterWeapon : "charged";
     this.missile = createMissileState();
     this.laser = createLaserState();
@@ -695,7 +706,7 @@ export class GameCore {
       fireCd: 0,
       upCounts: {},
       picks: [],
-      ...statBase(prof, this.warriorStyle),
+      ...statBase(prof, this.warriorStyle, this.mageWeapon),
     };
     this.player.hp = this.player.maxhp;
     clearBossTransient(this);
@@ -887,8 +898,10 @@ export class GameCore {
     prof?: Profession,
     warriorStyle?: WarriorStyle,
     shooterWeapon?: ShooterWeapon,
+    mageWeapon?: MageWeapon,
   ) {
-    this.resetGame(prof ?? "shooter", warriorStyle, shooterWeapon);
+    this.resetGame(prof ?? "shooter", warriorStyle, shooterWeapon, mageWeapon);
+    if (this.prof === 'mage' && this.mageWeapon === 'domain') this.audio.warmDomain();
     this.state = "play";
     // S2 修订（用户反馈）：开局送 1 次天赋，让第 1 波起就有一次成长。
     // **必须在 view.started() 之前记账**：面板是 UI 在 started 回调里按
@@ -978,6 +991,7 @@ export class GameCore {
    * 只由 `gameOver` 在 `devRevive` 开启时调用；不写战绩。
    */
   private devReviveRun() {
+    clearDomainTransient(this);
     clearMissileTransient(this, true);
     this.laser = createLaserState();
     this.warriorLeapState = null;
@@ -1031,6 +1045,7 @@ export class GameCore {
    * 清掉：picks/upCounts 与依赖天赋的运行态（护盾/充能/陨星/残域/法阵读条）。
    */
   devClearTalents() {
+    clearDomainTransient(this);
     clearMissileTransient(this, true);
     this.laser = createLaserState();
     this.warriorLeapState = null;
@@ -1085,6 +1100,7 @@ export class GameCore {
   }
 
   gameOver() {
+    clearDomainTransient(this);
     this.clearBossEncounter();
     clearMissileTransient(this, true);
     this.laser = createLaserState();

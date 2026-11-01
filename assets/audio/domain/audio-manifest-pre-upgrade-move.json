@@ -1,0 +1,1355 @@
+{
+  "status": "original synthesized SFX draft; not runtime integrated",
+  "sampleRate": 48000,
+  "channels": 2,
+  "format": "PCM 16-bit WAV",
+  "generator": "local NumPy/SciPy additive, noise, filtering and modal synthesis",
+  "seed": 20261101,
+  "externalSamples": false,
+  "voice": false,
+  "clips": [
+    {
+      "id": "field-deploy",
+      "label": "领域部署",
+      "group": "effect",
+      "file": "field-deploy.wav",
+      "duration": 0.25,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1222962266,
+      "family": "deploy",
+      "pitch": 1.0,
+      "peakDbfs": -12.447,
+      "rmsDbfs": -25.175,
+      "dc": -2.5e-07,
+      "sha256": "a94e9aeb535c97d158f5fde321378aebb8bc4738ad3b2c458506e826206b5418"
+    },
+    {
+      "id": "field-link",
+      "label": "双域连线",
+      "group": "effect",
+      "file": "field-link.wav",
+      "duration": 0.16,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1762249157,
+      "family": "link",
+      "pitch": 1.0,
+      "peakDbfs": -11.751,
+      "rmsDbfs": -25.175,
+      "dc": -3.36e-06,
+      "sha256": "bcd49e42d028ed172e271f62d1e82cd0795b88be561220e30312b0cd0208f180"
+    },
+    {
+      "id": "triangle-close",
+      "label": "三域闭合",
+      "group": "effect",
+      "file": "triangle-close.wav",
+      "duration": 0.22,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1239808548,
+      "family": "closure",
+      "pitch": 1.0,
+      "peakDbfs": -12.08,
+      "rmsDbfs": -25.175,
+      "dc": -4.14e-06,
+      "sha256": "c130218a963fe46895e2086a54158e5ac463baf1174dc76fdfb1e9fdb56144db"
+    },
+    {
+      "id": "collapse-in",
+      "label": "向心收拢",
+      "group": "effect",
+      "file": "collapse-in.wav",
+      "duration": 0.35,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3741437202,
+      "family": "collapse",
+      "pitch": 1.0,
+      "peakDbfs": -9.153,
+      "rmsDbfs": -25.175,
+      "dc": -2.61e-06,
+      "sha256": "93414189e8497b53781003e3a054917dca12583eeb6115b54c3a47b1a77468f3"
+    },
+    {
+      "id": "blackhole-impact",
+      "label": "黑洞形成",
+      "group": "effect",
+      "file": "blackhole-impact.wav",
+      "duration": 0.72,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3398299608,
+      "family": "impact",
+      "pitch": 1.0,
+      "peakDbfs": -6.462,
+      "rmsDbfs": -22.166,
+      "dc": -9.3e-07,
+      "sha256": "6b7551fd3799700da9994a5c4ede8ebe9adbc0847464824638b0bd43f78c843b"
+    },
+    {
+      "id": "blackhole-loop",
+      "label": "黑洞旋流",
+      "group": "effect",
+      "file": "blackhole-loop.wav",
+      "duration": 1.0,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": true,
+      "seed": 3303993508,
+      "family": "vortex",
+      "pitch": 1.0,
+      "peakDbfs": -16.286,
+      "rmsDbfs": -29.175,
+      "dc": -3e-08,
+      "sha256": "114f8e5efd7bad5188e3e238334a71e9badd8952549b1ec00c818598573bedd3"
+    },
+    {
+      "id": "blackhole-release",
+      "label": "领域消散（黑洞／余烬）",
+      "group": "effect",
+      "file": "blackhole-release.wav",
+      "duration": 0.32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1503055081,
+      "family": "release",
+      "pitch": 1.0,
+      "peakDbfs": -10.499,
+      "rmsDbfs": -25.175,
+      "dc": -1.18e-06,
+      "sha256": "8f3f8beb706f188b7547c6262233f839b23489a37078f575c99c559ec41b6cb5"
+    },
+    {
+      "id": "terminal-impact",
+      "label": "终末奇点",
+      "group": "effect",
+      "file": "terminal-impact.wav",
+      "duration": 0.48,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2993673063,
+      "family": "terminal",
+      "pitch": 1.0,
+      "peakDbfs": -6.672,
+      "rmsDbfs": -21.175,
+      "dc": -3.73e-06,
+      "sha256": "6f7ea7a8d16ace123e248132e9282f537f60c77f42e0495a64eb39f557b7335b"
+    },
+    {
+      "id": "remnant-loop",
+      "label": "奇点余烬",
+      "group": "effect",
+      "file": "remnant-loop.wav",
+      "duration": 0.6,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": true,
+      "seed": 836743985,
+      "family": "remnant",
+      "pitch": 1.0,
+      "peakDbfs": -16.632,
+      "rmsDbfs": -29.175,
+      "dc": -2e-08,
+      "sha256": "b561663b71c1039773b4ebb2115eca39e8eb8257c50382649f12cf11475e6007"
+    },
+    {
+      "id": "void-stun",
+      "label": "无量空处",
+      "group": "effect",
+      "file": "void-stun.wav",
+      "duration": 0.25,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1380459844,
+      "family": "stun",
+      "pitch": 0.92,
+      "peakDbfs": -9.663,
+      "rmsDbfs": -25.175,
+      "dc": 1.8e-07,
+      "sha256": "cf387b8b9af0dbb47344b36e803f6b751d8655a492b07316a79e66d82a0207ca"
+    },
+    {
+      "id": "slash-a",
+      "label": "多重斩击 A",
+      "group": "effect",
+      "file": "slash-a.wav",
+      "duration": 0.13,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3005691517,
+      "family": "slash",
+      "pitch": 1.0,
+      "peakDbfs": -11.615,
+      "rmsDbfs": -25.175,
+      "dc": -1.46e-06,
+      "sha256": "d569880beaa9a64ae232a0ec4724a57d88d59b290315772f62479691fbbc2172"
+    },
+    {
+      "id": "slash-b",
+      "label": "多重斩击 B",
+      "group": "effect",
+      "file": "slash-b.wav",
+      "duration": 0.14,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2626841658,
+      "family": "slash",
+      "pitch": 0.88,
+      "peakDbfs": -13.161,
+      "rmsDbfs": -25.175,
+      "dc": -1.66e-06,
+      "sha256": "be0bb3785d5bed83c829c2e03fcf25d98552abfc6b006870f7082243a70e2e97"
+    },
+    {
+      "id": "slash-c",
+      "label": "多重斩击 C",
+      "group": "effect",
+      "file": "slash-c.wav",
+      "duration": 0.16,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2235902908,
+      "family": "slash",
+      "pitch": 1.14,
+      "peakDbfs": -12.295,
+      "rmsDbfs": -25.175,
+      "dc": -1.34e-06,
+      "sha256": "ff78a278143d5275d7b2625f8e80af3c5b11fe2fe051e7fbb665d6b73dcd618b"
+    },
+    {
+      "id": "binding-lock",
+      "label": "禁锢扣合",
+      "group": "effect",
+      "file": "binding-lock.wav",
+      "duration": 0.28,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 237132131,
+      "family": "bind",
+      "pitch": 1.0,
+      "peakDbfs": -10.52,
+      "rmsDbfs": -25.175,
+      "dc": -2.96e-06,
+      "sha256": "c3539540b7be987b7fdea9a62ba789f7a56050edb4a21c6294fabef72864edf4"
+    },
+    {
+      "id": "gravity-shield",
+      "label": "引力护盾生成",
+      "group": "effect",
+      "file": "gravity-shield.wav",
+      "duration": 0.42,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3211078516,
+      "family": "shield",
+      "pitch": 0.92,
+      "peakDbfs": -12.911,
+      "rmsDbfs": -25.175,
+      "dc": -2.15e-06,
+      "sha256": "1bbfabdb93f3ef17b7f47f11c90f5bf1b4421e08e6d2b3fe5c41be908e9a58cc"
+    },
+    {
+      "id": "shield-hit",
+      "label": "引力护盾受击",
+      "group": "effect",
+      "file": "shield-hit.wav",
+      "duration": 0.12,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2011060654,
+      "family": "shield-hit",
+      "pitch": 1.0,
+      "peakDbfs": -12.022,
+      "rmsDbfs": -25.175,
+      "dc": -6.06e-06,
+      "sha256": "ee1a51779f2897e6e85720f2fad5f2fb8d40e398446f3ea51ceac3aecd221e7a"
+    },
+    {
+      "id": "shield-break",
+      "label": "引力护盾破碎",
+      "group": "effect",
+      "file": "shield-break.wav",
+      "duration": 0.24,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 257997854,
+      "family": "shield-break",
+      "pitch": 0.88,
+      "peakDbfs": -8.161,
+      "rmsDbfs": -25.175,
+      "dc": -1.01e-06,
+      "sha256": "2931aec92786ef8623bc76f9e7726a35824fd9ebac3f946e337648a0071fb5a6"
+    },
+    {
+      "id": "escape-boost",
+      "label": "逃逸速度",
+      "group": "effect",
+      "file": "escape-boost.wav",
+      "duration": 0.22,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 790605936,
+      "family": "escape",
+      "pitch": 1.0,
+      "peakDbfs": -10.793,
+      "rmsDbfs": -25.175,
+      "dc": -1.5e-07,
+      "sha256": "c12934ba2d62baa3cabdd82a7e94ed93312e2a662b4b6eaa70d9f6ecfdfcb2b6"
+    },
+    {
+      "id": "mass-recycle",
+      "label": "质量回收",
+      "group": "effect",
+      "file": "mass-recycle.wav",
+      "duration": 0.16,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3122230717,
+      "family": "recycle",
+      "pitch": 1.0,
+      "peakDbfs": -14.394,
+      "rmsDbfs": -25.175,
+      "dc": -1.34e-06,
+      "sha256": "2ee88c0c8d92bb8f60a84e78a3f92300ceb641f9a8a594bd7d00d725e5968a43"
+    },
+    {
+      "id": "gravity-crush",
+      "label": "重力碾压音色层",
+      "group": "effect",
+      "file": "gravity-crush.wav",
+      "duration": 0.25,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1391715045,
+      "family": "terminal",
+      "pitch": 0.78,
+      "peakDbfs": -7.984,
+      "rmsDbfs": -21.175,
+      "dc": -4.17e-06,
+      "sha256": "322798a0aa31573fa559873c280a11d486eefa91db77ae84163c44af97146489"
+    },
+    {
+      "id": "absolute-gravity",
+      "label": "绝对引力音色层",
+      "group": "effect",
+      "file": "absolute-gravity.wav",
+      "duration": 0.32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2664335676,
+      "family": "focus",
+      "pitch": 0.74,
+      "peakDbfs": -15.398,
+      "rmsDbfs": -25.175,
+      "dc": -1.96e-06,
+      "sha256": "cdfcc2fa999fbe5c37ec6db84399a40054a8e92cccea762ded01885c070ec60b"
+    },
+    {
+      "id": "echo-singularity",
+      "label": "回响奇点续时",
+      "group": "effect",
+      "file": "echo-singularity.wav",
+      "duration": 0.26,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 4197800835,
+      "family": "link",
+      "pitch": 0.76,
+      "peakDbfs": -9.79,
+      "rmsDbfs": -25.175,
+      "dc": -2.89e-06,
+      "sha256": "1e88b3980421164e1f2622bd27271408b4f4ed62124c545a1d96217ea89cf325"
+    },
+    {
+      "id": "horizon-resonance",
+      "label": "视界共振",
+      "group": "effect",
+      "file": "horizon-resonance.wav",
+      "duration": 0.28,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1830837556,
+      "family": "shield",
+      "pitch": 1.12,
+      "peakDbfs": -13.809,
+      "rmsDbfs": -25.175,
+      "dc": -2.66e-06,
+      "sha256": "818fe03ca6c7765c99a558943c8226627ad15aa06648a5b17d83e1d32c4600b8"
+    },
+    {
+      "id": "mass-focus",
+      "label": "质量聚焦音色层",
+      "group": "effect",
+      "file": "mass-focus.wav",
+      "duration": 0.24,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 463544051,
+      "family": "focus",
+      "pitch": 1.22,
+      "peakDbfs": -13.924,
+      "rmsDbfs": -25.175,
+      "dc": -4.4e-07,
+      "sha256": "f7105dfc0c114ee734574857a4c4f0859238bb57581ce13c78ecc67b2095afb8"
+    },
+    {
+      "id": "singularity-step",
+      "label": "奇点步",
+      "group": "effect",
+      "file": "singularity-step.wav",
+      "duration": 0.3,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 4050400532,
+      "family": "step",
+      "pitch": 1.0,
+      "peakDbfs": -10.946,
+      "rmsDbfs": -25.175,
+      "dc": 2e-08,
+      "sha256": "2de9abd3cba4d7d027e7bc7bf52e0a5a0ab2b7e55faf2ac7831559d532695354"
+    },
+    {
+      "id": "mass-siphon",
+      "label": "质量虹吸",
+      "group": "effect",
+      "file": "mass-siphon.wav",
+      "duration": 0.4,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1573542485,
+      "family": "siphon",
+      "pitch": 1.0,
+      "peakDbfs": -10.556,
+      "rmsDbfs": -25.175,
+      "dc": -2e-08,
+      "sha256": "f1d3c6d59e4b5207f2e9552dcd6cea2c48cda90d07b625d60b45163c2a5fb96b"
+    },
+    {
+      "id": "gravity-core",
+      "label": "引力核心集质",
+      "group": "effect",
+      "file": "gravity-core.wav",
+      "duration": 0.28,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1201713256,
+      "family": "focus",
+      "pitch": 0.89,
+      "peakDbfs": -15.147,
+      "rmsDbfs": -25.175,
+      "dc": -3.9e-07,
+      "sha256": "0a9443ff08b4d9de88ad32a79a3ed1e027c359413e134f945e23136cafc94d82"
+    },
+    {
+      "id": "collapse-theory",
+      "label": "坍缩理论音色层",
+      "group": "effect",
+      "file": "collapse-theory.wav",
+      "duration": 0.28,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3940406996,
+      "family": "closure",
+      "pitch": 0.82,
+      "peakDbfs": -11.665,
+      "rmsDbfs": -25.175,
+      "dc": -1.97e-06,
+      "sha256": "2ae0281f22a2ac0dfbae366383c930185379ee0a49af86e17d8e0cd90173f70d"
+    },
+    {
+      "id": "critical-impact",
+      "label": "坍缩暴击强调",
+      "group": "effect",
+      "file": "critical-impact.wav",
+      "duration": 0.2,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2809070469,
+      "family": "impact",
+      "pitch": 1.26,
+      "peakDbfs": -10.245,
+      "rmsDbfs": -21.175,
+      "dc": -2.23e-06,
+      "sha256": "82238662fa503641878cc17e69cc22991c81c54ddfcad02a1627c03098ea9628"
+    },
+    {
+      "id": "true-tear",
+      "label": "奇点真伤撕裂层",
+      "group": "effect",
+      "file": "true-tear.wav",
+      "duration": 0.14,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 316848051,
+      "family": "slash",
+      "pitch": 1.3,
+      "peakDbfs": -11.32,
+      "rmsDbfs": -25.175,
+      "dc": -1.67e-06,
+      "sha256": "c6374e7867f3b943f749da3ba4827dca9e6feae773d11f26b0ac49d7a3060d71"
+    },
+    {
+      "id": "learn-gravity-core",
+      "label": "引力核心 · 获得",
+      "group": "talent-learn",
+      "file": "learn-gravity-core.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 289528394,
+      "family": "learn",
+      "pitch": 0.7491535384383408,
+      "peakDbfs": -13.38,
+      "rmsDbfs": -25.175,
+      "dc": -1.81e-06,
+      "sha256": "4a84280d49fea5afef53c2fe19cffc931d8a24ef2d65afabeb2513f57898d05c"
+    },
+    {
+      "id": "learn-collapse-theory",
+      "label": "坍缩理论 · 获得",
+      "group": "talent-learn",
+      "file": "learn-collapse-theory.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2701226025,
+      "family": "learn",
+      "pitch": 0.7937005259840998,
+      "peakDbfs": -13.16,
+      "rmsDbfs": -25.175,
+      "dc": -8.4e-07,
+      "sha256": "c87ea00c46cfd164192f50275bddbb9a7dfc09d01dc5787911c128b817c5280d"
+    },
+    {
+      "id": "learn-void",
+      "label": "无量空处 · 获得",
+      "group": "talent-learn",
+      "file": "learn-void.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1507024618,
+      "family": "learn",
+      "pitch": 0.8408964152537145,
+      "peakDbfs": -13.167,
+      "rmsDbfs": -25.175,
+      "dc": -7e-07,
+      "sha256": "d1370c12fe99c8bed8cd17e211291b7c42c9a07a3390ecc461c0130602b47f97"
+    },
+    {
+      "id": "learn-multislash",
+      "label": "多重斩击 · 获得",
+      "group": "talent-learn",
+      "file": "learn-multislash.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3778617503,
+      "family": "learn",
+      "pitch": 0.8908987181403393,
+      "peakDbfs": -11.638,
+      "rmsDbfs": -25.175,
+      "dc": -8.3e-07,
+      "sha256": "3fd9c6bfe33eae42f064fcd3a65cbd8e2d90fb6ace5d48cd4196e3523bc8e12e"
+    },
+    {
+      "id": "learn-binding",
+      "label": "禁锢 · 获得",
+      "group": "talent-learn",
+      "file": "learn-binding.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3330977137,
+      "family": "learn",
+      "pitch": 0.9438743126816935,
+      "peakDbfs": -13.168,
+      "rmsDbfs": -25.175,
+      "dc": -7.9e-07,
+      "sha256": "cef0ade6381c70e0ac0efc9348b1e1ee417e88ba1a2dd73d58a369d24324a1c5"
+    },
+    {
+      "id": "learn-shield",
+      "label": "引力护盾 · 获得",
+      "group": "talent-learn",
+      "file": "learn-shield.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1234744355,
+      "family": "learn",
+      "pitch": 1.0,
+      "peakDbfs": -12.657,
+      "rmsDbfs": -25.175,
+      "dc": -5e-07,
+      "sha256": "2a2a6ce9f70d5a1717d166b611e9150bcad1ebb65ae841594f4976cc474aad12"
+    },
+    {
+      "id": "learn-escape",
+      "label": "逃逸速度 · 获得",
+      "group": "talent-learn",
+      "file": "learn-escape.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2747627572,
+      "family": "learn",
+      "pitch": 1.0594630943592953,
+      "peakDbfs": -12.703,
+      "rmsDbfs": -25.175,
+      "dc": -1.57e-06,
+      "sha256": "5c6afe4fd0b99f8c8bc3797b36162894ff7da09a9e3acfae3b3a1d9f2a8ce12b"
+    },
+    {
+      "id": "learn-recycle",
+      "label": "质量回收 · 获得",
+      "group": "talent-learn",
+      "file": "learn-recycle.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 4113875109,
+      "family": "learn",
+      "pitch": 1.122462048309373,
+      "peakDbfs": -13.164,
+      "rmsDbfs": -25.175,
+      "dc": -1.05e-06,
+      "sha256": "638fe0e82dbab5c61915fbc2712c0379ea9d93723b627fcbb8aeff488ad0bc7e"
+    },
+    {
+      "id": "learn-crush",
+      "label": "重力碾压 · 获得",
+      "group": "talent-learn",
+      "file": "learn-crush.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 4209351459,
+      "family": "learn",
+      "pitch": 1.189207115002721,
+      "peakDbfs": -12.944,
+      "rmsDbfs": -25.175,
+      "dc": -7.2e-07,
+      "sha256": "44b137e989f190f76812a64bd27773ffb9faeb61d5de955d50a2af042685041a"
+    },
+    {
+      "id": "learn-absolute",
+      "label": "绝对引力 · 获得",
+      "group": "talent-learn",
+      "file": "learn-absolute.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1488538662,
+      "family": "learn",
+      "pitch": 1.2599210498948732,
+      "peakDbfs": -13.13,
+      "rmsDbfs": -25.175,
+      "dc": -1.5e-06,
+      "sha256": "d622489596ec0ed636c746ffc4798947dfb808ce63d32a6958b2721afb8b18ff"
+    },
+    {
+      "id": "learn-echo",
+      "label": "回响奇点 · 获得",
+      "group": "talent-learn",
+      "file": "learn-echo.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1954959667,
+      "family": "learn",
+      "pitch": 1.3348398541700344,
+      "peakDbfs": -13.101,
+      "rmsDbfs": -25.175,
+      "dc": -1.15e-06,
+      "sha256": "419b6c4d47b55f326c7797c381d6a4d83e1e378e346712f88b9389ad4788a2a2"
+    },
+    {
+      "id": "learn-resonance",
+      "label": "视界共振 · 获得",
+      "group": "talent-learn",
+      "file": "learn-resonance.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1321036192,
+      "family": "learn",
+      "pitch": 1.4142135623730951,
+      "peakDbfs": -11.717,
+      "rmsDbfs": -25.175,
+      "dc": -9.6e-07,
+      "sha256": "7235c844ff4ac014b36cde20ad5b159464d3779f9e7dea308f3f83c8990fd8d7"
+    },
+    {
+      "id": "learn-focus",
+      "label": "质量聚焦 · 获得",
+      "group": "talent-learn",
+      "file": "learn-focus.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2520696294,
+      "family": "learn",
+      "pitch": 0.7753739122836826,
+      "peakDbfs": -12.535,
+      "rmsDbfs": -25.175,
+      "dc": -8.7e-07,
+      "sha256": "7cbab6beb335753ea15c68721fffbe8247d9270f169c18c74c9bd2b99a5636d4"
+    },
+    {
+      "id": "learn-step",
+      "label": "奇点步 · 获得",
+      "group": "talent-learn",
+      "file": "learn-step.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3046841340,
+      "family": "learn",
+      "pitch": 0.8214800443935433,
+      "peakDbfs": -12.788,
+      "rmsDbfs": -25.175,
+      "dc": -9.7e-07,
+      "sha256": "500b7105d9935a969f9cf14e077e20a3397e9d4f8ad2868288e78e99ea6862ad"
+    },
+    {
+      "id": "learn-siphon",
+      "label": "质量虹吸 · 获得",
+      "group": "talent-learn",
+      "file": "learn-siphon.wav",
+      "duration": 0.46,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 784177683,
+      "family": "learn",
+      "pitch": 0.8703277897875944,
+      "peakDbfs": -13.173,
+      "rmsDbfs": -25.175,
+      "dc": -6.3e-07,
+      "sha256": "d4f891c0704abe2ac552bfc89eb23d731936854af6b252c25fa1c4c513d99f8c"
+    },
+    {
+      "id": "upgrade-radius",
+      "label": "奇点半径 · 武器升级",
+      "group": "weapon-upgrade",
+      "file": "upgrade-radius.wav",
+      "duration": 0.38,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2427586664,
+      "family": "learn",
+      "pitch": 0.9206926101415557,
+      "peakDbfs": -13.235,
+      "rmsDbfs": -25.175,
+      "dc": -2e-07,
+      "sha256": "e0fe8b01f47e3854d56b8bf9a6e45170c655ab8f9fb7441d8be063e71c95fb94"
+    },
+    {
+      "id": "upgrade-pull",
+      "label": "引力增幅 · 武器升级",
+      "group": "weapon-upgrade",
+      "file": "upgrade-pull.wav",
+      "duration": 0.38,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3486159742,
+      "family": "learn",
+      "pitch": 0.9754398416943088,
+      "peakDbfs": -13.273,
+      "rmsDbfs": -25.175,
+      "dc": -1.47e-06,
+      "sha256": "8f21ccedeb2ff591786f68309a182f833cfba891d138917fecb219abf60ec5af"
+    },
+    {
+      "id": "upgrade-duration",
+      "label": "视界扩张 · 武器升级",
+      "group": "weapon-upgrade",
+      "file": "upgrade-duration.wav",
+      "duration": 0.38,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 356948772,
+      "family": "learn",
+      "pitch": 1.0334425130427936,
+      "peakDbfs": -12.882,
+      "rmsDbfs": -25.175,
+      "dc": -1.26e-06,
+      "sha256": "0d96fa8d76200952771049661610371e0171007bd339fbc03c9b58f76f7c5802"
+    },
+    {
+      "id": "upgrade-projection",
+      "label": "质量投射 · 武器升级",
+      "group": "weapon-upgrade",
+      "file": "upgrade-projection.wav",
+      "duration": 0.38,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3498306653,
+      "family": "learn",
+      "pitch": 1.0948942027107644,
+      "peakDbfs": -13.528,
+      "rmsDbfs": -25.175,
+      "dc": -3.5e-07,
+      "sha256": "faa4ac22edbc72f32d44ae17d0f54ce36b1c4d3a87d0e5f067f6ef74216f9e80"
+    },
+    {
+      "id": "upgrade-extension",
+      "label": "领域延展 · 武器升级",
+      "group": "weapon-upgrade",
+      "file": "upgrade-extension.wav",
+      "duration": 0.38,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 916904457,
+      "family": "learn",
+      "pitch": 1.16,
+      "peakDbfs": -13.148,
+      "rmsDbfs": -25.175,
+      "dc": -1.25e-06,
+      "sha256": "a1f0149c0f582ac9f9d2bddbb738e2851c834e1c585e47715bf31726f18a6b48"
+    },
+    {
+      "id": "upgrade-horizon",
+      "label": "事件视界 · 武器升级",
+      "group": "weapon-upgrade",
+      "file": "upgrade-horizon.wav",
+      "duration": 0.38,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 1041549276,
+      "family": "learn",
+      "pitch": 1.2289771894567825,
+      "peakDbfs": -14.196,
+      "rmsDbfs": -25.175,
+      "dc": -1.77e-06,
+      "sha256": "71f04b65c932b19a095093cdcd478242d8e8800d052dea6886cb2fd117b22451"
+    },
+    {
+      "id": "upgrade-ember",
+      "label": "奇点余烬 · 武器升级",
+      "group": "weapon-upgrade",
+      "file": "upgrade-ember.wav",
+      "duration": 0.38,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 2349083380,
+      "family": "learn",
+      "pitch": 1.3020559760388726,
+      "peakDbfs": -12.375,
+      "rmsDbfs": -25.175,
+      "dc": -1.25e-06,
+      "sha256": "dcd004c7081e04f756cc3ec1a7fbf100a69d3954b3b15fb607954fd3649d7bbe"
+    },
+    {
+      "id": "upgrade-confluence",
+      "label": "引力汇流 · 武器升级",
+      "group": "weapon-upgrade",
+      "file": "upgrade-confluence.wav",
+      "duration": 0.38,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3733158112,
+      "family": "learn",
+      "pitch": 1.3794802534031563,
+      "peakDbfs": -13.474,
+      "rmsDbfs": -25.175,
+      "dc": -1.47e-06,
+      "sha256": "c3cfdb1742816356e293d133f06cf306816535d3ff718908dd29f605832311d6"
+    },
+    {
+      "id": "upgrade-terminal",
+      "label": "终末奇点 · 武器升级",
+      "group": "weapon-upgrade",
+      "file": "upgrade-terminal.wav",
+      "duration": 0.38,
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "seed": 3657663617,
+      "family": "learn",
+      "pitch": 1.4615084178780529,
+      "peakDbfs": -13.166,
+      "rmsDbfs": -25.175,
+      "dc": -8.9e-07,
+      "sha256": "3de4b0c53c31aed00098f51e371208ce44df8089150cd55be60cd92497ed3bb0"
+    }
+  ],
+  "talents": {
+    "引力核心": {
+      "learn": "learn-gravity-core",
+      "effects": [
+        "gravity-core"
+      ],
+      "trigger": "收拢开始，捕获质量事件一次"
+    },
+    "坍缩理论": {
+      "learn": "learn-collapse-theory",
+      "effects": [
+        "collapse-theory"
+      ],
+      "trigger": "收拢音色修饰层一次"
+    },
+    "无量空处": {
+      "learn": "learn-void",
+      "effects": [
+        "void-stun"
+      ],
+      "trigger": "真实控制成功的合并事件"
+    },
+    "多重斩击": {
+      "learn": "learn-multislash",
+      "effects": [
+        "slash-a",
+        "slash-b",
+        "slash-c"
+      ],
+      "trigger": "每个真实斩击波次选一变体，不按目标数叠加"
+    },
+    "禁锢": {
+      "learn": "learn-binding",
+      "effects": [
+        "binding-lock"
+      ],
+      "trigger": "收拢时成功定身的合并事件"
+    },
+    "引力护盾": {
+      "learn": "learn-shield",
+      "effects": [
+        "gravity-shield",
+        "shield-hit",
+        "shield-break"
+      ],
+      "trigger": "生成/消耗/耗尽分别触发"
+    },
+    "逃逸速度": {
+      "learn": "learn-escape",
+      "effects": [
+        "escape-boost"
+      ],
+      "trigger": "实际加速开始一次"
+    },
+    "质量回收": {
+      "learn": "learn-recycle",
+      "effects": [
+        "mass-recycle"
+      ],
+      "trigger": "合法退款合并事件，至少间隔0.10秒"
+    },
+    "重力碾压": {
+      "learn": "learn-crush",
+      "effects": [
+        "gravity-crush"
+      ],
+      "trigger": "黑洞形成的低频修饰层，不逐跳鸣响"
+    },
+    "绝对引力": {
+      "learn": "learn-absolute",
+      "effects": [
+        "absolute-gravity"
+      ],
+      "trigger": "满足Boss条件时的形成修饰层，不逐帧鸣响"
+    },
+    "回响奇点": {
+      "learn": "learn-echo",
+      "effects": [
+        "echo-singularity"
+      ],
+      "trigger": "实际续时发生时合并一次，至少间隔0.15秒"
+    },
+    "视界共振": {
+      "learn": "learn-resonance",
+      "effects": [
+        "horizon-resonance"
+      ],
+      "trigger": "带共振的新领域落地一次"
+    },
+    "质量聚焦": {
+      "learn": "learn-focus",
+      "effects": [
+        "mass-focus"
+      ],
+      "trigger": "黑洞形成的聚焦修饰层，不逐跳鸣响"
+    },
+    "奇点步": {
+      "learn": "learn-step",
+      "effects": [
+        "singularity-step"
+      ],
+      "trigger": "成功冲刺且涡流真正生成一次"
+    },
+    "质量虹吸": {
+      "learn": "learn-siphon",
+      "effects": [
+        "mass-siphon"
+      ],
+      "trigger": "实际回复量大于0的事件一次"
+    }
+  },
+  "weaponUpgrades": {
+    "奇点半径": {
+      "learn": "upgrade-radius",
+      "trigger": "该条升级实际获得时一次；被动数值不逐跳播音"
+    },
+    "引力增幅": {
+      "learn": "upgrade-pull",
+      "trigger": "该条升级实际获得时一次；被动数值不逐跳播音"
+    },
+    "视界扩张": {
+      "learn": "upgrade-duration",
+      "trigger": "该条升级实际获得时一次；被动数值不逐跳播音"
+    },
+    "质量投射": {
+      "learn": "upgrade-projection",
+      "trigger": "该条升级实际获得时一次；被动数值不逐跳播音"
+    },
+    "领域延展": {
+      "learn": "upgrade-extension",
+      "trigger": "该条升级实际获得时一次；被动数值不逐跳播音"
+    },
+    "事件视界": {
+      "learn": "upgrade-horizon",
+      "trigger": "该条升级实际获得时一次；被动数值不逐跳播音"
+    },
+    "奇点余烬": {
+      "learn": "upgrade-ember",
+      "trigger": "该条升级实际获得时一次；被动数值不逐跳播音"
+    },
+    "引力汇流": {
+      "learn": "upgrade-confluence",
+      "trigger": "该条升级实际获得时一次；被动数值不逐跳播音"
+    },
+    "终末奇点": {
+      "learn": "upgrade-terminal",
+      "trigger": "该条升级实际获得时一次；被动数值不逐跳播音"
+    }
+  },
+  "playback": {
+    "maxVoices": 8,
+    "maxBlackHoleLoops": 1,
+    "maxTransientModifiers": 2,
+    "loopFadeInOutMs": 12,
+    "formationPriority": 100,
+    "collapsePriority": 80,
+    "skillPriority": 60,
+    "ambientPriority": 20,
+    "rule": "one formation cue per black hole; one slash variation per wave; aggregate targets; no DoT tick audio; obey mute/pause/cleanup"
+  },
+  "demo": {
+    "file": "domain-cycle-demo.wav",
+    "duration": 6.2,
+    "events": [
+      {
+        "id": "field-deploy",
+        "time": 0,
+        "gain": 0.65,
+        "duration": 0.25
+      },
+      {
+        "id": "field-deploy",
+        "time": 0.9,
+        "gain": 0.65,
+        "duration": 0.25
+      },
+      {
+        "id": "field-deploy",
+        "time": 1.8,
+        "gain": 0.65,
+        "duration": 0.25
+      },
+      {
+        "id": "field-link",
+        "time": 1.15,
+        "gain": 0.45,
+        "duration": 0.16
+      },
+      {
+        "id": "triangle-close",
+        "time": 2.05,
+        "gain": 0.4,
+        "duration": 0.22
+      },
+      {
+        "id": "collapse-in",
+        "time": 2.05,
+        "gain": 0.85,
+        "duration": 0.35
+      },
+      {
+        "id": "binding-lock",
+        "time": 2.05,
+        "gain": 0.45,
+        "duration": 0.28
+      },
+      {
+        "id": "gravity-core",
+        "time": 2.05,
+        "gain": 0.2,
+        "duration": 0.28
+      },
+      {
+        "id": "blackhole-impact",
+        "time": 2.4,
+        "gain": 1.0,
+        "duration": 0.72
+      },
+      {
+        "id": "true-tear",
+        "time": 2.4,
+        "gain": 0.22,
+        "duration": 0.14
+      },
+      {
+        "id": "blackhole-loop",
+        "time": 2.4,
+        "gain": 0.35,
+        "duration": 2.2
+      },
+      {
+        "id": "void-stun",
+        "time": 2.4,
+        "gain": 0.22,
+        "duration": 0.25
+      },
+      {
+        "id": "void-stun",
+        "time": 3.0,
+        "gain": 0.22,
+        "duration": 0.25
+      },
+      {
+        "id": "void-stun",
+        "time": 3.6,
+        "gain": 0.22,
+        "duration": 0.25
+      },
+      {
+        "id": "void-stun",
+        "time": 4.2,
+        "gain": 0.22,
+        "duration": 0.25
+      },
+      {
+        "id": "slash-a",
+        "time": 2.7,
+        "gain": 0.35,
+        "duration": 0.13
+      },
+      {
+        "id": "slash-b",
+        "time": 3.0,
+        "gain": 0.35,
+        "duration": 0.14
+      },
+      {
+        "id": "slash-c",
+        "time": 3.3,
+        "gain": 0.35,
+        "duration": 0.16
+      },
+      {
+        "id": "slash-a",
+        "time": 3.5999999999999996,
+        "gain": 0.35,
+        "duration": 0.13
+      },
+      {
+        "id": "slash-b",
+        "time": 3.8999999999999995,
+        "gain": 0.35,
+        "duration": 0.14
+      },
+      {
+        "id": "slash-c",
+        "time": 4.199999999999999,
+        "gain": 0.35,
+        "duration": 0.16
+      },
+      {
+        "id": "slash-a",
+        "time": 4.499999999999999,
+        "gain": 0.35,
+        "duration": 0.13
+      },
+      {
+        "id": "terminal-impact",
+        "time": 4.6,
+        "gain": 0.75,
+        "duration": 0.48
+      },
+      {
+        "id": "remnant-loop",
+        "time": 4.6,
+        "gain": 0.24,
+        "duration": 1.2
+      },
+      {
+        "id": "blackhole-release",
+        "time": 5.8,
+        "gain": 0.45,
+        "duration": 0.32
+      }
+    ],
+    "note": "Offline art composition, not actual successful-control or combat events"
+  },
+  "showreel": {
+    "file": "skill-showreel.wav",
+    "duration": 7.62,
+    "events": [
+      {
+        "id": "field-deploy",
+        "time": 0.0
+      },
+      {
+        "id": "field-link",
+        "time": 0.49
+      },
+      {
+        "id": "collapse-in",
+        "time": 0.89
+      },
+      {
+        "id": "blackhole-impact",
+        "time": 1.48
+      },
+      {
+        "id": "blackhole-loop",
+        "time": 2.44
+      },
+      {
+        "id": "void-stun",
+        "time": 3.68
+      },
+      {
+        "id": "slash-a",
+        "time": 4.17
+      },
+      {
+        "id": "binding-lock",
+        "time": 4.54
+      },
+      {
+        "id": "gravity-shield",
+        "time": 5.06
+      },
+      {
+        "id": "mass-siphon",
+        "time": 5.72
+      },
+      {
+        "id": "singularity-step",
+        "time": 6.36
+      },
+      {
+        "id": "terminal-impact",
+        "time": 6.9
+      }
+    ]
+  }
+}

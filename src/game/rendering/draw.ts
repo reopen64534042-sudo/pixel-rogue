@@ -2,6 +2,7 @@ import { drawAnimatedBoss } from "./BossVfx";
 import { bossSpriteKey, drawBossGround, drawBossHead, drawBossHud } from "./BossRenderer";
 import { drawLaser, drawLaserResources } from "./LaserRenderer";
 import { drawMissile, drawMissileGround, drawMissileResources } from "./MissileRenderer";
+import { drawDomainGround, drawDomainEffects, drawDomainResources, drawDomainOverloadBody } from './DomainRenderer';
 import type { GameCore } from "../core/GameCore";
 import { drawIaiSpinSlash } from "./vfx/iaiSpinSlash";
 import type { FloatingText } from "../core/types";
@@ -178,7 +179,7 @@ function drawChargeBar(
   }
 }
 
-export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean, character?: CharacterDrawing) {
+export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => boolean, character?: CharacterDrawing, domainNumber?: (t:FloatingText)=>boolean) {
   const TS = 16,
     tw = WORLD.w / TS,
     th = WORLD.h / TS;
@@ -254,6 +255,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
   }
 
   drawMissileGround(this, ctx);
+  drawDomainGround(this,ctx);
   // Issue #45：焦土燃烧地带
   for (const z of this.burnZones) {
     ctx.globalAlpha = 0.22 + Math.sin(this.time * 6) * 0.08;
@@ -581,6 +583,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
     }
+    drawDomainOverloadBody(this,ctx,e,x,y,w,h);
     // 火囊虫引爆预警：本体泛白高频交替（约 10Hz）+ 地面红色范围圈
     if (e.type === "bomber" && e.fuse > 0) {
       if (Math.sin(this.time * 62) > 0) {
@@ -722,11 +725,12 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
         );
       }
     }
-    if (e.elite) {
+    const fieldHpBar=!e.boss && (e.domainDamageUntil??0)>this.time && e.hp<e.maxhp;
+    if (e.elite || fieldHpBar) {
       ctx.fillStyle = "#3a0d0d";
       ctx.fillRect(x, y - 4, w, 2);
-      ctx.fillStyle = "#ff5b5b";
-      ctx.fillRect(x, y - 4, (w * e.hp) / e.maxhp, 2);
+      ctx.fillStyle = e.elite ? "#ff5b5b" : '#b05cff';
+      ctx.fillRect(x, y - 4, w*Math.max(0,Math.min(1,e.hp/e.maxhp)), 2);
     }
     if (e.elite && e.affix) {
       ctx.fillStyle = ELITE_AFFIX_INFO[e.affix].color;
@@ -1050,6 +1054,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
 
   drawLaserResources(this, ctx);
   drawMissileResources(this, ctx);
+  drawDomainResources(this,ctx);
   // 强化弹经验条（角色脚下；满级或满经验时整条金色）
   // 强化弹是射手专属系统；法师不显示，否则空条会压在充能点（y+17）上。
   if (this.prof === "shooter" && this.shooterWeapon === "charged") {
@@ -1273,6 +1278,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
 
   drawLaser(this, ctx, laserAnimation);
   drawMissile(this, ctx);
+  drawDomainEffects(this,ctx);
 
   // 强化弹激光（短寿命表现层；与电弧同为一次折线批量绘制）
   if (this.lasers.length) {
@@ -1360,6 +1366,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     }
   }
   for (const t of this.texts) {
+    if (t.domainDmg && domainNumber?.(t)) continue;
     const layers = t.iaiDmg || t.triDmg
       ? 4
       : t.trueDmg

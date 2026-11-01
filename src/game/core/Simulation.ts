@@ -1,4 +1,5 @@
 import { updateBosses } from "./BossSystem";
+import { updateDomain } from './DomainSystem';
 import { VIEW, WORLD, clamp } from "../data/constants";
 import { updateAttacks } from "./AttackSystem";
 import { updateEffects } from "./EffectsSystem";
@@ -23,6 +24,7 @@ export function update(this: GameCore, dt: number) {
   // 同属「本帧已结算的攻击」；元素 DoT 在这里推进，敌人死亡判定随后
   // 由 updateEnemies 的清理循环收掉（dead 标记）。
   updateMageCasting.call(this, dt);
+  updateDomain.call(this, dt);
   updateMageElements.call(this, dt);
   updateMelee.call(this, dt);
   if (updateProjectiles.call(this, dt)) return;
