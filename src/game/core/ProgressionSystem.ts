@@ -28,7 +28,7 @@ export function updateProgression(this: GameCore, dt: number) {
       if (
         this.tutorialMode &&
         this.tutorialStep ===
-          tutorialGemStep(this.tutorialProf ?? this.prof)
+          tutorialGemStep(this.tutorialProf ?? this.prof, this.mageWeapon)
       )
         this.tutorialGemPicked = true;
       p.xp += g.v;
