@@ -340,7 +340,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     ctx.fillRect(Math.round(this.castX - 2), Math.round(this.castY - 2), 4, 4);
     ctx.globalAlpha = 1;
   }
-  // 法师：脚下施法条 = 元素相位条（18×1，4 段）。
+  // 法师：脚下施法条 = 元素相位条（20×1，4 段，每段 5px）。
   // 已完成段填当前元素色；当前施法段用白线填充；第 4 段完成后换色并归零。
   // 顺序：冲刺点 → 元素相位/施法条 → 法杖经验条；不再画三点轮盘。
   if (
@@ -363,7 +363,8 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const color = el ? MAGE_ELEMENTS[el].color : "#57e6ff";
     const total = MAGE_CASTS_PER_ELEMENT;
     const completed = Math.max(0, Math.min(total, this.mageCastsInPhase));
-    const bw = 18;
+    // 宽度必须能被 4 整除，否则像素取整会让四段变成 5/4/5/4。
+    const bw = 20;
     const bx = Math.round(this.player.x - bw / 2);
     const by = Math.round(this.player.y) + 16;
     ctx.fillStyle = "#1d2440";
@@ -939,7 +940,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
       }
     }
   }
-  // 法师：法杖经验条（角色脚下 18×1，与激光/导弹经验条同细度）。
+  // 法师：法杖经验条（角色脚下 20×1，与 4 段施法条等长）。
   // 位于常驻施法条下方；成功本体施法 +1，满级或满经验整条金色。
   if (
     this.prof === "mage" && this.mageWeapon === "arcane" &&
@@ -950,7 +951,7 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     const ratio = need
       ? Math.min(1, this.mageStaffXp / need)
       : 1;
-    const sw = 18;
+    const sw = 20;
     const sx = Math.round(this.player.x - sw / 2);
     const sy = Math.round(this.player.y) + 20;
     ctx.fillStyle = "#1d2440";

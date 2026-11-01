@@ -554,7 +554,8 @@ function detonate(core: GameCore) {
   const hits = body.hits + prismHits;
   if (core.tutorialMode && core.tutorialProf === "mage" && hits >= 2)
     core.tutorialProfDone = true;
-  if (hits <= 0) return;
+  // 目标已锁定并完成施法即算成功：目标在前摇中被灼烧/DoT 提前击杀导致
+  // 本次 0 命中时，仍推进相位、轮盘、棱镜与法杖经验；无目标不会起手。
 
   // 护咒壁：满充能的那一次成功施法获得护盾（不可叠层 → 覆盖）。
   const isCharge = core.mageCharge + 1 >= MB.chargeFull;
