@@ -18,6 +18,10 @@ import {
   magePrismTier,
 } from "./MageProgressionSystem";
 import {
+  applyBurn,
+  applyDotDamage,
+  applyFrost,
+  applyLightningStatus,
   applyElementalBodyHit,
   mageReactionAvailableForHit,
 } from "./ElementSystem";
@@ -415,6 +419,201 @@ function triggerSplitShadows(
   core.audio.beep(620, 0.1, "triangle", 0.05, 260);
 }
 
+/** 主强延迟落点结算：陨火/冰晶新星。 */
+function resolveGrandmasterBlast(
+  core: GameCore,
+  blast: GameCore["mageDelayedBlasts"][number],
+): void {
+  const forms = ELEMENTAL_MAGE.grandmaster.forms;
+  core.mageVisualEvents.push({
+    kind: "burst",
+    at: core.time,
+    element: blast.element,
+    x: blast.x,
+    y: blast.y,
+    radius: blast.R,
+  });
+  for (const e of core.enemies) {
+    if (e.dead) continue;
+    const dx = e.x - blast.x;
+    const dy = e.y - blast.y;
+    if (dx * dx + dy * dy > blast.R * blast.R) continue;
+    const hit = core.hurtEnemy(e, blast.damage, 0, 0, {
+      origin: { x: blast.x, y: blast.y },
+      noCrit: true,
+      noChain: true,
+      noLifesteal: true,
+      src: "cast",
+      ...withDamageType(PA.mageBody, blast.element),
+    });
+    if (hit) core.mageDmgBy.body += hit.effectiveHpLoss;
+    if (e.dead) continue;
+    if (blast.kind === "meteor") {
+      applyBurn(core, e);
+      applyBurn(core, e);
+    } else {
+      applyFrost(core, e, forms.frost.frostStacks);
+    }
+  }
+  if (blast.kind === "meteor") {
+    core.mageGroundZones.push({
+      x: blast.x,
+      y: blast.y,
+      R: blast.R * forms.fire.ground.radiusMul,
+      t: forms.fire.ground.duration,
+      maxT: forms.fire.ground.duration,
+      tickT: forms.fire.ground.tick,
+      element: "fire",
+      kind: "burn",
+      damage: blast.damage * forms.fire.ground.tickDamageMul,
+    });
+    core.shake = Math.min(core.shake + 4, 8);
+    core.audio.beep(110, 0.22, "sawtooth", 0.08, -50);
+  } else {
+    core.shake = Math.min(core.shake + 2, 6);
+    core.audio.beep(980, 0.12, "triangle", 0.05, 180);
+  }
+}
+
+/** 主强形态：陨火天降 / 极寒新星 / 雷暴。 */
+function triggerGrandmasterForm(
+  core: GameCore,
+  element: MageElement,
+  base: number,
+  R: number,
+  x: number,
+  y: number,
+): void {
+  const forms = ELEMENTAL_MAGE.grandmaster.forms;
+  if (element === "fire") {
+    const cfg = forms.fire;
+    core.mageDelayedBlasts.push({
+      x,
+      y,
+      R: R * cfg.radiusMul,
+      t: cfg.delay,
+      maxT: cfg.delay,
+      element: "fire",
+      kind: "meteor",
+      damage: base * cfg.damageMul,
+    });
+    core.audio.beep(160, 0.4, "sawtooth", 0.05, -20);
+    return;
+  }
+  if (element === "frost") {
+    const cfg = forms.frost;
+    for (let i = 0; i < cfg.points; i++) {
+      const a = -Math.PI / 2 + (i / cfg.points) * Math.PI * 2;
+      const px = x + Math.cos(a) * R * 0.55;
+      const py = y + Math.sin(a) * R * 0.55;
+      core.mageDelayedBlasts.push({
+        x: px,
+        y: py,
+        R: R * cfg.pointRadiusMul,
+        t: cfg.delay + i * 0.06,
+        maxT: cfg.delay + i * 0.06,
+        element: "frost",
+        kind: "nova",
+        damage: base * cfg.pointDamageMul,
+      });
+    }
+    core.mageGroundZones.push({
+      x,
+      y,
+      R: R * cfg.field.radiusMul,
+      t: cfg.field.duration,
+      maxT: cfg.field.duration,
+      tickT: 0.25,
+      element: "frost",
+      kind: "frost",
+      damage: 0,
+    });
+    core.audio.beep(1040, 0.25, "sine", 0.05, 120);
+    return;
+  }
+  const cfg = forms.lightning;
+  const targets = core.enemies
+    .filter((e) => {
+      if (e.dead) return false;
+      const dx = e.x - x;
+      const dy = e.y - y;
+      return dx * dx + dy * dy <= (R * cfg.radiusMul) ** 2;
+    })
+    .sort(
+      (a, b) =>
+        Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y),
+    )
+    .slice(0, cfg.maxTargets);
+  for (const e of targets) {
+    core.bolts.push({ x1: x, y1: y, x2: e.x, y2: e.y, life: 0.18 });
+    const hit = core.hurtEnemy(e, base * cfg.damageMul, 0, 0, {
+      origin: { x, y },
+      noCrit: true,
+      noChain: true,
+      noLifesteal: true,
+      src: "cast",
+      ...withDamageType(PA.mageBody, "lightning"),
+    });
+    if (hit) core.mageDmgBy.body += hit.effectiveHpLoss;
+    core.mageVisualEvents.push({
+      kind: "burst",
+      at: core.time,
+      element: "lightning",
+      x: e.x,
+      y: e.y,
+      radius: 20,
+    });
+    if (!e.dead) applyLightningStatus(core, e);
+  }
+  core.mageVisualEvents.push({
+    kind: "burst",
+    at: core.time,
+    element: "lightning",
+    x,
+    y,
+    radius: R * cfg.radiusMul,
+  });
+  core.shake = Math.min(core.shake + 3, 7);
+  core.audio.beep(1200, 0.18, "sawtooth", 0.06, -500);
+}
+
+/** 推进大法师主强的延迟落点、地面场与主球连线表现。 */
+function updateGrandmasterFields(core: GameCore, dt: number): void {
+  if (core.mageBridgeFx) {
+    core.mageBridgeFx.t -= dt;
+    if (core.mageBridgeFx.t <= 0) core.mageBridgeFx = null;
+  }
+  for (let i = core.mageDelayedBlasts.length - 1; i >= 0; i--) {
+    const blast = core.mageDelayedBlasts[i];
+    blast.t -= dt;
+    if (blast.t > 0) continue;
+    core.mageDelayedBlasts.splice(i, 1);
+    resolveGrandmasterBlast(core, blast);
+  }
+  const forms = ELEMENTAL_MAGE.grandmaster.forms;
+  for (let i = core.mageGroundZones.length - 1; i >= 0; i--) {
+    const zone = core.mageGroundZones[i];
+    zone.t -= dt;
+    zone.tickT -= dt;
+    if (zone.tickT <= 0) {
+      zone.tickT += zone.kind === "burn" ? forms.fire.ground.tick : 0.25;
+      for (const e of core.enemies) {
+        if (e.dead) continue;
+        const dx = e.x - zone.x;
+        const dy = e.y - zone.y;
+        if (dx * dx + dy * dy > zone.R * zone.R) continue;
+        if (zone.kind === "burn") {
+          applyDotDamage(core, e, zone.damage, "fire");
+        } else {
+          e.slowT = Math.max(e.slowT, forms.frost.field.slowT);
+          e.slowF = Math.max(e.slowF, forms.frost.field.slowF);
+        }
+      }
+    }
+    if (zone.t <= 0) core.mageGroundZones.splice(i, 1);
+  }
+}
+
 /**
  * 一次施法结算：法阵爆裂 → 棱镜/分影 → 轮盘/法杖经验/充能。
  *
@@ -424,7 +623,8 @@ function detonate(core: GameCore) {
   const p = core.player;
   const el = mageCurrentElement(core);
   if (!el) return;
-  const base = mageElementBase(core) * mageBeatDamageMul(mageBeatKind(core));
+  const beatKind = mageBeatKind(core);
+  const base = mageElementBase(core) * mageBeatDamageMul(beatKind);
   const R = mageCircleRadius(core);
   const reactionBudget = new Set<Enemy>();
   const directMul =
@@ -444,6 +644,21 @@ function detonate(core: GameCore) {
   const prismHits = refractPrism(core, el, base, R, reactionBudget);
   // 分影按元素第 4 下（进阶第 2/4 下）触发，不再要求本体先触发反应。
   triggerSplitShadows(core, el, base, R);
+  // 大法师：副元素拍留下主球→落点连线与主元素盖章；主强触发三形态。
+  if (beatKind === "sub" && core.mageMainElement) {
+    core.mageBridgeFx = {
+      x1: p.x,
+      y1: p.y - 18,
+      x2: core.castX,
+      y2: core.castY,
+      element: el,
+      rune: core.mageMainElement,
+      t: 0.28,
+      maxT: 0.28,
+    };
+  } else if (beatKind === "mainStrong") {
+    triggerGrandmasterForm(core, el, base, R, core.castX, core.castY);
+  }
   const hits = body.hits + prismHits;
   if (core.tutorialMode && core.tutorialProf === "mage" && hits >= 2)
     core.tutorialProfDone = true;
@@ -556,6 +771,7 @@ export function triggerMirrorDecoy(this: GameCore): boolean {
 export function updateMageCasting(this: GameCore, dt: number) {
   const p = this.player;
   if (this.prof !== "mage" || this.mageWeapon === "domain") return;
+  updateGrandmasterFields(this, dt);
   // 值型限时护盾
   if (this.mageShieldT > 0) {
     this.mageShieldT -= dt;

@@ -282,7 +282,7 @@ function spawnReactionFx(
 }
 
 /** 施加灼烧：每层独立计时，最多 3 层。 */
-function applyBurn(core: GameCore, e: Enemy, durationMul = 1): void {
+export function applyBurn(core: GameCore, e: Enemy, durationMul = 1): void {
   e.elemLastAura = "fire";
   const arr = e.elemFire ?? (e.elemFire = []);
   if (arr.length >= ELEMENTAL_MAGE.burn.stackCap) return;
@@ -305,7 +305,7 @@ function freeze(e: Enemy, durationMul = 1): void {
  * - 1 层：持续 3 秒；2 层刷新为 6 秒；3 层冻结 1.5 秒并保留层数。
  * - `suppressFreeze`：霜缚用——满 3 层也不进入冻结，交给霜牢压制。
  */
-function applyFrost(
+export function applyFrost(
   core: GameCore,
   e: Enemy,
   stacks = 1,
@@ -332,7 +332,7 @@ function applyFrost(
 }
 
 /** 施加雷印与麻痹；麻痹已存在时不刷新、不覆盖。 */
-function applyLightningStatus(
+export function applyLightningStatus(
   core: GameCore,
   e: Enemy,
   durationMul = 1,

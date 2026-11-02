@@ -14,7 +14,7 @@ import { MAGE_STATUS, type MageVfx } from "./vfx/MageVfx";
 import { W, H, VIEW, WORLD, fmtTime, fmtHp } from "../data/constants";
 import { isBrittle, isFrostLocked, isFrozen, isParalyzed, isShocked } from "../core/ElementMath";
 import { mageCircleRadius, mageWindup } from "../core/MageSystem";
-import { mageCurrentElement, mageElementForBeat } from "../core/MageProgressionSystem";
+import { mageCurrentElement, mageElementForBeat, mageBeatKind, mageIsGrandmaster } from "../core/MageProgressionSystem";
 import { ELEMENTAL_MAGE, MAGE_CASTS_PER_ELEMENT, MAGE_ELEMENTS, STAFF_LEVELS } from "../data/elementalMage";
 import type { MageReactionId } from "../data/elementalMage";
 import { warriorIaiStep } from "../core/WarriorSystem";
@@ -283,6 +283,64 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     ctx.fillRect(Math.round(z.x - 3), Math.round(z.y - 3), 6, 6);
     ctx.globalAlpha = 1;
   }
+  // 大法师主强：延迟落点预告与燃烧/寒霜地面
+  for (const blast of this.mageDelayedBlasts) {
+    const color = MAGE_ELEMENTS[blast.element].color;
+    const k = Math.max(0, Math.min(1, 1 - blast.t / blast.maxT));
+    ctx.globalAlpha = 0.25 + k * 0.4;
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.arc(
+      Math.round(blast.x),
+      Math.round(blast.y),
+      Math.max(2, Math.round(blast.R * (0.35 + 0.65 * k))),
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+    if (blast.kind === "meteor") {
+      ctx.fillStyle = "#ff9a3d";
+      ctx.fillRect(
+        Math.round(blast.x + blast.t * 90),
+        Math.round(blast.y - blast.t * 260 - 42),
+        3,
+        7,
+      );
+    } else {
+      ctx.fillStyle = "#e8f7ff";
+      for (let i = 0; i < 3; i++) {
+        const a = -Math.PI / 2 + i * 2.1;
+        ctx.fillRect(
+          Math.round(blast.x + Math.cos(a) * blast.R * 0.5),
+          Math.round(blast.y + Math.sin(a) * blast.R * 0.5),
+          1,
+          3,
+        );
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  for (const zone of this.mageGroundZones) {
+    const fade = Math.max(0, Math.min(1, zone.t / zone.maxT));
+    ctx.globalAlpha = 0.12 + fade * 0.18;
+    ctx.strokeStyle = MAGE_ELEMENTS[zone.element].color;
+    ctx.beginPath();
+    ctx.arc(Math.round(zone.x), Math.round(zone.y), zone.R, 0, Math.PI * 2);
+    ctx.stroke();
+    if (zone.kind === "burn") {
+      ctx.fillStyle = "#ff9a3d";
+      for (let i = 0; i < 6; i++) {
+        const a = this.time * 0.8 + i * 1.05;
+        ctx.fillRect(
+          Math.round(zone.x + Math.cos(a) * zone.R * 0.65),
+          Math.round(zone.y + Math.sin(a) * zone.R * 0.4),
+          1,
+          2,
+        );
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
 
   // 织网蛛蛛网：预警时金色圈收缩，生效后画白色网纹；网只减速，不造成伤害。
   drawBossGround(this, ctx);
@@ -399,6 +457,16 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
         width,
         1,
       );
+    }
+    if (mageIsGrandmaster(this)) {
+      const gx = bx + 3 * (MAGE_BAR_SEG_W + MAGE_BAR_GAP_W);
+      const pulse = 0.35 + Math.sin(this.time * 9) * 0.25;
+      ctx.globalAlpha = this.mageCastsInPhase === 3 ? 0.65 + pulse : 0.35;
+      ctx.fillStyle = "#ffd24a";
+      ctx.fillRect(gx, by - 1, MAGE_BAR_SEG_W, 1);
+      if (this.mageCastsInPhase === 3)
+        ctx.fillRect(gx, by + 1, MAGE_BAR_SEG_W, 1);
+      ctx.globalAlpha = 1;
     }
   }
   // ---- 法师：镜像/踏影假人（吸引仇恨的诱饵）----
@@ -583,6 +651,68 @@ export function draw(this: GameCore, ctx: PixelPainter, laserAnimation?: () => b
     ctx.globalAlpha = 1;
   }
   mageVfx?.drawImpacts(ctx);
+
+  // 大法师：头顶主元素球 + 副元素拍的主球连线/主元素盖章。
+  if (
+    this.prof === "mage" &&
+    this.mageWeapon === "arcane" &&
+    this.state === "play" &&
+    mageIsGrandmaster(this) &&
+    this.mageMainElement
+  ) {
+    const mainColor = MAGE_ELEMENTS[this.mageMainElement].color;
+    const ox = Math.round(this.player.x);
+    const oy = Math.round(this.player.y - 18);
+    const pulse = 0.5 + Math.sin(this.time * 5) * 0.5;
+    ctx.globalAlpha = 0.2 + pulse * 0.12;
+    ctx.fillStyle = mainColor;
+    ctx.beginPath();
+    ctx.arc(ox, oy, 5 + Math.round(pulse * 2), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 0.95;
+    ctx.fillRect(ox - 1, oy - 1, 2, 2);
+    ctx.globalAlpha = 0.28;
+    ctx.fillRect(ox - 3, oy, 7, 1);
+    ctx.fillRect(ox, oy - 3, 1, 7);
+    ctx.globalAlpha = 1;
+
+    const stamp = (x: number, y: number, alpha: number) => {
+      if (alpha <= 0) return;
+      ctx.globalAlpha = alpha;
+      ctx.polygon(
+        [x, y - 5, x + 5, y, x, y + 5, x - 5, y],
+        mainColor,
+        0.28,
+      );
+      ctx.polygon(
+        [x, y - 3, x + 3, y, x, y + 3, x - 3, y],
+        mainColor,
+        alpha * 0.9,
+      );
+      ctx.fillStyle = mainColor;
+      ctx.fillRect(x, y - 1, 1, 3);
+      ctx.fillRect(x - 1, y, 3, 1);
+      ctx.globalAlpha = 1;
+    };
+
+    const bridge = this.mageBridgeFx;
+    if (bridge) {
+      const a = Math.max(0, bridge.t / bridge.maxT);
+      ctx.beam(bridge.x1, bridge.y1, bridge.x2, bridge.y2, 1, mainColor, a);
+      stamp(bridge.x2, bridge.y2, a);
+    } else if (
+      (this.castPhase === "windup" || this.castPhase === "cast") &&
+      mageBeatKind(this) === "sub"
+    ) {
+      const total = Math.max(0.001, mageWindup(this));
+      const castPart = total * (1 - MB.castWindupInterruptible / MB.castWindup);
+      const remain =
+        this.castPhase === "windup" ? this.castT + castPart : this.castT;
+      const prog = Math.max(0, Math.min(1, 1 - remain / total));
+      ctx.beam(ox, oy, this.castX, this.castY, 1, mainColor, 0.2 + prog * 0.35);
+      stamp(this.castX, this.castY, Math.max(0, prog - 0.45) * 1.8);
+    }
+  }
 
   // 法师：双影协奏的左右常驻残影（半透明本体 + 副元素色环）
   if (

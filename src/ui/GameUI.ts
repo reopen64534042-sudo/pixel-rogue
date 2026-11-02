@@ -51,6 +51,7 @@ import {
 } from "../game/data/keybindings";
 import { MAGE_BALANCE } from "../game/data/mageBalance";
 import {
+  ELEMENTAL_MAGE,
   MAGE_BUILD,
   MAGE_ELEMENTS,
   MAGE_CASTS_PER_ELEMENT,
@@ -1405,6 +1406,13 @@ export class GameUI {
           ...(grandmaster
             ? ([
                 ["👑 元素大法师", `主 ${mainName} · 副 ${subNames}`],
+                [
+                  "🔥 主强形态",
+                  this.core.mageMainElement
+                    ? ELEMENTAL_MAGE.grandmaster.forms[this.core.mageMainElement]
+                        .name
+                    : "—",
+                ],
                 ["🎵 当前拍", `${mageBeatLabel(this.core)} · ×${beatMul.toFixed(2)}`],
               ] as [string, string][])
             : []),
@@ -1417,6 +1425,7 @@ export class GameUI {
           label === wheelLabel ||
           label === "☯ 已掌握反应" ||
           label === "👑 元素大法师" ||
+          label === "🔥 主强形态" ||
           label === "🎵 当前拍",
         );
         const prismTier = magePrismTier(this.core);
@@ -1489,6 +1498,14 @@ export class GameUI {
                 ? "4 拍：副1 → 副2 → 主基础 → 主强；副顺序休整期可交换，主元素固定"
                 : "每 4 次成功施法切换；获得新元素不重置当前阶段；Lv1/4/7 选择元素",
             ],
+            ...(grandmaster
+              ? ([
+                  [
+                    "主强形态",
+                    "火 陨火天降：延迟大范围陨火 + 2 灼烧 + 燃烧地面 / 冰 极寒新星：3 落点 + 2 凝冰 + 减速场 / 雷 雷暴：多目标雷印与麻痹",
+                  ],
+                ] as [string, string][])
+              : []),
             [
               "成长",
               "Lv2 调律 / Lv3 基础棱镜 / Lv4 第二元素 / Lv5 专精 / Lv6 棱镜史诗 / Lv7 第三元素 / Lv8–9 专精 / Lv10 分影 / Lv11 双影协奏 / Lv12 元素大法师（选主元素，4拍+六反应）；三选一池 8 张（4 张生存/机动 + 1 张节律 + 1 张穿透 + 2 张构筑卡）",
