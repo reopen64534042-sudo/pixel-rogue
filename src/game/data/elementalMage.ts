@@ -339,7 +339,7 @@ export const MAGE_STAFF_UPGRADES: readonly MageStaffUpgradeDef[] = [
     id: "grandmaster",
     name: "元素大法师",
     ico: "✧",
-    desc: "Lv12 选择主元素；每 4 拍 副1→副2→主基础→主强；副元素 0.8×、主基础 1.3×、主强 1.6×；解锁全部六反应，专精仍只保留本局三条",
+    desc: "Lv12 选择主元素；每 4 拍 副1→副2→主基础→主强；副元素 0.8×、主基础 1.3×、主强 1.6×；主强形态：火「陨火天降」/ 冰「极寒新星」/ 雷「雷暴」；解锁全部六反应，专精仍只保留本局三条",
   },
 ];
 
@@ -437,11 +437,46 @@ export const ELEMENTAL_MAGE = {
     /** 法阵范围（半径乘区）。 */
     circleRange: 0.1,
   },
-  /** Lv12 元素大法师：4 拍倍率；P2b 再给主强专属形态。 */
+  /** Lv12 元素大法师：4 拍倍率 + 三种主强形态。 */
   grandmaster: {
     subDamageMul: 0.8,
     mainDamageMul: 1.3,
     mainStrongDamageMul: 1.6,
+    forms: {
+      fire: {
+        name: "陨火天降",
+        delay: 0.55,
+        radiusMul: 2.2,
+        damageMul: 1,
+        burnStacks: 2,
+        ground: {
+          duration: 3,
+          tick: 0.5,
+          radiusMul: 0.9,
+          tickDamageMul: 0.15,
+        },
+      },
+      frost: {
+        name: "极寒新星",
+        delay: 0.18,
+        points: 3,
+        pointRadiusMul: 0.75,
+        pointDamageMul: 0.5,
+        frostStacks: 2,
+        field: {
+          duration: 2.5,
+          radiusMul: 1.2,
+          slowT: 0.4,
+          slowF: 0.35,
+        },
+      },
+      lightning: {
+        name: "雷暴",
+        radiusMul: 1.8,
+        maxTargets: 5,
+        damageMul: 0.6,
+      },
+    },
   },
   shadow: {
     /** 基础分影：法阵半径 / 反应伤害倍率。 */

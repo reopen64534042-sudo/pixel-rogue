@@ -500,6 +500,40 @@ export class GameCore {
     radius: number;
     source?: { x: number; y: number };
   }[] = [];
+  /** 大法师主强：延迟生效的陨火/新星。 */
+  mageDelayedBlasts: {
+    x: number;
+    y: number;
+    R: number;
+    t: number;
+    maxT: number;
+    element: MageElement;
+    kind: "meteor" | "nova";
+    damage: number;
+  }[] = [];
+  /** 大法师主强留下的燃烧地面/寒霜减速场。 */
+  mageGroundZones: {
+    x: number;
+    y: number;
+    R: number;
+    t: number;
+    maxT: number;
+    tickT: number;
+    element: MageElement;
+    kind: "burn" | "frost";
+    damage: number;
+  }[] = [];
+  /** 副元素拍的主球→落点连线与主元素盖章表现。 */
+  mageBridgeFx: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    element: MageElement;
+    rune: MageElement;
+    t: number;
+    maxT: number;
+  } | null = null;
   /** 休整面板的法师细分伤害；不并入通用 dmgBy，避免双重计数。 */
   mageDmgBy = emptyMageDamage();
   private mageWaveStartDmgBy = emptyMageDamage();
@@ -634,6 +668,9 @@ export class GameCore {
     missileMain: 0, missileSwarm: 0, missileArc: 0, missileBurn: 0,
   };
   beginWaveReport() {
+    this.mageDelayedBlasts = [];
+    this.mageGroundZones = [];
+    this.mageBridgeFx = null;
     this.waveStartDamage = { ...this.dmgBy };
     this.mageWaveStartDmgBy = {
       ...this.mageDmgBy,
@@ -909,6 +946,9 @@ export class GameCore {
     this.magePrism = null;
     this.magePrismBeams = [];
     this.mageVisualEvents = [];
+    this.mageDelayedBlasts = [];
+    this.mageGroundZones = [];
+    this.mageBridgeFx = null;
     this.mageShadows = [];
     this.mageElementPickPending = prof === "mage" && this.mageWeapon === "arcane" ? "first" : null;
     this.mageElementPickQueue = [];

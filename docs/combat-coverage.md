@@ -2,7 +2,7 @@
 
 > 由 node scripts/audit-combat-contracts.mjs --write 从当前 TypeScript 源码生成；静态声明与接线检查，不是运行时或平衡验收。
 
-共 71 个攻击声明、36 个明确分类的受击调用点、17 份怪物配置，对应 18 条图鉴；HP 扣除收口为 2 处。
+共 71 个攻击声明、38 个明确分类的受击调用点、17 份怪物配置，对应 18 条图鉴；HP 扣除收口为 2 处。
 
 ## 1. 攻击声明目录
 
@@ -100,9 +100,9 @@
 | [src/game/core/LaserSystem.ts:232](../src/game/core/LaserSystem.ts) | hurtEnemy | "physical" | "ranged" | "laser:pulse" |
 | [src/game/core/LaserSystem.ts:252](../src/game/core/LaserSystem.ts) | hurtEnemy | "physical" | "ranged" | "laser:scatter" |
 | [src/game/core/EnemyBehaviors.ts:32](../src/game/core/EnemyBehaviors.ts) | damagePlayer | "physical" \| "fire" \| "lightning" | "ranged" \| "melee" | "enemy:lob" \| "enemy:thrust" \| "enemy:tether" \| "enemy:stomp" \| "enemy:gaze" \| "enemy:collapse" \| "enemy:sonic" |
-| [src/game/core/ElementSystem.ts:165](../src/game/core/ElementSystem.ts) | hurtEnemy | MageElement | "other" | "mage:reaction" |
-| [src/game/core/ElementSystem.ts:390](../src/game/core/ElementSystem.ts) | hurtEnemy | "lightning" | "other" | "mage:chain" |
-| [src/game/core/ElementSystem.ts:832](../src/game/core/ElementSystem.ts) | applyEnemyDotDamage | "physical" \| "gravity" \| "fire" \| "frost" \| "lightning" \| "true" | "other" | "mage:burn" |
+| [src/game/core/ElementSystem.ts:204](../src/game/core/ElementSystem.ts) | hurtEnemy | MageElement | "other" | "mage:reaction" |
+| [src/game/core/ElementSystem.ts:429](../src/game/core/ElementSystem.ts) | hurtEnemy | "lightning" | "other" | "mage:chain" |
+| [src/game/core/ElementSystem.ts:871](../src/game/core/ElementSystem.ts) | applyEnemyDotDamage | "physical" \| "gravity" \| "fire" \| "frost" \| "lightning" \| "true" | "other" | "mage:burn" |
 | [src/game/core/CombatSystem.ts:415](../src/game/core/CombatSystem.ts) | hurtEnemy | "lightning" | "other" | "common:chain" |
 | [src/game/core/CombatSystem.ts:636](../src/game/core/CombatSystem.ts) | hurtEnemy | "fire" | "other" | "common:explode" |
 | [src/game/core/CombatSystem.ts:814](../src/game/core/CombatSystem.ts) | hurtEnemy | "physical" | "melee" | "warrior:shieldShock" |
@@ -112,8 +112,10 @@
 | [src/game/core/EnemySystem.ts:366](../src/game/core/EnemySystem.ts) | damagePlayer | "frost" | "other" | "enemy:eliteNova" |
 | [src/game/core/EnemySystem.ts:482](../src/game/core/EnemySystem.ts) | damagePlayer | "fire" | "other" | "enemy:bomber" |
 | [src/game/core/EnemySystem.ts:778](../src/game/core/EnemySystem.ts) | damagePlayer | "physical" | "melee" | "enemy:contact" \| "enemy:chargeContact" |
-| [src/game/core/MageSystem.ts:146](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:body" |
-| [src/game/core/MageSystem.ts:281](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:refract" |
+| [src/game/core/MageSystem.ts:151](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:body" |
+| [src/game/core/MageSystem.ts:287](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:refract" |
+| [src/game/core/MageSystem.ts:441](../src/game/core/MageSystem.ts) | hurtEnemy | MageElement | "other" | "mage:body" |
+| [src/game/core/MageSystem.ts:549](../src/game/core/MageSystem.ts) | hurtEnemy | "lightning" | "other" | "mage:body" |
 | [src/game/core/SpecialSystem.ts:83](../src/game/core/SpecialSystem.ts) | hurtEnemy | "physical" \| "true" | "other" | "charged:legacyLaser" |
 | [src/game/core/SpecialSystem.ts:170](../src/game/core/SpecialSystem.ts) | hurtEnemy | "physical" | "other" | "charged:legacyMissile" |
 | [src/game/core/WarriorSystem.ts:403](../src/game/core/WarriorSystem.ts) | hurtEnemy | "physical" | "melee" | "warrior:qi" \| "warrior:fissure" |

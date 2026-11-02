@@ -550,6 +550,9 @@ export function devSetStaffLevel(this: GameCore, level: number): void {
   core.mageShieldMaxT = 0;
   core.mageDecoys = [];
   core.mageVisualEvents = [];
+  core.mageDelayedBlasts = [];
+  core.mageGroundZones = [];
+  core.mageBridgeFx = null;
   core.castPhase = "idle";
   core.castT = 0;
   core.castCd = 0;
