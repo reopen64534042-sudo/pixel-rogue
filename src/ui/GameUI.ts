@@ -1,4 +1,5 @@
 import { BOSS, isBossWave } from "../game/data/boss";
+import { AudioSettingsUI } from "./AudioSettingsUI";
 import { buildDomainStats } from './DomainStats';
 import { isDomain } from '../game/core/DomainSystem';
 import { DOMAIN_UNLOCK_LEVELS } from '../game/data/domain';
@@ -93,7 +94,7 @@ import {
   SPECIAL_UPGRADES,
   getSpecialLevelStats,
 } from "../game/data/specialShot";
-import { element } from "./dom";
+import { element, trapTabFocus } from "./dom";
 import { CodexUI } from "./CodexUI";
 const DMG_NAMES: Record<string, string> = {
   bullet: "🏹魔弹",
@@ -215,6 +216,8 @@ export class GameUI {
   private lowHpEl: HTMLElement | null = null;
   /** 设置菜单 / 键位子窗口 / 改键捕获态（v79，v81 拆子窗口） */
   private settingsOpen = false;
+  private readonly audioSettings: AudioSettingsUI;
+  private settingsOrigin: HTMLElement | null = null;
   private keybindsOpen = false;
   private captureAction: KeyAction | null = null;
   private settingsHint = "";
@@ -226,11 +229,14 @@ export class GameUI {
   private tutorialHudEl: HTMLElement | null = null;
   private tutorialSig = "";
   constructor(public core: GameCore) {
+    this.audioSettings = new AudioSettingsUI(core.audio);
     this.codex = new CodexUI(core);
     core.keybinds = loadKeyBindings();
     core.view = {
       reset: () => this.reset(),
       started: () => {
+        this.audioSettings.close();
+        hide("ov-input");
         [
           "ov-start",
           "ov-over",
@@ -370,6 +376,8 @@ export class GameUI {
     // Issue #100：触屏没有 C 键，属性面板从暂停界面进入
     element("btn-pause-stats").onclick = () => this.core.openStatsFromPause();
     element("btn-pause-settings").onclick = () => this.openSettings();
+    element("btn-start-settings").onclick = () => this.openSettings();
+    element("btn-settings-audio").onclick = () => this.audioSettings.open();
     element("btn-settings-keys").onclick = () => this.openKeybinds();
     element("btn-keyreset").onclick = () => {
       this.core.keybinds = { ...DEFAULT_KEYBINDS };
@@ -499,6 +507,8 @@ export class GameUI {
     return true;
   }
   reset() {
+    this.audioSettings.close();
+    hide("ov-input");
     [
       "bottom-bar",
       "bp-level",
@@ -703,6 +713,7 @@ export class GameUI {
     this.core.chooseSlot(index);
   }
   dispose() {
+    this.audioSettings.dispose();
     this.clearResumeCountdown();
     this.core.view = {
       reset() {},
@@ -2479,22 +2490,28 @@ export class GameUI {
     };
   }
 
-  /** 打开设置菜单（从暂停界面进入）；具体设置项走子窗口。 */
+  /** 开始界面与暂停界面共用设置菜单；具体设置项走子窗口。 */
   private openSettings(): void {
-    if (this.core.state !== "pause") return;
+    if (this.core.state !== "pause" && this.core.state !== "start") return;
+    this.settingsOrigin = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.settingsOpen = true;
     this.keybindsOpen = false;
     this.captureAction = null;
     hide("ov-keybinds");
     show("ov-settings");
+    element("btn-settings-audio").focus();
   }
 
   private closeSettings(): void {
+    this.audioSettings.close();
+    hide("ov-input");
     this.settingsOpen = false;
     this.keybindsOpen = false;
     this.captureAction = null;
     hide("ov-keybinds");
     hide("ov-settings");
+    this.settingsOrigin?.focus();
+    this.settingsOrigin = null;
   }
 
   /** 设置子窗口：键位。 */
@@ -2505,12 +2522,14 @@ export class GameUI {
     this.settingsHint = "点击按键后按下新键 · Esc 取消 · 方向键与 Esc 始终可用";
     this.renderKeybindings();
     show("ov-keybinds");
+    element("keybind-list").querySelector("button")?.focus();
   }
 
   private closeKeybinds(): void {
     this.keybindsOpen = false;
     this.captureAction = null;
     hide("ov-keybinds");
+    element("btn-settings-keys").focus();
   }
 
   /** 重建设置列表；捕获中的动作显示「按下新键...」。 */
@@ -2548,6 +2567,16 @@ export class GameUI {
    * 返回 true 表示本事件已被设置面板消费，游戏不再处理。
    */
   handleSettingsKey(event: KeyboardEvent): boolean {
+    if (this.audioSettings.handleKey(event)) return true;
+    if (this.settingsOpen && !element("ov-input").classList.contains("hidden")) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        hide("ov-input");
+        element("btn-settings-input").focus();
+      }
+      trapTabFocus(event, element("ov-input"));
+      return true;
+    }
     if (!this.settingsOpen && !this.keybindsOpen && !this.captureAction)
       return false;
     if (this.captureAction) {
@@ -2591,8 +2620,9 @@ export class GameUI {
       return true;
     }
     // 设置/键位子窗口打开但未捕获：吞掉所有游戏键；Esc 逐层返回。
-    event.preventDefault();
+    trapTabFocus(event, element(this.keybindsOpen ? "ov-keybinds" : "ov-settings"));
     if (event.key === "Escape") {
+      event.preventDefault();
       if (this.keybindsOpen) this.closeKeybinds();
       else this.closeSettings();
     }
@@ -2601,6 +2631,10 @@ export class GameUI {
 
   /** 关闭最上层覆盖面板；返回是否关闭了某层（键位路由据此决定是否继续处理）。 */
   dismissOverlay(): boolean {
+    if (this.audioSettings.isOpen) {
+      this.audioSettings.close(true);
+      return true;
+    }
     if (this.magePickOpen) {
       this.closeMageWeapon();
       return true;

@@ -1,7 +1,11 @@
 import { DOMAIN_AUDIO, type DomainSoundId } from '../game/data/domainAudio';
+import { AudioSettings, DEFAULT_AUDIO_SETTINGS, type AudioVolumeChannel } from './AudioSettings';
 export class AudioService {
-  muted = false;
+  private readonly settingsStore = new AudioSettings();
+  private preferences = this.settingsStore.read();
   private context: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private sfxGain: GainNode | null = null;
   private warned = false;
   private cues: ReturnType<typeof setTimeout>[] = [];
   private buffers = new Map<DomainSoundId, Promise<AudioBuffer>>();
@@ -13,6 +17,57 @@ export class AudioService {
   private ambientId: DomainSoundId | null = null;
   private audioEpoch = 0;
   private domainActive = true;
+  get muted(): boolean { return this.preferences.muted; }
+  set muted(value: boolean) {
+    this.preferences.muted = value;
+    this.applySettings();
+  }
+  get masterVolume(): number { return this.preferences.masterVolume; }
+  get sfxVolume(): number { return this.preferences.sfxVolume; }
+  get settingsError(): string | null { return this.settingsStore.lastError; }
+  private get audible(): boolean {
+    return !this.muted && this.masterVolume > 0 && this.sfxVolume > 0;
+  }
+  setVolume(channel: AudioVolumeChannel, volume: number): void {
+    if (!Number.isFinite(volume)) return;
+    this.preferences[channel] = Math.max(0, Math.min(1, volume));
+    this.applySettings();
+  }
+  resetSettings(): void {
+    this.preferences = { ...DEFAULT_AUDIO_SETTINGS };
+    this.applySettings();
+  }
+  private applySettings(): void {
+    if (this.context && this.masterGain && this.sfxGain) {
+      const now = this.context.currentTime;
+      for (const [node, volume] of [
+        [this.masterGain, this.muted ? 0 : this.masterVolume],
+        [this.sfxGain, this.sfxVolume],
+      ] as const) {
+        node.gain.cancelScheduledValues(now);
+        node.gain.setValueAtTime(node.gain.value, now);
+        if (volume === 0) node.gain.setValueAtTime(0, now);
+        else node.gain.linearRampToValueAtTime(volume, now + .012);
+      }
+    }
+    if (!this.audible) {
+      this.cancelCues();
+      this.stopDomainAudio();
+    }
+    this.settingsStore.write(this.preferences);
+  }
+  /** Every oscillator, sample and ambient loop shares this live volume bus. */
+  private output(): GainNode {
+    if (this.sfxGain) return this.sfxGain;
+    const ac = this.context ??= new AudioContext();
+    this.masterGain = ac.createGain();
+    this.sfxGain = ac.createGain();
+    this.masterGain.gain.value = this.muted ? 0 : this.masterVolume;
+    this.sfxGain.gain.value = this.sfxVolume;
+    this.sfxGain.connect(this.masterGain);
+    this.masterGain.connect(ac.destination);
+    return this.sfxGain;
+  }
   syncDomainAudio(active:boolean,ambient:DomainSoundId|null) {
     if (!active && this.domainActive) this.stopDomainAudio();
     this.domainActive=active;
@@ -39,10 +94,10 @@ export class AudioService {
     return pending;
   }
   domainSound(id:DomainSoundId) {
-    if (this.muted || !this.domainActive || typeof window==='undefined') return;
+    if (!this.audible || !this.domainActive || typeof window==='undefined') return;
     const epoch=this.audioEpoch, requested=Date.now();
     void this.domainBuffer(id).then(buffer=>{
-      if (this.muted || epoch!==this.audioEpoch || Date.now()-requested>200 || !this.context) return;
+      if (!this.audible || epoch!==this.audioEpoch || Date.now()-requested>200 || !this.context) return;
       const priority=id==='blackhole-impact'||id==='terminal-impact'?100:id==='collapse-in'||id.startsWith('learn-')?80:60;
       if (this.samples.size>=8) {
         const weakest=[...this.priorities].sort((a,b)=>a[1]-b[1])[0];
@@ -52,7 +107,7 @@ export class AudioService {
       const ac=this.context, source=ac.createBufferSource(), gain=ac.createGain();
       const modifier=['gravity-core','collapse-theory','gravity-crush','absolute-gravity','mass-focus','critical-impact','true-tear'].includes(id);
       source.buffer=buffer;gain.gain.value=modifier?.18:.5;
-      source.connect(gain);gain.connect(ac.destination);
+      source.connect(gain);gain.connect(this.output());
       this.samples.add(source);
       this.priorities.set(source,priority);
       source.onended=()=>{this.samples.delete(source);this.priorities.delete(source);source.disconnect();gain.disconnect();};
@@ -60,7 +115,7 @@ export class AudioService {
     }).catch(error=>this.report(error));
   }
   setDomainAmbient(id:DomainSoundId|null) {
-    if (this.muted) id=null;
+    if (!this.audible) id=null;
     if (id===this.ambientId) return;
     const ticket=++this.ambientEpoch;
     if (this.ambient && this.context) {
@@ -74,11 +129,11 @@ export class AudioService {
     if (!id || typeof window==='undefined') return;
     const epoch=this.audioEpoch;
     void this.domainBuffer(id).then(buffer=>{
-      if (epoch!==this.audioEpoch || ticket!==this.ambientEpoch || this.ambientId!==id || this.muted || !this.context) return;
+      if (epoch!==this.audioEpoch || ticket!==this.ambientEpoch || this.ambientId!==id || !this.audible || !this.context) return;
       const source=this.context.createBufferSource(),gain=this.context.createGain();
       source.buffer=buffer;source.loop=true;gain.gain.setValueAtTime(0,this.context.currentTime);
       gain.gain.linearRampToValueAtTime(.18,this.context.currentTime+.012);
-      source.connect(gain);gain.connect(this.context.destination);
+      source.connect(gain);gain.connect(this.output());
       source.onended=()=>{source.disconnect();gain.disconnect();};
       this.ambient=source;this.ambientGain=gain;source.start();
     }).catch(error=>this.report(error));
@@ -96,14 +151,14 @@ export class AudioService {
   }
   startCue() {
     this.beep(523, 0.1, "square", 0.06);
-    if (!this.muted && typeof window !== "undefined")
+    if (this.audible && typeof window !== "undefined")
       this.cues.push(
         setTimeout(() => this.beep(784, 0.15, "square", 0.06), 110),
       );
   }
   overCue() {
     this.beep(220, 0.4, "sawtooth", 0.09, -160);
-    if (!this.muted && typeof window !== "undefined")
+    if (this.audible && typeof window !== "undefined")
       this.cues.push(
         setTimeout(() => this.beep(160, 0.6, "sawtooth", 0.09, -110), 300),
       );
@@ -115,7 +170,7 @@ export class AudioService {
     vol = 0.06,
     slide = 0,
   ) {
-    if (this.muted || typeof window === "undefined") return;
+    if (!this.audible || typeof window === "undefined") return;
     try {
       this.context ??= new AudioContext();
       if (this.context.state === "suspended")
@@ -133,7 +188,7 @@ export class AudioService {
       g.gain.setValueAtTime(vol, ac.currentTime);
       g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
       o.connect(g);
-      g.connect(ac.destination);
+      g.connect(this.output());
       o.start();
       o.stop(ac.currentTime + dur);
       o.onended = () => {
@@ -157,5 +212,7 @@ export class AudioService {
     if (this.context)
       void this.context.close().catch((error) => this.report(error));
     this.context = null;
+    this.sfxGain = null;
+    this.masterGain = null;
   }
 }

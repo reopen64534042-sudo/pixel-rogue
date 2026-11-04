@@ -93,6 +93,7 @@
       <button class="btn" id="btn-tutorial" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">新 手 教 程</button>
       <button class="btn" id="btn-changelog" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">📜 更新日志</button>
       <button class="btn" id="btn-codex" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">图 鉴</button>
+      <button class="btn" id="btn-start-settings" style="font-size:1.3vmin;padding:0.7vmin 1.6vmin">设 置</button>
     </div>
   </div>
 
@@ -281,14 +282,60 @@
   <div id="ov-settings" class="overlay hidden">
     <h2>设 置</h2>
     <div class="settings-menu">
+      <button class="btn settings-menu-btn" id="btn-settings-audio" type="button">
+        音 频
+        <small>总音量 / 音效音量 / 静音</small>
+      </button>
       <button class="btn settings-menu-btn" id="btn-settings-keys">
         键 位
         <small>移动 / 冲刺 / 暂停 / 角色属性</small>
+      </button>
+      <button class="btn settings-menu-btn hidden" id="btn-settings-input" type="button">
+        触 屏 操 作
+        <small>浮动摇杆 / 固定摇杆</small>
       </button>
     </div>
     <div class="settings-actions">
       <button class="btn" id="btn-settings-close">返 回</button>
     </div>
+  </div>
+
+  <!-- 设置子窗口：音频 -->
+  <div id="ov-audio" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="audio-title" aria-describedby="audio-save-hint">
+    <section class="audio-panel">
+      <div class="audio-heading">
+        <span class="audio-eyebrow">SOUND</span>
+        <h2 id="audio-title">音 频 设 置</h2>
+        <p class="settings-hint" id="audio-save-hint" role="status"></p>
+      </div>
+      <div class="audio-controls">
+        <div class="audio-volume">
+          <div class="audio-volume-label">
+            <label for="audio-master">总音量</label>
+            <output id="audio-master-value" for="audio-master">100%</output>
+          </div>
+          <input id="audio-master" class="audio-slider" type="range" min="0" max="100" step="1" value="100" aria-describedby="audio-master-desc">
+          <p id="audio-master-desc">控制游戏中所有声音</p>
+        </div>
+        <div class="audio-volume">
+          <div class="audio-volume-label">
+            <label for="audio-sfx">音效音量</label>
+            <output id="audio-sfx-value" for="audio-sfx">100%</output>
+          </div>
+          <input id="audio-sfx" class="audio-slider" type="range" min="0" max="100" step="1" value="100" aria-describedby="audio-sfx-desc">
+          <p id="audio-sfx-desc">战斗、技能、领域环境声与界面提示音</p>
+        </div>
+      </div>
+      <div class="audio-preview-actions">
+        <button class="btn" id="btn-audio-mute" type="button" aria-pressed="false">全部静音</button>
+        <button class="btn" id="btn-audio-preview" type="button">试听音效</button>
+      </div>
+      <p class="settings-hint audio-status" id="audio-status" role="status"></p>
+      <div class="settings-actions audio-footer">
+        <button class="btn" id="btn-audio-reset" type="button">恢复默认</button>
+        <button class="btn" id="btn-audio-back" type="button">返回设置</button>
+      </div>
+    </section>
   </div>
 
   <!-- 设置子窗口：键位 -->
