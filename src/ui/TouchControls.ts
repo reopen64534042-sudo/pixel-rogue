@@ -83,11 +83,13 @@ export class TouchControls {
     this.dash.addEventListener("pointerleave", this.onDashUp);
     for (const mode of ["float", "fixed"] as const)
       this.modeButtons[mode].onclick = () => this.setMode(mode);
-    element("btn-input-close").onclick = () => this.closeSettings();
-    // 「设置 · 敬请期待」在手机端转为可用的操作设置入口；PC 端保持禁用占位。
-    const entry = element("btn-pause-settings") as HTMLButtonElement;
-    entry.disabled = false;
-    entry.textContent = "操 作 设 置";
+    element("btn-input-close").onclick = () => {
+      this.closeSettings();
+      element("btn-settings-input").focus();
+    };
+    // 触屏操作与音频、键位共用设置菜单，避免覆盖通用设置入口。
+    const entry = element("btn-settings-input");
+    entry.classList.remove("hidden");
     entry.onclick = () => this.openSettings();
     // 触屏没有键盘，暂停键去掉快捷键后缀，并按下文的 .touch-mode 放大点击区
     element("btn-pause").textContent = "暂停";
@@ -340,6 +342,7 @@ export class TouchControls {
   private openSettings() {
     this.reset();
     this.settingsOverlay.classList.remove("hidden");
+    this.modeButtons[this.joy.mode].focus();
   }
 
   private closeSettings() {
@@ -359,7 +362,9 @@ export class TouchControls {
     for (const mode of ["float", "fixed"] as const)
       this.modeButtons[mode].onclick = null;
     element("btn-input-close").onclick = null;
-    (element("btn-pause-settings") as HTMLButtonElement).onclick = null;
+    element("btn-settings-input").onclick = null;
+    element("btn-settings-input").classList.add("hidden");
+    this.closeSettings();
     window.removeEventListener("resize", this.layout);
     window.removeEventListener("orientationchange", this.layout);
     document.getElementById("stage")?.classList.remove("touch-mode");
